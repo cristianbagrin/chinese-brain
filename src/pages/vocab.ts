@@ -93,6 +93,13 @@ $('exportNew').addEventListener('click', async () => {
   await browser.storage.local.set({ lastExportAt: Date.now() });
   renderExportInfo();
 });
+$('copyNew').addEventListener('click', async () => {
+  const { lastExportAt } = await browser.storage.local.get('lastExportAt');
+  await navigator.clipboard.writeText(buildClaudeExport(words, logs, (lastExportAt as number) ?? 0));
+  await browser.storage.local.set({ lastExportAt: Date.now() });
+  $('copyOk').textContent = 'Copied. Paste it into Claude.';
+  renderExportInfo();
+});
 $('exportAll').addEventListener('click', () => download(`chinese-brain-all-${today()}.tsv`, buildClaudeExport(words, logs, 0), 'text/tab-separated-values;charset=utf-8'));
 
 $('backup').addEventListener('click', async () => {

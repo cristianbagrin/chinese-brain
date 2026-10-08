@@ -1,63 +1,33 @@
 # Explore verdicts
 
 Each idea from the brief got a short, time-boxed spike: a quick prototype or a
-feasibility check. **KEEP** = build it (or keep what is built). **MAYBE
-LATER** = feasible, but not worth it yet. **DROP** = not worth building.
-Items already built are marked *(built)*.
+feasibility check. **KEEP** = built. **LATER** = feasible, not built yet.
+**DROP** = not worth building. Updated after round 2 of feedback.
 
-What was verified in a real Firefox 157: hover lookup, the card and status keys, and the live feed (including through a symlinked folder). On real YouTube, the player's caption download (`lang=zh-Hant`, `fmt=json3`) was captured by `filterResponseData`. The overlay was tested end to end against a local stand-in for the YouTube player (`tests/youtube-mock/`), because YouTube shows a captcha to the test machine's datacentre IP. They are small, and easy to remove
-if you disagree.
+| # | Idea | Verdict | Notes |
+|---|------|---------|-------|
+| 1 | Image search | **KEEP** (link) / DROP (inline thumbnails) | `I` opens DuckDuckGo image search, Taiwan region. Inline thumbnails would mean scraping DuckDuckGo or Brave, which answer with captchas and rate limits. |
+| 2 | Status colours + coverage | **KEEP** | 新 red / 學 yellow / 熟 green in the card, subtitles, transcript, word list, and optionally on any page. Coverage % is in the player panel, the learn-first list and the toolbar menu. |
+| 3 | Export only what's new | **KEEP** | One weekly TSV (or clipboard copy) with K/L/F codes like `known-words.txt`: status changes plus lookups. The always-on live feed was removed at your request. |
+| 4 | Click-to-seek, loop line | **KEEP** | `A` `S` `D`, `R` loop, and a transcript panel where clicking a line seeks to it. |
+| 5 | Shadowing | **KEEP** | `Q`: pauses after each line for 1.5× its length, then resumes. |
+| 6 | Pinyin toggles | **KEEP** | `P` toggles subtitle pinyin. In Settings, card pinyin can be hidden until you press `P`. |
+| 7 | Learn-first list | **KEEP** | A tab in the transcript panel. It ranks this video's unknown words by how often they occur and how common they are, and shows the coverage gain. |
+| 8 | Example sentences | **KEEP** | About 16,000 Taiwan-natural sentences for the ~8,500 most common words plus your known-words list, written to a Taiwan-usage brief and machine-checked. The card also shows up to 3 sentences you met the word in. Tatoeba was dropped: half of it is Simplified, and it has almost no Taiwan words. |
+| 9 | Caption fallback | Gemini **KEEP**, Whisper **DROP** | Gemini is opt-in per video, uses your key and caches the result. In-browser Whisper: 77–250 MB models, 43–53% character error on Chinese, and it would need the audio stream. |
+| 10 | Second-line translation | YouTube `tlang` + Google fallback **KEEP**, Bergamot **LATER** | YouTube sometimes answers `tlang` with 429, so the Google web endpoint fills in. Bergamot zh→en is about 57 MB, and Firefox exposes no translation API to extensions. |
+| 11 | Other sources | Netflix **LATER**, PDFs **DROP**, Bilibili **DROP** | The card, segmenter and overlay don't depend on the site; Netflix would need its own subtitle capture. Firefox's PDF viewer doesn't run content scripts. Bilibili is Mainland content. |
+| 12 | Sync | Backup file **KEEP**, Gist **LATER** | `storage.sync` caps at 100 KB. A backup JSON moves everything between browsers and computers. |
 
-| # | Idea | Verdict | Why, in one line |
-|---|------|---------|------------------|
-| 1 | Image search for a word | **KEEP** (link) / DROP (inline thumbnails) | `i` opens DuckDuckGo image search, Taiwan region. Fetching thumbnails into the card means scraping DuckDuckGo or Brave, which return captchas and rate limits. |
-| 2 | Status colours + "you know X% of this video" | **KEEP** *(built)* | Words are coloured by status in subtitles, the card and the word list. Untracked words get a dotted underline. `熟 %` shows in the bar above the subtitles. |
-| 3 | Export only what's new / no export at all | **KEEP** *(built)* | "Export new since last time" uses a watermark. The live feed in `~/Downloads/chinese-brain/` is rewritten after changes, so Claude can read it directly (see below). |
-| 4 | Click-to-seek + loop line | **KEEP** | Built: `A` / `S` / `D` previous / replay / next line, `R` loop line. Proposed next: a transcript panel where clicking a line seeks to it. |
-| 5 | Shadowing mode | **KEEP** *(built)* | `Q` pauses after each line for 1.5× the line's length, then resumes. The factor is in Settings. |
-| 6 | Pinyin toggle | **KEEP** | `P` toggles pinyin over subtitles *(built)*. Proposed: an option to hide pinyin in the card until you hover it, for self-testing. |
-| 7 | "Learn this first" list per video | **KEEP** | The data is already there (segmented video, TOCFL levels, your statuses). Rank unknown words by TOCFL level, then by how often they occur in the video. |
-| 8 | Example sentences | **MAYBE LATER** (Tatoeba) / **KEEP** (your own sentences) | Tatoeba is general and half Simplified, with almost no Taiwan words (颱風 5 sentences, 捷運 1, 機車 0). Showing the sentences you already met a word in is free and more relevant. |
-| 9 | Caption fallback: Gemini vs Whisper | Gemini **MAYBE LATER**, Whisper **DROP** | Whisper in the browser: 77–250 MB models, 43–53% character error on Chinese, and it needs the audio track (fragile, against YouTube's terms). Gemini: user key, opt-in per video, but the YouTube-URL path is in preview. |
-| 10 | Second line: YouTube `tlang` vs Google endpoint vs Bergamot | **YouTube `tlang`** default, Google endpoint as automatic fallback *(built)*, Bergamot **MAYBE LATER** | `tlang` comes with the captured track. In testing, YouTube sometimes answered it with HTTP 429, so after 6 s without an English line the extension batches the lines to Google's free endpoint, and failure just leaves the line empty. Bergamot zh→en is about 57 MB, and Firefox exposes no translation API to extensions. |
-| 11 | Other sources (Netflix, PDFs, …) | Netflix **MAYBE LATER**, PDFs **DROP**, Bilibili **DROP** | Overlay, card and segmenter are site-independent. Each site needs a capture adapter. Netflix has Taiwan dramas and uses the same interception idea. Firefox's PDF viewer doesn't run content scripts. Bilibili is Mainland content. |
-| 12 | Cross-device sync | **KEEP** backup file *(built)*, Gist **MAYBE LATER** | `storage.sync` caps at 100 KB. The live feed also writes `backup.json`, so if that folder is in iCloud you always have an off-machine backup to restore from. |
-| 13 | Other ideas | see below | |
-
-## 3 · How Claude can read your data with no export
-
-Extensions can only write files inside the Downloads folder. The extension
-keeps three files up to date in `~/Downloads/chinese-brain/`:
-
-- `words.tsv`: one row per word: status, Taiwan pinyin, gloss, status history, last sentence and link.
-- `events.tsv`: append-only log of lookups, status changes and videos watched (minutes and `熟 %`).
-- `backup.json`: everything, for restoring.
-- `README.md`: the format, so any Claude session understands the files cold.
-
-To land them straight in your Claude folder, run this once on the Mac:
-
-```bash
-ln -s ~/Library/Mobile\ Documents/com~apple~CloudDocs/Claude/life/chinese/chinese-brain ~/Downloads/chinese-brain
-```
-
-(Create the target folder first, or point the link wherever your Chinese files
-live.) I tested that Firefox writes through a symlinked folder and overwrites
-in place without creating `words(1).tsv`. Your Chinese skills can then read
-`life/chinese/chinese-brain/words.tsv` directly, remember the newest
-timestamp they processed, and read only later rows next time. No export
-button needed. The monthly review's "merge Lexirise CSVs" step can point at
-this file instead.
-
-## 13 · Other ideas
+## Other ideas
 
 | Idea | Verdict | Why |
 |------|---------|-----|
-| Import `known-words.txt` | **KEEP** *(built)* | Word list → Import. Makes `熟 %` accurate from day one. |
-| Mark TOCFL levels as known | **KEEP** *(built)* | A quick start for words you obviously know. Only touches untracked words. |
-| On-screen caption mirroring when no track is captured | **KEEP** *(built)* | A fallback that reads YouTube's own caption text, so lookup still works if capture breaks. |
-| Colour words by status on any web page (LingQ-style) | **MAYBE LATER** | Valuable for reading news, but it rewrites the page's text. Better as a per-page key than always on. |
-| Monolingual MOE (教育部) definitions in the card | **MAYBE LATER** | Good for intermediate learners. Adds about 25 MB and needs a tab in the card. |
-| Taiwan words missing from CC-CEDICT (滷肉飯 etc.) | **MAYBE LATER** | A small hand-made supplement list. CC-CEDICT and MOE both lack some everyday Taiwan food and slang compounds. |
-| Stroke order animation | **DROP** | Not part of how you study (reading/listening). It is also most of LingLook's 40 MB. |
-| Streaks, badges, daily goals | **DROP** | Your learning system already tracks progress. Duplicating it adds noise. |
-| Hard-subbed videos (subtitles burned into the picture) | **MAYBE LATER** | Common on Taiwanese channels. The realistic fix is the Gemini fallback (#9), not on-device OCR. |
+| Import `known-words.txt` with K/L and dates | **KEEP** | Makes coverage accurate from day one. |
+| Colour words on any page | **KEEP** | Toolbar toggle. Uses the CSS Highlight API, so pages are never rewritten. Shows page coverage in the toolbar menu. |
+| Stamp sounds | **KEEP** | Short synthesized cues, a different one per status. Can be turned off. |
+| Azure neural voice | **KEEP** (optional) | With a free key, words are read by a Taiwan neural voice, faded out cleanly. Otherwise the Mac's Meijia voice. |
+| On-screen caption mirroring | **KEEP** | Fallback if caption capture ever breaks. |
+| Monolingual MOE definitions in the card | **LATER** | Good for intermediate learners. Adds about 25 MB. |
+| Taiwan words missing from CC-CEDICT (滷肉飯 …) | **LATER** | A small supplement list. Neither CC-CEDICT nor MOE has every everyday Taiwan food or slang compound. |
+| Stroke order, streaks, badges | **DROP** | Outside how you study, or duplicates your learning system. |

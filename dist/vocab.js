@@ -155,6 +155,10 @@
     let { lastExportAt } = await browser.storage.local.get("lastExportAt");
     download(`chinese-brain-${today()}.tsv`, buildClaudeExport(words, logs, lastExportAt ?? 0), "text/tab-separated-values;charset=utf-8"), await browser.storage.local.set({ lastExportAt: Date.now() }), renderExportInfo();
   });
+  $("copyNew").addEventListener("click", async () => {
+    let { lastExportAt } = await browser.storage.local.get("lastExportAt");
+    await navigator.clipboard.writeText(buildClaudeExport(words, logs, lastExportAt ?? 0)), await browser.storage.local.set({ lastExportAt: Date.now() }), $("copyOk").textContent = "Copied. Paste it into Claude.", renderExportInfo();
+  });
   $("exportAll").addEventListener("click", () => download(`chinese-brain-all-${today()}.tsv`, buildClaudeExport(words, logs, 0), "text/tab-separated-values;charset=utf-8"));
   $("backup").addEventListener("click", async () => {
     let all = await browser.storage.local.get(null);

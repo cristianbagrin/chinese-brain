@@ -52,6 +52,11 @@ def main():
                     rejects.append(("columns", line))
                     continue
                 w, zh, en = (c.strip() for c in cols)
+                # Full-width punctuation in Chinese text.
+                zh = re.sub(r"(?<=[\u3400-\u9fff」』）]),\s*", "，", zh)
+                zh = re.sub(r"(?<=[\u3400-\u9fff」』）])\?", "？", zh)
+                zh = re.sub(r"(?<=[\u3400-\u9fff」』）])!", "！", zh)
+                zh = re.sub(r"(?<=[\u3400-\u9fff」』）]):", "：", zh)
                 bad = ""
                 if w not in zh:
                     bad = "word missing"
