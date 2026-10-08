@@ -1166,6 +1166,12 @@
 
   // src/content/index.ts
   var w = window;
+  if (false) {
+    window.addEventListener("message", (e) => {
+      if (e.data?.cbOpen) browser.runtime.sendMessage({ type: "openPage", page: e.data.cbOpen });
+      if (e.data?.cbMsg) browser.runtime.sendMessage(e.data.cbMsg);
+    });
+  }
   if (!w.__chineseBrain) {
     w.__chineseBrain = true;
     state.ready().then(() => {

@@ -28,6 +28,8 @@ const opts = {
   loader: { '.css': 'text' },
   logLevel: 'info',
   legalComments: 'none',
+  // Test builds (CB_TEST=1) add a hook so the browser tests can open extension pages.
+  define: { __TEST__: JSON.stringify(!!process.env.CB_TEST) },
 };
 if (watch) {
   const ctx = await esbuild.context(opts);

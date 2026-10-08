@@ -543,6 +543,9 @@ read only later rows. Nothing is ever deleted from events.tsv, so this is safe.
         });
       case "tocflWords":
         return dictReady.then((d) => [...new Set(d.entries.filter((e) => e.tocfl && e.tocfl <= any.level).map((e) => e.trad))]);
+      case "openPage":
+        if (true) return void 0;
+        return browser.tabs.create({ url: browser.runtime.getURL(String(any.page)) }).then(() => true);
       case "entries":
         return dictReady.then((d) => d.get(any.word));
     }

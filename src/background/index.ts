@@ -5,6 +5,8 @@ import { scheduleFeed, writeFeed } from './feed.ts';
 import { shortGloss, Store } from './store.ts';
 import { cachedCaptions, startCaptionCapture } from './youtube.ts';
 
+declare const __TEST__: boolean;
+
 let dict: Dictionary | undefined;
 const dictReady = loadDictionary();
 const store = new Store();
@@ -94,6 +96,9 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
       });
     case 'tocflWords':
       return dictReady.then((d) => [...new Set(d.entries.filter((e) => e.tocfl && e.tocfl <= (any.level as number)).map((e) => e.trad))]);
+    case 'openPage':
+      if (!__TEST__) return undefined;
+      return browser.tabs.create({ url: browser.runtime.getURL(String(any.page)) }).then(() => true);
     case 'entries':
       return dictReady.then((d) => d.get(any.word as string));
   }

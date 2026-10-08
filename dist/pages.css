@@ -22,6 +22,7 @@ body {
 }
 a { color: var(--accent); }
 button, select, input { font: inherit; color: inherit; }
+input[type='checkbox'] { accent-color: var(--ink); width: 16px; height: 16px; }
 button {
   cursor: pointer;
   background: transparent;
@@ -53,7 +54,7 @@ textarea { width: 100%; font: 14px/1.5 var(--mono); }
   top: 0;
   height: 100vh;
 }
-.rail .mark { writing-mode: vertical-rl; font: 700 44px/1 var(--serif); letter-spacing: 0.12em; }
+.rail .mark { display: flex; flex-direction: column; gap: 0.12em; font: 700 44px/1 var(--serif); }
 .rail nav { display: flex; flex-direction: column; gap: 6px; font: 12px var(--mono); text-align: center; }
 .rail nav a { color: var(--ink2); text-decoration: none; padding: 2px 6px; }
 .rail nav a[aria-current='page'] { color: var(--ink); border-bottom: 2px solid var(--ink); }
@@ -110,7 +111,7 @@ td.when { font: 12px var(--mono); color: var(--ink2); white-space: nowrap; }
 @media (max-width: 700px) {
   .page { grid-template-columns: 1fr; }
   .rail { position: static; height: auto; flex-direction: row; border-right: 0; border-bottom: 2px dotted var(--rule); padding: 12px 16px; }
-  .rail .mark { writing-mode: horizontal-tb; font-size: 28px; }
+  .rail .mark { flex-direction: row; font-size: 28px; }
   .rail nav { flex-direction: row; }
   main { padding: 20px 16px; }
   .rows { grid-template-columns: 1fr; }
