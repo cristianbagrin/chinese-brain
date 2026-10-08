@@ -94,6 +94,8 @@ export interface Settings {
   cardPinyin: 'show' | 'hover';
   /** Short sound when stamping a status. */
   sounds: boolean;
+  /** Colour words by status on every page (highlighter style). */
+  pageColors: boolean;
   speechRate: number;
   /** Optional Azure neural voice (free tier); empty key = system voice. */
   azureKey: string;
@@ -114,6 +116,7 @@ export const DEFAULT_SETTINGS: Settings = {
   shadowFactor: 1.5,
   cardPinyin: 'show',
   sounds: true,
+  pageColors: false,
   speechRate: 0.9,
   azureKey: '',
   azureRegion: 'eastasia',

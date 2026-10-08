@@ -181,7 +181,9 @@ export class HoverLookup {
       this.cssInjected = true;
       browser.runtime.sendMessage({ type: 'insertCSS', css: `::highlight(${HIGHLIGHT}){background:#f3d27a;color:#31261a}` });
     }
-    CSS.highlights.set(HIGHLIGHT, new Highlight(range));
+    const hl = new Highlight(range);
+    hl.priority = 10; // above the page colours
+    CSS.highlights.set(HIGHLIGHT, hl);
   }
 
   private scheduleHide() {

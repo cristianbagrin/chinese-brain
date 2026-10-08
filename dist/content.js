@@ -48,6 +48,7 @@
     shadowFactor: 1.5,
     cardPinyin: "show",
     sounds: !0,
+    pageColors: !1,
     speechRate: 0.9,
     azureKey: "",
     azureRegion: "eastasia",
@@ -214,7 +215,10 @@
       return r;
     }
     highlight(range) {
-      CSS.highlights && (this.cssInjected || (this.cssInjected = !0, browser.runtime.sendMessage({ type: "insertCSS", css: `::highlight(${HIGHLIGHT}){background:#f3d27a;color:#31261a}` })), CSS.highlights.set(HIGHLIGHT, new Highlight(range)));
+      if (!CSS.highlights) return;
+      this.cssInjected || (this.cssInjected = !0, browser.runtime.sendMessage({ type: "insertCSS", css: `::highlight(${HIGHLIGHT}){background:#f3d27a;color:#31261a}` }));
+      let hl = new Highlight(range);
+      hl.priority = 10, CSS.highlights.set(HIGHLIGHT, hl);
     }
     scheduleHide() {
       this.currentKey && this.popup.hideSoon();
@@ -1241,6 +1245,89 @@ rt { font: 400 0.42em/1 var(--sans); color: #c9cdf0; letter-spacing: 0; }
     return a.length === b.length && a[0]?.text === b[0]?.text && a[a.length - 1]?.text === b[b.length - 1]?.text;
   }
 
+  // src/content/pagecolor.ts
+  var NAMES = { fresh: "cb-fresh", learning: "cb-learning", known: "cb-known" }, CSS_TEXT = `
+::highlight(cb-fresh){background-color:rgba(239,47,66,.24)}
+::highlight(cb-learning){background-color:rgba(255,200,31,.42)}
+::highlight(cb-known){background-color:rgba(31,174,79,.16)}`, SKIP = 'script,style,noscript,textarea,input,select,code,pre,[contenteditable=""],[contenteditable="true"],chinese-brain-popup,[data-cb-own]', MAX_CHARS = 3e5, PageColors = class {
+    words = [];
+    done = /* @__PURE__ */ new WeakSet();
+    chars = 0;
+    observer;
+    pending = /* @__PURE__ */ new Set();
+    timer;
+    on = !1;
+    cssInjected = !1;
+    constructor() {
+      state.onChange(() => this.sync()), this.sync(), browser.runtime.onMessage.addListener((msg) => {
+        if (msg.type === "pageStats") return Promise.resolve(this.stats());
+      });
+    }
+    sync() {
+      let want = state.settings.pageColors && state.siteEnabled() && !!CSS.highlights;
+      if (want === this.on) {
+        want && this.paint();
+        return;
+      }
+      this.on = want, want ? this.start() : this.stop();
+    }
+    async start() {
+      this.cssInjected || (this.cssInjected = !0, browser.runtime.sendMessage({ type: "insertCSS", css: CSS_TEXT })), await state.loadStatuses(), await this.scan(document.body), this.observer = new MutationObserver((muts) => {
+        for (let m of muts) m.addedNodes.forEach((n) => this.pending.add(n));
+        clearTimeout(this.timer), this.timer = setTimeout(() => {
+          let nodes = [...this.pending];
+          this.pending.clear(), nodes.forEach((n) => n.isConnected && this.scan(n));
+        }, 600);
+      }), this.observer.observe(document.body, { childList: !0, subtree: !0 });
+    }
+    stop() {
+      this.observer?.disconnect();
+      for (let name of Object.values(NAMES)) CSS.highlights?.delete(name);
+      this.words = [], this.done = /* @__PURE__ */ new WeakSet(), this.chars = 0;
+    }
+    async scan(root) {
+      if (!this.on || this.chars > MAX_CHARS) return;
+      let nodes = [], walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode: (n) => {
+          let t = n;
+          return this.done.has(t) || !CJK.test(t.data) || t.parentElement?.closest(SKIP) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+        }
+      });
+      for (let n = walker.nextNode(); n && this.chars < MAX_CHARS; n = walker.nextNode())
+        nodes.push(n), this.done.add(n), this.chars += n.data.length;
+      for (let i = 0; i < nodes.length; i += 400) {
+        let batch = nodes.slice(i, i + 400), tokens = await browser.runtime.sendMessage({ type: "segment", lines: batch.map((n) => n.data) });
+        batch.forEach((node, k) => {
+          let off = 0;
+          for (let t of tokens[k]) {
+            if (t.word && CJK.test(t.text)) {
+              let r = document.createRange();
+              r.setStart(node, off), r.setEnd(node, off + t.text.length), this.words.push({ range: r, word: t.word });
+            }
+            off += t.text.length;
+          }
+        });
+      }
+      this.paint();
+    }
+    paint() {
+      if (!this.on || !CSS.highlights) return;
+      let sets = { fresh: [], learning: [], known: [] };
+      this.words = this.words.filter((w2) => w2.range.startContainer.isConnected);
+      for (let w2 of this.words) {
+        let st = state.status(w2.word);
+        st && sets[st].push(w2.range);
+      }
+      for (let st of Object.keys(sets)) CSS.highlights.set(NAMES[st], new Highlight(...sets[st]));
+    }
+    /** Share of the words on this page per status, for the toolbar popup. */
+    stats() {
+      let c = { fresh: 0, learning: 0, known: 0, new: 0, total: this.words.length, on: this.on };
+      for (let w2 of this.words) c[state.status(w2.word) ?? "new"]++;
+      return c;
+    }
+  };
+
   // src/shared/export.ts
   function shortSource(url, t) {
     try {
@@ -1652,7 +1739,7 @@ rt { font: 400 0.42em/1 var(--sans); color: #c9cdf0; letter-spacing: 0; }
   var w = window;
   w.__chineseBrain || (w.__chineseBrain = !0, state.ready().then(() => {
     let popup = new Popup();
-    new HoverLookup(popup), /(^|\.)youtube\.com$/.test(location.hostname) ? new YouTubeSubs(popup) : window.addEventListener(
+    new HoverLookup(popup), new PageColors(), /(^|\.)youtube\.com$/.test(location.hostname) ? new YouTubeSubs(popup) : window.addEventListener(
       "keydown",
       (e) => {
         let t = e.target;

@@ -19,6 +19,21 @@ async function init() {
   mode.value = s.hoverMode;
   mode.addEventListener('change', () => browser.runtime.sendMessage({ type: 'saveSettings', settings: { hoverMode: mode.value } }));
 
+  const pc = $<HTMLInputElement>('pageColors');
+  pc.checked = s.pageColors;
+  pc.addEventListener('change', () => browser.runtime.sendMessage({ type: 'saveSettings', settings: { pageColors: pc.checked } }).then(() => setTimeout(showStats, 1500)));
+  const showStats = async () => {
+    try {
+      const st = await browser.tabs.sendMessage(tabs[0].id!, { type: 'pageStats' });
+      if (!st?.on || !st.total) return ($('pageStats').textContent = '');
+      const pct = (n: number) => Math.round((n / st.total) * 100);
+      $('pageStats').textContent = `This page: 熟 ${pct(st.known)}% · 學 ${pct(st.learning)}% · 新 ${pct(st.fresh)}% · new ${pct(st.new)}%`;
+    } catch {
+      /* no content script on this tab */
+    }
+  };
+  showStats();
+
   let host = '';
   try {
     host = new URL(tabs[0]?.url ?? '').hostname;

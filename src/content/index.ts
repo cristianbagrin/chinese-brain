@@ -1,5 +1,6 @@
 import { YouTubeSubs } from '../youtube/index.ts';
 import { HoverLookup } from './hover.ts';
+import { PageColors } from './pagecolor.ts';
 import { Popup } from './popup.ts';
 import { state } from './state.ts';
 
@@ -17,6 +18,7 @@ if (!w.__chineseBrain) {
   state.ready().then(() => {
     const popup = new Popup();
     new HoverLookup(popup);
+    new PageColors();
     const onYouTube = /(^|\.)youtube\.com$/.test(location.hostname);
     if (onYouTube) new YouTubeSubs(popup);
     else {

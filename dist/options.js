@@ -14,6 +14,7 @@
     shadowFactor: 1.5,
     cardPinyin: "show",
     sounds: !0,
+    pageColors: !1,
     speechRate: 0.9,
     azureKey: "",
     azureRegion: "eastasia",
