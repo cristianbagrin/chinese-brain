@@ -1,0 +1,141 @@
+import type { Entry, LookupMatch, Token } from './types.ts';
+
+export const CJK = /[㐀-䶿一-鿿豈-﫿]/;
+const MAX_WORD = 8;
+
+/** In-memory CC-CEDICT with Taiwan readings. Built from static/data/dict.tsv.gz. */
+export class Dictionary {
+  entries: Entry[] = [];
+  private index = new Map<string, number[]>();
+
+  static fromTsv(text: string): Dictionary {
+    const d = new Dictionary();
+    let start = 0;
+    while (start < text.length) {
+      let end = text.indexOf('\n', start);
+      if (end < 0) end = text.length;
+      if (text.charCodeAt(start) !== 35 /* # */ && end > start) {
+        const f = text.slice(start, end).split('\t');
+        const e: Entry = {
+          trad: f[0],
+          simp: f[1],
+          py: f[2],
+          tw: f[3],
+          defs: f[4].split('/'),
+          zipf: Number(f[5]) || 0,
+          tocfl: Number(f[6]) || 0,
+        };
+        const i = d.entries.push(e) - 1;
+        d.add(e.trad, i);
+        if (e.simp !== e.trad) d.add(e.simp, i);
+      }
+      start = end + 1;
+    }
+    return d;
+  }
+
+  private add(key: string, i: number) {
+    const list = this.index.get(key);
+    if (list) list.push(i);
+    else this.index.set(key, [i]);
+  }
+
+  has(word: string): boolean {
+    return this.index.has(word);
+  }
+
+  /** All entries for a headword (either script), best first. */
+  get(word: string): Entry[] {
+    const ids = this.index.get(word);
+    if (!ids) return [];
+    return rankEntries(
+      ids.map((i) => this.entries[i]),
+      word,
+    );
+  }
+
+  /** Longest-prefix matches for text starting at the cursor, longest first. */
+  lookup(text: string, max = 4): LookupMatch[] {
+    if (!text || !CJK.test(text[0])) return [];
+    const out: LookupMatch[] = [];
+    for (let len = Math.min(MAX_WORD, text.length); len >= 1 && out.length < max; len--) {
+      const s = text.slice(0, len);
+      const entries = this.get(s);
+      if (entries.length) out.push({ text: s, word: entries[0].trad, entries });
+    }
+    return out;
+  }
+
+  /** log10 probability-ish score for a dictionary word. */
+  private score(word: string): number {
+    const entries = this.get(word);
+    if (!entries.length) return word.length === 1 ? -14 : -Infinity;
+    const zipf = Math.max(...entries.map((e) => e.zipf));
+    if (zipf > 0) return zipf / 10 - 9;
+    return word.length === 1 ? -9 : -8.6;
+  }
+
+  /**
+   * Split a line into words: dynamic programming over dictionary words,
+   * maximising the summed log-frequency (a unigram model, like jieba).
+   */
+  segment(line: string): Token[] {
+    const tokens: Token[] = [];
+    // Split into CJK runs and everything else.
+    const re = /[㐀-䶿一-鿿豈-﫿]+|[^㐀-䶿一-鿿豈-﫿]+/g;
+    for (const m of line.matchAll(re)) {
+      const run = m[0];
+      if (!CJK.test(run[0])) {
+        tokens.push({ text: run });
+        continue;
+      }
+      const n = run.length;
+      const best = new Array<number>(n + 1).fill(-Infinity);
+      const back = new Array<number>(n + 1).fill(0);
+      best[0] = 0;
+      for (let i = 0; i < n; i++) {
+        if (best[i] === -Infinity) continue;
+        for (let len = 1; len <= MAX_WORD && i + len <= n; len++) {
+          const s = run.slice(i, i + len);
+          const sc = len === 1 || this.index.has(s) ? this.score(s) : -Infinity;
+          if (sc === -Infinity) continue;
+          const v = best[i] + sc;
+          if (v > best[i + len]) {
+            best[i + len] = v;
+            back[i + len] = i;
+          }
+        }
+      }
+      const parts: string[] = [];
+      for (let j = n; j > 0; j = back[j]) parts.push(run.slice(back[j], j));
+      parts.reverse();
+      for (const p of parts) tokens.push(this.token(p));
+    }
+    return tokens;
+  }
+
+  private token(text: string): Token {
+    const entries = this.get(text);
+    if (!entries.length) return { text, trad: text };
+    const e = entries[0];
+    return { text, word: e.trad, py: e.tw || e.py, trad: e.trad };
+  }
+}
+
+const LOW_VALUE = /^(old )?variant of|^see |^surname |^used in |^\(old\)|^archaic /i;
+
+/** Order entries: matching script first, common senses before proper nouns and variants. */
+export function rankEntries(entries: Entry[], query: string): Entry[] {
+  const rank = (e: Entry) => {
+    let r = 0;
+    if (e.trad !== query) r += 1; // query is simplified: still fine, small penalty
+    if (/^[A-Z]/.test(e.py)) r += 4; // proper noun
+    if (LOW_VALUE.test(e.defs[0] ?? '')) r += 8;
+    if (e.defs.every((d) => /^(old )?variant of|^see /i.test(d))) r += 8;
+    return r;
+  };
+  return entries
+    .map((e, i) => ({ e, i, r: rank(e) }))
+    .sort((a, b) => a.r - b.r || b.e.zipf - a.e.zipf || a.i - b.i)
+    .map((x) => x.e);
+}

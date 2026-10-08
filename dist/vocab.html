@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Word list · Chinese Brain</title>
+<link rel="icon" href="icons/icon.svg">
+<link rel="stylesheet" href="pages.css">
+</head>
+<body>
+<div class="page">
+  <aside class="rail">
+    <div class="mark">中文腦</div>
+    <nav>
+      <a href="vocab.html" aria-current="page">words</a>
+      <a href="vocab.html#export">export</a>
+      <a href="options.html">settings</a>
+    </nav>
+  </aside>
+  <main>
+    <h1>Word list</h1>
+    <p class="sub">Every word you stamped, from YouTube and from any page. Keys in the lookup card: <span class="mono">1</span> Fresh, <span class="mono">2</span> Difficult, <span class="mono">3</span> Known, <span class="mono">0</span> clear.</p>
+    <div class="counts" id="counts"></div>
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Search word, pinyin, meaning…">
+      <div class="seg" id="filter">
+        <button data-f="all" aria-pressed="true">all</button>
+        <button data-f="fresh">新 fresh</button>
+        <button data-f="difficult">難 difficult</button>
+        <button data-f="known">熟 known</button>
+      </div>
+      <select id="sort">
+        <option value="updated">recently changed</option>
+        <option value="added">recently added</option>
+        <option value="looks">most looked up</option>
+      </select>
+      <span class="muted mono" id="shown"></span>
+    </div>
+    <table>
+      <thead><tr><th>word</th><th>pinyin</th><th>meaning</th><th>met in</th><th>added</th><th>status</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <p class="muted" id="more"></p>
+
+    <h2 id="export">Export</h2>
+    <div class="rows">
+      <label>For Claude</label>
+      <div>
+        <button class="primary" id="exportNew">Export new since last time</button>
+        <button id="exportAll">Export everything</button>
+        <div class="help" id="lastExport"></div>
+        <div class="help">One Markdown file with your word changes and lookups, ready to attach to Claude. The live feed below makes this optional.</div>
+      </div>
+      <label>Live feed</label>
+      <div>
+        <button id="feedNow">Write feed now</button>
+        <div class="help" id="feedInfo"></div>
+      </div>
+      <label>Anki</label>
+      <div>
+        <button id="ankiNew">CSV: new since last Anki export</button>
+        <button id="ankiAll">CSV: all words</button>
+        <div class="help">Columns: word, pinyin, meaning, sentence, source, status.</div>
+      </div>
+      <label>Backup</label>
+      <div>
+        <button id="backup">Download backup (.json)</button>
+        <label class="muted" style="margin-left:8px"><input type="file" id="restore" accept=".json"> restore</label>
+        <div class="help">Use this to move to another browser or computer, or before reinstalling.</div>
+      </div>
+    </div>
+
+    <h2 id="import">Import</h2>
+    <div class="rows">
+      <label>Words I already know</label>
+      <div>
+        <textarea id="knownText" rows="5" placeholder="Paste a list (one word per line, e.g. your known-words.txt). Only the first Chinese word on each line is used."></textarea>
+        <div class="toolbar" style="margin-top:6px">
+          <input type="file" id="knownFile" accept=".txt,.tsv,.csv">
+          <button class="primary" id="knownGo">Mark as known</button>
+          <span class="ok" id="knownOk"></span>
+        </div>
+      </div>
+      <label>TOCFL quick start</label>
+      <div>
+        <select id="tocfl">
+          <option value="2">Novice 1–2</option>
+          <option value="3">up to A1</option>
+          <option value="4">up to A2</option>
+          <option value="5">up to B1</option>
+          <option value="6">up to B2</option>
+        </select>
+        <button id="tocflGo">Mark these levels known</button>
+        <span class="ok" id="tocflOk"></span>
+        <div class="help">Only touches words that aren't in your list yet.</div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="vocab.js"></script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+:host {
+  all: initial;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 72px;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  transition: bottom 0.15s ease;
+  --fresh: #9cc2ff;
+  --difficult: #ff8f9a;
+  --known: #ffffff;
+  --ink-band: rgba(36, 28, 19, 0.78);
+  --mint: #c9efc0;
+  --serif: 'Songti TC', 'Noto Serif TC', 'Noto Serif CJK TC', 'PMingLiU', serif;
+  --sans: -apple-system, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
+  --mono: ui-monospace, 'SF Mono', Menlo, monospace;
+}
+:host(.low) { bottom: 3%; }
+:host([hidden]) { display: none; }
+
+.box {
+  pointer-events: auto;
+  max-width: 88%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15em;
+  font-size: var(--fs, 30px);
+}
+.bar {
+  font: 11px/1.6 var(--mono);
+  color: #e8e2d4;
+  background: var(--ink-band);
+  padding: 1px 8px;
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+  user-select: none;
+}
+.box:hover .bar, .bar.flash { opacity: 1; }
+.bar b { color: var(--mint); font-weight: 600; }
+.bar .on { color: #ffd479; }
+
+.zh {
+  background: var(--ink-band);
+  color: #fff;
+  padding: 0.12em 0.45em 0.16em;
+  border-radius: 0.18em;
+  font: 500 1em/1.45 var(--sans);
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+.zh:empty, .tr:empty { display: none; }
+.tok { cursor: pointer; border-radius: 0.12em; padding: 0 0.02em; }
+.tok:hover, .tok.active { background: rgba(255, 255, 255, 0.18); }
+.tok.st-fresh { color: var(--fresh); }
+.tok.st-difficult { color: var(--difficult); }
+.tok.st-known { color: var(--known); }
+.tok.untracked { text-decoration: underline dotted rgba(255, 255, 255, 0.45); text-underline-offset: 0.22em; text-decoration-thickness: 1.5px; }
+ruby { ruby-position: over; }
+rt { font: 0.42em/1 var(--mono); color: #e8e2d4; letter-spacing: 0; }
+
+.tr {
+  background: var(--ink-band);
+  color: var(--mint);
+  padding: 0.1em 0.5em 0.14em;
+  border-radius: 0.18em;
+  font: 0.62em/1.4 var(--sans);
+  text-align: center;
+  transition: filter 0.15s;
+}
+.tr.blur { filter: blur(5px); }
+.tr.blur:hover { filter: none; }
