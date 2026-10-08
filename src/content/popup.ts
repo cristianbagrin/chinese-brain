@@ -38,6 +38,8 @@ export interface ShowOptions {
   src: 'yt' | 'web';
   /** Keep the popup open until closed explicitly. */
   pinned?: boolean;
+  /** Prefer placing the card above the anchor (subtitles sit at the bottom). */
+  above?: boolean;
 }
 
 /** The one lookup card, used by hover lookup and the YouTube subtitles. */
@@ -105,7 +107,7 @@ export class Popup {
     await state.loadStatuses();
     if (this.opts !== opts) return; // a newer show() won
     this.render();
-    this.position(opts.rect);
+    this.position(opts.rect, opts.above);
     this.shownAt = Date.now();
     clearTimeout(this.lookTimer);
     // A popup left open for a moment counts as a deliberate lookup.
@@ -206,15 +208,16 @@ export class Popup {
     return false;
   }
 
-  private position(r: DOMRect) {
+  private position(r: DOMRect, above = false) {
     const c = this.card;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const w = c.offsetWidth;
     const ht = c.offsetHeight;
     let x = Math.min(Math.max(8, r.left), vw - w - 8);
-    let y = r.bottom + 8;
-    if (y + ht > vh - 8) y = Math.max(8, r.top - ht - 8);
+    let y = above ? r.top - ht - 10 : r.bottom + 8;
+    if (above && y < 8) y = r.bottom + 8;
+    if (!above && y + ht > vh - 8) y = Math.max(8, r.top - ht - 8);
     c.style.left = `${x}px`;
     c.style.top = `${y}px`;
   }

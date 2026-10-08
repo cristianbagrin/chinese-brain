@@ -7,6 +7,7 @@ import { state } from '../content/state.ts';
 import { alignTranslation, cueAt, cueBefore, parseTimedText, pickChinese, pickTranslation, urlInfo, type Cue, type TrackInfo } from './captions.ts';
 import css from './overlay.css';
 
+declare const __TEST__: boolean;
 declare function cloneInto<T>(obj: T, target: object, opts?: { cloneFunctions?: boolean }): T;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Player = any;
@@ -44,7 +45,8 @@ export class YouTubeSubs {
     this.host = document.createElement('div');
     this.host.dataset.cbOwn = '';
     this.host.hidden = true;
-    this.root = this.host.attachShadow({ mode: 'closed' });
+    this.root = this.host.attachShadow({ mode: __TEST__ ? 'open' : 'closed' });
+    if (__TEST__) this.host.id = 'cb-subs';
     const style = document.createElement('style');
     style.textContent = css;
     const box = document.createElement('div');
@@ -392,7 +394,7 @@ export class YouTubeSubs {
       at: Date.now(),
       src: 'yt' as const,
     };
-    await this.popup.show({ matches, rect: span.getBoundingClientRect(), src: 'yt', ctx, pinned });
+    await this.popup.show({ matches, rect: span.getBoundingClientRect(), src: 'yt', ctx, pinned, above: true });
     if (pinned && state.settings.autoFreshOnClick && !state.status(matches[0].word)) this.popup.setStatus('fresh');
   }
 

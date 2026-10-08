@@ -640,7 +640,7 @@ rt { font: 0.42em/1 var(--mono); color: #e8e2d4; letter-spacing: 0; }
         at: Date.now(),
         src: "yt"
       };
-      await this.popup.show({ matches, rect: span.getBoundingClientRect(), src: "yt", ctx, pinned }), pinned && state.settings.autoFreshOnClick && !state.status(matches[0].word) && this.popup.setStatus("fresh");
+      await this.popup.show({ matches, rect: span.getBoundingClientRect(), src: "yt", ctx, pinned, above: !0 }), pinned && state.settings.autoFreshOnClick && !state.status(matches[0].word) && this.popup.setStatus("fresh");
     }
     onTokenHover(e) {
       this.popup.pinned || this.showFor(e, !1);
@@ -891,7 +891,7 @@ li::marker { color: var(--ink2); font: 11px var(--mono); }
     }
     async show(opts) {
       let same = this.opts?.matches[0]?.text === opts.matches[0]?.text && this.opts?.rect.x === opts.rect.x;
-      this.opts = opts, clearTimeout(this.softTimer), same || (this.sel = 0), this.mount(), await state.loadStatuses(), this.opts === opts && (this.render(), this.position(opts.rect), this.shownAt = Date.now(), clearTimeout(this.lookTimer), this.lookTimer = setTimeout(() => this.recordLook(), opts.pinned ? 0 : 1200));
+      this.opts = opts, clearTimeout(this.softTimer), same || (this.sel = 0), this.mount(), await state.loadStatuses(), this.opts === opts && (this.render(), this.position(opts.rect, opts.above), this.shownAt = Date.now(), clearTimeout(this.lookTimer), this.lookTimer = setTimeout(() => this.recordLook(), opts.pinned ? 0 : 1200));
     }
     onHide(fn) {
       this.hideListeners.add(fn);
@@ -955,9 +955,9 @@ li::marker { color: var(--ink2); font: 11px var(--mono); }
       }
       return !1;
     }
-    position(r) {
-      let c = this.card, vw = window.innerWidth, vh = window.innerHeight, w2 = c.offsetWidth, ht = c.offsetHeight, x = Math.min(Math.max(8, r.left), vw - w2 - 8), y = r.bottom + 8;
-      y + ht > vh - 8 && (y = Math.max(8, r.top - ht - 8)), c.style.left = `${x}px`, c.style.top = `${y}px`;
+    position(r, above = !1) {
+      let c = this.card, vw = window.innerWidth, vh = window.innerHeight, w2 = c.offsetWidth, ht = c.offsetHeight, x = Math.min(Math.max(8, r.left), vw - w2 - 8), y = above ? r.top - ht - 10 : r.bottom + 8;
+      above && y < 8 && (y = r.bottom + 8), !above && y + ht > vh - 8 && (y = Math.max(8, r.top - ht - 8)), c.style.left = `${x}px`, c.style.top = `${y}px`;
     }
     render() {
       let o = this.opts;
