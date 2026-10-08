@@ -340,6 +340,29 @@ read only later rows. Nothing is ever deleted from events.tsv, so this is safe.
     return e.defs.filter((d) => !d.startsWith("CL:")).slice(0, 3).join("; ").slice(0, 120);
   }
 
+  // src/background/translate.ts
+  var ENDPOINT = "https://translate.googleapis.com/translate_a/single?client=gtx&dt=t";
+  async function translateLines(lines, sl, tl) {
+    let out = new Array(lines.length).fill(""), batch = [], size = 0, flush = async () => {
+      if (!batch.length) return;
+      let ids = batch;
+      batch = [], size = 0;
+      let q = ids.map((i) => lines[i].replace(/\n/g, " ")).join(`
+`), res = await fetch(`${ENDPOINT}&sl=${encodeURIComponent(sl)}&tl=${encodeURIComponent(tl)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+        body: "q=" + encodeURIComponent(q)
+      });
+      if (!res.ok) throw new Error(`translate HTTP ${res.status}`);
+      let parts = (await res.json())[0].map((seg) => seg[0]).join("").split(`
+`);
+      parts.length === ids.length && ids.forEach((i, k) => out[i] = parts[k].trim());
+    };
+    for (let i = 0; i < lines.length; i++)
+      size + lines[i].length > 3e3 && await flush(), batch.push(i), size += lines[i].length + 1;
+    return await flush(), out;
+  }
+
   // src/background/youtube.ts
   var cache = /* @__PURE__ */ new Map();
   function startCaptionCapture() {
@@ -447,6 +470,8 @@ read only later rows. Nothing is ever deleted from events.tsv, so this is safe.
         return dictReady.then((d) => [...new Set(d.entries.filter((e) => e.tocfl && e.tocfl <= any.level).map((e) => e.trad))]);
       case "openPage":
         return;
+      case "translate":
+        return translateLines(any.lines, String(any.sl ?? "zh-TW"), String(any.tl ?? "en")).catch((e) => (console.warn("[chinese-brain] translate fallback failed", e), null));
       case "entries":
         return dictReady.then((d) => d.get(any.word));
     }

@@ -265,7 +265,28 @@ export class YouTubeSubs {
         // Put the player back on the Chinese track afterwards.
         setTimeout(() => this.src && this.setTrack(this.src), 2500);
       }, 300);
+      // No usable second line from YouTube (it sometimes answers 429): translate the lines ourselves.
+      const id = this.videoId;
+      setTimeout(() => {
+        if (this.trCues || this.videoId !== id || !this.cues.length || this.live) return;
+        this.translateFallback();
+      }, 6000);
     }
+  }
+
+  private async translateFallback() {
+    const id = this.videoId;
+    const lines = this.cues.map((c) => c.text);
+    const res: string[] | null = await browser.runtime.sendMessage({
+      type: 'translate',
+      lines,
+      sl: this.src?.languageCode ?? 'zh-TW',
+      tl: state.settings.transLang,
+    });
+    if (!res || this.videoId !== id || this.trCues) return;
+    this.trCues = this.cues.map((c, i) => ({ ...c, text: res[i] ?? '' }));
+    this.trans = res;
+    this.renderLine(true);
   }
 
   private setTranslation(cues: Cue[]) {

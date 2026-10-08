@@ -15,6 +15,8 @@ export interface TrackInfo {
 /** Parse a timedtext body (json3, srv3/XML or WebVTT) into cues in seconds. */
 export function parseTimedText(body: string): Cue[] {
   const t = body.trimStart();
+  // Rate-limit and error responses come back as HTML pages; they are not captions.
+  if (/^<(!doctype|html)/i.test(t)) return [];
   if (t.startsWith('{')) return parseJson3(t);
   if (t.startsWith('WEBVTT')) return parseVtt(t);
   if (t.startsWith('<')) return parseXml(t);

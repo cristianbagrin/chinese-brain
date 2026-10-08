@@ -3,6 +3,7 @@ import { numberedToMarked } from '../shared/pinyin.ts';
 import { DEFAULT_SETTINGS, type Msg, type Settings, type Status, type WordRecord } from '../shared/types.ts';
 import { scheduleFeed, writeFeed } from './feed.ts';
 import { shortGloss, Store } from './store.ts';
+import { translateLines } from './translate.ts';
 import { cachedCaptions, startCaptionCapture } from './youtube.ts';
 
 declare const __TEST__: boolean;
@@ -99,6 +100,11 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
     case 'openPage':
       if (!__TEST__) return undefined;
       return browser.tabs.create({ url: browser.runtime.getURL(String(any.page)) }).then(() => true);
+    case 'translate':
+      return translateLines(any.lines as string[], String(any.sl ?? 'zh-TW'), String(any.tl ?? 'en')).catch((e) => {
+        console.warn('[chinese-brain] translate fallback failed', e);
+        return null;
+      });
     case 'entries':
       return dictReady.then((d) => d.get(any.word as string));
   }

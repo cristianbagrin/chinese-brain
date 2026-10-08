@@ -224,7 +224,7 @@
   // src/youtube/captions.ts
   function parseTimedText(body) {
     let t = body.trimStart();
-    return t.startsWith("{") ? parseJson3(t) : t.startsWith("WEBVTT") ? parseVtt(t) : t.startsWith("<") ? parseXml(t) : [];
+    return /^<(!doctype|html)/i.test(t) ? [] : t.startsWith("{") ? parseJson3(t) : t.startsWith("WEBVTT") ? parseVtt(t) : t.startsWith("<") ? parseXml(t) : [];
   }
   function parseJson3(body) {
     let data = JSON.parse(body), cues = [];
@@ -559,7 +559,20 @@ rt { font: 0.42em/1 var(--mono); color: #e8e2d4; letter-spacing: 0; }
         setTimeout(() => {
           manual ? this.setTrack(manual) : this.src?.isTranslatable !== !1 && this.setTrack(this.src, want), setTimeout(() => this.src && this.setTrack(this.src), 2500);
         }, 300);
+        let id = this.videoId;
+        setTimeout(() => {
+          this.trCues || this.videoId !== id || !this.cues.length || this.live || this.translateFallback();
+        }, 6e3);
       }
+    }
+    async translateFallback() {
+      let id = this.videoId, lines = this.cues.map((c) => c.text), res = await browser.runtime.sendMessage({
+        type: "translate",
+        lines,
+        sl: this.src?.languageCode ?? "zh-TW",
+        tl: state.settings.transLang
+      });
+      !res || this.videoId !== id || this.trCues || (this.trCues = this.cues.map((c, i) => ({ ...c, text: res[i] ?? "" })), this.trans = res, this.renderLine(!0));
     }
     setTranslation(cues) {
       this.trCues = cues, this.cues.length && (this.trans = alignTranslation(this.cues, cues)), this.renderLine(!0);

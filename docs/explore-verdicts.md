@@ -3,7 +3,9 @@
 Each idea from the brief got a short, time-boxed spike: a quick prototype or a
 feasibility check. **KEEP** = build it (or keep what is built). **MAYBE
 LATER** = feasible, but not worth it yet. **DROP** = not worth building.
-Items already built are marked *(built)*. They are small, and easy to remove
+Items already built are marked *(built)*.
+
+What was verified in a real Firefox 157: hover lookup, the card and status keys, and the live feed (including through a symlinked folder). On real YouTube, the player's caption download (`lang=zh-Hant`, `fmt=json3`) was captured by `filterResponseData`. The overlay was tested end to end against a local stand-in for the YouTube player (`tests/youtube-mock/`), because YouTube shows a captcha to the test machine's datacentre IP. They are small, and easy to remove
 if you disagree.
 
 | # | Idea | Verdict | Why, in one line |
@@ -17,7 +19,7 @@ if you disagree.
 | 7 | "Learn this first" list per video | **KEEP** | The data is already there (segmented video, TOCFL levels, your statuses). Rank unknown words by TOCFL level, then by how often they occur in the video. |
 | 8 | Example sentences | **MAYBE LATER** (Tatoeba) / **KEEP** (your own sentences) | Tatoeba is general and half Simplified, with almost no Taiwan words (颱風 5 sentences, 捷運 1, 機車 0). Showing the sentences you already met a word in is free and more relevant. |
 | 9 | Caption fallback: Gemini vs Whisper | Gemini **MAYBE LATER**, Whisper **DROP** | Whisper in the browser: 77–250 MB models, 43–53% character error on Chinese, and it needs the audio track (fragile, against YouTube's terms). Gemini: user key, opt-in per video, but the YouTube-URL path is in preview. |
-| 10 | Second line: YouTube `tlang` vs Google endpoint vs Bergamot | **YouTube `tlang`** default, nothing else for now | `tlang` comes free with the captured track. The Google endpoint gave captcha redirects from a datacentre IP. Bergamot zh→en is about 57 MB, and Firefox exposes no translation API to extensions. |
+| 10 | Second line: YouTube `tlang` vs Google endpoint vs Bergamot | **YouTube `tlang`** default, Google endpoint as automatic fallback *(built)*, Bergamot **MAYBE LATER** | `tlang` comes with the captured track. In testing, YouTube sometimes answered it with HTTP 429, so after 6 s without an English line the extension batches the lines to Google's free endpoint, and failure just leaves the line empty. Bergamot zh→en is about 57 MB, and Firefox exposes no translation API to extensions. |
 | 11 | Other sources (Netflix, PDFs, …) | Netflix **MAYBE LATER**, PDFs **DROP**, Bilibili **DROP** | Overlay, card and segmenter are site-independent. Each site needs a capture adapter. Netflix has Taiwan dramas and uses the same interception idea. Firefox's PDF viewer doesn't run content scripts. Bilibili is Mainland content. |
 | 12 | Cross-device sync | **KEEP** backup file *(built)*, Gist **MAYBE LATER** | `storage.sync` caps at 100 KB. The live feed also writes `backup.json`, so if that folder is in iCloud you always have an off-machine backup to restore from. |
 | 13 | Other ideas | see below | |

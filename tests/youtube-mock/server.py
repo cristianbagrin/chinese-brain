@@ -40,6 +40,8 @@ class H(http.server.BaseHTTPRequestHandler):
             return self.send(200, 'text/html; charset=utf-8', PAGE)
         if u.path == '/api/timedtext':
             print('TIMEDTEXT', self.path, flush=True)
+            if q.get('tlang') and os.environ.get('MOCK_TLANG_429'):
+                return self.send(429, 'text/html', '<html><body><p>Sorry...</p></body></html>')
             return self.send(200, 'application/json; charset=utf-8', json3(q.get('tlang', [''])[0]))
         if u.path == '/v.webm':
             path = os.path.join(HERE, '.v.webm')
