@@ -28,6 +28,7 @@ const opts = {
   loader: { '.css': 'text' },
   logLevel: 'info',
   legalComments: 'none',
+  minifySyntax: true, // drops the test-only branches from release builds
   // Test builds (CB_TEST=1) add a hook so the browser tests can open extension pages.
   define: { __TEST__: JSON.stringify(!!process.env.CB_TEST) },
 };
