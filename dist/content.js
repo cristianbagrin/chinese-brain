@@ -434,6 +434,10 @@ rt { font: 0.42em/1 var(--mono); color: #e8e2d4; letter-spacing: 0; }
     bar;
     coverage;
     flashTimer;
+    fallbackTimer;
+    domObserver;
+    /** True when mirroring YouTube's on-screen captions (no track was captured). */
+    live = !1;
     constructor(popup) {
       this.popup = popup, this.host = document.createElement("div"), this.host.dataset.cbOwn = "", this.host.hidden = !0, this.root = this.host.attachShadow({ mode: "closed" });
       let style = document.createElement("style");
@@ -467,7 +471,7 @@ rt { font: 0.42em/1 var(--mono); color: #e8e2d4; letter-spacing: 0; }
       }));
     }
     reset() {
-      this.tracks = [], this.src = void 0, this.cues = [], this.tokens = [], this.trans = [], this.trCues = void 0, this.idx = -2, this.requestedTr = !1, this.coverage = void 0, this.loop = !1, this.host.hidden = !0, document.documentElement.classList.remove("cb-subs-on");
+      clearTimeout(this.fallbackTimer), this.domObserver?.disconnect(), this.domObserver = void 0, this.live = !1, this.tracks = [], this.src = void 0, this.cues = [], this.tokens = [], this.trans = [], this.trCues = void 0, this.idx = -2, this.requestedTr = !1, this.coverage = void 0, this.loop = !1, this.host.hidden = !0, document.documentElement.classList.remove("cb-subs-on");
     }
     findTracks() {
       let p = this.player();
@@ -488,7 +492,12 @@ rt { font: 0.42em/1 var(--mono); color: #e8e2d4; letter-spacing: 0; }
         isTranslatable: !!t.isTranslatable
       }));
       let zh = pickChinese(this.tracks);
-      zh && (this.src = zh, this.setTrack(zh));
+      if (!zh) return;
+      this.src = zh, this.setTrack(zh);
+      let id = this.videoId;
+      clearTimeout(this.fallbackTimer), this.fallbackTimer = setTimeout(() => {
+        !this.cues.length && this.videoId === id && this.startDomFallback();
+      }, 6e3);
     }
     /** Ask the player to show a track; it downloads it and we capture the body. */
     setTrack(track, tlang) {
@@ -524,8 +533,25 @@ rt { font: 0.42em/1 var(--mono); color: #e8e2d4; letter-spacing: 0; }
       }
       info.lang.split("-")[0] === want && this.setTranslation(cues);
     }
+    /**
+     * Fallback when no caption download was captured: read the text YouTube
+     * renders on screen and show it as a single live line (no timing, no
+     * second line). Keeps lookup and colouring working.
+     */
+    startDomFallback() {
+      let p = document.getElementById("movie_player");
+      if (!p) return;
+      this.live = !0;
+      let last = "", read = async () => {
+        let text = [...p.querySelectorAll(".ytp-caption-segment")].map((s) => s.textContent ?? "").join(" ").trim();
+        if (text === last || !this.live || (last = text, !CJK.test(text))) return;
+        let [toks] = await browser.runtime.sendMessage({ type: "segment", lines: [text] });
+        this.cues = [{ start: 0, end: Number.MAX_SAFE_INTEGER, text }], this.tokens = [toks], this.trans = [], this.idx = -2, this.mount();
+      };
+      this.domObserver = new MutationObserver(() => void read()), this.domObserver.observe(p, { subtree: !0, childList: !0, characterData: !0 }), read();
+    }
     async setSource(cues) {
-      this.cues = cues, this.idx = -2;
+      this.live && (this.live = !1, this.domObserver?.disconnect()), this.cues = cues, this.idx = -2;
       let lines = cues.map((c) => c.text);
       if (this.tokens = await browser.runtime.sendMessage({ type: "segment", lines }), this.trCues && (this.trans = alignTranslation(this.cues, this.trCues)), this.computeCoverage(), this.mount(), !this.requestedTr && !this.trCues && this.src) {
         this.requestedTr = !0;
@@ -561,6 +587,10 @@ rt { font: 0.42em/1 var(--mono); color: #e8e2d4; letter-spacing: 0; }
     tick(now) {
       if (requestAnimationFrame(this.tick), !this.cues.length || this.host.hidden) return;
       let v = this.video();
+      if (this.live && v) {
+        this.idx !== 0 && (this.idx = 0, this.renderLine());
+        return;
+      }
       if (!v) return;
       let t = v.currentTime, dt = this.lastTick ? (now - this.lastTick) / 1e3 : 0;
       this.lastTick = now, !v.paused && dt < 1 && (this.watchSecs += dt);
@@ -669,7 +699,7 @@ rt { font: 0.42em/1 var(--mono); color: #e8e2d4; letter-spacing: 0; }
         e.preventDefault(), e.stopImmediatePropagation();
         return;
       }
-      if (this.host.hidden || !this.cues.length || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (this.host.hidden || !this.cues.length || this.live || e.ctrlKey || e.metaKey || e.altKey) return;
       let s = state.settings, handled = !0;
       switch (e.key.toLowerCase()) {
         case "a":

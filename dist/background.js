@@ -219,6 +219,10 @@ One row per word in the list (Traditional headword).
 Append-only log, oldest first: lookups, status changes, and videos watched
 (minutes with subtitles on, share of words already known).
 
+## backup.json
+A full copy of the extension's data. Restore it from the word list page
+(Backup \u2192 restore) after a reinstall or on another computer.
+
 ## Reading only what is new
 Every row has a time. Remember the newest time you processed and next time
 read only later rows. Nothing is ever deleted from events.tsv, so this is safe.
@@ -233,7 +237,9 @@ read only later rows. Nothing is ever deleted from events.tsv, so this is safe.
     let logs = await store2.allLogs(), words = [...store2.words.values()], files = {
       "words.tsv": buildWordsTsv(words),
       "events.tsv": buildEventsTsv(logs),
-      "README.md": FEED_README
+      "README.md": FEED_README,
+      // Full backup: if the folder lives in iCloud/Dropbox, a reinstall or a new computer can restore from it.
+      "backup.json": JSON.stringify({ app: "chinese-brain", v: 1, at: Date.now(), data: await browser.storage.local.get(null) })
     };
     for (let [name, content] of Object.entries(files)) {
       let url = URL.createObjectURL(new Blob([content], { type: "text/plain;charset=utf-8" }));

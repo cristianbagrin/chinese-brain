@@ -21,6 +21,8 @@ export async function writeFeed(store: Store, folder: string) {
     'words.tsv': buildWordsTsv(words),
     'events.tsv': buildEventsTsv(logs),
     'README.md': FEED_README,
+    // Full backup: if the folder lives in iCloud/Dropbox, a reinstall or a new computer can restore from it.
+    'backup.json': JSON.stringify({ app: 'chinese-brain', v: 1, at: Date.now(), data: await browser.storage.local.get(null) }),
   };
   for (const [name, content] of Object.entries(files)) {
     const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));

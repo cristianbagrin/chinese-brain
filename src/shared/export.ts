@@ -88,6 +88,10 @@ One row per word in the list (Traditional headword).
 Append-only log, oldest first: lookups, status changes, and videos watched
 (minutes with subtitles on, share of words already known).
 
+## backup.json
+A full copy of the extension's data. Restore it from the word list page
+(Backup → restore) after a reinstall or on another computer.
+
 ## Reading only what is new
 Every row has a time. Remember the newest time you processed and next time
 read only later rows. Nothing is ever deleted from events.tsv, so this is safe.

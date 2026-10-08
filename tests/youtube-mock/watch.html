@@ -10,7 +10,7 @@
 <body>
 <div id="movie_player" class="html5-video-player">
   <video src="/v.webm" muted loop playsinline></video>
-  <div class="ytp-caption-window-container">NATIVE CAPTION (should be hidden)</div>
+  <div class="ytp-caption-window-container"><span class="ytp-caption-segment">NATIVE CAPTION (should be hidden)</span></div>
   <div class="ytp-chrome-bottom"></div>
 </div>
 <script>
@@ -22,7 +22,15 @@
   p.getPlayerResponse = () => ({ videoDetails: { videoId: 'TEST' }, captions: { playerCaptionsTracklistRenderer: { captionTracks: tracks } } });
   p.loadModule = () => {};
   p.getOption = (m, k) => (k === 'tracklist' ? tracks.map((t) => ({ languageCode: t.languageCode, kind: t.kind, languageName: t.name.simpleText })) : null);
+  const noFetch = location.search.includes('nofetch');
+  if (noFetch) {
+    // Simulate a capture failure: only the on-screen caption text changes.
+    const lines = ['大家好，歡迎來到我的頻道', '今天我們要去夜市吃滷肉飯', '颱風要來了，記得多買一點泡麵'];
+    let i = 0;
+    setInterval(() => (document.querySelector('.ytp-caption-segment').textContent = lines[i++ % lines.length]), 2000);
+  }
   p.setOption = (m, k, t) => {
+    if (noFetch) return;
     window.__setOption = (window.__setOption || []).concat([JSON.stringify(t)]);
     const tl = t.translationLanguage ? '&tlang=' + t.translationLanguage.languageCode : '';
     fetch('/api/timedtext?v=TEST&lang=' + t.languageCode + (t.kind ? '&kind=' + t.kind : '') + tl + '&fmt=json3&pot=xyz');

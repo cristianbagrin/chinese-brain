@@ -39,6 +39,10 @@ export class YouTubeSubs {
   private bar: HTMLElement;
   private coverage: number | undefined;
   private flashTimer: ReturnType<typeof setTimeout> | undefined;
+  private fallbackTimer: ReturnType<typeof setTimeout> | undefined;
+  private domObserver: MutationObserver | undefined;
+  /** True when mirroring YouTube's on-screen captions (no track was captured). */
+  private live = false;
 
   constructor(popup: Popup) {
     this.popup = popup;
@@ -119,6 +123,10 @@ export class YouTubeSubs {
   }
 
   private reset() {
+    clearTimeout(this.fallbackTimer);
+    this.domObserver?.disconnect();
+    this.domObserver = undefined;
+    this.live = false;
     this.tracks = [];
     this.src = undefined;
     this.cues = [];
@@ -155,6 +163,11 @@ export class YouTubeSubs {
     if (!zh) return;
     this.src = zh;
     this.setTrack(zh);
+    const id = this.videoId;
+    clearTimeout(this.fallbackTimer);
+    this.fallbackTimer = setTimeout(() => {
+      if (!this.cues.length && this.videoId === id) this.startDomFallback();
+    }, 6000);
   }
 
   /** Ask the player to show a track; it downloads it and we capture the body. */
@@ -199,7 +212,41 @@ export class YouTubeSubs {
     if (info.lang.split('-')[0] === want) this.setTranslation(cues);
   }
 
+  /**
+   * Fallback when no caption download was captured: read the text YouTube
+   * renders on screen and show it as a single live line (no timing, no
+   * second line). Keeps lookup and colouring working.
+   */
+  private startDomFallback() {
+    const p = document.getElementById('movie_player');
+    if (!p) return;
+    this.live = true;
+    let last = '';
+    const read = async () => {
+      const text = [...p.querySelectorAll('.ytp-caption-segment')]
+        .map((s) => s.textContent ?? '')
+        .join(' ')
+        .trim();
+      if (text === last || !this.live) return;
+      last = text;
+      if (!CJK.test(text)) return;
+      const [toks]: Token[][] = await browser.runtime.sendMessage({ type: 'segment', lines: [text] });
+      this.cues = [{ start: 0, end: Number.MAX_SAFE_INTEGER, text }];
+      this.tokens = [toks];
+      this.trans = [];
+      this.idx = -2;
+      this.mount();
+    };
+    this.domObserver = new MutationObserver(() => void read());
+    this.domObserver.observe(p, { subtree: true, childList: true, characterData: true });
+    read();
+  }
+
   private async setSource(cues: Cue[]) {
+    if (this.live) {
+      this.live = false;
+      this.domObserver?.disconnect();
+    }
     this.cues = cues;
     this.idx = -2;
     const lines = cues.map((c) => c.text);
@@ -265,6 +312,13 @@ export class YouTubeSubs {
     requestAnimationFrame(this.tick);
     if (!this.cues.length || this.host.hidden) return;
     const v = this.video();
+    if (this.live && v) {
+      if (this.idx !== 0) {
+        this.idx = 0;
+        this.renderLine();
+      }
+      return;
+    }
     if (!v) return;
     const t = v.currentTime;
     const dt = this.lastTick ? (now - this.lastTick) / 1000 : 0;
@@ -448,7 +502,7 @@ export class YouTubeSubs {
       e.stopImmediatePropagation();
       return;
     }
-    if (this.host.hidden || !this.cues.length || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (this.host.hidden || !this.cues.length || this.live || e.ctrlKey || e.metaKey || e.altKey) return;
     const s = state.settings;
     let handled = true;
     switch (e.key.toLowerCase()) {
