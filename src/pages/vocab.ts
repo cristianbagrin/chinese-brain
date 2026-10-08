@@ -131,6 +131,9 @@ $('knownGo').addEventListener('click', async () => {
   const items = parseWordList($<HTMLTextAreaElement>('knownText').value);
   if (!items.length) return;
   const n = await browser.runtime.sendMessage({ type: 'importList', items });
+  // Claude already has this file: the first "what's new" export should start from here.
+  const { lastExportAt } = await browser.storage.local.get('lastExportAt');
+  if (!lastExportAt) await browser.storage.local.set({ lastExportAt: Date.now() });
   const by = (s: Status) => items.filter((i) => i.s === s).length;
   $('knownOk').textContent = `${n} words updated (file: ${by('known')} K, ${by('learning')} L${by('fresh') ? `, ${by('fresh')} F` : ''})`;
   load();

@@ -37,44 +37,57 @@ def main():
     simp_only = simplified_only_chars()
     seen = {}
     rejects = []
-    files = sorted(glob.glob(os.path.join(ROOT, "data-src", "examples", "out-*.tsv")))
-    files.append(os.path.join(ROOT, "data-src", "examples", "pilot-out.tsv"))
-    for path in files:
-        if not os.path.exists(path):
-            continue
+    # Base: the numbered generation output; then the editors' corrections (fix-*.tsv).
+    base_path = os.path.join(ROOT, "data-src", "examples", "all-numbered.tsv")
+    base = {}
+    with open(base_path, encoding="utf-8") as f:
+        for raw in f:
+            n, w, zh, en = raw.rstrip("\n").split("\t")
+            base[int(n)] = [w, zh, en]
+    drop_words = set()
+    fixed = dropped = 0
+    for path in sorted(glob.glob(os.path.join(ROOT, "data-src", "examples", "fix-*.tsv"))):
         with open(path, encoding="utf-8") as f:
             for raw in f:
-                line = raw.rstrip("\n")
-                if not line.strip():
+                c = raw.rstrip("\n").split("\t")
+                if len(c) < 2 or not c[0].strip().isdigit() or int(c[0]) not in base:
                     continue
-                cols = line.split("\t")
-                if len(cols) != 3:
-                    rejects.append(("columns", line))
-                    continue
-                w, zh, en = (c.strip() for c in cols)
-                # Full-width punctuation in Chinese text.
-                zh = re.sub(r"(?<=[\u3400-\u9fff」』）]),\s*", "，", zh)
-                zh = re.sub(r"(?<=[\u3400-\u9fff」』）])\?", "？", zh)
-                zh = re.sub(r"(?<=[\u3400-\u9fff」』）])!", "！", zh)
-                zh = re.sub(r"(?<=[\u3400-\u9fff」』）]):", "：", zh)
-                bad = ""
-                if w not in zh:
-                    bad = "word missing"
-                elif any(ch in simp_only for ch in zh):
-                    bad = "simplified"
-                elif ERHUA.search(zh):
-                    bad = "erhua"
-                elif not 3 <= len(zh) <= 45:
-                    bad = "length"
-                elif not en or re.search(r"[一-鿿]", en):
-                    bad = "english"
-                if bad:
-                    rejects.append((bad, line))
-                    continue
-                lst = seen.setdefault(w, [])
-                if zh in (s for s, _ in lst) or len(lst) >= 2:
-                    continue
-                lst.append((zh, en))
+                n, action = int(c[0]), c[1].strip()
+                if action == "fix" and len(c) >= 4 and c[2].strip():
+                    base[n][1], base[n][2] = c[2].strip(), c[3].strip()
+                    fixed += 1
+                elif action == "drop":
+                    base[n] = None
+                    dropped += 1
+                elif action == "dropword":
+                    drop_words.add(base[n][0])
+    print(f"applied {fixed} fixes, {dropped} drops, {len(drop_words)} headwords removed", file=sys.stderr)
+    rows = [v for _, v in sorted(base.items()) if v and v[0] not in drop_words]
+    for w, zh, en in rows:
+        w, zh, en = w.strip(), zh.strip(), en.strip()
+        # Full-width punctuation in Chinese text.
+        zh = re.sub(r"(?<=[\u3400-\u9fff」』）]),\s*", "，", zh)
+        zh = re.sub(r"(?<=[\u3400-\u9fff」』）])\?", "？", zh)
+        zh = re.sub(r"(?<=[\u3400-\u9fff」』）])!", "！", zh)
+        zh = re.sub(r"(?<=[\u3400-\u9fff」』）]):", "：", zh)
+        bad = ""
+        if w not in zh:
+            bad = "word missing"
+        elif any(ch in simp_only for ch in zh):
+            bad = "simplified"
+        elif ERHUA.search(zh):
+            bad = "erhua"
+        elif not 3 <= len(zh) <= 45:
+            bad = "length"
+        elif not en or re.search(r"[\u4e00-\u9fff]", en):
+            bad = "english"
+        if bad:
+            rejects.append((bad, f"{w}\t{zh}\t{en}"))
+            continue
+        lst = seen.setdefault(w, [])
+        if zh in (x for x, _ in lst) or len(lst) >= 2:
+            continue
+        lst.append((zh, en))
     with gzip.open(OUT, "wt", encoding="utf-8", compresslevel=9) as f:
         for w, lst in seen.items():
             for zh, en in lst:

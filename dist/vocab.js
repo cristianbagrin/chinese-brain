@@ -180,7 +180,9 @@
   $("knownGo").addEventListener("click", async () => {
     let items = parseWordList($("knownText").value);
     if (!items.length) return;
-    let n = await browser.runtime.sendMessage({ type: "importList", items }), by = (s) => items.filter((i) => i.s === s).length;
+    let n = await browser.runtime.sendMessage({ type: "importList", items }), { lastExportAt } = await browser.storage.local.get("lastExportAt");
+    lastExportAt || await browser.storage.local.set({ lastExportAt: Date.now() });
+    let by = (s) => items.filter((i) => i.s === s).length;
     $("knownOk").textContent = `${n} words updated (file: ${by("known")} K, ${by("learning")} L${by("fresh") ? `, ${by("fresh")} F` : ""})`, load();
   });
   var reloadTimer;
