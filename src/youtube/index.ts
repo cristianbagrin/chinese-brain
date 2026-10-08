@@ -366,13 +366,17 @@ export class YouTubeSubs {
     return tok ? { span, tok, line: this.idx } : undefined;
   }
 
+  private showSeq = 0;
+
   private async showFor(e: Event, pinned: boolean) {
+    const seq = ++this.showSeq;
     const hit = this.tokenAt(e);
     if (!hit) return;
     const { span, tok, line } = hit;
     // Look up from this token onward so longer words still show as tabs.
     const rest = this.tokens[line].slice(Number(span.dataset.k)).map((t) => t.text).join('');
     let matches = await lookupText(rest);
+    if (seq !== this.showSeq) return;
     // Put the segmenter's choice first.
     const own = matches.findIndex((m) => m.text === tok.text);
     if (own > 0) matches = [matches[own], ...matches.filter((_, i) => i !== own)];

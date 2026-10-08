@@ -82,6 +82,7 @@ export class HoverLookup {
   private shift = false;
   private currentKey = '';
   private cssInjected = false;
+  private seq = 0;
 
   constructor(popup: Popup) {
     this.popup = popup;
@@ -108,7 +109,13 @@ export class HoverLookup {
   }
 
   private async check(target: EventTarget | null) {
-    if (this.popup.contains(target)) return;
+    const seq = ++this.seq;
+    if (this.popup.contains(target)) {
+      // Landing on a card that just opened means the pointer is sweeping past:
+      // close it and look at the text underneath instead.
+      if (this.popup.pinned || this.popup.age() > 500) return;
+      this.popup.hide();
+    }
     if ((target as Element | null)?.closest?.('[data-cb-own]')) return;
     const s = state.settings;
     if (!state.siteEnabled() || (s.hoverMode === 'shift' && !this.shift)) return this.scheduleHide();
@@ -129,6 +136,7 @@ export class HoverLookup {
       return;
     }
     const matches = await lookupText(str);
+    if (seq !== this.seq) return; // the pointer moved on while we were looking up
     if (!matches.length) return this.scheduleHide();
     this.currentKey = key;
     const range = this.rangeFor(ranges, matches[0].text.length);

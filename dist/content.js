@@ -179,6 +179,7 @@
     shift = false;
     currentKey = "";
     cssInjected = false;
+    seq = 0;
     constructor(popup) {
       this.popup = popup;
       document.addEventListener("mousemove", (e) => this.onMove(e), { passive: true });
@@ -202,7 +203,11 @@
       });
     }
     async check(target) {
-      if (this.popup.contains(target)) return;
+      const seq = ++this.seq;
+      if (this.popup.contains(target)) {
+        if (this.popup.pinned || this.popup.age() > 500) return;
+        this.popup.hide();
+      }
       if (target?.closest?.("[data-cb-own]")) return;
       const s = state.settings;
       if (!state.siteEnabled() || s.hoverMode === "shift" && !this.shift) return this.scheduleHide();
@@ -220,6 +225,7 @@
         return;
       }
       const matches = await lookupText(str);
+      if (seq !== this.seq) return;
       if (!matches.length) return this.scheduleHide();
       this.currentKey = key;
       const range = this.rangeFor(ranges, matches[0].text.length);
@@ -736,12 +742,15 @@
       const tok = this.tokens[this.idx]?.[Number(span.dataset.k)];
       return tok ? { span, tok, line: this.idx } : void 0;
     }
+    showSeq = 0;
     async showFor(e, pinned) {
+      const seq = ++this.showSeq;
       const hit = this.tokenAt(e);
       if (!hit) return;
       const { span, tok, line } = hit;
       const rest = this.tokens[line].slice(Number(span.dataset.k)).map((t) => t.text).join("");
       let matches = await lookupText(rest);
+      if (seq !== this.showSeq) return;
       const own = matches.findIndex((m) => m.text === tok.text);
       if (own > 0) matches = [matches[own], ...matches.filter((_, i) => i !== own)];
       if (!matches.length) return;
@@ -922,6 +931,10 @@
     get pinned() {
       return !!this.opts?.pinned;
     }
+    /** Milliseconds since the card was last shown. */
+    age() {
+      return Date.now() - this.shownAt;
+    }
     get current() {
       return this.opts?.matches[this.sel];
     }
@@ -939,6 +952,7 @@
       if (!same) this.sel = 0;
       this.mount();
       await state.loadStatuses();
+      if (this.opts !== opts) return;
       this.render();
       this.position(opts.rect);
       this.shownAt = Date.now();
@@ -1103,7 +1117,7 @@
       const body = h("div", { class: "body" });
       const many = groups.size > 1;
       for (const [reading, list] of groups) {
-        const defs = list.flatMap((e) => e.defs);
+        const defs = [...new Set(list.flatMap((e) => e.defs))];
         const senses = defs.filter((d) => !d.startsWith("CL:"));
         const cls = defs.filter((d) => d.startsWith("CL:")).flatMap((d) => d.slice(3).split(","));
         body.append(

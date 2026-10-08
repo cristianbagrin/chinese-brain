@@ -79,6 +79,10 @@ export class Popup {
   get pinned() {
     return !!this.opts?.pinned;
   }
+  /** Milliseconds since the card was last shown. */
+  age(): number {
+    return Date.now() - this.shownAt;
+  }
   get current(): LookupMatch | undefined {
     return this.opts?.matches[this.sel];
   }
@@ -99,6 +103,7 @@ export class Popup {
     if (!same) this.sel = 0;
     this.mount();
     await state.loadStatuses();
+    if (this.opts !== opts) return; // a newer show() won
     this.render();
     this.position(opts.rect);
     this.shownAt = Date.now();
@@ -280,7 +285,7 @@ export class Popup {
     const body = h('div', { class: 'body' });
     const many = groups.size > 1;
     for (const [reading, list] of groups) {
-      const defs = list.flatMap((e) => e.defs);
+      const defs = [...new Set(list.flatMap((e) => e.defs))];
       const senses = defs.filter((d) => !d.startsWith('CL:'));
       const cls = defs.filter((d) => d.startsWith('CL:')).flatMap((d) => d.slice(3).split(','));
       body.append(
