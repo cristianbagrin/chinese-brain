@@ -24,7 +24,26 @@
         }
         start = end + 1;
       }
-      return d;
+      return d.computeRanks(), d;
+    }
+    /** Frequency rank per headword (1 = most common), from the Zipf scores. */
+    computeRanks() {
+      let best = /* @__PURE__ */ new Map();
+      for (let e of this.entries) e.zipf > (best.get(e.trad) ?? 0) && best.set(e.trad, e.zipf);
+      let order = [...best].sort((a, b) => b[1] - a[1]), rank = /* @__PURE__ */ new Map();
+      order.forEach(([w], i) => rank.set(w, i + 1));
+      for (let e of this.entries) e.rank = rank.get(e.trad) ?? 0;
+    }
+    /** The best entry for a single character read as `syllable` (numbered, e.g. "dian4"). */
+    charEntry(ch, syllable) {
+      let all = this.get(ch), list = all.filter((e) => e.trad === ch).length ? all.filter((e) => e.trad === ch) : all, v = /variant of ([^|\[\s]+)\|/.exec(list.map((e) => e.defs.join("/")).join("/"));
+      if (v && list.every((e) => /^\(classical\)|variant of/.test(e.defs[0] ?? "") || e.defs.length <= 2)) {
+        let main = this.get(v[1]).filter((e) => e.trad === v[1]);
+        main.length && (list = main);
+      }
+      if (!syllable) return list[0];
+      let read = (e) => (e.tw || e.py).toLowerCase(), want = syllable.toLowerCase(), bare = (x) => x.replace(/[1-5]$/, "");
+      return list.find((e) => read(e) === want) ?? list.find((e) => bare(read(e)) === bare(want)) ?? list[0];
     }
     add(key, i) {
       let list = this.index.get(key);
@@ -137,17 +156,20 @@
   var DEFAULT_SETTINGS = {
     hoverMode: "hover",
     disabledSites: [],
+    ytEnabled: !0,
     subPinyin: !1,
     translation: "blur",
-    toTraditional: !0,
     pauseOnHover: !0,
     autoFreshOnClick: !0,
     markUntracked: !0,
     subFontSize: 30,
     shadowFactor: 1.5,
-    transLang: "en",
-    feedFolder: "chinese-brain",
-    speechRate: 0.9
+    cardPinyin: "show",
+    sounds: !0,
+    speechRate: 0.9,
+    azureKey: "",
+    azureRegion: "eastasia",
+    azureVoice: "zh-TW-HsiaoChenNeural"
   };
 
   // src/shared/time.ts
@@ -156,129 +178,20 @@
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
 
-  // src/shared/export.ts
-  var clean = (s) => (s ?? "").replace(/[\t\r\n]+/g, " ").trim(), iso = (t) => {
-    let d = new Date(t);
-    return `${dayKeyLocal(t)} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  };
-  function videoLink(url, t) {
-    if (t == null) return url;
-    try {
-      let u = new URL(url);
-      if (u.hostname.endsWith("youtube.com") && u.searchParams.get("v"))
-        return `https://youtu.be/${u.searchParams.get("v")}?t=${Math.floor(t)}`;
-    } catch {
-    }
-    return url;
-  }
-  function buildWordsTsv(words, since = 0) {
-    let head = ["word", "status", "pinyin", "gloss", "added", "updated", "lookups", "history", "sentence", "source"], rows = words.filter((w) => w.updated > since).sort((a, b) => a.added - b.added).map((w) => {
-      let c = w.ctx[0], hist = w.hist.map((h) => `${h.s}@${dayKeyLocal(h.t)}`).join(">");
-      return [w.w, w.s, w.p, w.g, iso(w.added), iso(w.updated), String(w.looks), hist, c?.text, c ? videoLink(c.url, c.t) : ""].map(clean).join("	");
-    });
-    return [head.join("	"), ...rows].join(`
-`) + `
-`;
-  }
-  function buildEventsTsv(logs, since = 0) {
-    let head = ["time", "event", "word", "detail", "url"], rows = logs.filter((e) => e.at > since).map((e) => {
-      switch (e.k) {
-        case "look":
-          return [iso(e.at), "lookup", e.w, e.src, e.url ?? ""];
-        case "status":
-          return [iso(e.at), "status", e.w, `${e.from ?? "untracked"}>${e.s ?? "untracked"}`, ""];
-        case "watch":
-          return [
-            iso(e.at),
-            "watch",
-            "",
-            `${Math.round(e.secs / 60)} min${e.coverage != null ? `, knew ${Math.round(e.coverage * 100)}% of words` : ""}${e.title ? ` | ${e.title}` : ""}`,
-            e.url
-          ];
-      }
-    }).map((r) => r.map((x) => clean(x)).join("	"));
-    return [head.join("	"), ...rows].join(`
-`) + `
-`;
-  }
-  var FEED_README = `# Chinese Brain feed
-
-Written by the Chinese Brain browser extension. Rewritten in place a few
-minutes after any change; nothing here needs exporting by hand.
-
-## words.tsv
-One row per word in the list (Traditional headword).
-- status: fresh (first met, being learned) | difficult (should know, keeps slipping) | known
-- pinyin: Taiwan standard reading (MOE dictionary when it differs from CC-CEDICT)
-- added / updated: local time, YYYY-MM-DD HH:MM
-- lookups: deliberate lookups (clicks, or a popup left open), max once per 10 minutes
-- history: every status change, oldest first, e.g. fresh@2026-10-01>difficult@2026-10-05>known@2026-10-20
-- sentence / source: the most recent sentence the word was met in, and where (YouTube links jump to the second)
-
-## events.tsv
-Append-only log, oldest first: lookups, status changes, and videos watched
-(minutes with subtitles on, share of words already known).
-
-## backup.json
-A full copy of the extension's data. Restore it from the word list page
-(Backup \u2192 restore) after a reinstall or on another computer.
-
-## Reading only what is new
-Every row has a time. Remember the newest time you processed and next time
-read only later rows. Nothing is ever deleted from events.tsv, so this is safe.
-`;
-
-  // src/background/feed.ts
-  var timer;
-  function scheduleFeed(store2, folder) {
-    clearTimeout(timer), timer = setTimeout(() => writeFeed(store2, folder).catch((e) => console.warn("[chinese-brain] feed", e)), 2 * 6e4);
-  }
-  async function writeFeed(store2, folder) {
-    let logs = await store2.allLogs(), words = [...store2.words.values()], files = {
-      "words.tsv": buildWordsTsv(words),
-      "events.tsv": buildEventsTsv(logs),
-      "README.md": FEED_README,
-      // Full backup: if the folder lives in iCloud/Dropbox, a reinstall or a new computer can restore from it.
-      "backup.json": JSON.stringify({ app: "chinese-brain", v: 1, at: Date.now(), data: await browser.storage.local.get(null) })
-    };
-    for (let [name, content] of Object.entries(files)) {
-      let url = URL.createObjectURL(new Blob([content], { type: "text/plain;charset=utf-8" }));
-      try {
-        let id = await browser.downloads.download({
-          url,
-          filename: `${folder}/${name}`,
-          conflictAction: "overwrite",
-          saveAs: !1
-        });
-        await waitForDownload(id), await browser.downloads.erase({ id });
-      } finally {
-        setTimeout(() => URL.revokeObjectURL(url), 3e4);
-      }
-    }
-    return await browser.storage.local.set({ feedWrittenAt: Date.now() }), !0;
-  }
-  function waitForDownload(id) {
-    return new Promise((resolve) => {
-      let done = () => {
-        browser.downloads.onChanged.removeListener(listener), resolve();
-      }, listener = (d) => {
-        d.id === id && d.state && d.state.current !== "in_progress" && done();
-      };
-      browser.downloads.onChanged.addListener(listener), setTimeout(done, 1e4);
-    });
-  }
-
   // src/background/store.ts
   var Store = class {
     words = /* @__PURE__ */ new Map();
     pendingLog = [];
     logTimer;
     recentLooks = /* @__PURE__ */ new Map();
-    onChange;
     async load() {
-      let all = await browser.storage.local.get(null);
-      for (let [k, v] of Object.entries(all))
-        k.startsWith("w:") && this.words.set(k.slice(2), v);
+      let all = await browser.storage.local.get(null), migrate = {};
+      for (let [k, v] of Object.entries(all)) {
+        if (!k.startsWith("w:")) continue;
+        let rec = v;
+        (rec.s === "difficult" || rec.hist.some((h) => h.s === "difficult")) && (rec.s === "difficult" && (rec.s = "learning"), rec.hist = rec.hist.map((h) => h.s === "difficult" ? { ...h, s: "learning" } : h), migrate[k] = rec), this.words.set(k.slice(2), rec);
+      }
+      Object.keys(migrate).length && await browser.storage.local.set(migrate);
     }
     statuses() {
       let out = {};
@@ -288,11 +201,11 @@ read only later rows. Nothing is ever deleted from events.tsv, so this is safe.
     async setStatus(word, status, entry, ctx) {
       let now = Date.now(), prev = this.words.get(word);
       if (this.log({ at: now, k: "status", w: word, s: status, from: prev?.s ?? null }), !status) {
-        this.words.delete(word), await browser.storage.local.remove("w:" + word), this.onChange?.();
+        this.words.delete(word), await browser.storage.local.remove("w:" + word);
         return;
       }
       let rec = prev ?? { w: word, s: status, added: now, updated: now, hist: [], looks: 0, ctx: [] };
-      prev?.s !== status && rec.hist.push({ t: now, s: status }), rec.s = status, rec.updated = now, entry && (rec.p = numberedToMarked(entry.tw || entry.py), rec.g = shortGloss(entry)), ctx && addContext(rec, ctx), this.words.set(word, rec), await browser.storage.local.set({ ["w:" + word]: rec }), this.onChange?.();
+      prev?.s !== status && rec.hist.push({ t: now, s: status }), rec.s = status, rec.updated = now, entry && (rec.p = numberedToMarked(entry.tw || entry.py), rec.g = shortGloss(entry)), ctx && addContext(rec, ctx), this.words.set(word, rec), await browser.storage.local.set({ ["w:" + word]: rec });
     }
     /** A deliberate lookup (click, or a popup that stayed open). */
     async looked(word, src, url, ctx) {
@@ -300,7 +213,7 @@ read only later rows. Nothing is ever deleted from events.tsv, so this is safe.
       if (now - last < 10 * 6e4) return;
       this.recentLooks.set(word, now), this.log({ at: now, k: "look", w: word, src, url });
       let rec = this.words.get(word);
-      rec && (rec.looks++, ctx && addContext(rec, ctx), await browser.storage.local.set({ ["w:" + word]: rec }), this.onChange?.());
+      rec && (rec.looks++, ctx && addContext(rec, ctx), await browser.storage.local.set({ ["w:" + word]: rec }));
     }
     log(ev) {
       this.pendingLog.push(ev), clearTimeout(this.logTimer), this.logTimer = setTimeout(() => this.flushLog(), 3e3);
@@ -315,7 +228,7 @@ read only later rows. Nothing is ever deleted from events.tsv, so this is safe.
       this.pendingLog = [];
       let existing = await browser.storage.local.get([...byDay.keys()]), update = {};
       for (let [k, evs] of byDay) update[k] = [...existing[k] ?? [], ...evs];
-      await browser.storage.local.set(update), this.onChange?.();
+      await browser.storage.local.set(update);
     }
     async allLogs() {
       await this.flushLog();
@@ -329,7 +242,7 @@ read only later rows. Nothing is ever deleted from events.tsv, so this is safe.
         let prev = this.words.get(r.w);
         prev && mode === "merge" && (prev.s === r.s || r.updated <= prev.updated) || (this.words.set(r.w, r), update["w:" + r.w] = r);
       }
-      return Object.keys(update).length && await browser.storage.local.set(update), this.onChange?.(), Object.keys(update).length;
+      return Object.keys(update).length && await browser.storage.local.set(update), Object.keys(update).length;
     }
   };
   function addContext(rec, ctx) {
@@ -401,6 +314,22 @@ read only later rows. Nothing is ever deleted from events.tsv, so this is safe.
   // src/background/index.ts
   var dict, dictReady = loadDictionary(), store = new Store(), storeReady = store.load();
   startCaptionCapture();
+  var examples = /* @__PURE__ */ new Map(), examplesReady = loadExamples();
+  async function loadExamples() {
+    try {
+      let res = await fetch(browser.runtime.getURL("data/examples.tsv.gz"));
+      if (!res.ok) return;
+      let text = await new Response(res.body.pipeThrough(new DecompressionStream("gzip"))).text();
+      for (let line of text.split(`
+`)) {
+        let [w, zh, en] = line.split("	");
+        if (!w || !zh) continue;
+        let list = examples.get(w);
+        list ? list.push([zh, en ?? ""]) : examples.set(w, [[zh, en ?? ""]]);
+      }
+    } catch {
+    }
+  }
   async function loadDictionary() {
     let t0 = performance.now(), stream = (await fetch(browser.runtime.getURL("data/dict.tsv.gz"))).body.pipeThrough(new DecompressionStream("gzip")), text = await new Response(stream).text();
     return dict = Dictionary.fromTsv(text), console.log(`[chinese-brain] dictionary: ${dict.entries.length} entries in ${Math.round(performance.now() - t0)} ms`), dict;
@@ -409,9 +338,6 @@ read only later rows. Nothing is ever deleted from events.tsv, so this is safe.
     let { settings } = await browser.storage.local.get("settings");
     return { ...DEFAULT_SETTINGS, ...settings };
   }
-  store.onChange = () => {
-    getSettings().then((s) => s.feedFolder && scheduleFeed(store, s.feedFolder));
-  };
   browser.runtime.onMessage.addListener((msg, sender) => {
     let m = msg;
     switch (m.type) {
@@ -442,44 +368,58 @@ read only later rows. Nothing is ever deleted from events.tsv, so this is safe.
         return storeReady.then(async () => ({ words: [...store.words.values()], logs: await store.allLogs() }));
       case "importWords":
         return storeReady.then(() => store.importWords(any.words, any.mode ?? "merge"));
-      case "writeFeed":
-        return storeReady.then(async () => writeFeed(store, (await getSettings()).feedFolder || "chinese-brain"));
       case "insertCSS":
         return sender.tab?.id != null ? browser.tabs.insertCSS(sender.tab.id, { code: any.css, frameId: sender.frameId ?? 0 }).then(() => !0) : void 0;
-      case "bulkStatus":
+      case "importList":
         return Promise.all([dictReady, storeReady]).then(async ([d]) => {
-          let status = any.status, now = Date.now(), recs = [], seen = /* @__PURE__ */ new Set();
-          for (let raw of any.words) {
-            let e = d.get(raw)[0], w = e?.trad ?? raw;
-            if (seen.has(w) || any.onlyNew && store.words.has(w)) continue;
+          let recs = [], seen = /* @__PURE__ */ new Set();
+          for (let item of any.items) {
+            let e = d.get(item.w)[0], w = e && e.trad.length === item.w.length ? e.trad : item.w;
+            if (seen.has(w)) continue;
             seen.add(w);
             let prev = store.words.get(w);
+            if (prev?.s === item.s) continue;
+            let t = item.t || Date.now();
             recs.push({
-              ...prev ?? { w, added: now, hist: [], looks: 0, ctx: [] },
-              s: status,
-              updated: now,
-              hist: [...prev?.hist ?? [], { t: now, s: status }],
+              ...prev ?? { w, added: t, hist: [], looks: 0, ctx: [] },
+              s: item.s,
+              updated: Math.max(t, prev?.updated ?? 0),
+              hist: [...prev?.hist ?? [], { t, s: item.s }],
               p: e ? numberedToMarked(e.tw || e.py) : prev?.p,
               g: e ? shortGloss(e) : prev?.g
             });
           }
-          for (let r of recs) store.log({ at: now, k: "status", w: r.w, s: status, from: store.words.get(r.w)?.s ?? null });
+          for (let r of recs) store.log({ at: Date.now(), k: "status", w: r.w, s: r.s, from: store.words.get(r.w)?.s ?? null });
           return store.importWords(recs, "replace");
         });
-      case "tocflWords":
-        return dictReady.then((d) => [...new Set(d.entries.filter((e) => e.tocfl && e.tocfl <= any.level).map((e) => e.trad))]);
       case "openPage":
         return;
       case "translate":
         return translateLines(any.lines, String(any.sl ?? "zh-TW"), String(any.tl ?? "en")).catch((e) => (console.warn("[chinese-brain] translate fallback failed", e), null));
+      case "azureTTS":
+        return getSettings().then(async (st) => {
+          let res = await fetch(`https://${st.azureRegion}.tts.speech.microsoft.com/cognitiveservices/v1`, {
+            method: "POST",
+            headers: {
+              "Ocp-Apim-Subscription-Key": st.azureKey,
+              "Content-Type": "application/ssml+xml",
+              "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3"
+            },
+            body: any.ssml
+          });
+          if (!res.ok) throw new Error(`Azure TTS HTTP ${res.status}`);
+          return res.arrayBuffer();
+        });
+      case "wordInfo":
+        return Promise.all([dictReady, storeReady, examplesReady]).then(([d]) => {
+          let word = any.word, sylls = String(any.py ?? "").split(/\s+/);
+          return { chars: [...word].length > 1 ? [...word].map((ch, i) => {
+            let e = d.charEntry(ch, sylls[i]);
+            return { ch, py: sylls[i] ?? e?.tw ?? e?.py ?? "", gloss: e ? shortGloss(e) : "" };
+          }) : [], examples: examples.get(word) ?? [], record: store.words.get(word) ?? null };
+        });
       case "entries":
         return dictReady.then((d) => d.get(any.word));
-    }
-  });
-  browser.commands.onCommand.addListener(async (cmd) => {
-    if (cmd === "toggle-lookup") {
-      let s = await getSettings(), hoverMode = s.hoverMode === "off" ? "hover" : "off";
-      await browser.storage.local.set({ settings: { ...s, hoverMode } });
     }
   });
 })();

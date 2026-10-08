@@ -1,141 +1,102 @@
 import { dayKeyLocal } from './time.ts';
-import type { LogEvent, WordRecord } from './types.ts';
+import { STATUS_CODE, type LogEvent, type Status, type WordRecord } from './types.ts';
 
 const clean = (s: string | undefined) => (s ?? '').replace(/[\t\r\n]+/g, ' ').trim();
-const iso = (t: number) => {
+const stamp = (t: number) => {
   const d = new Date(t);
   return `${dayKeyLocal(t)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
+const code = (s: Status | null | undefined) => (s ? STATUS_CODE[s] : '-');
 
-function videoLink(url: string, t?: number) {
-  if (t == null) return url;
+/** Short, clickable source: youtu.be/ID?t=83 for videos, the domain for pages. */
+export function shortSource(url: string, t?: number): string {
   try {
     const u = new URL(url);
     if (u.hostname.endsWith('youtube.com') && u.searchParams.get('v')) {
-      return `https://youtu.be/${u.searchParams.get('v')}?t=${Math.floor(t)}`;
+      return `youtu.be/${u.searchParams.get('v')}${t != null ? `?t=${Math.floor(t)}` : ''}`;
     }
+    return u.hostname.replace(/^www\./, '');
   } catch {
-    /* not a URL */
+    return '';
   }
-  return url;
 }
 
-/** One row per word in the list. Stable column order; documented in FEED_README. */
-export function buildWordsTsv(words: WordRecord[], since = 0): string {
-  const head = ['word', 'status', 'pinyin', 'gloss', 'added', 'updated', 'lookups', 'history', 'sentence', 'source'];
-  const rows = words
-    .filter((w) => w.updated > since)
-    .sort((a, b) => a.added - b.added)
-    .map((w) => {
-      const c = w.ctx[0];
-      const hist = w.hist.map((h) => `${h.s}@${dayKeyLocal(h.t)}`).join('>');
-      return [w.w, w.s, w.p, w.g, iso(w.added), iso(w.updated), String(w.looks), hist, c?.text, c ? videoLink(c.url, c.t) : '']
-        .map(clean)
-        .join('\t');
-    });
-  return [head.join('\t'), ...rows].join('\n') + '\n';
+function duration(secs: number) {
+  const m = Math.round(secs / 60);
+  return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min` : `${m} min`;
 }
 
-export function buildEventsTsv(logs: LogEvent[], since = 0): string {
-  const head = ['time', 'event', 'word', 'detail', 'url'];
-  const rows = logs
-    .filter((e) => e.at > since)
-    .map((e) => {
-      switch (e.k) {
-        case 'look':
-          return [iso(e.at), 'lookup', e.w, e.src, e.url ?? ''];
-        case 'status':
-          return [iso(e.at), 'status', e.w, `${e.from ?? 'untracked'}>${e.s ?? 'untracked'}`, ''];
-        case 'watch':
-          return [
-            iso(e.at),
-            'watch',
-            '',
-            `${Math.round(e.secs / 60)} min${e.coverage != null ? `, knew ${Math.round(e.coverage * 100)}% of words` : ''}${e.title ? ` | ${e.title}` : ''}`,
-            e.url,
-          ];
-      }
-    })
-    .map((r) => r.map((x) => clean(x)).join('\t'));
-  return [head.join('\t'), ...rows].join('\n') + '\n';
-}
-
-/** Anki-friendly CSV: Front = word, Back = pinyin + gloss, plus sentence and source. */
-export function buildAnkiCsv(words: WordRecord[]): string {
-  const q = (s: string | undefined) => `"${(s ?? '').replace(/"/g, '""')}"`;
-  const rows = words.map((w) => {
-    const c = w.ctx[0];
-    return [w.w, w.p, w.g, c?.text, c ? videoLink(c.url, c.t) : '', w.s].map(q).join(',');
-  });
-  return ['word,pinyin,meaning,sentence,source,status', ...rows].join('\n') + '\n';
-}
-
-export const FEED_README = `# Chinese Brain feed
-
-Written by the Chinese Brain browser extension. Rewritten in place a few
-minutes after any change; nothing here needs exporting by hand.
-
-## words.tsv
-One row per word in the list (Traditional headword).
-- status: fresh (first met, being learned) | difficult (should know, keeps slipping) | known
-- pinyin: Taiwan standard reading (MOE dictionary when it differs from CC-CEDICT)
-- added / updated: local time, YYYY-MM-DD HH:MM
-- lookups: deliberate lookups (clicks, or a popup left open), max once per 10 minutes
-- history: every status change, oldest first, e.g. fresh@2026-10-01>difficult@2026-10-05>known@2026-10-20
-- sentence / source: the most recent sentence the word was met in, and where (YouTube links jump to the second)
-
-## events.tsv
-Append-only log, oldest first: lookups, status changes, and videos watched
-(minutes with subtitles on, share of words already known).
-
-## backup.json
-A full copy of the extension's data. Restore it from the word list page
-(Backup → restore) after a reinstall or on another computer.
-
-## Reading only what is new
-Every row has a time. Remember the newest time you processed and next time
-read only later rows. Nothing is ever deleted from events.tsv, so this is safe.
-`;
-
-/** One Markdown file for Claude: summary, then the words and events as TSV blocks. */
-export function buildClaudeMarkdown(words: WordRecord[], logs: LogEvent[], since = 0): string {
+/**
+ * The weekly export for Claude: one small TSV. Only words whose status changed
+ * in the period, plus words looked up in it (a lookup of a Known word is a
+ * recall failure worth seeing). Status codes match known-words.txt.
+ */
+export function buildClaudeExport(words: WordRecord[], logs: LogEvent[], since = 0): string {
   const now = Date.now();
-  const changed = words.filter((w) => w.updated > since);
   const evs = logs.filter((e) => e.at > since);
-  const looks = evs.filter((e) => e.k === 'look');
-  const watches = evs.filter((e) => e.k === 'watch');
-  const statusEvs = evs.filter((e) => e.k === 'status') as Extract<LogEvent, { k: 'status' }>[];
-  const by = (s: string) => changed.filter((w) => w.s === s).length;
-  const slipped = [...new Set(statusEvs.filter((e) => e.s === 'difficult' && e.from && e.from !== 'difficult').map((e) => e.w))];
-  const lookCount = new Map<string, number>();
-  for (const e of looks) lookCount.set((e as { w: string }).w, (lookCount.get((e as { w: string }).w) ?? 0) + 1);
-  const top = [...lookCount].sort((a, b) => b[1] - a[1]).slice(0, 15);
-  const mins = Math.round(watches.reduce((n, e) => n + (e as { secs: number }).secs, 0) / 60);
+  const looks = new Map<string, number>();
+  let yt = 0;
+  for (const e of evs) {
+    if (e.k !== 'look') continue;
+    looks.set(e.w, (looks.get(e.w) ?? 0) + 1);
+    if (e.src === 'yt') yt++;
+  }
+  const watches = evs.filter((e) => e.k === 'watch') as Extract<LogEvent, { k: 'watch' }>[];
+  const byWord = new Map(words.map((w) => [w.w, w]));
+
+  // Status before the period, from each word's history; removed words come from the log.
+  const was = (w: WordRecord): Status | null => {
+    const before = w.hist.filter((h) => h.t <= since);
+    return before.length ? before[before.length - 1].s : null;
+  };
+  const removed = new Set<string>();
+  for (const e of evs) if (e.k === 'status') (e.s ? removed.delete(e.w) : removed.add(e.w));
+
+  type Row = { w: string; now: Status | null; was: Status | null; date: number; rec?: WordRecord };
+  const rows: Row[] = [];
+  for (const w of words) {
+    const changed = w.hist.some((h) => h.t > since);
+    if (changed || looks.has(w.w)) rows.push({ w: w.w, now: w.s, was: since ? was(w) : null, date: w.updated, rec: w });
+  }
+  for (const w of removed) if (!byWord.has(w)) rows.push({ w, now: null, was: null, date: now });
+  for (const w of looks.keys()) if (!byWord.has(w) && !removed.has(w)) rows.push({ w, now: null, was: null, date: now });
+
+  const order = { K: 0, L: 1, F: 2, '-': 3 } as Record<string, number>;
+  rows.sort((a, b) => order[code(a.now)] - order[code(b.now)] || a.date - b.date);
+
+  const changedCount = rows.filter((r) => r.now !== r.was).length;
   const lines = [
-    '# Chinese Brain export',
-    '',
-    `Exported ${iso(now)}. ${since ? `Covers everything after ${iso(since)}.` : 'Covers everything recorded so far.'}`,
-    '',
-    '## Summary',
-    `- Words added or changed: ${changed.length} (now ${by('fresh')} fresh, ${by('difficult')} difficult, ${by('known')} known)`,
-    `- Whole list: ${words.length} words (${words.filter((w) => w.s === 'known').length} known)`,
-    `- Deliberate lookups: ${looks.length} (YouTube ${looks.filter((e) => (e as { src: string }).src === 'yt').length}, web ${looks.filter((e) => (e as { src: string }).src === 'web').length})`,
-    `- Videos watched with subtitles: ${watches.length} (${mins} min)`,
-    slipped.length ? `- Slipped back to difficult: ${slipped.join('、')}` : '',
-    top.length ? `- Most looked up: ${top.map(([w, n]) => (n > 1 ? `${w} ×${n}` : w)).join('、')}` : '',
-    '',
-    'Statuses: fresh = met recently and learning; difficult = should know but keeps slipping; known = known. Pinyin is the Taiwan standard reading.',
-    '',
-    '## Words',
-    '```tsv',
-    buildWordsTsv(words, since).trimEnd(),
-    '```',
-    '',
-    '## Events',
-    '```tsv',
-    buildEventsTsv(logs, since).trimEnd(),
-    '```',
-    '',
+    `# Chinese Brain export · ${stamp(now)} · ${since ? `since ${stamp(since)}` : 'everything so far'}`,
+    '# Codes as in known-words.txt: K known, L learning, F fresh (met, not studied yet), - not in the list.',
+    '# was = status before this period (- = new). looks = deliberate lookups in this period (a K word looked up = forgotten).',
+    `# ${changedCount} status changes · ${[...looks.values()].reduce((a, b) => a + b, 0)} lookups (YouTube ${yt}) · ${watches.length} videos with subtitles (${duration(watches.reduce((n, e) => n + e.secs, 0))})`,
+    ['word', 'now', 'was', 'date', 'looks', 'pinyin', 'meaning', 'sentence', 'source'].join('\t'),
   ];
-  return lines.filter((l, i) => l !== '' || lines[i - 1] !== '').join('\n');
+  for (const r of rows) {
+    const c = r.rec?.ctx[0];
+    lines.push(
+      [r.w, code(r.now), code(r.was), dayKeyLocal(r.date), String(looks.get(r.w) ?? 0), r.rec?.p, r.rec?.g, c?.text, c ? shortSource(c.url, c.t) : '']
+        .map((x) => clean(x))
+        .join('\t'),
+    );
+  }
+  return lines.join('\n') + '\n';
+}
+
+/** Parse a known-words.txt style list: word<TAB>K|L|F<TAB>date. Lines with only a word count as known. */
+export function parseWordList(text: string): { w: string; s: Status; t: number }[] {
+  const out: { w: string; s: Status; t: number }[] = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const cols = line.split(/\t|,|;/).map((c) => c.trim());
+    const m = /[㐀-鿿豈-﫿]+/.exec(cols[0]) ?? /[㐀-鿿豈-﫿]+/.exec(line);
+    if (!m) continue;
+    const codeCol = cols.find((c, i) => i > 0 && /^[KLF]$/i.test(c))?.toUpperCase();
+    const s: Status = codeCol === 'L' ? 'learning' : codeCol === 'F' ? 'fresh' : 'known';
+    const dateCol = cols.find((c) => /^\d{4}-\d{2}-\d{2}$/.test(c));
+    const t = dateCol ? new Date(`${dateCol}T12:00:00`).getTime() : 0;
+    out.push({ w: m[0], s, t });
+  }
+  return out;
 }

@@ -110,12 +110,7 @@ export class HoverLookup {
 
   private async check(target: EventTarget | null) {
     const seq = ++this.seq;
-    if (this.popup.contains(target)) {
-      // Landing on a card that just opened means the pointer is sweeping past:
-      // close it and look at the text underneath instead.
-      if (this.popup.pinned || this.popup.age() > 500) return;
-      this.popup.hide();
-    }
+    if (this.popup.contains(target)) return;
     if ((target as Element | null)?.closest?.('[data-cb-own]')) return;
     const s = state.settings;
     if (!state.siteEnabled() || (s.hoverMode === 'shift' && !this.shift)) return this.scheduleHide();
@@ -144,6 +139,7 @@ export class HoverLookup {
     this.popup.show({
       matches,
       rect: range.getBoundingClientRect(),
+      cursor: { x: this.lastX, y: this.lastY },
       src: 'web',
       ctx: { text: sentenceAround(text, offset), url: location.href, title: document.title, at: Date.now(), src: 'web' },
     });

@@ -8,86 +8,91 @@
 <link rel="stylesheet" href="pages.css">
 </head>
 <body>
-<div class="page">
-  <aside class="rail">
-    <div class="mark"><span>中</span><span>文</span><span>腦</span></div>
-    <nav>
-      <a href="vocab.html">words</a>
-      <a href="vocab.html#export">export</a>
-      <a href="options.html" aria-current="page">settings</a>
-    </nav>
-  </aside>
-  <main>
-    <h1>Settings</h1>
-    <p class="sub">Changes save as you make them.</p>
-
-    <h2>Lookup on any page</h2>
-    <div class="rows">
-      <label for="hoverMode">Show the card</label>
-      <div>
-        <select id="hoverMode">
-          <option value="hover">when hovering Chinese text</option>
-          <option value="shift">only while holding Shift</option>
-          <option value="off">never (off)</option>
-        </select>
-        <div class="help">Toggle on and off anywhere with <span class="mono">Alt+Shift+C</span>.</div>
-      </div>
-      <label for="disabledSites">Sites where it stays off</label>
-      <div>
-        <textarea id="disabledSites" rows="3" placeholder="one domain per line, e.g. mail.google.com"></textarea>
-      </div>
-      <label for="speechRate">Speech speed</label>
-      <div>
-        <input type="number" id="speechRate" min="0.5" max="1.5" step="0.1">
-        <div class="help">Uses your system's Taiwan Mandarin voice (on a Mac: Meijia). Press <span class="mono">v</span> in the card.</div>
-      </div>
+<header class="sign"><div class="in">
+  <div class="name">中文腦<small>Chinese Brain</small></div>
+  <nav><a href="vocab.html">Words</a><a href="options.html" aria-current="page">Settings</a></nav>
+</div></header>
+<main>
+  <h2 style="margin-top:0">Lookup card</h2>
+  <div class="panel rows">
+    <label for="hoverMode">Show the card</label>
+    <div>
+      <select id="hoverMode">
+        <option value="hover">when hovering Chinese text</option>
+        <option value="shift">only while holding Shift</option>
+        <option value="off">never</option>
+      </select>
     </div>
-
-    <h2>YouTube subtitles</h2>
-    <div class="rows">
-      <label for="translation">English line</label>
-      <div>
-        <select id="translation">
-          <option value="show">always visible</option>
-          <option value="blur">blurred until hovered</option>
-          <option value="hide">hidden</option>
-        </select>
-        <div class="help">Press <span class="mono">X</span> while watching to cycle.</div>
-      </div>
-      <label for="transLang">Second-line language</label>
-      <div><input type="text" id="transLang" size="6"> <span class="help">language code, e.g. en</span></div>
-      <label for="subPinyin">Pinyin above words</label>
-      <div><input type="checkbox" id="subPinyin"> <span class="help">Press <span class="mono">P</span> while watching.</span></div>
-      <label for="toTraditional">Show simplified subtitles in traditional</label>
-      <div><input type="checkbox" id="toTraditional"></div>
-      <label for="pauseOnHover">Pause while the mouse is on the subtitles</label>
-      <div><input type="checkbox" id="pauseOnHover"></div>
-      <label for="autoFreshOnClick">Clicking a new word stamps it 新 Fresh</label>
-      <div><input type="checkbox" id="autoFreshOnClick"></div>
-      <label for="markUntracked">Dotted underline on words not in your list</label>
-      <div><input type="checkbox" id="markUntracked"></div>
-      <label for="subFontSize">Subtitle size</label>
-      <div><input type="number" id="subFontSize" min="16" max="60" step="1"> <span class="help">px at 720p; scales with the player</span></div>
-      <label for="shadowFactor">Shadowing pause</label>
-      <div><input type="number" id="shadowFactor" min="0.5" max="4" step="0.25"> <span class="help">× the line's length (press <span class="mono">Q</span> to turn shadowing on)</span></div>
+    <label for="cardPinyin">Pinyin in the card</label>
+    <div>
+      <select id="cardPinyin">
+        <option value="show">always shown</option>
+        <option value="hover">hidden until I press P (self-test)</option>
+      </select>
     </div>
+    <label for="sounds">Sound when stamping</label>
+    <div><input type="checkbox" id="sounds"></div>
+    <label for="disabledSites">Sites where lookup stays off</label>
+    <div><textarea id="disabledSites" rows="3" placeholder="one domain per line, e.g. mail.google.com"></textarea></div>
+  </div>
 
-    <h2>Claude feed</h2>
-    <div class="rows">
-      <label for="feedFolder">Downloads sub-folder</label>
-      <div>
-        <input type="text" id="feedFolder" size="20">
-        <div class="help">The extension keeps <span class="mono">words.tsv</span> and <span class="mono">events.tsv</span> up to date in <span class="mono">~/Downloads/&lt;folder&gt;/</span>, so Claude can read them without you exporting anything. Leave empty to turn it off.</div>
-      </div>
+  <h2>Voice</h2>
+  <div class="panel rows">
+    <label for="speechRate">Speed</label>
+    <div><input type="number" id="speechRate" min="0.5" max="1.5" step="0.1"></div>
+    <label for="azureKey">Azure key (optional)</label>
+    <div>
+      <input type="password" id="azureKey" size="36" autocomplete="off">
+      <div class="help">Leave empty to use your Mac's Taiwan voice (Meijia). With a free Azure Speech key, words are read by a Taiwan neural voice instead.</div>
     </div>
+    <label for="azureRegion">Azure region</label>
+    <div><input type="text" id="azureRegion" size="14"></div>
+    <label for="azureVoice">Azure voice</label>
+    <div>
+      <select id="azureVoice">
+        <option value="zh-TW-HsiaoChenNeural">HsiaoChen (female)</option>
+        <option value="zh-TW-HsiaoYuNeural">HsiaoYu (female)</option>
+        <option value="zh-TW-YunJheNeural">YunJhe (male)</option>
+      </select>
+    </div>
+  </div>
 
-    <h2>Keys</h2>
-    <p class="note mono" style="line-height:1.9">
-      card open: 1 新 fresh · 2 難 difficult · 3 熟 known · 0 clear · v say it · i images · n next match · Esc close<br>
-      YouTube: A previous line · S replay line · D next line · R loop line · Q shadowing · P pinyin · X English line
-    </p>
-  </main>
-</div>
+  <h2>YouTube</h2>
+  <div class="panel rows">
+    <label for="ytEnabled">Chinese Brain subtitles</label>
+    <div><input type="checkbox" id="ytEnabled"> <span class="help">Same as the 中 switch in the player.</span></div>
+    <label for="translation">English line</label>
+    <div>
+      <select id="translation">
+        <option value="show">always visible</option>
+        <option value="blur">blurred until hovered</option>
+        <option value="hide">hidden</option>
+      </select>
+    </div>
+    <label for="subPinyin">Pinyin above words</label>
+    <div><input type="checkbox" id="subPinyin"></div>
+    <label for="pauseOnHover">Pause while the mouse is on the subtitles</label>
+    <div><input type="checkbox" id="pauseOnHover"></div>
+    <label for="autoFreshOnClick">Clicking a new word stamps it 新 Fresh</label>
+    <div><input type="checkbox" id="autoFreshOnClick"> <span class="help">Clicking it again undoes it.</span></div>
+    <label for="markUntracked">Dotted underline on words not in your list</label>
+    <div><input type="checkbox" id="markUntracked"></div>
+    <label for="subFontSize">Subtitle size</label>
+    <div><input type="number" id="subFontSize" min="16" max="60" step="1"> <span class="help">at 720p; scales with the player</span></div>
+    <label for="shadowFactor">Shadowing pause</label>
+    <div><input type="number" id="shadowFactor" min="0.5" max="4" step="0.25"> <span class="help">× the length of the line</span></div>
+  </div>
+
+  <h2>Keys</h2>
+  <div class="panel keys">
+    <span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span><span>新 Fresh · 學 Learning · 熟 Known (press again to clear)</span>
+    <span><kbd>0</kbd></span><span>remove from the list</span>
+    <span><kbd>V</kbd> <kbd>I</kbd> <kbd>P</kbd></span><span>say it · image search · show hidden pinyin</span>
+    <span><kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></span><span>YouTube: previous line · replay line · next line</span>
+    <span><kbd>R</kbd> <kbd>Q</kbd></span><span>YouTube: loop line · shadowing</span>
+    <span><kbd>P</kbd> <kbd>X</kbd></span><span>YouTube: pinyin · English line</span>
+  </div>
+</main>
 <script src="options.js"></script>
 </body>
 </html>

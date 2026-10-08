@@ -12,13 +12,22 @@ export class Store {
   private pendingLog: LogEvent[] = [];
   private logTimer: ReturnType<typeof setTimeout> | undefined;
   private recentLooks = new Map<string, number>();
-  onChange: (() => void) | undefined;
 
   async load() {
     const all = await browser.storage.local.get(null);
+    const migrate: Record<string, WordRecord> = {};
     for (const [k, v] of Object.entries(all)) {
-      if (k.startsWith('w:')) this.words.set(k.slice(2), v as WordRecord);
+      if (!k.startsWith('w:')) continue;
+      const rec = v as WordRecord;
+      // "Difficult" was renamed "Learning".
+      if ((rec.s as string) === 'difficult' || rec.hist.some((h) => (h.s as string) === 'difficult')) {
+        if ((rec.s as string) === 'difficult') rec.s = 'learning';
+        rec.hist = rec.hist.map((h) => ((h.s as string) === 'difficult' ? { ...h, s: 'learning' } : h));
+        migrate[k] = rec;
+      }
+      this.words.set(k.slice(2), rec);
     }
+    if (Object.keys(migrate).length) await browser.storage.local.set(migrate);
   }
 
   statuses(): Record<string, Status> {
@@ -34,7 +43,6 @@ export class Store {
     if (!status) {
       this.words.delete(word);
       await browser.storage.local.remove('w:' + word);
-      this.onChange?.();
       return;
     }
     const rec: WordRecord = prev ?? { w: word, s: status, added: now, updated: now, hist: [], looks: 0, ctx: [] };
@@ -48,7 +56,6 @@ export class Store {
     if (ctx) addContext(rec, ctx);
     this.words.set(word, rec);
     await browser.storage.local.set({ ['w:' + word]: rec });
-    this.onChange?.();
   }
 
   /** A deliberate lookup (click, or a popup that stayed open). */
@@ -63,7 +70,6 @@ export class Store {
       rec.looks++;
       if (ctx) addContext(rec, ctx);
       await browser.storage.local.set({ ['w:' + word]: rec });
-      this.onChange?.();
     }
   }
 
@@ -86,7 +92,6 @@ export class Store {
     const update: Record<string, LogEvent[]> = {};
     for (const [k, evs] of byDay) update[k] = [...((existing[k] as LogEvent[]) ?? []), ...evs];
     await browser.storage.local.set(update);
-    this.onChange?.();
   }
 
   async allLogs(): Promise<LogEvent[]> {
@@ -111,7 +116,6 @@ export class Store {
       update['w:' + r.w] = r;
     }
     if (Object.keys(update).length) await browser.storage.local.set(update);
-    this.onChange?.();
     return Object.keys(update).length;
   }
 }

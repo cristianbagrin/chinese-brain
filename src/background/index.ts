@@ -1,7 +1,6 @@
 import { Dictionary } from '../shared/dict.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import { DEFAULT_SETTINGS, type Msg, type Settings, type Status, type WordRecord } from '../shared/types.ts';
-import { scheduleFeed, writeFeed } from './feed.ts';
 import { shortGloss, Store } from './store.ts';
 import { translateLines } from './translate.ts';
 import { cachedCaptions, startCaptionCapture } from './youtube.ts';
@@ -14,6 +13,27 @@ const store = new Store();
 const storeReady = store.load();
 
 startCaptionCapture();
+
+/** Example sentences: word -> [[sentence, English], ...]. */
+const examples = new Map<string, [string, string][]>();
+const examplesReady = loadExamples();
+
+async function loadExamples() {
+  try {
+    const res = await fetch(browser.runtime.getURL('data/examples.tsv.gz'));
+    if (!res.ok) return;
+    const text = await new Response(res.body!.pipeThrough(new DecompressionStream('gzip'))).text();
+    for (const line of text.split('\n')) {
+      const [w, zh, en] = line.split('\t');
+      if (!w || !zh) continue;
+      const list = examples.get(w);
+      if (list) list.push([zh, en ?? '']);
+      else examples.set(w, [[zh, en ?? '']]);
+    }
+  } catch {
+    /* no example file in this build */
+  }
+}
 
 async function loadDictionary(): Promise<Dictionary> {
   const t0 = performance.now();
@@ -29,10 +49,6 @@ async function getSettings(): Promise<Settings> {
   const { settings } = await browser.storage.local.get('settings');
   return { ...DEFAULT_SETTINGS, ...(settings as Partial<Settings> | undefined) };
 }
-
-store.onChange = () => {
-  getSettings().then((s) => s.feedFolder && scheduleFeed(store, s.feedFolder));
-};
 
 browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: unknown }, sender) => {
   const m = msg as Msg;
@@ -65,38 +81,35 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
       return storeReady.then(async () => ({ words: [...store.words.values()], logs: await store.allLogs() }));
     case 'importWords':
       return storeReady.then(() => store.importWords(any.words as never, (any.mode as 'merge' | 'replace') ?? 'merge'));
-    case 'writeFeed':
-      return storeReady.then(async () => writeFeed(store, ((await getSettings()).feedFolder || 'chinese-brain') as string));
     case 'insertCSS':
       if (sender.tab?.id != null)
         return browser.tabs.insertCSS(sender.tab.id, { code: any.css as string, frameId: sender.frameId ?? 0 }).then(() => true);
       return undefined;
-    case 'bulkStatus':
+    case 'importList':
+      // [{ w, s, t }] from known-words.txt style lists. Existing words keep their history.
       return Promise.all([dictReady, storeReady]).then(async ([d]) => {
-        const status = any.status as Status;
-        const now = Date.now();
         const recs: WordRecord[] = [];
         const seen = new Set<string>();
-        for (const raw of any.words as string[]) {
-          const e = d.get(raw)[0];
-          const w = e?.trad ?? raw;
-          if (seen.has(w) || (any.onlyNew && store.words.has(w))) continue;
+        for (const item of any.items as { w: string; s: Status; t: number }[]) {
+          const e = d.get(item.w)[0];
+          const w = e && e.trad.length === item.w.length ? e.trad : item.w;
+          if (seen.has(w)) continue;
           seen.add(w);
           const prev = store.words.get(w);
+          if (prev?.s === item.s) continue;
+          const t = item.t || Date.now();
           recs.push({
-            ...(prev ?? { w, added: now, hist: [], looks: 0, ctx: [] }),
-            s: status,
-            updated: now,
-            hist: [...(prev?.hist ?? []), { t: now, s: status }],
+            ...(prev ?? { w, added: t, hist: [], looks: 0, ctx: [] }),
+            s: item.s,
+            updated: Math.max(t, prev?.updated ?? 0),
+            hist: [...(prev?.hist ?? []), { t, s: item.s }],
             p: e ? numberedToMarked(e.tw || e.py) : prev?.p,
             g: e ? shortGloss(e) : prev?.g,
           } as WordRecord);
         }
-        for (const r of recs) store.log({ at: now, k: 'status', w: r.w, s: status, from: store.words.get(r.w)?.s ?? null });
+        for (const r of recs) store.log({ at: Date.now(), k: 'status', w: r.w, s: r.s, from: store.words.get(r.w)?.s ?? null });
         return store.importWords(recs, 'replace');
       });
-    case 'tocflWords':
-      return dictReady.then((d) => [...new Set(d.entries.filter((e) => e.tocfl && e.tocfl <= (any.level as number)).map((e) => e.trad))]);
     case 'openPage':
       if (!__TEST__) return undefined;
       return browser.tabs.create({ url: browser.runtime.getURL(String(any.page)) }).then(() => true);
@@ -105,16 +118,37 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
         console.warn('[chinese-brain] translate fallback failed', e);
         return null;
       });
+    case 'azureTTS':
+      return getSettings().then(async (st) => {
+        const res = await fetch(`https://${st.azureRegion}.tts.speech.microsoft.com/cognitiveservices/v1`, {
+          method: 'POST',
+          headers: {
+            'Ocp-Apim-Subscription-Key': st.azureKey,
+            'Content-Type': 'application/ssml+xml',
+            'X-Microsoft-OutputFormat': 'audio-24khz-48kbitrate-mono-mp3',
+          },
+          body: any.ssml as string,
+        });
+        if (!res.ok) throw new Error(`Azure TTS HTTP ${res.status}`);
+        return res.arrayBuffer();
+      });
+    case 'wordInfo':
+      // Everything the card shows beyond the dictionary entry: character breakdown,
+      // example sentences and the user's own record.
+      return Promise.all([dictReady, storeReady, examplesReady]).then(([d]) => {
+        const word = any.word as string;
+        const py = String(any.py ?? '');
+        const sylls = py.split(/\s+/);
+        const chars = [...word].length > 1
+          ? [...word].map((ch, i) => {
+              const e = d.charEntry(ch, sylls[i]);
+              return { ch, py: sylls[i] ?? e?.tw ?? e?.py ?? '', gloss: e ? shortGloss(e) : '' };
+            })
+          : [];
+        return { chars, examples: examples.get(word) ?? [], record: store.words.get(word) ?? null };
+      });
     case 'entries':
       return dictReady.then((d) => d.get(any.word as string));
   }
   return undefined;
-});
-
-browser.commands.onCommand.addListener(async (cmd) => {
-  if (cmd === 'toggle-lookup') {
-    const s = await getSettings();
-    const hoverMode = s.hoverMode === 'off' ? 'hover' : 'off';
-    await browser.storage.local.set({ settings: { ...s, hoverMode } });
-  }
 });

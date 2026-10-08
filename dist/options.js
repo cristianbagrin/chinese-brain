@@ -4,17 +4,20 @@
   var DEFAULT_SETTINGS = {
     hoverMode: "hover",
     disabledSites: [],
+    ytEnabled: !0,
     subPinyin: !1,
     translation: "blur",
-    toTraditional: !0,
     pauseOnHover: !0,
     autoFreshOnClick: !0,
     markUntracked: !0,
     subFontSize: 30,
     shadowFactor: 1.5,
-    transLang: "en",
-    feedFolder: "chinese-brain",
-    speechRate: 0.9
+    cardPinyin: "show",
+    sounds: !0,
+    speechRate: 0.9,
+    azureKey: "",
+    azureRegion: "eastasia",
+    azureVoice: "zh-TW-HsiaoChenNeural"
   };
 
   // src/pages/common.ts

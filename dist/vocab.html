@@ -8,95 +8,59 @@
 <link rel="stylesheet" href="pages.css">
 </head>
 <body>
-<div class="page">
-  <aside class="rail">
-    <div class="mark"><span>中</span><span>文</span><span>腦</span></div>
-    <nav>
-      <a href="vocab.html" aria-current="page">words</a>
-      <a href="vocab.html#export">export</a>
-      <a href="options.html">settings</a>
-    </nav>
-  </aside>
-  <main>
-    <h1>Word list</h1>
-    <p class="sub">Every word you stamped, from YouTube and from any page. Keys in the lookup card: <span class="mono">1</span> Fresh, <span class="mono">2</span> Difficult, <span class="mono">3</span> Known, <span class="mono">0</span> clear.</p>
-    <div class="counts" id="counts"></div>
-    <div class="toolbar">
-      <input type="search" id="q" placeholder="Search word, pinyin, meaning…">
-      <div class="seg" id="filter">
-        <button data-f="all" aria-pressed="true">all</button>
-        <button data-f="fresh">新 fresh</button>
-        <button data-f="difficult">難 difficult</button>
-        <button data-f="known">熟 known</button>
-      </div>
-      <select id="sort">
-        <option value="updated">recently changed</option>
-        <option value="added">recently added</option>
-        <option value="looks">most looked up</option>
-      </select>
-      <span class="muted mono" id="shown"></span>
+<header class="sign"><div class="in">
+  <div class="name">中文腦<small>Chinese Brain</small></div>
+  <nav><a href="vocab.html" aria-current="page">Words</a><a href="options.html">Settings</a></nav>
+</div></header>
+<main>
+  <div class="counts" id="counts"></div>
+  <div class="toolbar">
+    <input type="search" id="q" placeholder="Search word, pinyin, meaning">
+    <div class="seg" id="filter">
+      <button data-f="all" aria-pressed="true">All</button>
+      <button data-f="fresh">新 Fresh</button>
+      <button data-f="learning">學 Learning</button>
+      <button data-f="known">熟 Known</button>
     </div>
-    <table>
-      <thead><tr><th>word</th><th>pinyin</th><th>meaning</th><th>met in</th><th>added</th><th>status</th></tr></thead>
-      <tbody id="rows"></tbody>
-    </table>
-    <p class="muted" id="more"></p>
+    <select id="sort">
+      <option value="updated">Recently changed</option>
+      <option value="added">Recently added</option>
+      <option value="looks">Most looked up</option>
+    </select>
+  </div>
+  <div class="list" id="rows"></div>
+  <p class="muted small" id="more"></p>
 
-    <h2 id="export">Export</h2>
-    <div class="rows">
-      <label>For Claude</label>
-      <div>
-        <button class="primary" id="exportNew">Export new since last time</button>
-        <button id="exportAll">Export everything</button>
-        <div class="help" id="lastExport"></div>
-        <div class="help">One Markdown file with your word changes and lookups, ready to attach to Claude. The live feed below makes this optional.</div>
-      </div>
-      <label>Live feed</label>
-      <div>
-        <button id="feedNow">Write feed now</button>
-        <div class="help" id="feedInfo"></div>
-      </div>
-      <label>Anki</label>
-      <div>
-        <button id="ankiNew">CSV: new since last Anki export</button>
-        <button id="ankiAll">CSV: all words</button>
-        <div class="help">Columns: word, pinyin, meaning, sentence, source, status.</div>
-      </div>
-      <label>Backup</label>
-      <div>
-        <button id="backup">Download backup (.json)</button>
-        <label class="muted" style="margin-left:8px"><input type="file" id="restore" accept=".json"> restore</label>
-        <div class="help">Use this to move to another browser or computer, or before reinstalling.</div>
-      </div>
+  <h2 id="export">Export for Claude</h2>
+  <div class="panel">
+    <p class="muted" id="lastExport"></p>
+    <div class="actions">
+      <button class="primary" id="exportNew">Export what's new</button>
+      <button id="exportAll">Export everything</button>
     </div>
+    <p class="help">A small TSV for your weekly update: words whose status changed, plus words you looked up (a Known word looked up again = forgotten). Uses the K / L codes of known-words.txt, with F for Fresh.</p>
+  </div>
 
-    <h2 id="import">Import</h2>
-    <div class="rows">
-      <label>Words I already know</label>
-      <div>
-        <textarea id="knownText" rows="5" placeholder="Paste a list (one word per line, e.g. your known-words.txt). Only the first Chinese word on each line is used."></textarea>
-        <div class="toolbar" style="margin-top:6px">
-          <input type="file" id="knownFile" accept=".txt,.tsv,.csv">
-          <button class="primary" id="knownGo">Mark as known</button>
-          <span class="ok" id="knownOk"></span>
-        </div>
-      </div>
-      <label>TOCFL quick start</label>
-      <div>
-        <select id="tocfl">
-          <option value="2">Novice 1–2</option>
-          <option value="3">up to A1</option>
-          <option value="4">up to A2</option>
-          <option value="5">up to B1</option>
-          <option value="6">up to B2</option>
-        </select>
-        <button id="tocflGo">Mark these levels known</button>
-        <span class="ok" id="tocflOk"></span>
-        <div class="help">Only touches words that aren't in your list yet.</div>
-      </div>
+  <h2 id="import">Import</h2>
+  <div class="panel">
+    <h3>Your word list</h3>
+    <p class="muted small">known-words.txt format: <code>word⇥K|L⇥date</code>. K → 熟 Known, L → 學 Learning, F → 新 Fresh. A line with only a word counts as Known.</p>
+    <textarea id="knownText" rows="5" placeholder="Paste the list here, or choose the file"></textarea>
+    <div class="actions" style="margin-top:8px">
+      <input type="file" id="knownFile" accept=".txt,.tsv,.csv">
+      <button class="primary" id="knownGo">Import</button>
+      <span class="ok" id="knownOk"></span>
     </div>
-  </main>
-</div>
+  </div>
+  <div class="panel">
+    <h3>Backup</h3>
+    <p class="muted small">Everything the extension knows, in one file. Use it to move to another browser or computer, or before reinstalling.</p>
+    <div class="actions">
+      <button id="backup">Download backup</button>
+      <label class="small muted">Restore: <input type="file" id="restore" accept=".json"></label>
+    </div>
+  </div>
+</main>
 <script src="vocab.js"></script>
 </body>
 </html>

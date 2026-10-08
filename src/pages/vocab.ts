@@ -1,18 +1,17 @@
-import { buildAnkiCsv, buildClaudeMarkdown } from '../shared/export.ts';
-import type { LogEvent, Status, WordRecord } from '../shared/types.ts';
+import { buildClaudeExport, parseWordList, shortSource } from '../shared/export.ts';
 import { clock } from '../shared/time.ts';
+import type { LogEvent, Status, WordRecord } from '../shared/types.ts';
 import { $, ago, download, h, today } from './common.ts';
 
-const STAMPS: [Status, string][] = [
-  ['fresh', '新'],
-  ['difficult', '難'],
-  ['known', '熟'],
+const STAMPS: [Status, string, string][] = [
+  ['fresh', '新', 'Fresh'],
+  ['learning', '學', 'Learning'],
+  ['known', '熟', 'Known'],
 ];
 let words: WordRecord[] = [];
 let logs: LogEvent[] = [];
 let filter: Status | 'all' = 'all';
 const PAGE = 300;
-let limit = PAGE;
 
 async function load() {
   const data = await browser.runtime.sendMessage({ type: 'allData' });
@@ -25,8 +24,8 @@ async function load() {
 function render() {
   const n = (s: Status) => words.filter((w) => w.s === s).length;
   $('counts').replaceChildren(
-    ...STAMPS.map(([s, zh]) => h('div', { class: s }, h('b', null, String(n(s))), h('span', null, `${zh} ${s}`))),
-    h('div', null, h('b', null, String(words.length)), h('span', null, 'total')),
+    ...STAMPS.map(([s, zh, label]) => h('div', { class: `count ${s}` }, h('b', null, String(n(s))), h('span', null, `${zh} ${label}`))),
+    h('div', { class: 'count' }, h('b', null, String(words.length)), h('span', null, 'in your list')),
   );
   const q = $<HTMLInputElement>('q').value.trim().toLowerCase();
   const sort = $<HTMLSelectElement>('sort').value as 'updated' | 'added' | 'looks';
@@ -34,9 +33,8 @@ function render() {
     .filter((w) => filter === 'all' || w.s === filter)
     .filter((w) => !q || w.w.includes(q) || (w.p ?? '').toLowerCase().includes(q) || (w.g ?? '').toLowerCase().includes(q))
     .sort((a, b) => (b[sort] as number) - (a[sort] as number));
-  $('shown').textContent = `${list.length} shown`;
-  $('rows').replaceChildren(...list.slice(0, limit).map(row));
-  $('more').textContent = list.length > limit ? `Showing ${limit} of ${list.length}. Search to narrow down.` : '';
+  $('rows').replaceChildren(...list.slice(0, PAGE).map(row));
+  $('more').textContent = list.length > PAGE ? `Showing ${PAGE} of ${list.length}. Search to narrow it down.` : `${list.length} words`;
 }
 
 function row(w: WordRecord) {
@@ -44,30 +42,26 @@ function row(w: WordRecord) {
   let link: HTMLElement | null = null;
   if (c) {
     const yt = c.src === 'yt' && c.t != null;
-    const href = yt ? `${c.url}&t=${c.t}s` : c.url;
-    link = h('a', { href, target: '_blank', title: c.title ?? c.url }, yt ? `▶ ${clock(c.t!)}` : new URL(c.url).hostname);
+    link = h('a', { href: yt ? `${c.url}&t=${c.t}s` : c.url, target: '_blank', title: c.title ?? c.url }, yt ? `▶ ${clock(c.t!)}` : shortSource(c.url));
   }
-  const stamps = h(
+  const pills = h(
     'div',
-    { class: 'stamps' },
-    ...STAMPS.map(([s, zh]) => {
-      const b = h('button', { class: `stamp ${s}${w.s === s ? ' on' : ''}`, title: s }, zh);
+    { class: 'pills' },
+    ...STAMPS.map(([s, zh, label]) => {
+      const b = h('button', { class: `pill ${s}${w.s === s ? ' on' : ''}`, title: label }, zh);
       b.addEventListener('click', () => setStatus(w, s));
       return b;
     }),
   );
-  const del = h('button', { class: 'stamp del', title: 'remove from list' }, '×');
+  const del = h('button', { class: 'pill del', title: 'Remove from the list' }, '×');
   del.addEventListener('click', () => setStatus(w, null));
-  stamps.append(del);
+  pills.append(del, h('span', { class: 'when' }, ago(w.updated)));
   return h(
-    'tr',
-    null,
-    h('td', { class: `word st-${w.s}` }, w.w),
-    h('td', { class: 'py' }, w.p ?? ''),
-    h('td', null, w.g ?? ''),
-    h('td', { class: 'ctx' }, c ? c.text : '', c ? ' ' : '', link),
-    h('td', { class: 'when' }, ago(w.added)),
-    h('td', null, stamps),
+    'div',
+    { class: `row ${w.s}` },
+    h('div', { class: 'w' }, h('b', null, w.w), h('span', null, w.p ?? '')),
+    h('div', { class: 'mean' }, w.g ?? '', c ? h('span', { class: 'ctx' }, c.text.split(' — ')[0], link) : null),
+    pills,
   );
 }
 
@@ -77,19 +71,13 @@ async function setStatus(w: WordRecord, s: Status | null) {
 }
 
 async function renderExportInfo() {
-  const { lastExportAt, lastAnkiAt, feedWrittenAt, settings } = await browser.storage.local.get(['lastExportAt', 'lastAnkiAt', 'feedWrittenAt', 'settings']);
-  $('lastExport').textContent = lastExportAt ? `Last export ${ago(lastExportAt as number)}.` : 'Nothing exported yet.';
-  const folder = (settings as { feedFolder?: string } | undefined)?.feedFolder ?? 'chinese-brain';
-  $('feedInfo').textContent = folder
-    ? `Kept up to date automatically in Downloads/${folder}/ (words.tsv, events.tsv, README.md). ${feedWrittenAt ? `Last written ${ago(feedWrittenAt as number)}.` : ''}`
-    : 'Live feed is off (Settings).';
-  $('ankiNew').title = lastAnkiAt ? `Since ${new Date(lastAnkiAt as number).toLocaleString()}` : 'Nothing exported yet';
+  const { lastExportAt } = await browser.storage.local.get('lastExportAt');
+  $('lastExport').textContent = lastExportAt
+    ? `Last export ${ago(lastExportAt as number)}. "Export what's new" covers everything since then.`
+    : `Nothing exported yet. "Export what's new" will include everything so far.`;
 }
 
-$('q').addEventListener('input', () => {
-  limit = PAGE;
-  render();
-});
+$('q').addEventListener('input', render);
 $('sort').addEventListener('change', render);
 $('filter').addEventListener('click', (e) => {
   const b = (e.target as HTMLElement).closest('button');
@@ -101,25 +89,12 @@ $('filter').addEventListener('click', (e) => {
 
 $('exportNew').addEventListener('click', async () => {
   const { lastExportAt } = await browser.storage.local.get('lastExportAt');
-  download(`chinese-brain-${today()}.md`, buildClaudeMarkdown(words, logs, (lastExportAt as number) ?? 0));
+  download(`chinese-brain-${today()}.tsv`, buildClaudeExport(words, logs, (lastExportAt as number) ?? 0), 'text/tab-separated-values;charset=utf-8');
   await browser.storage.local.set({ lastExportAt: Date.now() });
   renderExportInfo();
 });
-$('exportAll').addEventListener('click', () => download(`chinese-brain-all-${today()}.md`, buildClaudeMarkdown(words, logs, 0)));
-$('feedNow').addEventListener('click', async () => {
-  $('feedNow').textContent = 'Writing…';
-  await browser.runtime.sendMessage({ type: 'writeFeed' });
-  $('feedNow').textContent = 'Write feed now';
-  renderExportInfo();
-});
-$('ankiAll').addEventListener('click', () => download(`chinese-brain-anki-${today()}.csv`, buildAnkiCsv(words), 'text/csv;charset=utf-8'));
-$('ankiNew').addEventListener('click', async () => {
-  const { lastAnkiAt } = await browser.storage.local.get('lastAnkiAt');
-  const fresh = words.filter((w) => w.added > ((lastAnkiAt as number) ?? 0));
-  download(`chinese-brain-anki-new-${today()}.csv`, buildAnkiCsv(fresh), 'text/csv;charset=utf-8');
-  await browser.storage.local.set({ lastAnkiAt: Date.now() });
-  renderExportInfo();
-});
+$('exportAll').addEventListener('click', () => download(`chinese-brain-all-${today()}.tsv`, buildClaudeExport(words, logs, 0), 'text/tab-separated-values;charset=utf-8'));
+
 $('backup').addEventListener('click', async () => {
   const all = await browser.storage.local.get(null);
   download(`chinese-brain-backup-${today()}.json`, JSON.stringify({ app: 'chinese-brain', v: 1, at: Date.now(), data: all }), 'application/json');
@@ -133,7 +108,6 @@ $('restore').addEventListener('change', async (e) => {
     .filter(([k]) => k.startsWith('w:'))
     .map(([, v]) => v as WordRecord);
   const n = await browser.runtime.sendMessage({ type: 'importWords', words: recs, mode: 'merge' });
-  // Logs and settings: merge keys that don't exist yet.
   const existing = await browser.storage.local.get(null);
   const extra: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(json.data as Record<string, unknown>)) if (!k.startsWith('w:') && !(k in existing)) extra[k] = v;
@@ -142,37 +116,24 @@ $('restore').addEventListener('change', async (e) => {
   load();
 });
 
-function wordsFromText(text: string): string[] {
-  const out: string[] = [];
-  for (const line of text.split(/\r?\n/)) {
-    const m = /[㐀-鿿豈-﫿]+/.exec(line);
-    if (m) out.push(m[0]);
-  }
-  return out;
-}
 $('knownFile').addEventListener('change', async (e) => {
   const f = (e.target as HTMLInputElement).files?.[0];
   if (f) $<HTMLTextAreaElement>('knownText').value = await f.text();
 });
 $('knownGo').addEventListener('click', async () => {
-  const list = wordsFromText($<HTMLTextAreaElement>('knownText').value);
-  if (!list.length) return;
-  const n = await browser.runtime.sendMessage({ type: 'bulkStatus', words: list, status: 'known', onlyNew: false });
-  $('knownOk').textContent = `${n} words marked known`;
-  load();
-});
-$('tocflGo').addEventListener('click', async () => {
-  const level = Number($<HTMLSelectElement>('tocfl').value);
-  const list: string[] = await browser.runtime.sendMessage({ type: 'tocflWords', level });
-  const n = await browser.runtime.sendMessage({ type: 'bulkStatus', words: list, status: 'known', onlyNew: true });
-  $('tocflOk').textContent = `${n} words marked known`;
+  const items = parseWordList($<HTMLTextAreaElement>('knownText').value);
+  if (!items.length) return;
+  const n = await browser.runtime.sendMessage({ type: 'importList', items });
+  const by = (s: Status) => items.filter((i) => i.s === s).length;
+  $('knownOk').textContent = `${n} words updated (file: ${by('known')} K, ${by('learning')} L${by('fresh') ? `, ${by('fresh')} F` : ''})`;
   load();
 });
 
+let reloadTimer: ReturnType<typeof setTimeout> | undefined;
 browser.storage.onChanged.addListener((ch) => {
   if (Object.keys(ch).some((k) => k.startsWith('w:'))) {
-    clearTimeout((window as unknown as { _t?: number })._t);
-    (window as unknown as { _t?: number })._t = window.setTimeout(load, 500);
+    clearTimeout(reloadTimer);
+    reloadTimer = setTimeout(load, 500);
   }
 });
 load();

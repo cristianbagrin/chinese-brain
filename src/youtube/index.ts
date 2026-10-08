@@ -1,10 +1,11 @@
 import { CJK } from '../shared/dict.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
-import type { Token } from '../shared/types.ts';
+import { TRANS_LANG, type Status, type Token } from '../shared/types.ts';
 import { lookupText } from '../content/hover.ts';
 import type { Popup } from '../content/popup.ts';
 import { state } from '../content/state.ts';
 import { alignTranslation, cueAt, cueBefore, parseTimedText, pickChinese, pickTranslation, urlInfo, type Cue, type TrackInfo } from './captions.ts';
+import { Controls } from './controls.ts';
 import css from './overlay.css';
 
 declare const __TEST__: boolean;
@@ -36,9 +37,9 @@ export class YouTubeSubs {
   private root: ShadowRoot;
   private zh: HTMLElement;
   private tr: HTMLElement;
-  private bar: HTMLElement;
-  private coverage: number | undefined;
-  private flashTimer: ReturnType<typeof setTimeout> | undefined;
+  private controls: Controls;
+  /** Share of this video's words (running count) per status; 'new' = not in the list. */
+  counts: Record<Status | 'new', number> = { fresh: 0, learning: 0, known: 0, new: 0 };
   private fallbackTimer: ReturnType<typeof setTimeout> | undefined;
   private domObserver: MutationObserver | undefined;
   /** True when mirroring YouTube's on-screen captions (no track was captured). */
@@ -55,13 +56,11 @@ export class YouTubeSubs {
     style.textContent = css;
     const box = document.createElement('div');
     box.className = 'box';
-    this.bar = document.createElement('div');
-    this.bar.className = 'bar';
     this.zh = document.createElement('div');
     this.zh.className = 'zh';
     this.tr = document.createElement('div');
     this.tr.className = 'tr';
-    box.append(this.bar, this.zh, this.tr);
+    box.append(this.zh, this.tr);
     this.root.append(style, box);
 
     // Keep clicks away from the player (which would pause or go fullscreen).
@@ -78,7 +77,11 @@ export class YouTubeSubs {
     browser.runtime.onMessage.addListener((msg: { type: string; url?: string; body?: string }) => {
       if (msg.type === 'ytCaptions' && msg.url && msg.body) this.onBody(msg.url, msg.body);
     });
-    state.onChange(() => this.renderLine(true));
+    this.controls = new Controls(this);
+    state.onChange(() => {
+      this.applyEnabled();
+      this.renderLine(true);
+    });
     window.addEventListener('keydown', (e) => this.onKey(e), true);
     document.addEventListener('yt-navigate-finish', () => this.checkVideo());
     window.addEventListener('pagehide', () => this.flushWatch());
@@ -107,6 +110,7 @@ export class YouTubeSubs {
     const id = this.currentId();
     if (id === this.videoId) {
       if (id && !this.src) this.findTracks();
+      if (id && this.cues.length) this.controls.mount();
       return;
     }
     this.flushWatch();
@@ -135,8 +139,9 @@ export class YouTubeSubs {
     this.trCues = undefined;
     this.idx = -2;
     this.requestedTr = false;
-    this.coverage = undefined;
+    this.counts = { fresh: 0, learning: 0, known: 0, new: 0 };
     this.loop = false;
+    this.shadow = false;
     this.host.hidden = true;
     document.documentElement.classList.remove('cb-subs-on');
   }
@@ -196,7 +201,7 @@ export class YouTubeSubs {
       return;
     }
     if (!cues.length) return;
-    const want = state.settings.transLang;
+    const want = TRANS_LANG;
     const isZh = /^zh/i.test(info.lang);
     if (info.tlang) {
       if (info.tlang.split('-')[0] === want) this.setTranslation(cues);
@@ -257,7 +262,7 @@ export class YouTubeSubs {
     // Then fetch the second line: a real English track if there is one, else YouTube's auto-translation.
     if (!this.requestedTr && !this.trCues && this.src) {
       this.requestedTr = true;
-      const want = state.settings.transLang;
+      const want = TRANS_LANG;
       const manual = pickTranslation(this.tracks, want);
       setTimeout(() => {
         if (manual) this.setTrack(manual);
@@ -281,7 +286,7 @@ export class YouTubeSubs {
       type: 'translate',
       lines,
       sl: this.src?.languageCode ?? 'zh-TW',
-      tl: state.settings.transLang,
+      tl: TRANS_LANG,
     });
     if (!res || this.videoId !== id || this.trCues) return;
     this.trCues = this.cues.map((c, i) => ({ ...c, text: res[i] ?? '' }));
@@ -296,29 +301,67 @@ export class YouTubeSubs {
   }
 
   private computeCoverage() {
-    let total = 0;
-    let known = 0;
+    const c = { fresh: 0, learning: 0, known: 0, new: 0 };
     for (const line of this.tokens)
       for (const t of line) {
         if (!t.word || !CJK.test(t.text)) continue;
-        total++;
-        if (state.status(t.word) === 'known') known++;
+        c[state.status(t.word) ?? 'new']++;
       }
-    this.coverage = total ? known / total : undefined;
+    this.counts = c;
+  }
+
+  /** Known share of the running words, 0..1 (undefined without captions). */
+  get coverage(): number | undefined {
+    const c = this.counts;
+    const total = c.fresh + c.learning + c.known + c.new;
+    return total ? c.known / total : undefined;
+  }
+
+  get hasSubs() {
+    return this.cues.length > 0;
+  }
+  get trackName() {
+    return this.src ? this.src.name || this.src.languageCode : '';
+  }
+  get hasTranslation() {
+    return !!this.trCues;
+  }
+  get looping() {
+    return this.loop;
+  }
+  get shadowing() {
+    return this.shadow;
+  }
+
+  toggleLoop() {
+    this.loop = !this.loop;
+    this.controls.render();
+  }
+  toggleShadow() {
+    this.shadow = !this.shadow;
+    this.shadowDone = -1;
+    this.controls.render();
+  }
+
+  /** The player switch: our subtitles on or off (YouTube's own come back when off). */
+  private applyEnabled() {
+    const on = state.settings.ytEnabled && this.cues.length > 0;
+    this.host.hidden = !on;
+    document.documentElement.classList.toggle('cb-subs-on', on);
+    if (!on) this.popup.hide();
   }
 
   private mount() {
     const p = document.getElementById('movie_player');
     if (!p) return;
     if (this.host.parentNode !== p) p.append(this.host);
-    this.host.hidden = false;
-    document.documentElement.classList.add('cb-subs-on');
+    this.applyEnabled();
+    this.controls.mount();
     browser.runtime.sendMessage({
       type: 'insertCSS',
       css: 'html.cb-subs-on .ytp-caption-window-container{display:none!important}',
     });
     this.resize();
-    this.renderBar();
   }
 
   private resize() {
@@ -381,7 +424,7 @@ export class YouTubeSubs {
     this.zh.replaceChildren();
     if (toks) {
       toks.forEach((t, k) => {
-        const text = s.toTraditional && t.trad ? t.trad : t.text;
+        const text = t.trad ?? t.text;
         if (!t.word && !CJK.test(t.text)) {
           this.zh.append(text);
           return;
@@ -407,33 +450,7 @@ export class YouTubeSubs {
     this.tr.textContent = s.translation === 'hide' ? '' : tr;
     this.tr.classList.toggle('blur', s.translation === 'blur');
     this.resize();
-    this.renderBar();
-  }
-
-  private renderBar() {
-    const s = state.settings;
-    const src = this.src ? this.src.name || this.src.languageCode : 'zh';
-    const item = (text: string, cls = '') => {
-      const el = document.createElement(cls === 'b' ? 'b' : 'span');
-      if (cls && cls !== 'b') el.className = cls;
-      el.textContent = text;
-      return el;
-    };
-    const parts: HTMLElement[] = [item(`${src}${this.trCues ? ' + ' + s.transLang : ''}`)];
-    if (this.coverage != null) parts.push(item(`熟 ${Math.round(this.coverage * 100)}%`, 'b'));
-    parts.push(item('A ◀ · S ↺ · D ▶'));
-    parts.push(item('R loop', this.loop ? 'on' : ''));
-    parts.push(item('Q shadow', this.shadow ? 'on' : ''));
-    parts.push(item('P pinyin', s.subPinyin ? 'on' : ''));
-    parts.push(item(`X ${s.translation}`));
-    this.bar.replaceChildren(...parts.flatMap((p, i) => (i ? [' · ', p] : [p])));
-    this.bar.title = 'Chinese Brain: 熟 = share of words in this video you marked Known';
-  }
-
-  private flash() {
-    this.bar.classList.add('flash');
-    clearTimeout(this.flashTimer);
-    this.flashTimer = setTimeout(() => this.bar.classList.remove('flash'), 1500);
+    this.controls.render();
   }
 
   private tokenAt(e: Event): { span: HTMLElement; tok: Token; line: number } | undefined {
@@ -444,6 +461,7 @@ export class YouTubeSubs {
   }
 
   private showSeq = 0;
+  private lastClicked = '';
 
   private async showFor(e: Event, pinned: boolean) {
     const seq = ++this.showSeq;
@@ -469,8 +487,15 @@ export class YouTubeSubs {
       at: Date.now(),
       src: 'yt' as const,
     };
-    await this.popup.show({ matches, rect: span.getBoundingClientRect(), src: 'yt', ctx, pinned, above: true });
-    if (pinned && state.settings.autoFreshOnClick && !state.status(matches[0].word)) this.popup.setStatus('fresh');
+    const cursor = e instanceof MouseEvent ? { x: e.clientX, y: e.clientY } : undefined;
+    await this.popup.show({ matches, rect: span.getBoundingClientRect(), cursor, src: 'yt', ctx, pinned });
+    if (pinned && state.settings.autoFreshOnClick) {
+      // Click a new word: Fresh. Click it again: back to untracked.
+      const st = state.status(matches[0].word);
+      if (!st) this.popup.setStatus('fresh', false);
+      else if (st === 'fresh' && this.lastClicked === matches[0].word) this.popup.setStatus(null, false);
+    }
+    if (pinned) this.lastClicked = matches[0].word;
   }
 
   private onTokenHover(e: Event) {
@@ -523,7 +548,7 @@ export class YouTubeSubs {
       e.stopImmediatePropagation();
       return;
     }
-    if (this.host.hidden || !this.cues.length || this.live || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!state.settings.ytEnabled || !this.cues.length || this.live || e.ctrlKey || e.metaKey || e.altKey) return;
     const s = state.settings;
     let handled = true;
     switch (e.key.toLowerCase()) {
@@ -537,11 +562,10 @@ export class YouTubeSubs {
         this.seekLine(1);
         break;
       case 'r':
-        this.loop = !this.loop;
+        this.toggleLoop();
         break;
       case 'q':
-        this.shadow = !this.shadow;
-        this.shadowDone = -1;
+        this.toggleShadow();
         break;
       case 'p':
         browser.runtime.sendMessage({ type: 'saveSettings', settings: { subPinyin: !s.subPinyin } });
@@ -557,8 +581,7 @@ export class YouTubeSubs {
     if (handled) {
       e.preventDefault();
       e.stopImmediatePropagation();
-      this.renderBar();
-      this.flash();
+      this.controls.flash(e.key.toLowerCase());
     }
   }
 

@@ -31,7 +31,36 @@ export class Dictionary {
       }
       start = end + 1;
     }
+    d.computeRanks();
     return d;
+  }
+
+  /** Frequency rank per headword (1 = most common), from the Zipf scores. */
+  private computeRanks() {
+    const best = new Map<string, number>();
+    for (const e of this.entries) if (e.zipf > (best.get(e.trad) ?? 0)) best.set(e.trad, e.zipf);
+    const order = [...best].sort((a, b) => b[1] - a[1]);
+    const rank = new Map<string, number>();
+    order.forEach(([w], i) => rank.set(w, i + 1));
+    for (const e of this.entries) e.rank = rank.get(e.trad) ?? 0;
+  }
+
+  /** The best entry for a single character read as `syllable` (numbered, e.g. "dian4"). */
+  charEntry(ch: string, syllable?: string): Entry | undefined {
+    // Only entries whose traditional form is this character (台 is also the simplified form of 檯/颱).
+    const all = this.get(ch);
+    let list = all.filter((e) => e.trad === ch).length ? all.filter((e) => e.trad === ch) : all;
+    // 台 is listed as "variant of 臺": use the main form's senses.
+    const v = /variant of ([^|\[\s]+)\|/.exec(list.map((e) => e.defs.join('/')).join('/'));
+    if (v && list.every((e) => /^\(classical\)|variant of/.test(e.defs[0] ?? '') || e.defs.length <= 2)) {
+      const main = this.get(v[1]).filter((e) => e.trad === v[1]);
+      if (main.length) list = main;
+    }
+    if (!syllable) return list[0];
+    const read = (e: Entry) => (e.tw || e.py).toLowerCase();
+    const want = syllable.toLowerCase();
+    const bare = (x: string) => x.replace(/[1-5]$/, '');
+    return list.find((e) => read(e) === want) ?? list.find((e) => bare(read(e)) === bare(want)) ?? list[0];
   }
 
   private add(key: string, i: number) {

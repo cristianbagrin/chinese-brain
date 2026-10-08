@@ -23,7 +23,6 @@
     "unlimitedStorage",
     "webRequest",
     "webRequestBlocking",
-    "downloads",
     "<all_urls>"
   ],
   "background": {
@@ -51,13 +50,5 @@
   "options_ui": {
     "page": "options.html",
     "open_in_tab": true
-  },
-  "commands": {
-    "toggle-lookup": {
-      "suggested_key": {
-        "default": "Alt+Shift+C"
-      },
-      "description": "Turn hover lookup on or off"
-    }
   }
 }

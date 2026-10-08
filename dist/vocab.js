@@ -10,91 +10,70 @@
     return h2 ? `${h2}:${String(m).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
   }
 
+  // src/shared/types.ts
+  var STATUS_CODE = { fresh: "F", learning: "L", known: "K" };
+
   // src/shared/export.ts
-  var clean = (s) => (s ?? "").replace(/[\t\r\n]+/g, " ").trim(), iso = (t) => {
+  var clean = (s) => (s ?? "").replace(/[\t\r\n]+/g, " ").trim(), stamp = (t) => {
     let d = new Date(t);
     return `${dayKeyLocal(t)} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  };
-  function videoLink(url, t) {
-    if (t == null) return url;
+  }, code = (s) => s ? STATUS_CODE[s] : "-";
+  function shortSource(url, t) {
     try {
       let u = new URL(url);
-      if (u.hostname.endsWith("youtube.com") && u.searchParams.get("v"))
-        return `https://youtu.be/${u.searchParams.get("v")}?t=${Math.floor(t)}`;
+      return u.hostname.endsWith("youtube.com") && u.searchParams.get("v") ? `youtu.be/${u.searchParams.get("v")}${t != null ? `?t=${Math.floor(t)}` : ""}` : u.hostname.replace(/^www\./, "");
     } catch {
+      return "";
     }
-    return url;
   }
-  function buildWordsTsv(words2, since = 0) {
-    let head = ["word", "status", "pinyin", "gloss", "added", "updated", "lookups", "history", "sentence", "source"], rows = words2.filter((w) => w.updated > since).sort((a, b) => a.added - b.added).map((w) => {
-      let c = w.ctx[0], hist = w.hist.map((h2) => `${h2.s}@${dayKeyLocal(h2.t)}`).join(">");
-      return [w.w, w.s, w.p, w.g, iso(w.added), iso(w.updated), String(w.looks), hist, c?.text, c ? videoLink(c.url, c.t) : ""].map(clean).join("	");
-    });
-    return [head.join("	"), ...rows].join(`
-`) + `
-`;
+  function duration(secs) {
+    let m = Math.round(secs / 60);
+    return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min` : `${m} min`;
   }
-  function buildEventsTsv(logs2, since = 0) {
-    let head = ["time", "event", "word", "detail", "url"], rows = logs2.filter((e) => e.at > since).map((e) => {
-      switch (e.k) {
-        case "look":
-          return [iso(e.at), "lookup", e.w, e.src, e.url ?? ""];
-        case "status":
-          return [iso(e.at), "status", e.w, `${e.from ?? "untracked"}>${e.s ?? "untracked"}`, ""];
-        case "watch":
-          return [
-            iso(e.at),
-            "watch",
-            "",
-            `${Math.round(e.secs / 60)} min${e.coverage != null ? `, knew ${Math.round(e.coverage * 100)}% of words` : ""}${e.title ? ` | ${e.title}` : ""}`,
-            e.url
-          ];
-      }
-    }).map((r) => r.map((x) => clean(x)).join("	"));
-    return [head.join("	"), ...rows].join(`
-`) + `
-`;
-  }
-  function buildAnkiCsv(words2) {
-    let q = (s) => `"${(s ?? "").replace(/"/g, '""')}"`;
-    return ["word,pinyin,meaning,sentence,source,status", ...words2.map((w) => {
-      let c = w.ctx[0];
-      return [w.w, w.p, w.g, c?.text, c ? videoLink(c.url, c.t) : "", w.s].map(q).join(",");
-    })].join(`
-`) + `
-`;
-  }
-  function buildClaudeMarkdown(words2, logs2, since = 0) {
-    let now = Date.now(), changed = words2.filter((w) => w.updated > since), evs = logs2.filter((e) => e.at > since), looks = evs.filter((e) => e.k === "look"), watches = evs.filter((e) => e.k === "watch"), statusEvs = evs.filter((e) => e.k === "status"), by = (s) => changed.filter((w) => w.s === s).length, slipped = [...new Set(statusEvs.filter((e) => e.s === "difficult" && e.from && e.from !== "difficult").map((e) => e.w))], lookCount = /* @__PURE__ */ new Map();
-    for (let e of looks) lookCount.set(e.w, (lookCount.get(e.w) ?? 0) + 1);
-    let top = [...lookCount].sort((a, b) => b[1] - a[1]).slice(0, 15), mins = Math.round(watches.reduce((n, e) => n + e.secs, 0) / 60), lines = [
-      "# Chinese Brain export",
-      "",
-      `Exported ${iso(now)}. ${since ? `Covers everything after ${iso(since)}.` : "Covers everything recorded so far."}`,
-      "",
-      "## Summary",
-      `- Words added or changed: ${changed.length} (now ${by("fresh")} fresh, ${by("difficult")} difficult, ${by("known")} known)`,
-      `- Whole list: ${words2.length} words (${words2.filter((w) => w.s === "known").length} known)`,
-      `- Deliberate lookups: ${looks.length} (YouTube ${looks.filter((e) => e.src === "yt").length}, web ${looks.filter((e) => e.src === "web").length})`,
-      `- Videos watched with subtitles: ${watches.length} (${mins} min)`,
-      slipped.length ? `- Slipped back to difficult: ${slipped.join("\u3001")}` : "",
-      top.length ? `- Most looked up: ${top.map(([w, n]) => n > 1 ? `${w} \xD7${n}` : w).join("\u3001")}` : "",
-      "",
-      "Statuses: fresh = met recently and learning; difficult = should know but keeps slipping; known = known. Pinyin is the Taiwan standard reading.",
-      "",
-      "## Words",
-      "```tsv",
-      buildWordsTsv(words2, since).trimEnd(),
-      "```",
-      "",
-      "## Events",
-      "```tsv",
-      buildEventsTsv(logs2, since).trimEnd(),
-      "```",
-      ""
+  function buildClaudeExport(words2, logs2, since = 0) {
+    let now = Date.now(), evs = logs2.filter((e) => e.at > since), looks = /* @__PURE__ */ new Map(), yt = 0;
+    for (let e of evs)
+      e.k === "look" && (looks.set(e.w, (looks.get(e.w) ?? 0) + 1), e.src === "yt" && yt++);
+    let watches = evs.filter((e) => e.k === "watch"), byWord = new Map(words2.map((w) => [w.w, w])), was = (w) => {
+      let before = w.hist.filter((h2) => h2.t <= since);
+      return before.length ? before[before.length - 1].s : null;
+    }, removed = /* @__PURE__ */ new Set();
+    for (let e of evs) e.k === "status" && (e.s ? removed.delete(e.w) : removed.add(e.w));
+    let rows = [];
+    for (let w of words2)
+      (w.hist.some((h2) => h2.t > since) || looks.has(w.w)) && rows.push({ w: w.w, now: w.s, was: since ? was(w) : null, date: w.updated, rec: w });
+    for (let w of removed) byWord.has(w) || rows.push({ w, now: null, was: null, date: now });
+    for (let w of looks.keys()) !byWord.has(w) && !removed.has(w) && rows.push({ w, now: null, was: null, date: now });
+    let order = { K: 0, L: 1, F: 2, "-": 3 };
+    rows.sort((a, b) => order[code(a.now)] - order[code(b.now)] || a.date - b.date);
+    let changedCount = rows.filter((r) => r.now !== r.was).length, lines = [
+      `# Chinese Brain export \xB7 ${stamp(now)} \xB7 ${since ? `since ${stamp(since)}` : "everything so far"}`,
+      "# Codes as in known-words.txt: K known, L learning, F fresh (met, not studied yet), - not in the list.",
+      "# was = status before this period (- = new). looks = deliberate lookups in this period (a K word looked up = forgotten).",
+      `# ${changedCount} status changes \xB7 ${[...looks.values()].reduce((a, b) => a + b, 0)} lookups (YouTube ${yt}) \xB7 ${watches.length} videos with subtitles (${duration(watches.reduce((n, e) => n + e.secs, 0))})`,
+      ["word", "now", "was", "date", "looks", "pinyin", "meaning", "sentence", "source"].join("	")
     ];
-    return lines.filter((l, i) => l !== "" || lines[i - 1] !== "").join(`
-`);
+    for (let r of rows) {
+      let c = r.rec?.ctx[0];
+      lines.push(
+        [r.w, code(r.now), code(r.was), dayKeyLocal(r.date), String(looks.get(r.w) ?? 0), r.rec?.p, r.rec?.g, c?.text, c ? shortSource(c.url, c.t) : ""].map((x) => clean(x)).join("	")
+      );
+    }
+    return lines.join(`
+`) + `
+`;
+  }
+  function parseWordList(text) {
+    let out = [];
+    for (let raw of text.split(/\r?\n/)) {
+      let line = raw.trim();
+      if (!line || line.startsWith("#")) continue;
+      let cols = line.split(/\t|,|;/).map((c) => c.trim()), m = /[㐀-鿿豈-﫿]+/.exec(cols[0]) ?? /[㐀-鿿豈-﫿]+/.exec(line);
+      if (!m) continue;
+      let codeCol = cols.find((c, i) => i > 0 && /^[KLF]$/i.test(c))?.toUpperCase(), s = codeCol === "L" ? "learning" : codeCol === "F" ? "fresh" : "known", dateCol = cols.find((c) => /^\d{4}-\d{2}-\d{2}$/.test(c)), t = dateCol ? (/* @__PURE__ */ new Date(`${dateCol}T12:00:00`)).getTime() : 0;
+      out.push({ w: m[0], s, t });
+    }
+    return out;
   }
 
   // src/pages/common.ts
@@ -120,10 +99,10 @@
 
   // src/pages/vocab.ts
   var STAMPS = [
-    ["fresh", "\u65B0"],
-    ["difficult", "\u96E3"],
-    ["known", "\u719F"]
-  ], words = [], logs = [], filter = "all", PAGE = 300, limit = PAGE;
+    ["fresh", "\u65B0", "Fresh"],
+    ["learning", "\u5B78", "Learning"],
+    ["known", "\u719F", "Known"]
+  ], words = [], logs = [], filter = "all", PAGE = 300;
   async function load() {
     let data = await browser.runtime.sendMessage({ type: "allData" });
     words = data.words, logs = data.logs, render(), renderExportInfo();
@@ -131,49 +110,42 @@
   function render() {
     let n = (s) => words.filter((w) => w.s === s).length;
     $("counts").replaceChildren(
-      ...STAMPS.map(([s, zh]) => h("div", { class: s }, h("b", null, String(n(s))), h("span", null, `${zh} ${s}`))),
-      h("div", null, h("b", null, String(words.length)), h("span", null, "total"))
+      ...STAMPS.map(([s, zh, label]) => h("div", { class: `count ${s}` }, h("b", null, String(n(s))), h("span", null, `${zh} ${label}`))),
+      h("div", { class: "count" }, h("b", null, String(words.length)), h("span", null, "in your list"))
     );
     let q = $("q").value.trim().toLowerCase(), sort = $("sort").value, list = words.filter((w) => filter === "all" || w.s === filter).filter((w) => !q || w.w.includes(q) || (w.p ?? "").toLowerCase().includes(q) || (w.g ?? "").toLowerCase().includes(q)).sort((a, b) => b[sort] - a[sort]);
-    $("shown").textContent = `${list.length} shown`, $("rows").replaceChildren(...list.slice(0, limit).map(row)), $("more").textContent = list.length > limit ? `Showing ${limit} of ${list.length}. Search to narrow down.` : "";
+    $("rows").replaceChildren(...list.slice(0, PAGE).map(row)), $("more").textContent = list.length > PAGE ? `Showing ${PAGE} of ${list.length}. Search to narrow it down.` : `${list.length} words`;
   }
   function row(w) {
     let c = w.ctx[0], link = null;
     if (c) {
-      let yt = c.src === "yt" && c.t != null, href = yt ? `${c.url}&t=${c.t}s` : c.url;
-      link = h("a", { href, target: "_blank", title: c.title ?? c.url }, yt ? `\u25B6 ${clock(c.t)}` : new URL(c.url).hostname);
+      let yt = c.src === "yt" && c.t != null;
+      link = h("a", { href: yt ? `${c.url}&t=${c.t}s` : c.url, target: "_blank", title: c.title ?? c.url }, yt ? `\u25B6 ${clock(c.t)}` : shortSource(c.url));
     }
-    let stamps = h(
+    let pills = h(
       "div",
-      { class: "stamps" },
-      ...STAMPS.map(([s, zh]) => {
-        let b = h("button", { class: `stamp ${s}${w.s === s ? " on" : ""}`, title: s }, zh);
+      { class: "pills" },
+      ...STAMPS.map(([s, zh, label]) => {
+        let b = h("button", { class: `pill ${s}${w.s === s ? " on" : ""}`, title: label }, zh);
         return b.addEventListener("click", () => setStatus(w, s)), b;
       })
-    ), del = h("button", { class: "stamp del", title: "remove from list" }, "\xD7");
-    return del.addEventListener("click", () => setStatus(w, null)), stamps.append(del), h(
-      "tr",
-      null,
-      h("td", { class: `word st-${w.s}` }, w.w),
-      h("td", { class: "py" }, w.p ?? ""),
-      h("td", null, w.g ?? ""),
-      h("td", { class: "ctx" }, c ? c.text : "", c ? " " : "", link),
-      h("td", { class: "when" }, ago(w.added)),
-      h("td", null, stamps)
+    ), del = h("button", { class: "pill del", title: "Remove from the list" }, "\xD7");
+    return del.addEventListener("click", () => setStatus(w, null)), pills.append(del, h("span", { class: "when" }, ago(w.updated))), h(
+      "div",
+      { class: `row ${w.s}` },
+      h("div", { class: "w" }, h("b", null, w.w), h("span", null, w.p ?? "")),
+      h("div", { class: "mean" }, w.g ?? "", c ? h("span", { class: "ctx" }, c.text.split(" \u2014 ")[0], link) : null),
+      pills
     );
   }
   async function setStatus(w, s) {
     await browser.runtime.sendMessage({ type: "setStatus", word: w.w, status: s }), await load();
   }
   async function renderExportInfo() {
-    let { lastExportAt, lastAnkiAt, feedWrittenAt, settings } = await browser.storage.local.get(["lastExportAt", "lastAnkiAt", "feedWrittenAt", "settings"]);
-    $("lastExport").textContent = lastExportAt ? `Last export ${ago(lastExportAt)}.` : "Nothing exported yet.";
-    let folder = settings?.feedFolder ?? "chinese-brain";
-    $("feedInfo").textContent = folder ? `Kept up to date automatically in Downloads/${folder}/ (words.tsv, events.tsv, README.md). ${feedWrittenAt ? `Last written ${ago(feedWrittenAt)}.` : ""}` : "Live feed is off (Settings).", $("ankiNew").title = lastAnkiAt ? `Since ${new Date(lastAnkiAt).toLocaleString()}` : "Nothing exported yet";
+    let { lastExportAt } = await browser.storage.local.get("lastExportAt");
+    $("lastExport").textContent = lastExportAt ? `Last export ${ago(lastExportAt)}. "Export what's new" covers everything since then.` : `Nothing exported yet. "Export what's new" will include everything so far.`;
   }
-  $("q").addEventListener("input", () => {
-    limit = PAGE, render();
-  });
+  $("q").addEventListener("input", render);
   $("sort").addEventListener("change", render);
   $("filter").addEventListener("click", (e) => {
     let b = e.target.closest("button");
@@ -181,17 +153,9 @@
   });
   $("exportNew").addEventListener("click", async () => {
     let { lastExportAt } = await browser.storage.local.get("lastExportAt");
-    download(`chinese-brain-${today()}.md`, buildClaudeMarkdown(words, logs, lastExportAt ?? 0)), await browser.storage.local.set({ lastExportAt: Date.now() }), renderExportInfo();
+    download(`chinese-brain-${today()}.tsv`, buildClaudeExport(words, logs, lastExportAt ?? 0), "text/tab-separated-values;charset=utf-8"), await browser.storage.local.set({ lastExportAt: Date.now() }), renderExportInfo();
   });
-  $("exportAll").addEventListener("click", () => download(`chinese-brain-all-${today()}.md`, buildClaudeMarkdown(words, logs, 0)));
-  $("feedNow").addEventListener("click", async () => {
-    $("feedNow").textContent = "Writing\u2026", await browser.runtime.sendMessage({ type: "writeFeed" }), $("feedNow").textContent = "Write feed now", renderExportInfo();
-  });
-  $("ankiAll").addEventListener("click", () => download(`chinese-brain-anki-${today()}.csv`, buildAnkiCsv(words), "text/csv;charset=utf-8"));
-  $("ankiNew").addEventListener("click", async () => {
-    let { lastAnkiAt } = await browser.storage.local.get("lastAnkiAt"), fresh = words.filter((w) => w.added > (lastAnkiAt ?? 0));
-    download(`chinese-brain-anki-new-${today()}.csv`, buildAnkiCsv(fresh), "text/csv;charset=utf-8"), await browser.storage.local.set({ lastAnkiAt: Date.now() }), renderExportInfo();
-  });
+  $("exportAll").addEventListener("click", () => download(`chinese-brain-all-${today()}.tsv`, buildClaudeExport(words, logs, 0), "text/tab-separated-values;charset=utf-8"));
   $("backup").addEventListener("click", async () => {
     let all = await browser.storage.local.get(null);
     download(`chinese-brain-backup-${today()}.json`, JSON.stringify({ app: "chinese-brain", v: 1, at: Date.now(), data: all }), "application/json");
@@ -205,30 +169,19 @@
     for (let [k, v] of Object.entries(json.data)) !k.startsWith("w:") && !(k in existing) && (extra[k] = v);
     await browser.storage.local.set(extra), alert(`Restored ${n} words.`), load();
   });
-  function wordsFromText(text) {
-    let out = [];
-    for (let line of text.split(/\r?\n/)) {
-      let m = /[㐀-鿿豈-﫿]+/.exec(line);
-      m && out.push(m[0]);
-    }
-    return out;
-  }
   $("knownFile").addEventListener("change", async (e) => {
     let f = e.target.files?.[0];
     f && ($("knownText").value = await f.text());
   });
   $("knownGo").addEventListener("click", async () => {
-    let list = wordsFromText($("knownText").value);
-    if (!list.length) return;
-    let n = await browser.runtime.sendMessage({ type: "bulkStatus", words: list, status: "known", onlyNew: !1 });
-    $("knownOk").textContent = `${n} words marked known`, load();
+    let items = parseWordList($("knownText").value);
+    if (!items.length) return;
+    let n = await browser.runtime.sendMessage({ type: "importList", items }), by = (s) => items.filter((i) => i.s === s).length;
+    $("knownOk").textContent = `${n} words updated (file: ${by("known")} K, ${by("learning")} L${by("fresh") ? `, ${by("fresh")} F` : ""})`, load();
   });
-  $("tocflGo").addEventListener("click", async () => {
-    let level = Number($("tocfl").value), list = await browser.runtime.sendMessage({ type: "tocflWords", level }), n = await browser.runtime.sendMessage({ type: "bulkStatus", words: list, status: "known", onlyNew: !0 });
-    $("tocflOk").textContent = `${n} words marked known`, load();
-  });
+  var reloadTimer;
   browser.storage.onChanged.addListener((ch) => {
-    Object.keys(ch).some((k) => k.startsWith("w:")) && (clearTimeout(window._t), window._t = window.setTimeout(load, 500));
+    Object.keys(ch).some((k) => k.startsWith("w:")) && (clearTimeout(reloadTimer), reloadTimer = setTimeout(load, 500));
   });
   load();
 })();

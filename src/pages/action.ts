@@ -10,10 +10,10 @@ async function init() {
   const vals = Object.values(statuses);
   $('counts').replaceChildren(
     ...([
-      ['fresh', '新'],
-      ['difficult', '難'],
-      ['known', '熟'],
-    ] as const).map(([k, zh]) => h('div', { class: k }, h('b', null, String(vals.filter((v) => v === k).length)), h('span', null, zh + ' ' + k))),
+      ['fresh', '新 Fresh'],
+      ['learning', '學 Learning'],
+      ['known', '熟 Known'],
+    ] as const).map(([k, label]) => h('div', { class: `count ${k}` }, h('b', null, String(vals.filter((v) => v === k).length)), h('span', null, label))),
   );
   const mode = $<HTMLSelectElement>('hoverMode');
   mode.value = s.hoverMode;

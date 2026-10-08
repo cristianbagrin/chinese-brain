@@ -4,30 +4,31 @@
 <meta charset="utf-8">
 <link rel="stylesheet" href="pages.css">
 <style>
-  body { width: 300px; background: var(--card); }
-  .wrap { padding: 14px 16px 12px; }
-  .top { display: flex; align-items: baseline; gap: 10px; border-bottom: 2px dotted var(--rule); padding-bottom: 8px; }
-  .top b { font: 700 24px/1 var(--serif); }
-  .top span { font: 12px var(--mono); color: var(--ink2); }
-  .counts { gap: 18px; margin: 12px 0; }
-  .counts b { font-size: 22px; }
-  label.line { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; font-size: 14px; }
-  .links { display: flex; gap: 14px; margin-top: 12px; font: 13px var(--mono); }
+  body { width: 300px; background: var(--ground); }
+  .sign .in { padding: 12px 16px 12px; }
+  .sign .name { font-size: 20px; padding: 0; }
+  .wrap { padding: 12px 14px 14px; }
+  .counts { gap: 6px; margin-bottom: 12px; }
+  .count { min-width: 0; flex: 1; padding: 6px 8px 5px; border-top-width: 3px; }
+  .count b { font-size: 19px; }
+  .count span { font-size: 11.5px; }
+  label.line { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; font-size: 14px; gap: 8px; }
+  .links { display: flex; gap: 14px; margin-top: 12px; font-size: 13px; }
 </style>
 </head>
 <body>
+<header class="sign"><div class="in"><div class="name">中文腦<small>Chinese Brain</small></div></div></header>
 <div class="wrap">
-  <div class="top"><b>中文腦</b><span>Chinese Brain</span></div>
   <div class="counts" id="counts"></div>
   <label class="line">Lookup
     <select id="hoverMode">
-      <option value="hover">hover</option>
+      <option value="hover">on hover</option>
       <option value="shift">Shift + hover</option>
       <option value="off">off</option>
     </select>
   </label>
-  <label class="line" id="siteLine"><span>Off on <span class="mono" id="host"></span></span> <input type="checkbox" id="siteOff"></label>
-  <div class="links"><a href="vocab.html" target="_blank">word list</a><a href="vocab.html#export" target="_blank">export</a><a href="options.html" target="_blank">settings</a></div>
+  <label class="line" id="siteLine"><span>Off on <b id="host"></b></span> <input type="checkbox" id="siteOff"></label>
+  <div class="links"><a href="vocab.html" target="_blank">Word list &amp; export</a><a href="options.html" target="_blank">Settings</a></div>
 </div>
 <script src="action.js"></script>
 </body>

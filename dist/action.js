@@ -18,10 +18,10 @@
     ]), vals = Object.values(statuses);
     $("counts").replaceChildren(
       ...[
-        ["fresh", "\u65B0"],
-        ["difficult", "\u96E3"],
-        ["known", "\u719F"]
-      ].map(([k, zh]) => h("div", { class: k }, h("b", null, String(vals.filter((v) => v === k).length)), h("span", null, zh + " " + k)))
+        ["fresh", "\u65B0 Fresh"],
+        ["learning", "\u5B78 Learning"],
+        ["known", "\u719F Known"]
+      ].map(([k, label]) => h("div", { class: `count ${k}` }, h("b", null, String(vals.filter((v) => v === k).length)), h("span", null, label)))
     );
     let mode = $("hoverMode");
     mode.value = s.hoverMode, mode.addEventListener("change", () => browser.runtime.sendMessage({ type: "saveSettings", settings: { hoverMode: mode.value } }));

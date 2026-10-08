@@ -1,0 +1,58 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync, existsSync } from 'node:fs';
+import { buildClaudeExport, parseWordList } from '../src/shared/export.ts';
+import type { WordRecord } from '../src/shared/types.ts';
+
+test('parses known-words.txt (word, K/L, date)', () => {
+  const items = parseWordList('# header\n一\tK\t2026-09-21\n經驗\tL\t2026-09-22\n颱風\n');
+  assert.deepEqual(
+    items.map((i) => [i.w, i.s]),
+    [
+      ['一', 'known'],
+      ['經驗', 'learning'],
+      ['颱風', 'known'],
+    ],
+  );
+  assert.equal(new Date(items[1].t).getDate(), 22);
+});
+
+test("the user's real file parses completely", () => {
+  const f = process.env.KNOWN_WORDS;
+  if (!f || !existsSync(f)) return;
+  const items = parseWordList(readFileSync(f, 'utf8'));
+  assert.equal(items.length, 1736);
+  assert.equal(items.filter((i) => i.s === 'learning').length, 91);
+});
+
+test('weekly export: only changes and lookups since the last export', () => {
+  const day = 86400000;
+  const now = Date.now();
+  const since = now - 7 * day;
+  const rec = (w: string, hist: [number, WordRecord['s']][]): WordRecord => ({
+    w,
+    s: hist[hist.length - 1][1],
+    added: hist[0][0],
+    updated: hist[hist.length - 1][0],
+    hist: hist.map(([t, s]) => ({ t, s })),
+    looks: 0,
+    ctx: [],
+    p: 'x',
+    g: 'y',
+  });
+  const words = [
+    rec('舊', [[now - 30 * day, 'known']]), // unchanged, not looked up: excluded
+    rec('忘', [[now - 30 * day, 'known']]), // looked up this week: included, K with looks
+    rec('進', [[now - 20 * day, 'learning'], [now - 1 * day, 'known']]), // L -> K
+    rec('新', [[now - 2 * day, 'fresh']]),
+  ];
+  const logs = [{ at: now - day, k: 'look' as const, w: '忘', src: 'yt' as const }];
+  const out = buildClaudeExport(words, logs, since);
+  const rows = out.split('\n').filter((l) => l && !l.startsWith('#') && !l.startsWith('word\t'));
+  const byWord = Object.fromEntries(rows.map((r) => [r.split('\t')[0], r.split('\t')]));
+  assert.ok(!byWord['舊']);
+  assert.deepEqual(byWord['忘'].slice(1, 3), ['K', 'K']);
+  assert.equal(byWord['忘'][4], '1');
+  assert.deepEqual(byWord['進'].slice(1, 3), ['K', 'L']);
+  assert.deepEqual(byWord['新'].slice(1, 3), ['F', '-']);
+});
