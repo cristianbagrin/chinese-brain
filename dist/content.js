@@ -119,9 +119,9 @@
   }
   function sameBlock(a, b) {
     let block = (n) => {
-      let el2 = n.parentElement;
-      for (; el2 && getComputedStyle(el2).display.startsWith("inline"); ) el2 = el2.parentElement;
-      return el2;
+      let el3 = n.parentElement;
+      for (; el3 && getComputedStyle(el3).display.startsWith("inline"); ) el3 = el3.parentElement;
+      return el3;
     };
     return block(a) === block(b);
   }
@@ -448,6 +448,7 @@
     r: (s) => s.looping ? "\u21BB looping this line" : "loop off",
     q: (s) => s.shadowing ? "shadowing on: pause after each line" : "shadowing off",
     p: () => state.settings.subPinyin ? "pinyin on" : "pinyin off",
+    e: (s) => s.transcript.open ? "transcript open" : "transcript closed",
     x: () => `English: ${state.settings.translation === "show" ? "shown" : state.settings.translation === "blur" ? "blurred until hover" : "hidden"}`
   };
   function el(tag, cls, ...kids) {
@@ -533,15 +534,241 @@
           chip(`English: ${s.translation}`, "X", s.translation !== "hide", () => save({ translation: MODES[(MODES.indexOf(s.translation) + 1) % 3] })),
           chip("Loop line", "R", this.subs.looping, () => this.subs.toggleLoop()),
           chip("Shadowing", "Q", this.subs.shadowing, () => this.subs.toggleShadow()),
-          chip("Pause on hover", "", s.pauseOnHover, () => save({ pauseOnHover: !s.pauseOnHover }))
+          chip("Pause on hover", "", s.pauseOnHover, () => save({ pauseOnHover: !s.pauseOnHover })),
+          chip("Transcript", "E", this.subs.transcript.open, () => this.subs.transcript.toggle())
         ),
-        el("div", "keys", "A \u25C0 line \xB7 S replay \xB7 D line \u25B6 \xB7 click a word = \u65B0 (again = undo) \xB7 1 2 3 in the card")
+        el("div", "keys", "A \u25C0 line \xB7 S replay \xB7 D line \u25B6 \xB7 E transcript \xB7 click a word = \u65B0 (again = undo) \xB7 1 2 3 in the card")
       );
     }
     flash(key) {
       TOAST[key]?.(this.subs) && setTimeout(() => {
         this.toast.textContent = TOAST[key](this.subs), this.toast.hidden = !1, clearTimeout(this.toastTimer), this.toastTimer = setTimeout(() => this.toast.hidden = !0, 1300), this.render();
       }, 60);
+    }
+  };
+
+  // src/shared/time.ts
+  function clock(secs) {
+    let s = Math.max(0, Math.floor(secs)), h2 = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = String(s % 60).padStart(2, "0");
+    return h2 ? `${h2}:${String(m).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
+  }
+
+  // src/youtube/transcript.css
+  var transcript_default = `:host {
+  all: initial;
+  --bg: #1b1d3a;
+  --bg2: #232650;
+  --line: #34386a;
+  --text: #eceeff;
+  --text2: #a7acd8;
+  --text3: #7b80b0;
+  --fresh: #ff5c6c;
+  --learning: #ffd23f;
+  --known: #5fe08a;
+  --sans: -apple-system, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
+  display: block;
+}
+:host(.side) { margin-bottom: 16px; }
+:host(.over) { position: absolute; top: 12px; right: 12px; bottom: 64px; width: min(380px, 40%); z-index: 60; }
+
+.box {
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  font: 14px/1.5 var(--sans);
+}
+:host(.over) .box { background: rgba(27, 29, 58, 0.92); }
+.top { display: flex; align-items: center; border-bottom: 1px solid var(--line); background: var(--bg2); }
+.tabs { display: flex; flex: 1; }
+.tabs button, .close { all: unset; cursor: pointer; padding: 9px 14px; color: var(--text2); font-size: 13px; }
+.tabs button.on { color: var(--text); box-shadow: inset 0 -2px 0 var(--text); }
+.close { font-size: 18px; padding: 4px 14px; }
+.body { flex: 1; overflow-y: auto; padding: 6px 0 40px; scrollbar-width: thin; }
+
+.line { display: grid; grid-template-columns: 46px 1fr; gap: 8px; padding: 5px 12px 5px 8px; cursor: pointer; border-left: 3px solid transparent; }
+.line:hover { background: rgba(255, 255, 255, 0.04); }
+.line.now { background: rgba(255, 255, 255, 0.07); border-left-color: var(--text2); }
+.time { all: unset; cursor: pointer; font-size: 11.5px; color: var(--text3); padding-top: 4px; text-align: right; }
+.zh { font-size: 17px; line-height: 1.55; }
+.tok { cursor: pointer; border-radius: 3px; }
+.tok:hover, .tok.active { background: rgba(255, 255, 255, 0.14); }
+.tok.st-fresh { color: var(--fresh); }
+.tok.st-learning { color: var(--learning); }
+.tok.st-known { color: var(--known); }
+.en { font-size: 12.5px; color: var(--text2); }
+.en.blur { filter: blur(4px); transition: filter 0.15s; }
+.line:hover .en.blur { filter: none; }
+
+.learnhead { padding: 8px 14px 10px; color: var(--text2); font-size: 13px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.learn { display: grid; grid-template-columns: auto auto 1fr auto auto; gap: 2px 10px; align-items: baseline; padding: 6px 12px 6px 14px; cursor: pointer; border-left: 3px solid transparent; }
+.learn:hover { background: rgba(255, 255, 255, 0.04); }
+.learn.st-fresh { border-left-color: var(--fresh); }
+.learn.st-learning { border-left-color: var(--learning); }
+.lw { font-size: 18px; }
+.lpy { font-size: 12.5px; color: var(--text2); }
+.lg { font-size: 12.5px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lc { font-size: 12px; color: var(--text3); }
+.stamps { display: inline-flex; gap: 3px; }
+.stamp { all: unset; cursor: pointer; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; color: var(--text3); border: 1px solid var(--line); }
+.stamp.fresh.on { background: var(--fresh); border-color: var(--fresh); color: #15172e; }
+.stamp.learning.on { background: var(--learning); border-color: var(--learning); color: #15172e; }
+.stamp.known.on { background: var(--known); border-color: var(--known); color: #15172e; }
+`;
+
+  // src/youtube/transcript.ts
+  function el2(tag, cls, ...kids) {
+    let e = document.createElement(tag);
+    cls && (e.className = cls);
+    for (let k of kids) k && e.append(k);
+    return e;
+  }
+  var Transcript = class {
+    subs;
+    host;
+    root;
+    box;
+    body;
+    tabs;
+    open = !1;
+    tab = "lines";
+    lineEls = [];
+    active = -1;
+    userScrollAt = 0;
+    glossCache = /* @__PURE__ */ new Map();
+    constructor(subs) {
+      this.subs = subs, this.host = document.createElement("div"), this.host.dataset.cbOwn = "", this.root = this.host.attachShadow({ mode: "closed" });
+      let style = document.createElement("style");
+      style.textContent = transcript_default, this.tabs = el2("div", "tabs"), this.body = el2("div", "body");
+      let close = el2("button", "close", "\xD7");
+      close.title = "Close (T)", close.addEventListener("click", () => this.toggle(!1)), this.box = el2("div", "box", el2("div", "top", this.tabs, close), this.body), this.root.append(style, this.box);
+      for (let t of ["click", "mousedown", "mouseup", "dblclick", "pointerdown", "pointerup", "wheel"])
+        this.host.addEventListener(t, (e) => e.stopPropagation());
+      this.body.addEventListener("wheel", () => this.userScrollAt = Date.now(), { passive: !0 }), this.body.addEventListener("mouseover", (e) => {
+        e.target.closest(".tok") && !this.subs.popupPinned && this.subs.showFor(e, !1);
+      }), this.body.addEventListener("mouseout", (e) => {
+        e.target.closest(".tok") && this.subs.hideCardSoon();
+      }), this.body.addEventListener("click", (e) => this.onClick(e)), document.addEventListener("fullscreenchange", () => this.place()), state.onChange(() => this.open && this.render());
+    }
+    toggle(force) {
+      this.open = force ?? !this.open, this.open ? (this.place(), this.render()) : (this.host.remove(), this.subs.setRightInset(0));
+    }
+    /** Called when the cues, tokens or translation change. */
+    refresh() {
+      this.open && this.render();
+    }
+    /** Mount in YouTube's side column when it is visible, otherwise inside the player. */
+    place() {
+      if (!this.open) return;
+      let flexy = document.querySelector("ytd-watch-flexy"), wide = !!document.fullscreenElement || flexy?.hasAttribute("theater") || flexy?.hasAttribute("fullscreen"), side = document.querySelector("#secondary-inner, #secondary"), player = document.getElementById("movie_player"), inSide = !wide && side && side.offsetWidth > 0, parent = inSide ? side : player;
+      parent && (this.host.classList.toggle("side", !!inSide), this.host.classList.toggle("over", !inSide), inSide ? this.host.style.height = `${Math.max(360, player?.clientHeight ?? 480)}px` : this.host.style.height = "", this.host.parentNode !== parent && (inSide ? parent.prepend(this.host) : parent.append(this.host)), this.subs.setRightInset(inSide ? 0 : this.host.offsetWidth + 24));
+    }
+    /** Highlight the current line (and keep it in view unless the user is scrolling). */
+    setActive(i) {
+      if (!this.open || this.tab !== "lines" || i === this.active) return;
+      this.lineEls[this.active]?.classList.remove("now"), this.active = i;
+      let elx = this.lineEls[i];
+      if (elx && (elx.classList.add("now"), Date.now() - this.userScrollAt > 4e3)) {
+        let b = this.body, top = elx.offsetTop - b.clientHeight / 3;
+        b.scrollTo({ top, behavior: "smooth" });
+      }
+    }
+    render() {
+      this.place();
+      let tab = (id, label) => {
+        let b = el2("button", id === this.tab ? "on" : "", label);
+        return b.addEventListener("click", () => {
+          this.tab = id, this.render();
+        }), b;
+      };
+      this.tabs.replaceChildren(tab("lines", "Transcript"), tab("learn", "Learn first")), this.tab === "lines" ? this.renderLines() : this.renderLearn();
+    }
+    renderLines() {
+      let { cues, tokens, trans } = this.subs.data(), s = state.settings;
+      this.lineEls = cues.map((c, i) => {
+        let zh = el2("div", "zh");
+        (tokens[i] ?? []).forEach((t, k) => {
+          let text = t.trad ?? t.text;
+          if (!t.word && !CJK.test(t.text)) return zh.append(text);
+          let span = el2("span", "tok", text);
+          span.dataset.k = String(k), span.dataset.line = String(i);
+          let st = state.status(t.word);
+          st && span.classList.add("st-" + st), zh.append(span);
+        });
+        let en = s.translation !== "hide" && trans[i] ? el2("div", `en${s.translation === "blur" ? " blur" : ""}`, trans[i]) : null, line = el2("div", "line", el2("button", "time", clock(c.start)), el2("div", "txt", zh, en));
+        return line.dataset.i = String(i), line;
+      }), this.body.replaceChildren(...this.lineEls);
+      let cur = this.active;
+      this.active = -1, this.setActive(cur >= 0 ? cur : this.subs.currentLine());
+    }
+    async renderLearn() {
+      let { cues, tokens } = this.subs.data(), rows = /* @__PURE__ */ new Map(), total = 0, known = 0;
+      tokens.forEach(
+        (line, i) => line.forEach((t) => {
+          if (!t.word || !CJK.test(t.text)) return;
+          total++;
+          let st = state.status(t.word);
+          if (st === "known") return known++;
+          let r = rows.get(t.word);
+          r ? r.count++ : rows.set(t.word, { w: t.word, count: 1, first: i, status: st, py: t.py ?? "", g: "", zipf: 0 });
+        })
+      );
+      let missing = [...rows.keys()].filter((w2) => !this.glossCache.has(w2));
+      if (missing.length) {
+        let res = await browser.runtime.sendMessage({ type: "glosses", words: missing });
+        for (let [w2, v] of Object.entries(res)) this.glossCache.set(w2, v);
+      }
+      if (this.tab !== "learn") return;
+      for (let r of rows.values()) {
+        let g = this.glossCache.get(r.w);
+        g && Object.assign(r, { g: g.g, zipf: g.zipf, py: r.py || g.py });
+      }
+      let score = (r) => r.count * (1 + Math.max(0, r.zipf - 30) / 10), list = [...rows.values()].filter((r) => r.g).sort((a, b) => score(b) - score(a)).slice(0, 40), gained = known, top = list.slice(0, 15);
+      for (let r of top) gained += r.count;
+      let pct = (n) => total ? Math.round(n / total * 100) : 0, head = el2(
+        "div",
+        "learnhead",
+        total ? `You know ${pct(known)}% of the words here. Learn the top ${top.length} below and that becomes ${pct(gained)}%.` : "No words yet."
+      ), items = list.map((r) => {
+        let stamps = el2("span", "stamps");
+        for (let [s, zh] of [
+          ["fresh", "\u65B0"],
+          ["learning", "\u5B78"],
+          ["known", "\u719F"]
+        ]) {
+          let b = el2("button", `stamp ${s}${r.status === s ? " on" : ""}`, zh);
+          b.title = s, b.addEventListener("click", (e) => {
+            e.stopPropagation(), browser.runtime.sendMessage({ type: "setStatus", word: r.w, status: r.status === s ? null : s });
+          }), stamps.append(b);
+        }
+        let row = el2(
+          "div",
+          `learn${r.status ? " st-" + r.status : ""}`,
+          el2("span", "lw", r.w),
+          el2("span", "lpy", numberedToMarked(r.py)),
+          el2("span", "lg", r.g),
+          el2("span", "lc", `\xD7${r.count}`),
+          stamps
+        );
+        return row.title = `First heard at ${clock(cues[r.first]?.start ?? 0)}: click to jump there`, row.dataset.seek = String(r.first), row;
+      });
+      this.body.replaceChildren(head, ...items);
+    }
+    onClick(e) {
+      let t = e.target;
+      if (t.closest(".tok")) {
+        this.subs.showFor(e, !0);
+        return;
+      }
+      let line = t.closest(".line");
+      if (line) return this.subs.seekTo(Number(line.dataset.i));
+      let learn = t.closest(".learn");
+      learn && this.subs.seekTo(Number(learn.dataset.seek));
     }
   };
 
@@ -634,6 +861,7 @@ rt { font: 400 0.42em/1 var(--sans); color: #c9cdf0; letter-spacing: 0; }
     zh;
     tr;
     controls;
+    transcript;
     /** Share of this video's words (running count) per status; 'new' = not in the list. */
     counts = { fresh: 0, learning: 0, known: 0, new: 0 };
     fallbackTimer;
@@ -650,13 +878,13 @@ rt { font: 400 0.42em/1 var(--sans); color: #c9cdf0; letter-spacing: 0; }
         this.host.addEventListener(t, (e) => e.stopPropagation());
       box.addEventListener("mouseenter", () => this.hoverPause(!0)), box.addEventListener("mouseleave", () => this.hoverPause(!1)), this.zh.addEventListener("mouseover", (e) => this.onTokenHover(e)), this.zh.addEventListener("mouseout", () => this.popup.hideSoon()), this.zh.addEventListener("click", (e) => this.onTokenClick(e)), this.popup.onHide(() => this.maybeResume()), browser.runtime.onMessage.addListener((msg) => {
         msg.type === "ytCaptions" && msg.url && msg.body && this.onBody(msg.url, msg.body);
-      }), this.controls = new Controls(this), state.onChange(() => {
+      }), this.controls = new Controls(this), this.transcript = new Transcript(this), state.onChange(() => {
         this.applyEnabled(), this.renderLine(!0);
       }), window.addEventListener("keydown", (e) => this.onKey(e), !0), document.addEventListener("yt-navigate-finish", () => this.checkVideo()), window.addEventListener("pagehide", () => this.flushWatch()), setInterval(() => this.checkVideo(), 1e3), new ResizeObserver(() => this.resize()).observe(document.documentElement), this.checkVideo(), this.tick = this.tick.bind(this), requestAnimationFrame(this.tick);
     }
     player() {
-      let el2 = document.getElementById("movie_player");
-      return el2?.wrappedJSObject ?? el2 ?? void 0;
+      let el3 = document.getElementById("movie_player");
+      return el3?.wrappedJSObject ?? el3 ?? void 0;
     }
     video() {
       return document.querySelector("#movie_player video");
@@ -675,7 +903,7 @@ rt { font: 400 0.42em/1 var(--sans); color: #c9cdf0; letter-spacing: 0; }
       }));
     }
     reset() {
-      clearTimeout(this.fallbackTimer), this.domObserver?.disconnect(), this.domObserver = void 0, this.live = !1, this.tracks = [], this.src = void 0, this.cues = [], this.tokens = [], this.trans = [], this.trCues = void 0, this.idx = -2, this.requestedTr = !1, this.counts = { fresh: 0, learning: 0, known: 0, new: 0 }, this.loop = !1, this.shadow = !1, this.host.hidden = !0, document.documentElement.classList.remove("cb-subs-on");
+      clearTimeout(this.fallbackTimer), this.domObserver?.disconnect(), this.domObserver = void 0, this.live = !1, this.tracks = [], this.src = void 0, this.cues = [], this.tokens = [], this.trans = [], this.trCues = void 0, this.idx = -2, this.requestedTr = !1, this.counts = { fresh: 0, learning: 0, known: 0, new: 0 }, this.loop = !1, this.shadow = !1, this.host.hidden = !0, document.documentElement.classList.remove("cb-subs-on"), this.transcript?.refresh();
     }
     findTracks() {
       let p = this.player();
@@ -757,7 +985,7 @@ rt { font: 400 0.42em/1 var(--sans); color: #c9cdf0; letter-spacing: 0; }
     async setSource(cues) {
       this.live && (this.live = !1, this.domObserver?.disconnect()), this.cues = cues, this.idx = -2;
       let lines = cues.map((c) => c.text);
-      if (this.tokens = await browser.runtime.sendMessage({ type: "segment", lines }), this.trCues && (this.trans = alignTranslation(this.cues, this.trCues)), this.computeCoverage(), this.mount(), !this.requestedTr && !this.trCues && this.src) {
+      if (this.tokens = await browser.runtime.sendMessage({ type: "segment", lines }), this.trCues && (this.trans = alignTranslation(this.cues, this.trCues)), this.computeCoverage(), this.mount(), this.transcript.refresh(), !this.requestedTr && !this.trCues && this.src) {
         this.requestedTr = !0;
         let want = TRANS_LANG, manual = pickTranslation(this.tracks, want);
         setTimeout(() => {
@@ -776,10 +1004,10 @@ rt { font: 400 0.42em/1 var(--sans); color: #c9cdf0; letter-spacing: 0; }
         sl: this.src?.languageCode ?? "zh-TW",
         tl: TRANS_LANG
       });
-      !res || this.videoId !== id || this.trCues || (this.trCues = this.cues.map((c, i) => ({ ...c, text: res[i] ?? "" })), this.trans = res, this.renderLine(!0));
+      !res || this.videoId !== id || this.trCues || (this.trCues = this.cues.map((c, i) => ({ ...c, text: res[i] ?? "" })), this.trans = res, this.renderLine(!0), this.transcript.refresh());
     }
     setTranslation(cues) {
-      this.trCues = cues, this.cues.length && (this.trans = alignTranslation(this.cues, cues)), this.renderLine(!0);
+      this.trCues = cues, this.cues.length && (this.trans = alignTranslation(this.cues, cues)), this.renderLine(!0), this.transcript.refresh();
     }
     computeCoverage() {
       let c = { fresh: 0, learning: 0, known: 0, new: 0 };
@@ -807,6 +1035,25 @@ rt { font: 400 0.42em/1 var(--sans); color: #c9cdf0; letter-spacing: 0; }
     }
     get shadowing() {
       return this.shadow;
+    }
+    setRightInset(px) {
+      this.host.style.right = px ? `${px}px` : "";
+    }
+    data() {
+      return { cues: this.cues, tokens: this.tokens, trans: this.trans };
+    }
+    currentLine() {
+      return this.idx;
+    }
+    get popupPinned() {
+      return this.popup.pinned;
+    }
+    hideCardSoon() {
+      this.popup.hideSoon();
+    }
+    seekTo(i) {
+      let v = this.video(), c = this.cues[i];
+      !v || !c || (v.currentTime = c.start + 0.01, this.shadowDone = -1);
     }
     toggleLoop() {
       this.loop = !this.loop, this.controls.render();
@@ -883,16 +1130,19 @@ rt { font: 400 0.42em/1 var(--sans); color: #c9cdf0; letter-spacing: 0; }
         this.zh.append(span);
       });
       let tr = i >= 0 ? this.trans[i] ?? "" : "";
-      this.tr.textContent = s.translation === "hide" ? "" : tr, this.tr.classList.toggle("blur", s.translation === "blur"), this.resize(), this.controls.render();
+      this.tr.textContent = s.translation === "hide" ? "" : tr, this.tr.classList.toggle("blur", s.translation === "blur"), this.resize(), this.controls.render(), this.transcript.setActive(i);
     }
     tokenAt(e) {
       let span = e.target.closest?.(".tok");
-      if (!span || this.idx < 0) return;
-      let tok = this.tokens[this.idx]?.[Number(span.dataset.k)];
-      return tok ? { span, tok, line: this.idx } : void 0;
+      if (!span) return;
+      let line = span.dataset.line != null ? Number(span.dataset.line) : this.idx;
+      if (line < 0) return;
+      let tok = this.tokens[line]?.[Number(span.dataset.k)];
+      return tok ? { span, tok, line } : void 0;
     }
     showSeq = 0;
     lastClicked = "";
+    /** Open the card for a word span (subtitles or transcript). */
     async showFor(e, pinned) {
       let seq = ++this.showSeq, hit = this.tokenAt(e);
       if (!hit) return;
@@ -900,7 +1150,7 @@ rt { font: 400 0.42em/1 var(--sans); color: #c9cdf0; letter-spacing: 0; }
       if (seq !== this.showSeq) return;
       let own = matches.findIndex((m) => m.text === tok.text);
       if (own > 0 && (matches = [matches[own], ...matches.filter((_, i) => i !== own)]), !matches.length) return;
-      this.zh.querySelectorAll(".tok.active").forEach((el2) => el2.classList.remove("active")), span.classList.add("active");
+      span.getRootNode().querySelectorAll(".tok.active").forEach((el3) => el3.classList.remove("active")), span.classList.add("active");
       let cue = this.cues[line], ctx2 = {
         text: cue.text + (this.trans[line] ? ` \u2014 ${this.trans[line]}` : ""),
         url: location.href.split("&")[0],
@@ -960,6 +1210,9 @@ rt { font: 400 0.42em/1 var(--sans); color: #c9cdf0; letter-spacing: 0; }
         case "q":
           this.toggleShadow();
           break;
+        case "e":
+          this.transcript.toggle();
+          break;
         case "p":
           browser.runtime.sendMessage({ type: "saveSettings", settings: { subPinyin: !s.subPinyin } });
           break;
@@ -986,12 +1239,6 @@ rt { font: 400 0.42em/1 var(--sans); color: #c9cdf0; letter-spacing: 0; }
   };
   function sameCues(a, b) {
     return a.length === b.length && a[0]?.text === b[0]?.text && a[a.length - 1]?.text === b[b.length - 1]?.text;
-  }
-
-  // src/shared/time.ts
-  function clock(secs) {
-    let s = Math.max(0, Math.floor(secs)), h2 = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = String(s % 60).padStart(2, "0");
-    return h2 ? `${h2}:${String(m).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
   }
 
   // src/shared/export.ts
@@ -1176,10 +1423,10 @@ rt { font: 400 0.42em/1 var(--sans); color: #c9cdf0; letter-spacing: 0; }
     { s: "known", zh: "\u719F", key: "3", label: "Known" }
   ];
   function h(tag, attrs, ...kids) {
-    let el2 = document.createElement(tag);
-    if (attrs) for (let [k, v] of Object.entries(attrs)) el2.setAttribute(k, v);
-    for (let k of kids) k && el2.append(k);
-    return el2;
+    let el3 = document.createElement(tag);
+    if (attrs) for (let [k, v] of Object.entries(attrs)) el3.setAttribute(k, v);
+    for (let k of kids) k && el3.append(k);
+    return el3;
   }
   function prettyDef(d) {
     return d.replace(/([^\s\[|,;(]+)(?:\|([^\s\[,;]+))?\[([a-zA-Z0-9: ]+)\]/g, (_, t, _s, p) => `${t} ${numberedToMarked(p)}`);

@@ -6,6 +6,7 @@ import type { Popup } from '../content/popup.ts';
 import { state } from '../content/state.ts';
 import { alignTranslation, cueAt, cueBefore, parseTimedText, pickChinese, pickTranslation, urlInfo, type Cue, type TrackInfo } from './captions.ts';
 import { Controls } from './controls.ts';
+import { Transcript } from './transcript.ts';
 import css from './overlay.css';
 
 declare const __TEST__: boolean;
@@ -38,6 +39,7 @@ export class YouTubeSubs {
   private zh: HTMLElement;
   private tr: HTMLElement;
   private controls: Controls;
+  transcript: Transcript;
   /** Share of this video's words (running count) per status; 'new' = not in the list. */
   counts: Record<Status | 'new', number> = { fresh: 0, learning: 0, known: 0, new: 0 };
   private fallbackTimer: ReturnType<typeof setTimeout> | undefined;
@@ -78,6 +80,7 @@ export class YouTubeSubs {
       if (msg.type === 'ytCaptions' && msg.url && msg.body) this.onBody(msg.url, msg.body);
     });
     this.controls = new Controls(this);
+    this.transcript = new Transcript(this);
     state.onChange(() => {
       this.applyEnabled();
       this.renderLine(true);
@@ -144,6 +147,7 @@ export class YouTubeSubs {
     this.shadow = false;
     this.host.hidden = true;
     document.documentElement.classList.remove('cb-subs-on');
+    this.transcript?.refresh();
   }
 
   private findTracks() {
@@ -259,6 +263,7 @@ export class YouTubeSubs {
     if (this.trCues) this.trans = alignTranslation(this.cues, this.trCues);
     this.computeCoverage();
     this.mount();
+    this.transcript.refresh();
     // Then fetch the second line: a real English track if there is one, else YouTube's auto-translation.
     if (!this.requestedTr && !this.trCues && this.src) {
       this.requestedTr = true;
@@ -292,12 +297,14 @@ export class YouTubeSubs {
     this.trCues = this.cues.map((c, i) => ({ ...c, text: res[i] ?? '' }));
     this.trans = res;
     this.renderLine(true);
+    this.transcript.refresh();
   }
 
   private setTranslation(cues: Cue[]) {
     this.trCues = cues;
     if (this.cues.length) this.trans = alignTranslation(this.cues, cues);
     this.renderLine(true);
+    this.transcript.refresh();
   }
 
   private computeCoverage() {
@@ -331,6 +338,30 @@ export class YouTubeSubs {
   }
   get shadowing() {
     return this.shadow;
+  }
+
+  setRightInset(px: number) {
+    this.host.style.right = px ? `${px}px` : '';
+  }
+
+  data() {
+    return { cues: this.cues, tokens: this.tokens, trans: this.trans };
+  }
+  currentLine() {
+    return this.idx;
+  }
+  get popupPinned() {
+    return this.popup.pinned;
+  }
+  hideCardSoon() {
+    this.popup.hideSoon();
+  }
+  seekTo(i: number) {
+    const v = this.video();
+    const c = this.cues[i];
+    if (!v || !c) return;
+    v.currentTime = c.start + 0.01;
+    this.shadowDone = -1;
   }
 
   toggleLoop() {
@@ -451,19 +482,24 @@ export class YouTubeSubs {
     this.tr.classList.toggle('blur', s.translation === 'blur');
     this.resize();
     this.controls.render();
+    this.transcript.setActive(i);
   }
 
   private tokenAt(e: Event): { span: HTMLElement; tok: Token; line: number } | undefined {
     const span = (e.target as HTMLElement).closest?.('.tok') as HTMLElement | null;
-    if (!span || this.idx < 0) return undefined;
-    const tok = this.tokens[this.idx]?.[Number(span.dataset.k)];
-    return tok ? { span, tok, line: this.idx } : undefined;
+    if (!span) return undefined;
+    // Transcript words carry their line; subtitle words belong to the current line.
+    const line = span.dataset.line != null ? Number(span.dataset.line) : this.idx;
+    if (line < 0) return undefined;
+    const tok = this.tokens[line]?.[Number(span.dataset.k)];
+    return tok ? { span, tok, line } : undefined;
   }
 
   private showSeq = 0;
   private lastClicked = '';
 
-  private async showFor(e: Event, pinned: boolean) {
+  /** Open the card for a word span (subtitles or transcript). */
+  async showFor(e: Event, pinned: boolean) {
     const seq = ++this.showSeq;
     const hit = this.tokenAt(e);
     if (!hit) return;
@@ -476,7 +512,7 @@ export class YouTubeSubs {
     const own = matches.findIndex((m) => m.text === tok.text);
     if (own > 0) matches = [matches[own], ...matches.filter((_, i) => i !== own)];
     if (!matches.length) return;
-    this.zh.querySelectorAll('.tok.active').forEach((el) => el.classList.remove('active'));
+    (span.getRootNode() as ParentNode).querySelectorAll('.tok.active').forEach((el) => el.classList.remove('active'));
     span.classList.add('active');
     const cue = this.cues[line];
     const ctx = {
@@ -566,6 +602,9 @@ export class YouTubeSubs {
         break;
       case 'q':
         this.toggleShadow();
+        break;
+      case 'e':
+        this.transcript.toggle();
         break;
       case 'p':
         browser.runtime.sendMessage({ type: 'saveSettings', settings: { subPinyin: !s.subPinyin } });

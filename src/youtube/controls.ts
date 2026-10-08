@@ -13,6 +13,7 @@ const TOAST: Record<string, (s: YouTubeSubs) => string> = {
   r: (s) => (s.looping ? '↻ looping this line' : 'loop off'),
   q: (s) => (s.shadowing ? 'shadowing on: pause after each line' : 'shadowing off'),
   p: () => (state.settings.subPinyin ? 'pinyin on' : 'pinyin off'),
+  e: (s) => (s.transcript.open ? 'transcript open' : 'transcript closed'),
   x: () => `English: ${state.settings.translation === 'show' ? 'shown' : state.settings.translation === 'blur' ? 'blurred until hover' : 'hidden'}`,
 };
 
@@ -153,8 +154,9 @@ export class Controls {
         chip('Loop line', 'R', this.subs.looping, () => this.subs.toggleLoop()),
         chip('Shadowing', 'Q', this.subs.shadowing, () => this.subs.toggleShadow()),
         chip('Pause on hover', '', s.pauseOnHover, () => save({ pauseOnHover: !s.pauseOnHover })),
+        chip('Transcript', 'E', this.subs.transcript.open, () => this.subs.transcript.toggle()),
       ),
-      el('div', 'keys', 'A ◀ line · S replay · D line ▶ · click a word = 新 (again = undo) · 1 2 3 in the card'),
+      el('div', 'keys', 'A ◀ line · S replay · D line ▶ · E transcript · click a word = 新 (again = undo) · 1 2 3 in the card'),
     );
   }
 

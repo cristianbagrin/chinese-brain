@@ -418,6 +418,15 @@
             return { ch, py: sylls[i] ?? e?.tw ?? e?.py ?? "", gloss: e ? shortGloss(e) : "" };
           }) : [], examples: examples.get(word) ?? [], record: store.words.get(word) ?? null };
         });
+      case "glosses":
+        return dictReady.then((d) => {
+          let out = {};
+          for (let w of any.words) {
+            let e = d.get(w)[0];
+            e && (out[w] = { py: e.tw || e.py, g: shortGloss(e), zipf: e.zipf });
+          }
+          return out;
+        });
       case "entries":
         return dictReady.then((d) => d.get(any.word));
     }

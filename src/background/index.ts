@@ -147,6 +147,15 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
           : [];
         return { chars, examples: examples.get(word) ?? [], record: store.words.get(word) ?? null };
       });
+    case 'glosses':
+      return dictReady.then((d) => {
+        const out: Record<string, { py: string; g: string; zipf: number }> = {};
+        for (const w of any.words as string[]) {
+          const e = d.get(w)[0];
+          if (e) out[w] = { py: e.tw || e.py, g: shortGloss(e), zipf: e.zipf };
+        }
+        return out;
+      });
     case 'entries':
       return dictReady.then((d) => d.get(any.word as string));
   }
