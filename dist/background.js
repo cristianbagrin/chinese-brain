@@ -170,7 +170,9 @@
     speechRate: 0.9,
     azureKey: "",
     azureRegion: "eastasia",
-    azureVoice: "zh-TW-HsiaoChenNeural"
+    azureVoice: "zh-TW-HsiaoChenNeural",
+    geminiKey: "",
+    geminiModel: "gemini-3.8-flash"
   };
 
   // src/shared/time.ts
@@ -252,6 +254,69 @@
   }
   function shortGloss(e) {
     return e.defs.filter((d) => !d.startsWith("CL:")).slice(0, 3).join("; ").slice(0, 120);
+  }
+
+  // src/background/gemini.ts
+  var PROMPT = `Transcribe all spoken Mandarin Chinese in this video, verbatim, in Traditional Chinese characters as used in Taiwan (\u53F0\u7063\u6B63\u9AD4\u5B57).
+Split it into subtitle lines at natural pauses, about 1 to 4 seconds and at most about 20 characters each.
+For each line give start and end times in seconds from the start of the video, the Chinese text, and a natural English translation.
+If someone speaks Taiwanese Hokkien or another language, transcribe what you can and translate it.
+Do not summarise, do not skip lines, do not add commentary.`, SCHEMA = {
+    type: "object",
+    properties: {
+      lines: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            start: { type: "number" },
+            end: { type: "number" },
+            zh: { type: "string" },
+            en: { type: "string" }
+          },
+          required: ["start", "end", "zh", "en"]
+        }
+      }
+    },
+    required: ["lines"]
+  };
+  async function geminiTranscribe(videoId, key, model) {
+    let cacheKey = "gem:" + videoId, cached = (await browser.storage.local.get(cacheKey))[cacheKey];
+    if (cached?.length) return cached;
+    let call = async (structured) => {
+      let body = {
+        model,
+        input: [
+          { type: "text", text: PROMPT },
+          { type: "video", uri: `https://www.youtube.com/watch?v=${videoId}` }
+        ]
+      };
+      structured && (body.response_format = { type: "text", mime_type: "application/json", schema: SCHEMA });
+      let res = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+        method: "POST",
+        headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        let raw = await res.text(), msg = raw.slice(0, 200);
+        try {
+          let j = JSON.parse(raw);
+          msg = (Array.isArray(j) ? j[0] : j)?.error?.message ?? msg;
+        } catch {
+        }
+        throw new Error(`Gemini (HTTP ${res.status}): ${msg}`);
+      }
+      return ((await res.json()).steps ?? []).filter((s) => s.type === "model_output").flatMap((s) => s.content ?? []).map((c) => c.text ?? "").join("");
+    }, text;
+    try {
+      text = await call(!0);
+    } catch (e) {
+      if (!/HTTP 400/.test(String(e)) || /API key/i.test(String(e))) throw e;
+      text = await call(!1);
+    }
+    let json = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, "")), lines = (Array.isArray(json) ? json : json.lines ?? []).filter((l) => l && typeof l.zh == "string" && l.zh.trim()).map((l) => ({ start: Number(l.start) || 0, end: Number(l.end) || Number(l.start) + 2, zh: l.zh.trim(), en: (l.en ?? "").trim() })).sort((a, b) => a.start - b.start);
+    if (!lines.length) throw new Error("Gemini returned no lines");
+    return await browser.storage.local.set({ [cacheKey]: lines }), lines;
   }
 
   // src/background/translate.ts
@@ -393,6 +458,8 @@
           for (let r of recs) store.log({ at: Date.now(), k: "status", w: r.w, s: r.s, from: store.words.get(r.w)?.s ?? null });
           return store.importWords(recs, "replace");
         });
+      case "testSet":
+        return;
       case "openPage":
         return;
       case "translate":
@@ -428,6 +495,17 @@
           }
           return out;
         });
+      case "gemini":
+        return getSettings().then(async (st) => {
+          if (!st.geminiKey) return { error: "Add your Gemini API key in Settings first." };
+          try {
+            return { lines: await geminiTranscribe(String(any.videoId), st.geminiKey, st.geminiModel || "gemini-3.8-flash") };
+          } catch (e) {
+            return { error: String(e instanceof Error ? e.message : e) };
+          }
+        });
+      case "geminiCached":
+        return browser.storage.local.get("gem:" + any.videoId).then((r) => r["gem:" + any.videoId] ?? null);
       case "entries":
         return dictReady.then((d) => d.get(any.word));
     }

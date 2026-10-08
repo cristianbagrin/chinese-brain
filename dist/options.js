@@ -18,7 +18,9 @@
     speechRate: 0.9,
     azureKey: "",
     azureRegion: "eastasia",
-    azureVoice: "zh-TW-HsiaoChenNeural"
+    azureVoice: "zh-TW-HsiaoChenNeural",
+    geminiKey: "",
+    geminiModel: "gemini-3.8-flash"
   };
 
   // src/pages/common.ts

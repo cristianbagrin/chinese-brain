@@ -52,7 +52,9 @@
     speechRate: 0.9,
     azureKey: "",
     azureRegion: "eastasia",
-    azureVoice: "zh-TW-HsiaoChenNeural"
+    azureVoice: "zh-TW-HsiaoChenNeural",
+    geminiKey: "",
+    geminiModel: "gemini-3.8-flash"
   }, TRANS_LANG = "en";
 
   // src/content/state.ts
@@ -442,6 +444,10 @@
   font: 500 14px/1.3 var(--sans);
   pointer-events: none;
 }
+
+.note { margin-top: 6px; font-size: 12px; color: var(--text3); }
+.note.err { color: var(--fresh); }
+.gem { margin-top: 8px; }
 `;
 
   // src/youtube/controls.ts
@@ -499,7 +505,7 @@
     }
     render() {
       let s = state.settings;
-      if (this.switchHost.hidden = !this.subs.hasSubs, this.switchRoot.querySelector(".switch")?.classList.toggle("on", s.ytEnabled), this.panel.hidden) return;
+      if (this.switchHost.hidden = !this.subs.videoActive, this.switchRoot.querySelector(".switch")?.classList.toggle("on", s.ytEnabled), this.panel.hidden) return;
       let c = this.subs.counts, total = c.known + c.learning + c.fresh + c.new, pct = (n) => total ? Math.round(n / total * 100) : 0, seg = (k, label) => {
         let b = el("i", `seg ${k}`);
         return b.style.flexGrow = String(c[k]), b.title = `${label}: ${pct(c[k])}%`, b;
@@ -529,7 +535,7 @@
             el("span", "f", `\u65B0 ${pct(c.fresh)}%`),
             el("span", "n", `new ${pct(c.new)}%`)
           )
-        ) : el("div", "cov", "No Chinese captions found for this video."),
+        ) : this.noCaptions(),
         el("div", "track", this.subs.trackName, this.subs.hasTranslation ? " + English" : ""),
         el(
           "div",
@@ -543,6 +549,19 @@
         ),
         el("div", "keys", "A \u25C0 line \xB7 S replay \xB7 D line \u25B6 \xB7 E transcript \xB7 click a word = \u65B0 (again = undo) \xB7 1 2 3 in the card")
       );
+    }
+    /** No Chinese track: offer the opt-in Gemini transcript. */
+    noCaptions() {
+      let g = this.subs.gemini, box = el("div", "cov", el("div", "", "No Chinese captions for this video."));
+      if (!state.settings.geminiKey)
+        return box.append(el("div", "note", "Add a Gemini API key in Settings to transcribe videos like this one.")), box;
+      if (g.state === "working")
+        return box.append(el("div", "note", "Transcribing with Gemini\u2026 this can take a minute for long videos.")), box;
+      let b = el("button", "chip on", "Transcribe with Gemini");
+      return b.addEventListener("click", () => void this.subs.transcribeWithGemini()), box.append(
+        el("div", "gem", b),
+        el("div", "note", "Sends this video's link to Google. On the free tier Google may use the request to improve its models.")
+      ), g.state === "error" && box.append(el("div", "note err", g.error ?? "Something went wrong.")), box;
     }
     flash(key) {
       TOAST[key]?.(this.subs) && setTimeout(() => {
@@ -872,6 +891,9 @@ rt { font: 400 0.42em/1 var(--sans); color: #c9cdf0; letter-spacing: 0; }
     domObserver;
     /** True when mirroring YouTube's on-screen captions (no track was captured). */
     live = !1;
+    /** Gemini fallback for videos with no Chinese captions. */
+    gemini = { state: "idle" };
+    checkedGemini = !1;
     constructor(popup) {
       this.popup = popup, this.host = document.createElement("div"), this.host.dataset.cbOwn = "", this.host.hidden = !0, this.root = this.host.attachShadow({ mode: "closed" });
       let style = document.createElement("style");
@@ -907,7 +929,7 @@ rt { font: 400 0.42em/1 var(--sans); color: #c9cdf0; letter-spacing: 0; }
       }));
     }
     reset() {
-      clearTimeout(this.fallbackTimer), this.domObserver?.disconnect(), this.domObserver = void 0, this.live = !1, this.tracks = [], this.src = void 0, this.cues = [], this.tokens = [], this.trans = [], this.trCues = void 0, this.idx = -2, this.requestedTr = !1, this.counts = { fresh: 0, learning: 0, known: 0, new: 0 }, this.loop = !1, this.shadow = !1, this.host.hidden = !0, document.documentElement.classList.remove("cb-subs-on"), this.transcript?.refresh();
+      clearTimeout(this.fallbackTimer), this.domObserver?.disconnect(), this.domObserver = void 0, this.live = !1, this.tracks = [], this.src = void 0, this.cues = [], this.tokens = [], this.trans = [], this.trCues = void 0, this.idx = -2, this.requestedTr = !1, this.gemini = { state: "idle" }, this.checkedGemini = !1, this.counts = { fresh: 0, learning: 0, known: 0, new: 0 }, this.loop = !1, this.shadow = !1, this.host.hidden = !0, document.documentElement.classList.remove("cb-subs-on"), this.transcript?.refresh();
     }
     findTracks() {
       let p = this.player();
@@ -928,7 +950,16 @@ rt { font: 400 0.42em/1 var(--sans); color: #c9cdf0; letter-spacing: 0; }
         isTranslatable: !!t.isTranslatable
       }));
       let zh = pickChinese(this.tracks);
-      if (!zh) return;
+      if (!zh) {
+        if (this.controls.mount(), !this.checkedGemini) {
+          this.checkedGemini = !0;
+          let id2 = this.videoId;
+          browser.runtime.sendMessage({ type: "geminiCached", videoId: id2 }).then((lines) => {
+            lines && this.videoId === id2 && !this.cues.length && this.applyGemini(lines);
+          });
+        }
+        return;
+      }
       this.src = zh, this.setTrack(zh);
       let id = this.videoId;
       clearTimeout(this.fallbackTimer), this.fallbackTimer = setTimeout(() => {
@@ -1024,6 +1055,19 @@ rt { font: 400 0.42em/1 var(--sans); color: #c9cdf0; letter-spacing: 0; }
     get coverage() {
       let c = this.counts, total = c.fresh + c.learning + c.known + c.new;
       return total ? c.known / total : void 0;
+    }
+    get videoActive() {
+      return !!this.videoId;
+    }
+    /** Opt-in, per video: transcribe with the user's Gemini key. */
+    async transcribeWithGemini() {
+      let id = this.videoId;
+      this.gemini = { state: "working" }, this.controls.render();
+      let res = await browser.runtime.sendMessage({ type: "gemini", videoId: id });
+      this.videoId === id && (res.lines ? (this.gemini = { state: "idle" }, this.applyGemini(res.lines)) : this.gemini = { state: "error", error: res.error }, this.controls.render());
+    }
+    applyGemini(lines) {
+      this.src = { languageCode: "zh-TW", name: "Gemini transcript" }, this.requestedTr = !0, this.trCues = lines.map((l) => ({ start: l.start, end: l.end, text: l.en })), this.trans = lines.map((l) => l.en), this.setSource(lines.map((l) => ({ start: l.start, end: l.end, text: l.zh })));
     }
     get hasSubs() {
       return this.cues.length > 0;

@@ -19,7 +19,9 @@
     { languageCode: 'zh-TW', kind: '', name: { simpleText: '中文（台灣）' }, vssId: '.zh-TW', isTranslatable: true },
     { languageCode: 'zh', kind: 'asr', name: { simpleText: '中文（自動產生）' }, vssId: 'a.zh', isTranslatable: true },
   ];
-  p.getPlayerResponse = () => ({ videoDetails: { videoId: 'TEST' }, captions: { playerCaptionsTracklistRenderer: { captionTracks: tracks } } });
+  if (location.search.includes('notracks')) tracks.length = 0;
+  const vid = new URLSearchParams(location.search).get('v');
+  p.getPlayerResponse = () => ({ videoDetails: { videoId: vid }, captions: { playerCaptionsTracklistRenderer: { captionTracks: tracks } } });
   p.loadModule = () => {};
   p.getOption = (m, k) => (k === 'tracklist' ? tracks.map((t) => ({ languageCode: t.languageCode, kind: t.kind, languageName: t.name.simpleText })) : null);
   const noFetch = location.search.includes('nofetch');

@@ -85,13 +85,24 @@
     <div><input type="number" id="shadowFactor" min="0.5" max="4" step="0.25"> <span class="help">× the length of the line</span></div>
   </div>
 
+  <h2>Gemini (optional)</h2>
+  <div class="panel rows">
+    <label for="geminiKey">Gemini API key</label>
+    <div>
+      <input type="password" id="geminiKey" size="36" autocomplete="off">
+      <div class="help">For videos without Chinese captions: hover the 中 switch and press "Transcribe with Gemini". It only runs when you press it, once per video (the result is kept). On the free tier Google may use requests to improve its models.</div>
+    </div>
+    <label for="geminiModel">Model</label>
+    <div><input type="text" id="geminiModel" size="22"></div>
+  </div>
+
   <h2>Keys</h2>
   <div class="panel keys">
     <span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span><span>新 Fresh · 學 Learning · 熟 Known (press again to clear)</span>
     <span><kbd>0</kbd></span><span>remove from the list</span>
     <span><kbd>V</kbd> <kbd>I</kbd> <kbd>P</kbd></span><span>say it · image search · show hidden pinyin</span>
     <span><kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></span><span>YouTube: previous line · replay line · next line</span>
-    <span><kbd>R</kbd> <kbd>Q</kbd></span><span>YouTube: loop line · shadowing</span>
+    <span><kbd>R</kbd> <kbd>Q</kbd> <kbd>E</kbd></span><span>YouTube: loop line · shadowing · transcript</span>
     <span><kbd>P</kbd> <kbd>X</kbd></span><span>YouTube: pinyin · English line</span>
   </div>
 </main>

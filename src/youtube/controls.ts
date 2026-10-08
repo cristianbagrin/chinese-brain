@@ -99,7 +99,7 @@ export class Controls {
 
   render() {
     const s = state.settings;
-    this.switchHost.hidden = !this.subs.hasSubs;
+    this.switchHost.hidden = !this.subs.videoActive;
     this.switchRoot.querySelector('.switch')?.classList.toggle('on', s.ytEnabled);
     if (this.panel.hidden) return;
 
@@ -144,7 +144,7 @@ export class Controls {
               el('span', 'n', `new ${pct(c.new)}%`),
             ),
           )
-        : el('div', 'cov', 'No Chinese captions found for this video.'),
+        : this.noCaptions(),
       el('div', 'track', this.subs.trackName, this.subs.hasTranslation ? ' + English' : ''),
       el(
         'div',
@@ -158,6 +158,28 @@ export class Controls {
       ),
       el('div', 'keys', 'A ◀ line · S replay · D line ▶ · E transcript · click a word = 新 (again = undo) · 1 2 3 in the card'),
     );
+  }
+
+  /** No Chinese track: offer the opt-in Gemini transcript. */
+  private noCaptions() {
+    const g = this.subs.gemini;
+    const box = el('div', 'cov', el('div', '', 'No Chinese captions for this video.'));
+    if (!state.settings.geminiKey) {
+      box.append(el('div', 'note', 'Add a Gemini API key in Settings to transcribe videos like this one.'));
+      return box;
+    }
+    if (g.state === 'working') {
+      box.append(el('div', 'note', 'Transcribing with Gemini… this can take a minute for long videos.'));
+      return box;
+    }
+    const b = el('button', 'chip on', 'Transcribe with Gemini');
+    b.addEventListener('click', () => void this.subs.transcribeWithGemini());
+    box.append(
+      el('div', 'gem', b),
+      el('div', 'note', 'Sends this video\'s link to Google. On the free tier Google may use the request to improve its models.'),
+    );
+    if (g.state === 'error') box.append(el('div', 'note err', g.error ?? 'Something went wrong.'));
+    return box;
   }
 
   flash(key: string) {

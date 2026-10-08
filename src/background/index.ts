@@ -2,6 +2,7 @@ import { Dictionary } from '../shared/dict.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import { DEFAULT_SETTINGS, type Msg, type Settings, type Status, type WordRecord } from '../shared/types.ts';
 import { shortGloss, Store } from './store.ts';
+import { geminiTranscribe } from './gemini.ts';
 import { translateLines } from './translate.ts';
 import { cachedCaptions, startCaptionCapture } from './youtube.ts';
 
@@ -110,6 +111,9 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
         for (const r of recs) store.log({ at: Date.now(), k: 'status', w: r.w, s: r.s, from: store.words.get(r.w)?.s ?? null });
         return store.importWords(recs, 'replace');
       });
+    case 'testSet':
+      if (!__TEST__) return undefined;
+      return browser.storage.local.set(any.data as Record<string, unknown>).then(() => true);
     case 'openPage':
       if (!__TEST__) return undefined;
       return browser.tabs.create({ url: browser.runtime.getURL(String(any.page)) }).then(() => true);
@@ -156,6 +160,17 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
         }
         return out;
       });
+    case 'gemini':
+      return getSettings().then(async (st) => {
+        if (!st.geminiKey) return { error: 'Add your Gemini API key in Settings first.' };
+        try {
+          return { lines: await geminiTranscribe(String(any.videoId), st.geminiKey, st.geminiModel || 'gemini-3.8-flash') };
+        } catch (e) {
+          return { error: String(e instanceof Error ? e.message : e) };
+        }
+      });
+    case 'geminiCached':
+      return browser.storage.local.get('gem:' + any.videoId).then((r) => r['gem:' + any.videoId] ?? null);
     case 'entries':
       return dictReady.then((d) => d.get(any.word as string));
   }

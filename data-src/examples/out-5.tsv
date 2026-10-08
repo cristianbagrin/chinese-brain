@@ -1460,7 +1460,7 @@
 迷你	這是迷你冰箱。	This is a mini fridge.
 迷你	我買了一個迷你電風扇，夏天通勤的時候可以帶著。	I bought a mini fan to carry on my summer commute.
 進球	他進球了！	He scored!
-進球	下半場最後一分鐘，球員踢進了關鍵的一球，全場歡呼。	In the last minute of the second half, a player scored the key goal and the stadium cheered.
+進球	下半場最後一分鐘，球員踢進關鍵的一球，這個進球讓全場歡呼。	In the last minute of the second half, a player scored the key goal, and the stadium cheered.
 選項	請選擇一個選項。	Please choose an option.
 選項	考試的單選題有四個選項，我常常猶豫不決，選到錯的。	Multiple-choice questions have four options, and I often hesitate and pick the wrong one.
 醉	他喝醉了。	He's drunk.
@@ -1710,7 +1710,7 @@
 電動	他一放假就窩在房間打電動，常常一玩就是五六個小時。	When on vacation he stays in his room playing video games, often for five or six hours.
 霍	他霍地站了起來。	He suddenly stood up.
 霍	聽到好消息，他霍然起身，開心地跳了起來。	Hearing the good news, he sprang to his feet and jumped for joy.
-風波	事情終於平息了。	It all finally calmed down.
+風波	這場風波終於平息了。	This storm of controversy has finally died down.
 風波	這次的風波讓公司的形象受損，花了很久才重新建立信任。	This controversy damaged the company's image, and it took a long time to rebuild trust.
 首腦	兩國首腦今天會面。	The heads of the two countries met today.
 首腦	各國首腦聚集在一起，討論如何共同面對氣候變遷的挑戰。	Leaders of many countries gathered to discuss how to face the challenge of climate change together.
@@ -1724,7 +1724,7 @@
 上報	他的善行被記者發現後上報，成為社區的佳話。	His good deed was noticed by a reporter and made the news, becoming a local story.
 下一代	我們要照顧下一代。	We must look after the next generation.
 下一代	父母都希望給下一代更好的生活環境和教育機會。	Parents all hope to give the next generation a better living environment and education.
-不便	對不起，給你添麻煩了。	Sorry for the trouble.
+不便	這樣做有點不便，換個方法吧。	That's a bit inconvenient, so let's try another way.
 不便	施工期間造成的不便，敬請見諒。	We apologize for the inconvenience caused during construction.
 不惜	他不惜一切代價。	He'd pay any price.
 不惜	為了讓孩子有更好的教育，爸媽不惜搬家到學區好的地方。	For a better education for their kids, the parents didn't hesitate to move to a good school district.
@@ -1896,3 +1896,221 @@
 機體	機體在強風中劇烈搖晃，但是機長保持冷靜，順利降落。	The airframe shook violently in strong wind, but the captain stayed calm and landed safely.
 欺詐	他涉嫌欺詐。	He is suspected of fraud.
 欺詐	購買二手商品時要提高警覺，避免遇到欺詐行為。	Be alert when buying secondhand goods to avoid fraud.
+歷時	整個工程歷時三年。	The whole project took three years.
+歷時	這部紀錄片歷時五年拍攝，記錄了農村的四季變化。	This documentary took five years to film, recording the seasonal changes of the countryside.
+比特	一個位元組有八個比特。	A byte has eight bits.
+比特	比特幣的價格波動很大，投資前要先了解風險。	Bitcoin prices swing wildly, so understand the risks before investing.
+水電	水電費這個月比較貴。	This month's water and electricity bill is higher.
+水電	新房子裝潢前，要先找水電師傅檢查管線有沒有問題。	Before renovating a new house, get a plumber and electrician to check the pipes and wiring.
+法師	法師正在念經。	The monk is chanting sutras.
+法師	寺裡的法師每天清晨起來誦經，鐘聲傳遍整座山谷。	The monks in the temple chant at dawn, and the bell echoes through the valley.
+派出所	派出所就在前面。	The police station is just ahead.
+派出所	我撿到一個錢包，趕緊送到附近的派出所，請警察聯絡失主。	I found a wallet and rushed it to the nearby police station to have police contact the owner.
+清水	請給我一杯清水。	Please give me a glass of clear water.
+清水	小狗口渴了，不要給牠喝飲料，只能喝清水。	The puppy is thirsty. Don't give it drinks, just clean water.
+滋味	這道菜的滋味很特別。	This dish has a special flavor.
+滋味	離家在外的孩子，最想念的就是媽媽煮的家鄉滋味。	Children away from home miss most the hometown flavors Mom cooks.
+潛水	我學過潛水。	I've learned to dive.
+潛水	在墾丁潛水可以近距離看見五顏六色的熱帶魚和珊瑚。	Diving in Kenting lets you see colorful tropical fish and coral up close.
+為啥	你為啥不去？	Why aren't you going?
+為啥	為啥這麼晚才回來？手機也打不通，大家都很擔心。	Why did you come back so late? Your phone was unreachable and everyone was worried.
+照明	這裡的照明不夠。	The lighting here isn't enough.
+照明	街道的照明設備老舊，晚上走路很容易發生危險。	The street lighting is old, and walking at night can be dangerous.
+燦爛	陽光很燦爛。	The sunshine is brilliant.
+燦爛	她的笑容像春天的花朵一樣燦爛，讓周圍的人都感到開心。	Her smile is as radiant as spring flowers, cheering everyone around.
+特工	他是特工。	He's a secret agent.
+特工	電影裡的特工總是能在最後一刻化險為夷，成功完成任務。	The film's agents always escape danger at the last moment and complete missions.
+獲悉	我們獲悉他已經回國。	We learned that he has returned home.
+獲悉	記者獲悉，這家公司將在下個月宣布重大人事異動。	The reporter learned the company will announce major personnel changes next month.
+理財	年輕人要學理財。	Young people should learn to manage money.
+理財	媽媽教我理財的第一課，就是每個月先存一筆錢，再來規劃花費。	Mom's first lesson on money management was to save first each month before planning spending.
+產權	房子的產權是我的。	The property rights belong to me.
+產權	買房前一定要確認產權清楚，避免日後出現土地糾紛。	Before buying a house, ensure clear ownership to avoid land disputes later.
+疏散	大樓裡的人都疏散了。	Everyone in the building was evacuated.
+疏散	火警警報響起，管理員立刻引導住戶從安全梯疏散。	When the fire alarm sounded, the manager immediately guided residents out via the stairs.
+發給	學校發給每個學生一本手冊。	The school issued a handbook to every student.
+發給	公司按月發給員工薪水，年底還會另外發給年終獎金。	The company pays salary monthly and also issues a year-end bonus.
+盛行	這種髮型現在很盛行。	This hairstyle is very popular now.
+盛行	夏天的時候，海邊盛行衝浪運動，吸引許多年輕人前來。	In summer, surfing is popular at the beach and attracts many young people.
+相片	牆上掛著家人的相片。	Family photos hang on the wall.
+相片	阿嬤把年輕時的相片放在小木盒裡，常常拿出來看。	Grandma keeps photos from her youth in a small wooden box and often looks at them.
+知曉	沒有人知曉這件事。	No one knows about this.
+知曉	此事一旦被知曉，後果將不堪設想，請大家務必保密。	If this gets known, the consequences would be unthinkable, so keep it secret.
+礦產	這裡有豐富的礦產。	There are rich mineral resources here.
+礦產	這個國家擁有豐富的礦產，像是鐵、銅和煤炭。	This country has rich mineral resources such as iron, copper and coal.
+票房	這部電影票房很高。	This movie has a high box office.
+票房	去年的賣座電影票房突破十億，成為年度最大贏家。	Last year's hit grossed over a billion, becoming the biggest winner of the year.
+科普	我喜歡看科普書。	I like reading popular science books.
+科普	這個頻道用有趣的方式做科普，讓複雜的科學知識變得好懂。	This channel popularizes science in fun ways, making complex science easy to understand.
+窗	請把窗打開。	Please open the window.
+窗	下雨天，我喜歡坐在窗邊看書，聽雨聲落在玻璃上。	On rainy days I like sitting by the window reading, listening to rain on the glass.
+第一步	這是第一步。	This is the first step.
+第一步	學好一種語言的第一步，就是每天花一點時間聽和說。	The first step to mastering a language is spending a little time each day listening and speaking.
+簡易	這是簡易包裝。	This is simple packaging.
+簡易	這個簡易的組裝步驟只要十分鐘，連小孩子也能完成。	This simple assembly takes just ten minutes, and even children can do it.
+紀委	大陸的紀委正在調查。	The discipline commission in mainland China is investigating.
+紀委	新聞報導，中央紀委今天通報了一起違紀案件的處理結果。	News reported that the central discipline commission announced the result of a disciplinary case today.
+組長	他是我們的組長。	He's our team leader.
+組長	組長開會時說，這個月的目標是要把客戶滿意度提高一成。	At the meeting, the team leader said this month's goal is to raise customer satisfaction by ten percent.
+網球	我喜歡打網球。	I like playing tennis.
+網球	週末早上，爸爸約朋友到球場打網球，一打就是兩個小時。	On weekend mornings Dad plays tennis with friends at the courts for two hours.
+縣長	縣長今天到鄉下視察。	The county magistrate inspected the countryside today.
+縣長	縣長在記者會上宣布，明年將增建三座公園和兩條自行車道。	The county magistrate announced at the press conference that three parks and two bike lanes will be added next year.
+繪製	他在繪製地圖。	He is drawing a map.
+繪製	設計師花了兩個月繪製這幅壁畫，把整面牆都畫滿了。	The designer spent two months painting this mural, covering the whole wall.
+美學	她在大學讀美學。	She studies aesthetics at university.
+美學	日本的庭園設計講求簡潔，表現出獨特的東方美學。	Japanese garden design values simplicity, expressing a distinct Eastern aesthetic.
+老爸	我老爸很愛釣魚。	My dad loves fishing.
+老爸	老爸每天下班後都會陪我打球，雖然他自己也很累。	Dad plays ball with me after work every day, even though he's tired himself.
+聯軍	聯軍進入了城市。	The allied forces entered the city.
+聯軍	歷史上，多國聯軍在戰爭中合作，最後打敗了共同的敵人。	In history, allied forces cooperated in war and finally defeated a common enemy.
+膚色	每個人的膚色不同。	Everyone has a different skin color.
+膚色	不論膚色或國籍，我們都應該尊重彼此，友善相處。	Regardless of skin color or nationality, we should respect each other and get along kindly.
+自有	公司有自有品牌。	The company has its own brand.
+自有	這間店賣的是自有品牌的商品，品質好，價格也比較實惠。	This store sells its own-brand products, with good quality and fair prices.
+航母	新航母下水了。	The new aircraft carrier has been launched.
+航母	新聞報導大陸的航母正在海上進行測試，引起外界注意。	News reported mainland China's aircraft carrier is undergoing sea trials, drawing outside attention.
+莊園	他們在莊園裡舉行婚禮。	They held their wedding at the estate.
+莊園	歐洲的葡萄莊園常常提供遊客品嚐葡萄酒的活動。	European vineyard estates often offer wine-tasting activities to visitors.
+葬禮	我明天要去參加葬禮。	I'm going to a funeral tomorrow.
+葬禮	葬禮上，親友們輪流上前向逝者道別，現場氣氛莊重肅穆。	At the funeral, relatives and friends took turns bidding the deceased farewell in a solemn atmosphere.
+血管	血管裡流動著血液。	Blood flows through blood vessels.
+血管	吃太多油炸食物，血管容易堵塞，可能引發心臟病。	Too much fried food can clog blood vessels and may cause heart disease.
+裙子	她穿了一條紅裙子。	She wore a red skirt.
+裙子	這條裙子太長了，我想拿去改短一點再穿。	This skirt is too long, so I want to have it shortened before wearing.
+要死	今天熱得要死。	It's insanely hot today.
+要死	昨天加班到半夜，今天累得要死，只想趕快回家睡覺。	I worked overtime until midnight yesterday and am dead tired today, just wanting to get home and sleep.
+解脫	終於考完試，我覺得好解脫。	I finally finished my exams and feel so relieved.
+解脫	長期照顧病人的家屬，常常在病人過世後同時感到悲傷與解脫。	Families who care long-term for patients often feel both grief and relief after they pass.
+許可證	進入工廠要有許可證。	You need a permit to enter the factory.
+許可證	在公園裡擺攤，必須先向市政府申請許可證，否則會被罰款。	To set up a stall in the park, you must first apply to the city government for a permit or face a fine.
+說好	說好了，明天見。	It's settled then. See you tomorrow.
+說好	我們說好週末一起去看電影，你可不要臨時放我鴿子。	We agreed to see a movie this weekend, so don't stand me up at the last minute.
+警員	一名警員走了過來。	A police officer walked over.
+警員	兩名警員在路口指揮交通，讓車輛有秩序地通過。	Two police officers directed traffic at the intersection so vehicles passed in order.
+讚賞	老師讚賞她的努力。	The teacher praised her effort.
+讚賞	他的作品獲得評審一致讚賞，被選為本屆最佳設計。	His work was unanimously praised by the judges and chosen as this year's best design.
+買下	我想買下這間房子。	I want to buy this house.
+買下	她存了十年的錢，終於買下夢想中的小公寓。	After saving for ten years, she finally bought her dream little apartment.
+贈送	店家贈送小禮物。	The shop gives away small gifts.
+贈送	開幕當天，凡購買商品都贈送一杯免費飲料，吸引了不少人排隊。	On opening day, any purchase came with a free drink, drawing a long line.
+路口	在前面的路口左轉。	Turn left at the intersection ahead.
+路口	這個路口的紅燈特別長，等的時候我都會滑一下手機。	The red light at this intersection is particularly long, so I scroll my phone while waiting.
+軍艦	軍艦停靠在港口。	The warship is docked in the harbor.
+軍艦	海軍的軍艦正在演習，岸邊有許多民眾圍觀拍照。	The navy's warships were on exercise, with many people watching and taking photos from shore.
+轟炸機	轟炸機飛過天空。	The bomber flew across the sky.
+轟炸機	二戰時期的轟炸機如今陳列在博物館中，供人參觀。	World War II bombers are now displayed in museums for visitors.
+迫切	我迫切需要幫助。	I urgently need help.
+迫切	偏鄉學校迫切需要更多老師，才能讓孩子獲得完整的教育。	Remote schools urgently need more teachers so children get a complete education.
+通話	電話通話中。	The line is busy.
+通話	通話品質不好的時候，我會改用視訊，這樣比較清楚。	When call quality is poor, I switch to video calls, which are clearer.
+過敏	我對花粉過敏。	I'm allergic to pollen.
+過敏	春天一到，他就開始鼻子過敏，一直打噴嚏、流鼻水。	When spring comes, his nose acts up with allergies, sneezing and running constantly.
+避	下雨了，我們先進去避雨。	It's raining, so let's go in to take shelter.
+避	為了避開上班的人潮，他每天都提早半小時出門。	To avoid the rush-hour crowd, he leaves half an hour earlier every day.
+里程	這輛車的里程數不高。	This car has low mileage.
+里程	搭飛機可以累積里程，之後兌換免費機票。	Flying earns mileage you can later redeem for free tickets.
+長篇	這是一本長篇小說。	This is a long novel.
+長篇	老闆在會議上發表了長篇大論，大家聽到快睡著了。	The boss delivered a long-winded speech at the meeting, and everyone nearly fell asleep.
+闖	不要闖紅燈。	Don't run red lights.
+闖	年輕人到大城市闖一闖，累積經驗，將來才有更多選擇。	Young people try their luck in big cities to gain experience and have more options later.
+陣地	士兵守住陣地。	The soldiers held the position.
+陣地	部隊在山頂建立了陣地，準備迎接敵人的攻擊。	The troops set up a position on the hilltop to prepare for the enemy's attack.
+隆	遠處傳來轟隆隆的雷聲。	Rumbling thunder came from afar.
+隆	鼓聲隆隆，舞獅隊在廟前熱鬧地表演。	Drums rumbled as the lion dance team performed lively in front of the temple.
+離去	客人們陸續離去。	The guests left one after another.
+離去	她默默地轉身離去，沒有留下任何一句話。	She turned and left silently without leaving a word.
+青睞	這款手機很受青睞。	This phone is very popular.
+青睞	這家新創公司的產品深受年輕人青睞，銷量快速成長。	This startup's products are favored by young people and sales grew fast.
+預訂	我想預訂明天的座位。	I'd like to book a seat for tomorrow.
+預訂	連假的飯店很搶手，最好提前一個月預訂。	Hotels on long weekends are in demand, so book a month in advance.
+顛覆	這個發明顛覆了傳統。	This invention overturned tradition.
+顛覆	智慧型手機的出現，徹底顛覆了人們的生活方式。	The arrival of smartphones completely overturned people's way of life.
+飛船	飛船成功登陸火星。	The spaceship landed on Mars successfully.
+飛船	科幻電影裡的飛船能在宇宙中穿梭，帶著人類探索未知的星球。	Spaceships in sci-fi films travel through the cosmos, taking humans to explore unknown planets.
+饒	媽媽饒了我這一次。	Mom let me off this once.
+饒	做小生意的老闆看我是熟客，買二送一還饒了我一袋小菜。	The small business owner saw I'm a regular, and threw in a bag of side dishes with a buy-two-get-one deal.
+驚奇	孩子們看到煙火，驚奇地張大了嘴。	Seeing fireworks, the kids gaped in wonder.
+驚奇	旅行最大的樂趣，就是在路上不斷發現各種驚奇。	The greatest joy of travel is constantly discovering surprises on the way.
+高出	價格比去年高出兩成。	The price is 20% higher than last year.
+高出	這棟新大樓高出周圍的建築許多，在遠處就能看見。	This new building towers above the surrounding ones and can be seen from afar.
+魔術	他會變魔術。	He can do magic tricks.
+魔術	生日派對上，叔叔表演了魔術，把硬幣變不見，逗得小朋友哈哈大笑。	At the birthday party, Uncle did a magic trick making a coin vanish, and the kids laughed.
+下課	下課了，我們去吃飯吧。	Class is over. Let's go eat.
+下課	下課鐘聲一響，同學們都衝出教室，跑到操場上玩。	When the bell rang, students rushed out of the classroom to play on the field.
+付現	我用現金付現。	I pay in cash.
+付現	這家小店不收信用卡，只能付現，所以記得帶足夠的錢。	This little shop doesn't take credit cards, only cash, so bring enough money.
+傳統市場	我媽喜歡逛傳統市場。	My mom likes browsing traditional markets.
+傳統市場	傳統市場的菜比超市便宜，而且攤販還會多送一把蔥。	Vegetables at the traditional market are cheaper than at supermarkets, and vendors even throw in extra scallions.
+功課	我今天的功課很多。	I have a lot of homework today.
+功課	寫完功課以後，媽媽才讓我玩一個小時的平板電腦。	Only after finishing homework does Mom let me use the tablet for an hour.
+台灣	我在台灣長大。	I grew up in Taiwan.
+台灣	台灣四面環海，有很多新鮮的海產和美味的小吃。	Taiwan is surrounded by sea and has plenty of fresh seafood and delicious snacks.
+報案	我要去派出所報案。	I'm going to the police station to report a case.
+報案	發現皮包被偷後，他立刻打電話報案，警察十分鐘就趕到了。	After discovering his bag was stolen, he called the police, who arrived in ten minutes.
+太強了	你考一百分，太強了！	You got a hundred. That's amazing!
+太強了	這個新手居然第一次就打破紀錄，真的太強了吧！	This newcomer broke the record on his first try. That's really incredible!
+室友	我的室友很愛乾淨。	My roommate is very clean.
+室友	室友今天煮了一大鍋咖哩，還分了一碗給我吃。	My roommate cooked a big pot of curry today and shared a bowl with me.
+弄丟	我弄丟了鑰匙。	I lost my keys.
+弄丟	他不小心把悠遊卡弄丟了，只好去客服中心掛失補發。	He accidentally lost his EasyCard and had to go to the service center to report it and get a replacement.
+懶得	我懶得出門。	I can't be bothered to go out.
+懶得	週末下雨，我懶得做飯，乾脆叫外送，吃完就躺在沙發上。	It rained on the weekend, and I didn't feel like cooking, so I ordered delivery and lay on the sofa.
+招呼	他跟我打招呼。	He greeted me.
+招呼	老闆娘很熱情，一看到客人進門就趕緊上前招呼。	The proprietress is warm and quickly steps up to greet customers as they come in.
+搞定	放心，我來搞定。	Don't worry, I'll handle it.
+搞定	電腦當機的問題，同事花了十分鐘就搞定了。	My coworker fixed the computer crash in ten minutes.
+早知道	早知道我就不來了。	If I had known, I wouldn't have come.
+早知道	早知道會塞車，我就搭捷運了，現在可能已經到了。	If I had known there'd be traffic, I'd have taken the MRT and might already be there.
+棵	院子裡有一棵樹。	There's a tree in the yard.
+棵	公園裡種了幾十棵櫻花樹，春天一到就開滿了粉紅色的花。	Dozens of cherry trees are planted in the park, covered in pink blossoms every spring.
+流利	他的英文很流利。	His English is fluent.
+流利	在台灣住了三年之後，她已經能說一口流利的中文。	After three years in Taiwan, she can speak fluent Chinese.
+滿座	今天餐廳滿座了。	The restaurant is fully booked today.
+滿座	週末晚上這家火鍋店常常滿座，不訂位的話得等一個小時。	This hotpot place is often full on weekend nights, and without reservations you wait an hour.
+牛排	我想吃牛排。	I want to eat steak.
+牛排	朋友生日，我們去一家平價牛排館，每個人都點了五分熟的牛排。	For a friend's birthday we went to an affordable steakhouse and each ordered a medium-rare steak.
+瓶子	桌上有一個瓶子。	There's a bottle on the table.
+瓶子	喝完飲料的瓶子要沖洗一下，再拿去資源回收。	Rinse bottles after finishing the drink before taking them for recycling.
+等不及	我等不及要放假了。	I can't wait for the vacation.
+等不及	他等不及打開禮物，一回到家就拆開包裝紙。	He couldn't wait to open the gift and tore the wrapping as soon as he got home.
+繁體	我學繁體字。	I'm learning traditional characters.
+繁體	台灣使用繁體中文，所以在這裡生活，看招牌和菜單都是繁體字。	Taiwan uses traditional Chinese, so signs and menus here are in traditional characters.
+腰帶	這條腰帶是皮做的。	This belt is made of leather.
+腰帶	褲子太鬆了，我繫了一條腰帶，才不會一直往下掉。	The pants were too loose, so I wore a belt so they won't keep slipping.
+行事曆	我把約會寫進行事曆。	I wrote the appointment in my calendar.
+行事曆	每週日晚上，我都會打開手機的行事曆，安排下週的工作與活動。	Every Sunday night I open my phone's calendar to plan the next week's work and activities.
+訂位	我想訂位，兩個人。	I'd like to book a table for two.
+訂位	這家餐廳很熱門，要提前一週訂位才有位子。	This restaurant is popular and needs a reservation a week ahead.
+護理師	護理師幫我量體溫。	The nurse took my temperature.
+護理師	護理師耐心地替老人家換藥，還陪他聊天，讓他不那麼緊張。	The nurse patiently changed the elderly man's dressing and chatted to ease his nerves.
+跑步	我每天早上跑步。	I jog every morning.
+跑步	下班後，他會到河濱公園跑步，一邊聽音樂一邊看夕陽。	After work he jogs at the riverside park, listening to music and watching the sunset.
+還要	你還要吃嗎？	Do you want more?
+還要	買完菜之後，我還要去銀行辦事，所以大概晚點才回家。	After buying groceries, I still need to go to the bank, so I'll probably get home late.
+開心得不得了	看到你我開心得不得了。	I'm overjoyed to see you.
+開心得不得了	孩子拿到新玩具，開心得不得了，一整天都抱著不放。	The child was overjoyed with the new toy and held it all day.
+電量	手機電量剩下百分之五。	The phone has 5% battery left.
+電量	出門前要確認電量夠不夠，不然在外面沒電會很麻煩。	Check your battery before going out, or running out outside is a hassle.
+瞭解	我瞭解你的意思。	I understand what you mean.
+瞭解	多瞭解一個地方的文化，旅行起來就更有意思。	The more you understand a place's culture, the more interesting traveling there is.
+三個	我買了三個蘋果。	I bought three apples.
+三個	這三個孩子每天放學都一起走回家，感情非常好。	The three kids walk home together after school daily and are very close.
+個月	我學中文已經六個月了。	I've been learning Chinese for six months.
+個月	這家店下個月要搬到對面，到時候會有開幕優惠。	This shop will move across the street next month with opening discounts.
+站起來	請大家站起來。	Everyone please stand up.
+站起來	他慢慢站起來，扶著牆壁走向門口，身體還是有點虛弱。	He slowly stood up and walked to the door along the wall, still a bit weak.
+有幫助	多運動對健康有幫助。	Exercise helps your health.
+有幫助	這本書對準備考試很有幫助，裡面整理了許多重點。	This book is very helpful for exam prep, with many key points summarized.
+驗	醫生要幫我驗血。	The doctor will test my blood.
+驗	機場的安檢人員會驗你的護照，也會檢查隨身行李。	Airport security checks your passport and also carry-on luggage.
+拜拜	拜拜，明天見！	Bye-bye, see you tomorrow!
+拜拜	每個月初一十五，阿嬤都會準備水果去廟裡拜拜。	On the first and fifteenth of each month, Grandma takes fruit to the temple to pray.
+帽	他戴著一頂帽子。	He's wearing a hat.
+帽	太陽太大，我戴上棒球帽，還塗了防曬乳才出門。	The sun was strong, so I put on a baseball cap and sunscreen before going out.
+拉麵	我最愛吃拉麵。	I love ramen the most.
+拉麵	日本拉麵的湯頭很濃，我每次都會加點一份叉燒。	Japanese ramen broth is rich, and I always order extra chashu.
+倒楣	我今天真倒楣。	I'm so unlucky today.
+倒楣	剛洗好車就下雨，真是倒楣，只好再洗一次。	It rained right after I washed my car. What bad luck, and I'll have to wash it again.
+手搖飲	我常喝手搖飲。	I often drink hand-shaken drinks.
+手搖飲	台灣的手搖飲店很多，點的時候還能選甜度與冰塊。	Taiwan has many hand-shaken drink shops, and you can choose sweetness and ice level.

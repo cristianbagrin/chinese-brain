@@ -101,6 +101,9 @@ export interface Settings {
   azureKey: string;
   azureRegion: string;
   azureVoice: string;
+  /** Optional Gemini key for transcribing caption-less videos (opt-in per video). */
+  geminiKey: string;
+  geminiModel: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -121,6 +124,8 @@ export const DEFAULT_SETTINGS: Settings = {
   azureKey: '',
   azureRegion: 'eastasia',
   azureVoice: 'zh-TW-HsiaoChenNeural',
+  geminiKey: '',
+  geminiModel: 'gemini-3.8-flash',
 };
 
 /** Language of the second subtitle line. */

@@ -5,6 +5,7 @@ import { lookupText } from '../content/hover.ts';
 import type { Popup } from '../content/popup.ts';
 import { state } from '../content/state.ts';
 import { alignTranslation, cueAt, cueBefore, parseTimedText, pickChinese, pickTranslation, urlInfo, type Cue, type TrackInfo } from './captions.ts';
+import type { GeminiLine } from '../background/gemini.ts';
 import { Controls } from './controls.ts';
 import { Transcript } from './transcript.ts';
 import css from './overlay.css';
@@ -46,6 +47,9 @@ export class YouTubeSubs {
   private domObserver: MutationObserver | undefined;
   /** True when mirroring YouTube's on-screen captions (no track was captured). */
   private live = false;
+  /** Gemini fallback for videos with no Chinese captions. */
+  gemini: { state: 'idle' | 'working' | 'error'; error?: string } = { state: 'idle' };
+  private checkedGemini = false;
 
   constructor(popup: Popup) {
     this.popup = popup;
@@ -142,6 +146,8 @@ export class YouTubeSubs {
     this.trCues = undefined;
     this.idx = -2;
     this.requestedTr = false;
+    this.gemini = { state: 'idle' };
+    this.checkedGemini = false;
     this.counts = { fresh: 0, learning: 0, known: 0, new: 0 };
     this.loop = false;
     this.shadow = false;
@@ -169,7 +175,18 @@ export class YouTubeSubs {
       isTranslatable: !!t.isTranslatable,
     }));
     const zh = pickChinese(this.tracks);
-    if (!zh) return;
+    if (!zh) {
+      this.controls.mount();
+      // A transcript made with Gemini earlier for this video is reused, never re-requested.
+      if (!this.checkedGemini) {
+        this.checkedGemini = true;
+        const id = this.videoId;
+        browser.runtime.sendMessage({ type: 'geminiCached', videoId: id }).then((lines: GeminiLine[] | null) => {
+          if (lines && this.videoId === id && !this.cues.length) this.applyGemini(lines);
+        });
+      }
+      return;
+    }
     this.src = zh;
     this.setTrack(zh);
     const id = this.videoId;
@@ -322,6 +339,32 @@ export class YouTubeSubs {
     const c = this.counts;
     const total = c.fresh + c.learning + c.known + c.new;
     return total ? c.known / total : undefined;
+  }
+
+  get videoActive() {
+    return !!this.videoId;
+  }
+
+  /** Opt-in, per video: transcribe with the user's Gemini key. */
+  async transcribeWithGemini() {
+    const id = this.videoId;
+    this.gemini = { state: 'working' };
+    this.controls.render();
+    const res: { lines?: GeminiLine[]; error?: string } = await browser.runtime.sendMessage({ type: 'gemini', videoId: id });
+    if (this.videoId !== id) return;
+    if (res.lines) {
+      this.gemini = { state: 'idle' };
+      this.applyGemini(res.lines);
+    } else this.gemini = { state: 'error', error: res.error };
+    this.controls.render();
+  }
+
+  private applyGemini(lines: GeminiLine[]) {
+    this.src = { languageCode: 'zh-TW', name: 'Gemini transcript' };
+    this.requestedTr = true;
+    this.trCues = lines.map((l) => ({ start: l.start, end: l.end, text: l.en }));
+    this.trans = lines.map((l) => l.en);
+    void this.setSource(lines.map((l) => ({ start: l.start, end: l.end, text: l.zh })));
   }
 
   get hasSubs() {
