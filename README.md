@@ -129,9 +129,9 @@ Gemini, on request.
 
 ## Data and licenses
 
-- Code: GPL-3.0 (see `LICENSE`). TOCFL levels come from
-  [LingLook](https://github.com/ph0ngp/linglook) (GPL-3.0); they are kept in
-  the data but not shown.
+- Code: copyright © Cristian Bagrin, all rights reserved (see `LICENSE`).
+  TOCFL levels come from [LingLook](https://github.com/ph0ngp/linglook)
+  (GPL-3.0); they are kept in the data but not shown.
 - [CC-CEDICT](https://www.mdbg.net/chinese/dictionary?page=cedict): CC BY-SA 4.0.
 - Taiwan readings: 教育部《重編國語辭典修訂本》 via
   [g0v/moedict-data](https://github.com/g0v/moedict-data), CC BY-ND 3.0 TW.

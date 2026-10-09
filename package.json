@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Firefox extension for Taiwan Mandarin learners: YouTube dual subtitles + hover lookup on any page, one shared dictionary and word store.",
-  "license": "GPL-3.0-only",
+  "license": "UNLICENSED",
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
@@ -13,8 +13,7 @@
     "lint:ext": "web-ext lint --source-dir dist",
     "start": "web-ext run --source-dir dist --url https://www.youtube.com",
     "zip": "npm run build && web-ext build --source-dir dist --artifacts-dir release --overwrite-dest",
-    "data": "python3 scripts/build_data.py",
-    "source": "mkdir -p release && git archive --format=zip -o release/chinese-brain-source.zip HEAD"
+    "data": "python3 scripts/build_data.py"
   },
   "devDependencies": {
     "@types/firefox-webext-browser": "120.0.4",

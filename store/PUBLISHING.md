@@ -2,18 +2,16 @@
 
 Copy each block into the matching field of the AMO Developer Hub.
 
-## 1. Build the two files to upload
+## 1. Build the file to upload
 
 ```bash
 git pull
 npm ci
 npm run zip      # -> release/chinese_brain-1.0.0.zip      (the add-on)
-npm run source   # -> release/chinese-brain-source.zip     (source code for the reviewers)
 ```
 
 Upload `chinese_brain-1.0.0.zip` under **Submit a New Add-on → On this site**.
-When asked "Do you need to submit source code?", answer **Yes** and upload
-`chinese-brain-source.zip` (the add-on is bundled with esbuild).
+When asked "Do you need to submit source code?", answer **No**.
 
 ## 2. Listing
 
@@ -64,7 +62,7 @@ OPTIONAL, WITH YOUR OWN KEYS
 • Gemini: subtitles for videos without Chinese captions (Mandarin is transcribed; other languages are translated into Taiwan Mandarin), and new example sentences
 • Azure: a Taiwan neural voice
 
-Free and open source (GPL-3.0). No account and no server of ours; your word list stays in your browser.
+Copyright © Cristian Bagrin. All rights reserved. No account and no server of ours; your word list stays in your browser.
 
 Data: CC-CEDICT (CC BY-SA 4.0); Taiwan readings from the MOE Revised Mandarin Dictionary via g0v/moedict-data (CC BY-ND 3.0 TW, pinyin only); word frequencies from wordfreq (CC BY-SA 4.0).
 ```
@@ -87,7 +85,7 @@ https://github.com/cristianbagrin/chinese-brain
 
 **Support email or website**: your choice.
 
-**License**: GNU General Public License v3.0
+**License**: All Rights Reserved
 
 **Icon**: `store/icon-128.png`
 
