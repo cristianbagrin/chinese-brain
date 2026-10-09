@@ -359,3 +359,130 @@
 14234	dropword	Mainland unit; Taiwan uses 甲 or 分地
 14270	dropword	bound morpheme 陽, only occurs inside compounds
 14276	dropword	Mainland usage; Taiwan says 公里
+14288	fix	機場的跑道上停著一架波音客機。	A Boeing airliner is parked on the airport runway.
+14290	fix	他是來台灣學中文的留學生。	He is an international student who came to Taiwan to study Chinese.
+14296	dropword	bound morpheme 責, only occurs inside compounds
+14305	fix	這個計畫假定天氣良好，如果下雨就要改期。	This plan assumes good weather and will be rescheduled if it rains.
+14316	dropword	bound morpheme 慶, only occurs inside compounds
+14354	fix	桃園國際機場每天都有許多旅客進出。	Taoyuan International Airport sees many passengers come and go every day.
+14357	fix	還有三天就放假了，大家再加油一下。	Only three days until the holiday, so hang in there a little longer.
+14358	fix	你住哪一區？	Which district do you live in?
+14363	fix	本月起，圖書館的開放時間改為早上九點。	Starting this month, the library opens at nine in the morning.
+14365	fix	對我來說，健康的價值比賺大錢更重要。	To me, health is worth more than making a lot of money.
+14367	fix	未來幾天各地都會有大雨，請民眾注意安全。	Heavy rain is expected everywhere in the coming days, so please stay safe.
+14369	fix	以前放學後，我們都會一起去巷口的柑仔店。	We used to go to the corner grocery together after school.
+14370	fix	母親總是把最好的留給孩子。	A mother always saves the best for her children.
+14373	fix	為了保持健康，我每天早上都會慢跑半小時。	To stay healthy, I jog for half an hour every morning.
+14375	fix	你想要什麼生日禮物？我可以先幫你留意一下。	What birthday gift do you want? I can keep an eye out for it.
+14377	fix	我弟一講笑話，全家人都被他逗得笑了起來。	As soon as my little brother told a joke, the whole family burst out laughing.
+14379	fix	我不想靠家人幫忙，想靠自己的力量買房子。	I don't want to rely on my family; I want to buy a house on my own.
+14381	fix	出國玩了一個星期，終於回到熟悉的床上，真舒服。	After a week abroad, being back in my own bed is so comfortable.
+14383	fix	週末我會回老家陪父母吃飯，聊聊最近的生活。	On weekends I go home to have meals with my parents and chat about recent life.
+14387	fix	光是排隊就花了一個小時，我們最後還是回家吃泡麵。	Just the queuing took an hour, so we went home and had instant noodles.
+14389	fix	吵架的時候，先聽聽對方怎麼說，再決定要不要生氣。	When arguing, first hear what the other person says, then decide whether to be angry.
+14391	fix	問題不在天氣，而在計畫本身，排得太趕了。	The problem isn't the weather but the plan itself, which was too tight.
+14393	fix	我剛剛聽到樓下鄰居在吵架，聲音很大。	I just heard the neighbors downstairs arguing, very loudly.
+14394	fix	隨著天氣變冷，我多穿了一件。	As the weather got colder, I put on another layer.
+14395	fix	隨著科技進步，手機已經成為生活中不可缺少的工具。	With technological progress, the phone has become an indispensable tool in daily life.
+14397	fix	他喝了一口熱茶，才慢慢開始說話。	He took a sip of hot tea before he slowly began to speak.
+14399	fix	週末的時候，我往往睡到中午才起床。	On weekends I usually sleep until noon.
+14401	fix	我家貓咪到了換季就會掉很多毛，沙發上都是。	Our cat sheds a lot when the seasons change, and it's all over the sofa.
+14403	fix	學校訂了一套手機使用規範，上課時不能滑手機。	The school set phone-use rules, so you can't scroll your phone in class.
+14404	fix	除了他以外，大家都到了。	Everyone has arrived except him.
+14405	fix	除了這件以外，其他衣服都在打折，要不要看看？	Everything except this piece is on sale; want to take a look?
+14406	dropword	bound morpheme 基, only occurs inside compounds
+14409	fix	他不小心摔了一跤，幸好只是個小意外。	He accidentally took a fall, but luckily it was only a minor mishap.
+14411	fix	法庭上，法官仔細聽完雙方律師的說法，才宣布判決。	In court, the judge carefully heard both lawyers before announcing the verdict.
+14413	fix	這個人被控詐欺罪，下週要出庭受審。	This man is charged with fraud and will stand trial next week.
+14415	fix	辦理退貨請攜帶發票和商品，並在七天內到店。	To return an item, bring the receipt and product to the store within seven days.
+14416	fix	你喜歡什麼樣的音樂？	What kind of music do you like?
+14417	fix	你想找什麼樣的工作？薪水和時間哪個比較重要？	What kind of job do you want? Which matters more, pay or hours?
+14418	fix	你嚇到我了！	You scared me!
+14419	fix	半夜突然聽到敲門聲，我嚇得不敢出聲。	I suddenly heard knocking at midnight and was too scared to make a sound.
+14421	fix	記者靠著線民提供的情報，找到了那間非法工廠。	Relying on a tipster's information, the reporter found the illegal factory.
+14423	fix	我們沿著河邊騎腳踏車，看見很多人在釣魚。	We cycled along the river and saw many people fishing.
+14424	fix	緊急出口的門前不可以堆放雜物。	Nothing may be piled up in front of an emergency exit door.
+14425	fix	遇到緊急狀況，請立刻撥一一九求救。	In an emergency, please dial 119 for help right away.
+14427	fix	工作做完了，我輕鬆地坐在沙發上看了一部電影。	With work done, I relaxed on the sofa and watched a movie.
+14429	fix	廣場上聚集了大批人群，大家都在等跨年煙火。	A large crowd gathered in the square, all waiting for the New Year's Eve fireworks.
+14431	fix	這部武俠電影裡，主角的劍法快得讓人看不清楚。	In this martial arts movie, the hero's swordplay is too fast to follow.
+14433	fix	這款手機有多種顏色可以選擇，我最喜歡藍色的。	This phone comes in multiple colors, and I like the blue one best.
+14434	dropword	bound morpheme 引, only occurs inside compounds
+14437	fix	其他縣市派出消防隊前來支援，一起撲滅山上的大火。	Fire crews from other counties came to help put out the mountain fire.
+14438	fix	他把壞人演得很傳神，觀眾都看得入戲。	He plays villains so convincingly that the audience gets drawn into the show.
+14439	fix	她從小就愛表演，長大後真的靠演戲維生。	She loved performing from a young age and really does make a living acting now.
+14443	fix	我的論文已經交給教授，現在只能等他的意見。	I've handed my thesis to the professor and can only wait for his comments.
+14444	fix	老師姓鍾，大家都叫他鍾老師。	The teacher's surname is Zhong, and everyone calls him Teacher Zhong.
+14445	fix	鍾老師教了我們三年的國文。	Teacher Zhong taught us Chinese for three years.
+14447	fix	總統今天任命了新的部長，明天將正式就職。	The president appointed a new minister today, who takes office tomorrow.
+14449	fix	老師用一個簡單的實驗，解釋了飛機能飛起來的原理。	The teacher used a simple experiment to explain how airplanes fly.
+14451	fix	氣象署正在密切觀察颱風的動向。	The Weather Administration is closely monitoring the typhoon's movement.
+14453	fix	市長今天授予這位醫師一枚獎章，感謝他多年來的貢獻。	The mayor awarded this doctor a medal today for his years of contribution.
+14456	dropword	bound morpheme 監, mostly occurs inside compounds
+14459	fix	有個陌生人自稱是銀行員，打電話來要我的密碼，我直接掛掉。	A stranger claiming to be a bank clerk called asking for my password, so I just hung up.
+14461	fix	近年來，越來越多台灣人選擇到日本和韓國旅遊。	In recent years, more and more Taiwanese choose to travel to Japan and Korea.
+14462	fix	他大喊一聲，把大家都嚇了一跳。	He shouted out, startling everyone.
+14463	fix	這個字要念一聲，不是二聲，你再念一次。	This character is first tone, not second; say it again.
+14465	fix	她雖然出身普通家庭，但靠自己的努力考上了醫學院。	Although she's from an ordinary family, she got into medical school by her own effort.
+14467	fix	我現在在忙，回頭再打給你好嗎？	I'm busy right now; can I call you back later?
+14469	fix	古代的封建制度，讓人民的身分差別很大。	The ancient feudal system made status differences among people very large.
+14471	fix	在台灣，年滿十八歲就算成年，可以自己簽契約。	In Taiwan, you're an adult at eighteen and can sign contracts yourself.
+14473	fix	本校將舉行五十週年校慶暨校友返校日，歡迎校友回來參加。	Our school will hold its fiftieth anniversary and alumni homecoming day; alumni are welcome.
+14475	fix	根據新法令，餐廳內全面禁止吸菸。	Under the new regulation, smoking is completely banned inside restaurants.
+14476	fix	他獲獎了！	He won an award!
+14477	fix	這部紀錄片在國際影展上獲獎，讓更多人認識了台灣的故事。	This documentary won an award at an international film festival, letting more people know Taiwan's stories.
+14479	fix	價格比預期稍高，我再考慮一下。	The price is slightly higher than expected, so let me think about it.
+14480	fix	與此同時，雨也停了。	Meanwhile, the rain stopped too.
+14481	fix	老闆在前面開會，與此同時，同事們在後面偷偷準備生日蛋糕。	While the boss was in a meeting up front, coworkers were secretly preparing a birthday cake in back.
+14483	fix	這條單車道的起點在河邊公園，終點是海邊。	This bike path starts at the riverside park and ends at the sea.
+14485	fix	我爸年輕時在陸軍服役，現在還保持早起運動的習慣。	My dad served in the army when young and still keeps the habit of exercising early.
+14486	fix	劇團下個月將在國家戲劇院上演新戲。	The troupe will stage a new play at the National Theater next month.
+14487	fix	劇團明晚將在文化中心上演一齣舞台劇，票價很便宜。	The troupe will stage a play at the cultural center tomorrow night, with cheap tickets.
+14488	dropword	Mainland usage; Taiwan says 公車
+14490	fix	商場如戰場，做生意一定要處處小心。	The business world is a battlefield, so be careful at every step when doing business.
+14491	fix	週末的商場總是人山人海，停車也要等很久。	The mall is always packed on weekends, and parking takes a long wait.
+14493	fix	阿公每次看到孫子放學回來，都會笑得很開心。	Grandpa smiles broadly every time his grandson comes home from school.
+14495	fix	政府推動計畫，希望讓逐漸消失的客語重新復興。	The government is promoting a plan to revive the fading Hakka language.
+14497	fix	市政府決定收回這塊土地，準備蓋新的公園。	The city government decided to take back this land to build a new park.
+14499	fix	兩國決定不使用武力，而是透過談判解決爭端。	The two countries decided not to use force but to resolve the dispute by negotiation.
+14501	fix	球迷們穿著隊服，在球場外大聲為自己支持的球隊加油。	Fans in team jerseys cheered loudly outside the stadium for their team.
+14503	fix	軍隊最重視紀律，每個人都必須遵守規定。	The military values discipline most, and everyone must follow the rules.
+14505	fix	比賽結束後，裁判的裁決讓兩隊球員都感到不滿。	After the game, the referee's ruling left players on both teams unhappy.
+14507	fix	政府計畫在各鄉鎮增設圖書館，讓偏鄉孩子也有書可以看。	The government plans to add libraries in townships so rural kids have books to read.
+14509	fix	新市長上任後的第一件事，就是檢討大眾運輸的班次。	The new mayor's first act upon taking office was reviewing public transport schedules.
+14511	fix	他下班後都去健身房健身，所以體力特別好。	He works out at the gym after work, so his stamina is great.
+14513	fix	剩餘的食物請打包帶回家，不要浪費。	Please take leftover food home and don't waste it.
+14517	fix	志工們每天晚上巡邏社區，守護大家的安全。	Volunteers patrol the neighborhood every night to keep everyone safe.
+14519	fix	警方強行進入屋內，才發現裡面已經沒有人了。	Police forced their way in, only to find nobody inside.
+14521	fix	地震發生後，許多民眾主動捐款，幫助受災的家庭。	After the earthquake, many people donated on their own to help affected families.
+14523	fix	這家獨立書店很有氣質，老闆還會推薦好書給客人。	This independent bookstore has real character, and the owner recommends good books.
+14524	fix	這張沙發又軟又舒服，我常常在上面睡著。	This sofa is soft and comfortable, and I often fall asleep on it.
+14525	fix	他一回到家就癱在沙發上，連衣服也懶得換。	As soon as he got home he flopped on the sofa without bothering to change.
+14527	fix	我爸每天下班都會繞去市場，買我們愛吃的水果。	My dad stops by the market after work every day to buy our favorite fruit.
+14529	fix	看到孩子臉上的笑容，所有的辛苦好像都值得了。	Seeing the smile on my child's face makes all the hardship feel worthwhile.
+14530	fix	我姓莊，老家在彰化鹿港。	My surname is Zhuang, and my hometown is Lukang in Changhua.
+14531	fix	隔壁的莊太太人很好，常常送菜給我們。	Mrs. Zhuang next door is very kind and often gives us vegetables.
+14535	fix	他在魚鉤上掛了餌，耐心地等魚來咬。	He baited the fishhook and patiently waited for a bite.
+14536	fix	這位領導者以身作則，贏得了團隊的信任。	This leader set an example and won the team's trust.
+14537	fix	一個好的領導者，應該願意傾聽團隊成員的意見。	A good leader should be willing to listen to team members' opinions.
+14538	fix	阿嬤家附近的柑仔店，賣的零食都是我小時候愛吃的。	The grocery shop near Grandma's house sells the snacks I loved as a child.
+14539	fix	夜市的蚵仔煎，外皮酥、內餡鮮，我每次都吃一份。	The oyster omelette at the night market has a crisp edge and fresh filling, and I get one every time.
+14543	fix	你出了車站往右邊走，看到紅綠燈就過馬路。	Leave the station, head right, and cross at the traffic light.
+14545	fix	在台灣，持有大麻是違法的行為，會受到法律處罰。	In Taiwan, possessing cannabis is illegal and punished by law.
+14547	fix	海邊的岩石被海浪沖刷了好幾百年，表面變得很光滑。	Seaside rocks, washed by waves for centuries, have become smooth.
+14549	fix	天氣變冷，同學們一個接一個感冒，教室裡都是咳嗽聲。	As it got colder, classmates caught colds one after another, and the classroom was full of coughing.
+14551	fix	這間舊倉庫被改裝成咖啡廳，保留了原本的紅磚牆。	This old warehouse was converted into a café, keeping the original red brick walls.
+14553	fix	這家連鎖餐廳把製作流程標準化，不管在哪一間分店，口味都一樣。	This chain standardizes its cooking process, so it tastes the same at every branch.
+14555	fix	有網友誤會這件事，公司趕緊發聲明澄清事實。	Some netizens misunderstood, so the company quickly issued a statement to clarify.
+14557	fix	兩個陌生人在旅途中相遇，後來成了最好的朋友。	Two strangers met on a trip and later became best friends.
+14559	fix	這件運動衫用特殊纖維做成，流汗後很快就乾了。	This sports top is made of special fibers and dries fast after sweating.
+14561	fix	住在這個社區的人都很親切，見面時都會打招呼。	People in this neighborhood are friendly and greet each other when they meet.
+14563	fix	捷運新路線預計明年年初通車，到時候通勤會更方便。	The new MRT line is expected to open early next year, making commuting easier.
+14565	fix	雇主必須按時發薪水，並為員工投保勞健保。	Employers must pay on time and enroll employees in labor and health insurance.
+14567	fix	這位上將在軍中服務了四十年，受到許多人的尊敬。	This general served forty years in the military and is respected by many.
+14569	fix	別低估這個遊戲的難度，我試了十次都沒過關。	Don't underestimate this game's difficulty; I tried ten times without clearing it.
+14571	fix	這張照片入選了攝影比賽的前十名，我開心得不得了。	This photo made the top ten in the photography contest, and I'm overjoyed.
+14573	fix	這位歌手舞台魅力十足，一上台全場觀眾都跟著嗨起來。	This singer has great stage presence, and the whole audience got hyped the moment she appeared.
+14575	fix	這本書是我對天文的啟蒙，從此我愛上了看星星。	This book introduced me to astronomy, and I've loved stargazing ever since.
+14576	dropword	Mainland usage; Taiwan says 米 or 白米
+14578	fix	這座體育館最多能容納一萬名觀眾，一票難求。	This stadium holds up to ten thousand spectators, and tickets are hard to get.

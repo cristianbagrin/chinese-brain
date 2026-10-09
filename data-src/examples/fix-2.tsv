@@ -340,3 +340,134 @@
 5826	fix	簡易的紙箱就能變成貓咪的遊樂場。	A simple cardboard box can become a playground for the cat.
 5834	fix	他花了三年寫完這部長篇小說，終於出版了。	He spent three years finishing this novel and it was finally published.
 5836	dropword	Mainland usage; Taiwan says 太空船
+5846	fix	進廟之前，記得先把帽摘下來。	Before entering the temple, remember to take your hat off first.
+5848	fix	這件衣服簡單而不失優雅，很適合上班穿。	This outfit is simple yet elegant, perfect for work.
+5860	dropword	Mainland usage; Taiwan says 影片
+5909	fix	活動是否舉行，要視天氣而定。	Whether the event goes ahead depends on the weather.
+5931	fix	這場戰役決定了整個戰爭的勝負。	This battle decided the outcome of the whole war.
+5941	dropword	bound morpheme, not a standalone word; only in compounds (魯莽, 魯肉飯)
+5951	fix	過年時親戚圍著桌子打牌，笑聲不斷。	At New Year the relatives sat around the table playing cards, laughing nonstop.
+5952	fix	這副牌少了一張，我們沒辦法繼續玩。	This deck is missing a card, so we can't keep playing.
+5953	dropword	bound morpheme, not a standalone word; only in compounds (精神, 精采, 精明)
+5955	dropword	bound morpheme, not a standalone word; only in compounds (雜誌, 日誌)
+5960	fix	氣溫低於十度時，氣象署會發布低溫特報。	When the temperature falls below ten degrees, the Central Weather Administration issues a cold advisory.
+5965	dropword	Mainland usage; Taiwan says 平方公里
+5967	dropword	Mainland usage as a verb; Taiwan says 持股/控股公司
+5969	fix	我們學校的樂隊在校慶遊行時走在最前面。	Our school band led the way in the anniversary parade.
+5973	dropword	bound morpheme, not a standalone word; only in compounds (盜版, 盜取, 防盜)
+5979	dropword	bound morpheme, not a standalone word; only in compounds (搬遷, 遷移, 遷居)
+5985	fix	許多勞工在高溫下工作，雇主應該提供足夠的休息時間。	Many workers labor in high heat, so employers should provide enough rest time.
+5987	dropword	bound morpheme, not a standalone word; only in compounds (環境, 困境, 境界)
+5989	dropword	bound morpheme, not a standalone word; only in compounds (四川, 山川, 河川)
+5993	fix	她大學念會計，畢業後考上了會計師。	She studied accounting at university and passed the CPA exam after graduating.
+5999	fix	他在貿易公司當職員，每天搭捷運通勤。	He works as a clerk at a trading company and commutes by MRT every day.
+6007	dropword	Mainland-only concept term, not used in Taiwan
+6009	dropword	bound morpheme, not a standalone word; only in compounds (好友, 網友, 朋友)
+6025	dropword	vulgar/Mainland northern self-reference
+6033	fix	新聞上有一則關於颱風的消息，大家都在討論。	There's a news item about the typhoon, and everyone is discussing it.
+6034	fix	我今天在報紙上看到一則很有趣的小故事。	Today I saw a very interesting short story in the newspaper.
+6037	dropword	variant form; Taiwan standard is 勳章
+6053	fix	他一再被騙還不知道，朋友都罵他笨蛋。	He keeps getting scammed without noticing, and his friends call him an idiot.
+6073	dropword	bound morpheme, not a standalone word; only in compounds (舞姬, 歌姬)
+6075	dropword	bound morpheme, not a standalone word; only in compounds (崔嵬)
+6080	fix	這家老店數年前搬到了這條街，生意一直很好。	This old shop moved to this street several years ago and has done well ever since.
+5849	fix	這個問題看起來簡單，而實際上非常複雜。	This problem looks simple, but it's actually very complicated.
+5850	fix	如果下雨，我們就不去。	If it rains, we won't go.
+5851	fix	如果你有任何問題，隨時打電話給我。	If you have any questions, call me anytime.
+5854	fix	前方施工，此路不通。	Construction ahead; this road is closed.
+5855	fix	此處禁止停車，違者將被拖吊。	No parking here; violators will be towed.
+5859	fix	個人資料請妥善保管，不要隨便給陌生人。	Keep your personal information safe and don't give it to strangers.
+5862	fix	他平時很安靜，今天卻如此興奮，真讓人意外。	He's usually quiet, so it's surprising he's so excited today.
+5864	fix	他在面試時表現得很穩，老闆對他印象很好。	He performed steadily in the interview, and the boss was impressed.
+5866	fix	政府從今年起實施垃圾分類，民眾要把回收物分開丟。	The government started enforcing waste sorting this year, so people must separate recyclables.
+5870	fix	這次颱風帶來大量的雨水，山區有可能發生土石流。	The typhoon brings heavy rainfall, and mudslides are possible in the mountains.
+5872	fix	醫生說，這種病的死亡率已經比過去低了很多。	The doctor said the mortality rate of this illness is much lower than in the past.
+5874	fix	謝謝你昨天特地送我回家，下次換我請你吃飯。	Thanks for taking me home specially yesterday; next time dinner's on me.
+5878	fix	面對客人的抱怨，店員還是保持有禮貌的態度。	Facing the customer's complaint, the clerk stayed polite.
+5880	fix	這家工作室專門製作手工皮件，每一件都要花好幾天。	This studio makes handmade leather goods, each taking several days.
+5882	fix	病人剛開完刀，在傷口癒合前不可提重物。	The patient just had surgery and must not lift heavy things until the wound heals.
+5884	fix	老闆每年都會帶員工出國旅遊，大家感情都很好。	The boss takes the staff abroad every year, so everyone gets along well.
+5886	fix	我們按照說明書的步驟，一個小時就把書櫃組好了。	Following the manual's steps, we put the bookcase together in an hour.
+5887	fix	你有什麼理由？	What's your reason?
+5888	fix	他遲到的理由是手機鬧鐘沒響，但老闆不太相信。	His excuse for being late was that his alarm didn't ring, but the boss didn't quite buy it.
+5892	fix	成功並非一朝一夕的事，需要長時間的努力。	Success doesn't happen overnight; it takes long-term effort.
+5894	fix	過年時，家人們都會回老家一起吃團圓飯。	At Lunar New Year, the whole family goes home for the reunion dinner.
+5896	fix	她向警察描述那個小偷的長相，警察一邊聽一邊記下來。	She described the thief's appearance to the police, who took notes as they listened.
+5898	fix	為確保大家的安全，這間教室最多只能容納五十個人。	To ensure everyone's safety, this classroom holds at most fifty people.
+5900	fix	夏天食物很容易壞，剩下的記得放進冰箱。	Food spoils easily in summer, so put leftovers in the fridge.
+5902	fix	這間博物館週一休館，所以我們只好改到星期二才去。	This museum is closed on Mondays, so we had to go on Tuesday instead.
+5904	fix	我們應該用同樣的態度對待每一位同學，不要有偏見。	We should treat every classmate with the same attitude, without prejudice.
+5905	fix	既然來了，就坐吧。	Since you're here, have a seat.
+5906	fix	既然你不想去，那我們就改天再約吧。	Since you don't want to go, let's make plans another day.
+5908	fix	同學們發起募款活動，幫助受災的家庭重建家園。	Classmates launched a fundraiser to help disaster-hit families rebuild their homes.
+5912	fix	日本的首都是東京，我去年夏天才第一次去。	Japan's capital is Tokyo, and I only went for the first time last summer.
+5914	fix	去年公司的利潤成長了一成，老闆決定發年終獎金。	Last year's profits grew ten percent, so the boss decided to give year-end bonuses.
+5915	fix	你將來想做什麼？	What do you want to do in the future?
+5916	fix	我想趁年輕多存點錢，將來才有選擇的自由。	I want to save while young so I'll have freedom of choice later.
+5918	fix	這罐牛奶的有效日期是下個月十號，記得趕快喝。	This milk expires on the tenth of next month, so drink it soon.
+5920	fix	當初買這間房子的時候，附近還是一大片稻田。	When we bought this house, the area was still a wide expanse of rice paddies.
+5922	fix	她跟爸媽很親，每天都會打電話回家聊聊。	She's close to her parents and calls home to chat every day.
+5924	fix	洗完頭髮後要吹乾，不然很容易感冒。	Dry your hair after washing it, or you'll catch a cold easily.
+5926	fix	雖然她臉上在笑，內心其實難過得不得了。	Although she was smiling, she was actually terribly sad inside.
+5928	fix	孩子睡著前，媽媽在他額頭上吻了一下。	Before the child fell asleep, his mom kissed his forehead.
+5930	fix	因為道路坍方，山上的公路被封鎖了，車子暫時過不去。	Because of a landslide, the mountain road was closed and cars can't pass for now.
+5932	fix	這場戰役持續了三個月，雙方都有很大的損失。	The campaign lasted three months, and both sides suffered heavy losses.
+5934	fix	你可以用手機查看最新的班次時間，不用再跑去車站問。	You can check the latest schedule on your phone without going to the station to ask.
+5936	fix	強烈颱風預計明天清晨從花蓮登陸，請民眾提前做好防颱準備。	The strong typhoon is expected to make landfall at Hualien tomorrow morning; please prepare in advance.
+5938	fix	學校的舞蹈社每年都會在校慶時表演，吸引了很多觀眾。	The school's dance club performs every anniversary and draws a big audience.
+5940	fix	近日各地天氣不穩，請民眾外出時記得攜帶雨具。	The weather has been unstable lately, so please bring rain gear when going out.
+5943	fix	首先是品質，其次是價格。	Quality comes first, then price.
+5944	fix	選手機最重要的是電池，其次才是外型和價錢。	When choosing a phone, battery matters most, and only then looks and price.
+5946	fix	政府擔心少數幾家公司壟斷市場，所以修改了法規。	The government worried a few companies would monopolize the market and revised the rules.
+5948	fix	這位畫家的後期作品，顏色比早期的更鮮豔大膽。	This painter's later works use bolder, more vivid colors than his early ones.
+5949	fix	晚安，明天見。	Good night, see you tomorrow.
+5958	fix	這個遊戲裡有一個隱藏關卡，要找到特別的道具才能進去。	This game has a hidden level you can enter only by finding a special item.
+5962	fix	這間咖啡店的裝潢走古典風格，讓人覺得很優雅。	This café is decorated in a classical style, which feels very elegant.
+5963	fix	王太太在家嗎？	Is Mrs. Wang home?
+5970	fix	學校的樂隊正在操場上練習，鼓聲傳得很遠。	The school band is practicing on the field, and the drumbeats carry far.
+5972	fix	我習慣睡前瀏覽一下新聞，看看今天發生了什麼事。	I like to skim the news before bed to see what happened today.
+5976	fix	台灣的總人口大約是兩千三百萬，其中有不少是老年人。	Taiwan's total population is about 23 million, with many elderly people.
+5978	fix	我的親戚大多住在南部，只有過年才有機會見面。	Most of my relatives live in the south, and I only see them at New Year.
+5984	fix	週末我喜歡穿休閒服，到公園散步或和朋友聊天。	On weekends I like wearing casual clothes and walking in the park or chatting with friends.
+5986	fix	政府修改法律，希望能保障勞工的基本權益。	The government amended the law to protect workers' basic rights.
+5992	fix	這個週末有一場古董拍賣會，許多收藏家都會到場。	There's an antique auction this weekend, and many collectors will attend.
+5994	fix	公司的會計每個月都要核對帳目，確保沒有錯誤。	The company's accountant checks the accounts every month to make sure there are no mistakes.
+5996	fix	昨晚的演唱會很熱鬧，歌迷們從頭到尾都跟著大合唱。	Last night's concert was lively, with fans singing along from start to finish.
+5998	fix	我在超商碰到小學同學，聊了一下才知道他也搬到這一區了。	I bumped into an elementary classmate at the convenience store and learned he moved to this area too.
+6002	fix	大部分同學都贊同這個方案，所以最後順利通過了。	Most classmates approved of this proposal, so it passed smoothly.
+6004	fix	他不想讓別人知道，但說話時還是不小心露出了緊張的表情。	He didn't want others to know, but still accidentally showed a nervous look while speaking.
+6006	fix	二十歲那年，我第一次一個人搭飛機到國外念書。	At twenty, I flew abroad alone for the first time to study.
+6012	fix	別急著下結論，不然反而會壞事。	Don't rush to conclusions, or you'll ruin things.
+6014	fix	這部電影的尺度比較大，不太適合小孩子看。	This movie is quite explicit and isn't suitable for children.
+6015	fix	好，成交！	Okay, deal!
+6016	fix	他們談了一個下午，房子終於以八百萬元成交。	After an afternoon of talks, the house finally sold for eight million dollars.
+6018	fix	這家店改良了傳統配方，讓蛋糕吃起來沒那麼甜。	This shop improved the traditional recipe so the cake isn't so sweet.
+6020	fix	公司採用機動工時，員工可以自己選擇上下班時間。	The company uses flexible hours, and staff can choose when to start and finish.
+6022	fix	這個小漁村主要靠漁業維生，居民每天清晨就出海。	This small fishing village lives on fishing, and residents go to sea at dawn.
+6024	fix	這兩棟大樓有走廊相連，下雨天也不會淋濕。	These two buildings are linked by a corridor, so you won't get wet when it rains.
+6028	fix	我傳了訊息給他，但是他到現在還沒回。	I sent him a message, but he still hasn't replied.
+6030	fix	遇到問題時，逃避只會讓事情變得更糟。	Avoiding problems only makes things worse.
+6032	fix	因為大霧，飛機無法降落，只好改到別的機場。	Because of heavy fog the plane couldn't land and was diverted to another airport.
+6036	fix	警方查獲一批偽造的鈔票，正在追查來源。	Police seized a batch of counterfeit banknotes and are tracing the source.
+6040	fix	他把玩具散落在地板上，害我差點踩到。	He scattered toys on the floor, and I almost stepped on them.
+6042	fix	這位作家想透過書宣揚環保的理念，希望更多人愛護地球。	This writer wants to spread environmental ideas through books so more people care for the Earth.
+6044	fix	這位老師引領學生探索科學的世界，讓大家愛上實驗。	This teacher guides students through the world of science and makes them love experiments.
+6046	fix	辦理報到時，工作人員會用手機掃描你的QR code。	At check-in, staff will scan your QR code with a phone.
+6048	fix	這件事請用書面通知，不要只用口頭說明。	Please notify in writing on this matter, not just verbally.
+6050	fix	面試沒有通過，他心情有點沮喪，但很快又振作起來。	He failed the interview and felt down, but soon cheered up.
+6052	fix	那位許久不見的歌手終於現身，台下的歌迷尖叫連連。	The singer unseen for ages finally appeared, and fans screamed.
+6054	fix	我又把鑰匙忘在家裡了，我真是個笨蛋。	I left my keys at home again; I'm such an idiot.
+6056	fix	我阿嬤每天早上都會到廟裡拜菩薩，保佑全家平安。	My grandma worships the Bodhisattva at the temple every morning, praying for the family's safety.
+6058	fix	舞台上的燈光不停變換顏色，讓表演更加精采。	The stage lights kept changing colors, making the show more spectacular.
+6060	fix	夕陽把整片海面染成金色，許多遊客都停下來拍照。	The sunset dyed the whole sea golden, and many tourists stopped to take photos.
+6062	fix	每逢初一十五，這座老廟總是香煙不斷，信徒絡繹不絕。	On the 1st and 15th, this old temple is full of incense smoke and a steady flow of worshippers.
+6064	fix	夏天吃海鮮要小心，不新鮮的話容易食物中毒。	Be careful with seafood in summer; if not fresh, it easily causes food poisoning.
+6065	fix	新年快到了，我們一起倒數吧。	The new year is almost here; let's count down together.
+6066	fix	跨年夜，大家聚集在廣場上一起倒數，等著煙火升空。	On New Year's Eve, everyone gathers at the square to count down and wait for fireworks.
+6068	fix	這家銀行在全台有兩百多間分行，辦事很方便。	This bank has over two hundred branches island-wide, so it's convenient.
+6070	fix	研究員到圖書館翻閱大量史料，想還原當年事件的真相。	The researcher read through lots of historical materials in the library to uncover the truth.
+6072	fix	想要保持健康，飲食要均衡，不要只吃肉或只吃菜。	To stay healthy, keep a balanced diet and don't eat only meat or only vegetables.
+6077	fix	他說的話恰恰相反，讓我們感到很意外。	What he said was exactly the opposite, which surprised us.
+6079	fix	她雙手捧著剛做好的蛋糕，小心翼翼地走到桌子前。	She carried the freshly made cake in both hands, carefully walking to the table.
+6081	fix	經過數年的努力，他終於把小攤販變成了連鎖店。	After several years of effort, he finally turned a small stall into a chain.
+6083	fix	爸爸以身作則，是孩子最好的榜樣。	Dad leads by example and is the child's best role model.

@@ -505,3 +505,18 @@
 1895	dropword	Bound character that occurs only in compounds such as 亞軍/亞洲
 1903	dropword	Taiwan standard form is 身分; 身份 is a variant
 1919	fix	這份日報每天早上六點送到家門口。	This daily paper is delivered to our door at six every morning.
+1937	fix	高鐵以高速行駛，從台北到左營只要九十分鐘。	The high-speed rail runs at high speed, taking only ninety minutes from Taipei to Zuoying.
+1938	fix	車子在彎道上不能高速行駛，這樣太危險了。	Cars must not travel at high speed on bends; it's too dangerous.
+1951	fix	這件藍色的外套很搭你的牛仔褲。	This blue jacket goes well with your jeans.
+1957	fix	我的助理會幫你安排見面的時間。	My assistant will arrange a time for us to meet.
+1965	fix	總統府發言人今天下午會對外說明。	The Presidential Office spokesperson will make a statement this afternoon.
+1975	fix	他向法院告了鄰居，因為對方一直亂丟垃圾。	He sued his neighbor in court because the neighbor kept dumping trash.
+2037	fix	老師把每位學生的成績都登錄在系統裡。	The teacher logged every student's grades into the system.
+2038	fix	新生入學時，學校會登錄每個人的基本資料。	When new students enroll, the school records each person's basic information.
+2061	dropword	Mainland term; Taiwan says 國語
+2063	fix	水利局正在檢查河堤，防止颱風來時潰堤。	The water resources bureau is inspecting the river embankment to prevent a breach when a typhoon comes.
+2067	dropword	Bound character that occurs only in compounds such as 突然/突破
+2073	fix	這種皮膚病不難醫，擦藥就會好。	This skin condition isn't hard to treat; it clears up with ointment.
+2097	fix	這雙鞋破了，棄之可惜，留著又沒用。	These shoes are worn out; it's a pity to throw them away, but they're no use kept.
+2099	dropword	Not a standalone word; only a transliteration used in names and 波特啤酒
+2106	dropword	Bound character that occurs only in compounds such as 心臟/內臟
