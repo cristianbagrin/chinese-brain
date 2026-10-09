@@ -471,3 +471,40 @@
 6079	fix	她雙手捧著剛做好的蛋糕，小心翼翼地走到桌子前。	She carried the freshly made cake in both hands, carefully walking to the table.
 6081	fix	經過數年的努力，他終於把小攤販變成了連鎖店。	After several years of effort, he finally turned a small stall into a chain.
 6083	fix	爸爸以身作則，是孩子最好的榜樣。	Dad leads by example and is the child's best role model.
+6096	dropword	bound morpheme, not a standalone word; only in compounds (辛苦, 辛辣)
+6100	fix	那頭驢在磨坊裡一圈一圈地拉磨。	The donkey walked round and round pulling the millstone in the mill.
+6101	fix	他像頭倔驢，認定的事誰都勸不動。	He's like a stubborn donkey; no one can talk him out of what he's decided.
+6134	dropword	bound morpheme, not a standalone word; only in compounds (日式, 西式, 公式)
+6154	dropword	Mainland usage; Taiwan says 連結
+6179	dropword	bound morpheme, not a standalone word; only in compounds (微笑, 微涼, 微波)
+6185	dropword	bound morpheme, not a standalone word; only in compounds (比賽, 籃球賽, 競賽)
+6201	fix	這本推理小說的主角是個專辦謀殺案的偵探。	The protagonist of this detective novel is a detective who specializes in murder cases.
+6215	fix	我姊姊是研究生，每天都泡在實驗室。	My older sister is a graduate student and spends every day in the lab.
+6217	fix	太陽一落山，氣溫馬上降了下來。	As soon as the sun set behind the mountains, the temperature dropped quickly.
+6218	fix	秋天一到，院子裡落了滿地的黃葉。	When autumn comes, the yard is covered with fallen yellow leaves.
+6085	fix	戰爭開始後，許多人被迫流亡他國，不知道何時才能回家。	After the war started, many were forced into exile and don't know when they can go home.
+6087	fix	特種車輛必須通過嚴格的檢驗，才能上路行駛。	Special vehicles must pass strict inspection before they can go on the road.
+6089	fix	這道牆太矮了，擋不住外面的噪音和視線。	This wall is too low to block outside noise and sight.
+6091	fix	這部電影的結尾出乎意料，看完後我跟朋友討論了很久。	The ending was unexpected, and I discussed it with friends for a long time.
+6093	fix	這名店員為了自衛，拿起掃把阻擋歹徒。	To defend himself, the clerk picked up a broom to block the robber.
+6095	fix	巷口那間小診所的醫生很親切，看病也不用等很久。	The doctor at the little clinic at the alley's end is friendly, and there's no long wait.
+6099	fix	這次音樂祭的陣容十分強大，有很多大家熟悉的歌手。	The festival's lineup is very strong, with many familiar singers.
+6103	fix	老廟前有一百多級台階，爬上去之後大家都氣喘吁吁。	There are over a hundred steps before the old temple, and everyone was out of breath at the top.
+6105	fix	他把書桌整理乾淨，才開始專心寫功課。	He tidied his desk before starting to focus on homework.
+6107	fix	週末我們沿著河濱公園騎腳踏車，風吹在臉上很舒服。	On weekends we cycle along the riverside park, and the breeze feels nice.
+6109	fix	這個週末熱死了，我整天都躲在冷氣房。	This weekend was boiling hot, so I stayed in the air-conditioned room all day.
+6111	fix	我外婆每天早上都會去傳統市場買菜，因為那裡的蔬菜比較新鮮。	My grandma shops at the traditional market every morning because the vegetables are fresher there.
+6243	fix	這道數學難題連老師都解不出來。	Even the teacher couldn't solve this tough math problem.
+6261	fix	這位編劇寫過好幾部很賣座的電視劇。	This screenwriter has written several hit TV dramas.
+6273	dropword	bound morpheme, not a standalone word; only in compounds (喜歡, 歡喜, 恭喜)
+6277	dropword	bound morpheme, not a standalone word; only in compounds (安康, 康復, 健康)
+6281	fix	鄭和下西洋是明朝初年的大事。	Zheng He's voyages to the Western Seas were a major event in the early Ming dynasty.
+6282	fix	國立故宮博物院收藏了許多明朝的瓷器。	The National Palace Museum holds many porcelain pieces from the Ming dynasty.
+6286	fix	這次抗議由工會幹部為首，帶領上百名員工到公司門口陳情。	Union officials took the lead, bringing over a hundred employees to petition at the company gate.
+6287	fix	他是個有理想的知識分子，常在報紙上發表評論。	He is an idealistic intellectual who often publishes commentary in the newspapers.
+6315	dropword	bound morpheme, not a standalone word; only in compounds (畢業, 畢竟)
+6329	dropword	bound morpheme, not a standalone word; only in compounds (健康, 健身, 強健)
+6345	fix	旅遊業的旺季通常在暑假和過年期間。	The tourism industry's peak season is usually the summer vacation and New Year.
+6355	dropword	Mainland usage; Taiwan says 實體/離線
+6357	dropword	bound morpheme, not a standalone word; only in compounds (機艙, 經濟艙, 船艙)
+6370	fix	氣象署預測，明天下雨的機率高達八成。	The Central Weather Administration forecasts an 80 percent chance of rain tomorrow.
