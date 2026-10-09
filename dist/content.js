@@ -170,7 +170,7 @@
     }
     async check(target) {
       let seq = ++this.seq;
-      if (this.popup.contains(target) || target?.closest?.("[data-cb-own]")) return;
+      if (this.popup.contains(target) || this.popup.pinned || target?.closest?.("[data-cb-own]")) return;
       let s = state.settings;
       if (!state.siteEnabled() || s.hoverMode === "shift" && !this.shift) return this.scheduleHide();
       let pos = document.caretPositionFromPoint?.(this.lastX, this.lastY), node = pos?.offsetNode;
@@ -227,6 +227,13 @@
       this.currentKey && this.popup.hideSoon();
     }
   };
+
+  // src/content/keys.ts
+  function isTyping(e) {
+    if (e.isComposing) return !0;
+    let t = e.composedPath?.()[0] ?? e.target;
+    return !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName ?? ""));
+  }
 
   // src/youtube/captions.ts
   function parseTimedText(body) {
@@ -480,6 +487,7 @@
     toast;
     hideTimer;
     toastTimer;
+    lastKey = "";
     constructor(subs) {
       this.subs = subs;
       let mode = "closed";
@@ -497,7 +505,9 @@
       let enter = () => {
         clearTimeout(this.hideTimer), this.panel.hidden = !1, this.render();
       }, leave = () => {
-        clearTimeout(this.hideTimer), this.hideTimer = setTimeout(() => this.panel.hidden = !0, 280);
+        clearTimeout(this.hideTimer), this.hideTimer = setTimeout(() => {
+          this.panel.hidden = !0, this.lastKey = "";
+        }, 280);
       };
       this.switchHost.addEventListener("mouseenter", enter), this.switchHost.addEventListener("mouseleave", leave), this.panel.addEventListener("mouseenter", enter), this.panel.addEventListener("mouseleave", leave);
     }
@@ -509,11 +519,14 @@
     render() {
       let s = state.settings;
       if (this.switchHost.hidden = !this.subs.videoActive, this.switchRoot.querySelector(".switch")?.classList.toggle("on", s.ytEnabled), this.panel.hidden) return;
+      let key = JSON.stringify([s, this.subs.counts, this.subs.looping, this.subs.shadowing, this.subs.trackName, this.subs.hasTranslation, this.subs.transcript.open, this.subs.gemini]);
+      if (key === this.lastKey) return;
+      this.lastKey = key;
       let c = this.subs.counts, total = c.known + c.learning + c.fresh + c.new, pct = (n) => total ? Math.round(n / total * 100) : 0, seg = (k, label) => {
         let b = el("i", `seg ${k}`);
         return b.style.flexGrow = String(c[k]), b.title = `${label}: ${pct(c[k])}%`, b;
-      }, chip = (label, key, on, act) => {
-        let b = el("button", `chip${on ? " on" : ""}`, label, el("kbd", "", key));
+      }, chip = (label, key2, on, act) => {
+        let b = el("button", `chip${on ? " on" : ""}`, label, el("kbd", "", key2));
         return b.addEventListener("click", () => {
           act(), setTimeout(() => this.render(), 50);
         }), b;
@@ -752,7 +765,7 @@
         let res = await browser.runtime.sendMessage({ type: "glosses", words: missing });
         for (let [w2, v] of Object.entries(res)) this.glossCache.set(w2, v);
       }
-      if (this.tab !== "learn") return;
+      if (this.tab !== "learn" || this.subs.data().tokens !== tokens) return;
       for (let r of rows.values()) {
         let g = this.glossCache.get(r.w);
         g && Object.assign(r, { g: g.g, zipf: g.zipf, py: r.py || g.py });
@@ -914,6 +927,12 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
     domObserver;
     /** True when mirroring YouTube's on-screen captions (no track was captured). */
     live = !1;
+    wasOn = !1;
+    hoverArmed = !1;
+    cssDone = !1;
+    pendingCues;
+    shadowTimer;
+    videoTitle = "";
     /** Gemini fallback for videos with no Chinese captions. */
     gemini = { state: "idle" };
     checkedGemini = !1;
@@ -925,7 +944,11 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
       box.className = "box", this.zh = document.createElement("div"), this.zh.className = "zh", this.tr = document.createElement("div"), this.tr.className = "tr", box.append(this.zh, this.tr), this.root.append(style, box);
       for (let t of ["click", "mousedown", "mouseup", "dblclick", "pointerdown", "pointerup", "touchstart"])
         this.host.addEventListener(t, (e) => e.stopPropagation());
-      box.addEventListener("mouseenter", () => this.hoverPause(!0)), box.addEventListener("mouseleave", () => this.hoverPause(!1)), this.zh.addEventListener("mouseover", (e) => this.onTokenHover(e)), this.zh.addEventListener("mouseout", () => this.popup.hideSoon()), this.zh.addEventListener("click", (e) => this.onTokenClick(e)), this.popup.onHide(() => this.maybeResume()), browser.runtime.onMessage.addListener((msg) => {
+      box.addEventListener("mouseenter", () => this.hoverArmed = !0), box.addEventListener("mousemove", () => {
+        this.hoverArmed && (this.hoverArmed = !1, this.hoverPause(!0));
+      }), box.addEventListener("mouseleave", () => this.hoverPause(!1)), this.zh.addEventListener("mouseover", (e) => this.onTokenHover(e)), this.zh.addEventListener("mouseout", () => this.popup.hideSoon()), this.zh.addEventListener("click", (e) => this.onTokenClick(e)), this.popup.onHide(() => {
+        this.clickStamped = "", this.maybeResume();
+      }), browser.runtime.onMessage.addListener((msg) => {
         msg.type === "ytCaptions" && msg.url && msg.body && this.onBody(msg.url, msg.body);
       }), this.controls = new Controls(this), this.transcript = new Transcript(this), state.onChange(() => {
         this.applyEnabled(), this.renderLine(!0);
@@ -952,7 +975,7 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
       }));
     }
     reset() {
-      clearTimeout(this.fallbackTimer), this.domObserver?.disconnect(), this.domObserver = void 0, this.live = !1, this.tracks = [], this.src = void 0, this.cues = [], this.tokens = [], this.trans = [], this.trCues = void 0, this.idx = -2, this.requestedTr = !1, this.gemini = { state: "idle" }, this.checkedGemini = !1, this.counts = { fresh: 0, learning: 0, known: 0, new: 0 }, this.loop = !1, this.shadow = !1, this.host.hidden = !0, document.documentElement.classList.remove("cb-subs-on"), this.transcript?.refresh();
+      clearTimeout(this.fallbackTimer), this.domObserver?.disconnect(), this.domObserver = void 0, this.live = !1, this.tracks = [], this.src = void 0, this.cues = [], this.tokens = [], this.trans = [], this.trCues = void 0, this.idx = -2, this.requestedTr = !1, this.gemini = { state: "idle" }, this.checkedGemini = !1, this.counts = { fresh: 0, learning: 0, known: 0, new: 0 }, this.clickStamped = "", this.pendingCues = void 0, clearTimeout(this.shadowTimer), this.loop = !1, this.shadow = !1, this.host.hidden = !0, document.documentElement.classList.remove("cb-subs-on"), this.transcript?.refresh();
     }
     findTracks() {
       let p = this.player();
@@ -1035,34 +1058,36 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
       let last = "", read = async () => {
         let text = [...p.querySelectorAll(".ytp-caption-segment")].map((s) => s.textContent ?? "").join(" ").trim();
         if (text === last || !this.live || (last = text, !CJK.test(text))) return;
-        let [toks] = await browser.runtime.sendMessage({ type: "segment", lines: [text] });
-        this.cues = [{ start: 0, end: Number.MAX_SAFE_INTEGER, text }], this.tokens = [toks], this.trans = [], this.idx = -2, this.mount();
+        let id = this.videoId, [toks] = await browser.runtime.sendMessage({ type: "segment", lines: [text] });
+        this.videoId !== id || !this.live || (this.cues = [{ start: 0, end: Number.MAX_SAFE_INTEGER, text }], this.tokens = [toks], this.trans = [], this.idx = -2, this.mount());
       };
       this.domObserver = new MutationObserver(() => void read()), this.domObserver.observe(p, { subtree: !0, childList: !0, characterData: !0 }), read();
     }
     async setSource(cues) {
-      this.live && (this.live = !1, this.domObserver?.disconnect()), this.cues = cues, this.idx = -2;
-      let lines = cues.map((c) => c.text);
-      if (this.tokens = await browser.runtime.sendMessage({ type: "segment", lines }), this.trCues && (this.trans = alignTranslation(this.cues, this.trCues)), this.computeCoverage(), this.mount(), this.transcript.refresh(), !this.requestedTr && !this.trCues && this.src) {
+      this.live && (this.live = !1, this.domObserver?.disconnect());
+      let id = this.videoId;
+      this.pendingCues = cues;
+      let tokens = await browser.runtime.sendMessage({ type: "segment", lines: cues.map((c) => c.text) });
+      if (!(this.videoId !== id || this.pendingCues !== cues) && (this.cues = cues, this.tokens = tokens, this.idx = -2, this.videoTitle = document.title.replace(/ - YouTube$/, ""), this.trCues && (this.trans = alignTranslation(this.cues, this.trCues)), this.computeCoverage(), this.mount(), this.transcript.refresh(), !this.requestedTr && !this.trCues && this.src)) {
         this.requestedTr = !0;
         let want = TRANS_LANG, manual = pickTranslation(this.tracks, want);
         setTimeout(() => {
           manual ? this.setTrack(manual) : this.src?.isTranslatable !== !1 && this.setTrack(this.src, want), setTimeout(() => this.src && this.setTrack(this.src), 2500);
         }, 300);
-        let id = this.videoId;
+        let id2 = this.videoId;
         setTimeout(() => {
-          this.trCues || this.videoId !== id || !this.cues.length || this.live || this.translateFallback();
+          this.trCues || this.videoId !== id2 || !this.cues.length || this.live || this.translateFallback();
         }, 6e3);
       }
     }
     async translateFallback() {
-      let id = this.videoId, lines = this.cues.map((c) => c.text), res = await browser.runtime.sendMessage({
+      let id = this.videoId, cues = this.cues, lines = cues.map((c) => c.text), res = await browser.runtime.sendMessage({
         type: "translate",
         lines,
         sl: this.src?.languageCode ?? "zh-TW",
         tl: TRANS_LANG
       });
-      !res || this.videoId !== id || this.trCues || (this.trCues = this.cues.map((c, i) => ({ ...c, text: res[i] ?? "" })), this.trans = res, this.renderLine(!0), this.transcript.refresh());
+      !res || this.videoId !== id || this.trCues || this.cues !== cues || (this.trCues = this.cues.map((c, i) => ({ ...c, text: res[i] ?? "" })), this.trans = res, this.renderLine(!0), this.transcript.refresh());
     }
     setTranslation(cues) {
       this.trCues = cues, this.cues.length && (this.trans = alignTranslation(this.cues, cues)), this.renderLine(!0), this.transcript.refresh();
@@ -1135,14 +1160,14 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
     /** The player switch: our subtitles on or off (YouTube's own come back when off). */
     applyEnabled() {
       let on = state.settings.ytEnabled && this.cues.length > 0;
-      this.host.hidden = !on, this.host.classList.toggle("dark", state.settings.subStyle === "dark"), document.documentElement.classList.toggle("cb-subs-on", on), on || this.popup.hide();
+      this.host.hidden = !on, this.host.classList.toggle("dark", state.settings.subStyle === "dark"), document.documentElement.classList.toggle("cb-subs-on", on), this.wasOn && !on && this.popup.src === "yt" && this.popup.hide(), this.wasOn = on;
     }
     mount() {
       let p = document.getElementById("movie_player");
-      p && (this.host.parentNode !== p && p.append(this.host), this.applyEnabled(), this.controls.mount(), browser.runtime.sendMessage({
+      p && (this.host.parentNode !== p && p.append(this.host), this.applyEnabled(), this.controls.mount(), this.cssDone || (this.cssDone = !0, browser.runtime.sendMessage({
         type: "insertCSS",
         css: "html.cb-subs-on .ytp-caption-window-container{display:none!important}"
-      }), this.resize());
+      })), this.resize());
     }
     resize() {
       let p = document.getElementById("movie_player");
@@ -1171,8 +1196,8 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
         if (this.shadow && this.shadowDone !== this.idx && !v.paused) {
           this.shadowDone = this.idx, v.pause();
           let wait = Math.max(1.5, (cur.end - cur.start) * state.settings.shadowFactor);
-          setTimeout(() => {
-            this.shadow && v.paused && v.play();
+          clearTimeout(this.shadowTimer), this.shadowTimer = setTimeout(() => {
+            !this.shadow || !v.paused || (this.popup.visible || this.root.querySelector(".box:hover") ? this.pausedByUs = !0 : v.play());
           }, wait * 1e3);
           return;
         }
@@ -1212,7 +1237,8 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
       return tok ? { span, tok, line } : void 0;
     }
     showSeq = 0;
-    lastClicked = "";
+    /** Word just stamped Fresh by a click (a second click undoes only that). */
+    clickStamped = "";
     /** Open the card for a word span (subtitles or transcript). */
     async showFor(e, pinned) {
       let seq = ++this.showSeq, hit = this.tokenAt(e);
@@ -1231,10 +1257,9 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
         src: "yt"
       }, cursor = e instanceof MouseEvent ? { x: e.clientX, y: e.clientY } : void 0;
       if (await this.popup.show({ matches, rect: span.getBoundingClientRect(), cursor, src: "yt", ctx: ctx2, pinned }), pinned && state.settings.autoFreshOnClick) {
-        let st = state.status(matches[0].word);
-        st ? st === "fresh" && this.lastClicked === matches[0].word && this.popup.setStatus(null, !1) : this.popup.setStatus("fresh", !1);
+        let w2 = matches[0].word, st = state.status(w2);
+        st ? st === "fresh" && this.clickStamped === w2 && (this.popup.setStatus(null, !1), this.clickStamped = "") : (this.popup.setStatus("fresh", !1), this.clickStamped = w2);
       }
-      pinned && (this.lastClicked = matches[0].word);
     }
     onTokenHover(e) {
       this.popup.pinned || this.showFor(e, !1);
@@ -1257,13 +1282,12 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
       v.currentTime = this.cues[j].start + 0.01, this.shadowDone = -1, delta === 0 && v.paused && v.play();
     }
     onKey(e) {
-      let t = e.target;
-      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      if (isTyping(e)) return;
       if (this.popup.visible && this.popup.handleKey(e)) {
         e.preventDefault(), e.stopImmediatePropagation();
         return;
       }
-      if (!state.settings.ytEnabled || !this.cues.length || this.live || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (!state.settings.ytEnabled || !this.cues.length || this.live || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
       let s = state.settings, handled = !0;
       switch (e.key.toLowerCase()) {
         case "a":
@@ -1301,7 +1325,7 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
       this.watchSecs > 30 && this.videoId && browser.runtime.sendMessage({
         type: "watch",
         url: `https://www.youtube.com/watch?v=${this.videoId}`,
-        title: document.title.replace(/ - YouTube$/, ""),
+        title: this.videoTitle,
         secs: Math.round(this.watchSecs),
         coverage: this.coverage,
         lang: this.src?.languageCode
@@ -1340,25 +1364,32 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
     }
     async start() {
       this.cssInjected || (this.cssInjected = !0, browser.runtime.sendMessage({ type: "insertCSS", css: CSS_TEXT })), await state.loadStatuses(), await this.scan(document.body), this.observer = new MutationObserver((muts) => {
-        for (let m of muts) m.addedNodes.forEach((n) => this.pending.add(n));
-        clearTimeout(this.timer), this.timer = setTimeout(() => {
+        for (let m of muts)
+          if (m.type === "characterData") {
+            let t = m.target;
+            this.done.delete(t), this.words = this.words.filter((w2) => w2.range.startContainer !== t), this.pending.add(t);
+          } else m.addedNodes.forEach((n) => this.pending.add(n));
+        this.timer ??= setTimeout(() => {
+          this.timer = void 0;
           let nodes = [...this.pending];
           this.pending.clear(), nodes.forEach((n) => n.isConnected && this.scan(n));
-        }, 600);
-      }), this.observer.observe(document.body, { childList: !0, subtree: !0 });
+        }, 700);
+      }), this.observer.observe(document.body, { childList: !0, subtree: !0, characterData: !0 });
     }
     stop() {
-      this.observer?.disconnect();
+      this.observer?.disconnect(), clearTimeout(this.timer), this.timer = void 0, this.pending.clear();
       for (let name of Object.values(NAMES)) CSS.highlights?.delete(name);
       this.words = [], this.done = /* @__PURE__ */ new WeakSet(), this.chars = 0;
     }
     async scan(root) {
       if (!this.on || this.chars > MAX_CHARS) return;
-      let nodes = [], walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-        acceptNode: (n) => {
-          let t = n;
-          return this.done.has(t) || !CJK.test(t.data) || t.parentElement?.closest(SKIP) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
-        }
+      let nodes = [], accept = (t) => !this.done.has(t) && CJK.test(t.data) && !t.parentElement?.closest(SKIP);
+      if (root.nodeType === Node.TEXT_NODE) {
+        let t = root;
+        accept(t) && (nodes.push(t), this.done.add(t), this.chars += t.data.length);
+      }
+      let walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode: (n) => accept(n) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
       });
       for (let n = walker.nextNode(); n && this.chars < MAX_CHARS; n = walker.nextNode())
         nodes.push(n), this.done.add(n), this.chars += n.data.length;
@@ -1617,6 +1648,10 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
     get visible() {
       return !!this.opts;
     }
+    /** Where the open card came from ('yt' subtitles or 'web' hover). */
+    get src() {
+      return this.opts?.src;
+    }
     get pinned() {
       return !!this.opts?.pinned;
     }
@@ -1814,8 +1849,7 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
     new HoverLookup(popup), new PageColors(), /(^|\.)youtube\.com$/.test(location.hostname) ? new YouTubeSubs(popup) : window.addEventListener(
       "keydown",
       (e) => {
-        let t = e.target;
-        t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) || popup.visible && popup.handleKey(e) && (e.preventDefault(), e.stopImmediatePropagation());
+        isTyping(e) || popup.visible && popup.handleKey(e) && (e.preventDefault(), e.stopImmediatePropagation());
       },
       !0
     );

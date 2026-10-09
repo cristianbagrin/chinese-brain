@@ -44,22 +44,24 @@ export function buildClaudeExport(words: WordRecord[], logs: LogEvent[], since =
   const watches = evs.filter((e) => e.k === 'watch') as Extract<LogEvent, { k: 'watch' }>[];
   const byWord = new Map(words.map((w) => [w.w, w]));
 
-  // Status before the period, from each word's history; removed words come from the log.
-  const was = (w: WordRecord): Status | null => {
-    const before = w.hist.filter((h) => h.t <= since);
-    return before.length ? before[before.length - 1].s : null;
-  };
-  const removed = new Set<string>();
-  for (const e of evs) if (e.k === 'status') (e.s ? removed.delete(e.w) : removed.add(e.w));
+  // Status before the period = the "from" of each word's first status change in it.
+  const before = new Map<string, Status | null>();
+  for (const e of evs) if (e.k === 'status' && !before.has(e.w)) before.set(e.w, e.from ?? null);
 
   type Row = { w: string; now: Status | null; was: Status | null; date: number; rec?: WordRecord };
   const rows: Row[] = [];
-  for (const w of words) {
-    const changed = w.hist.some((h) => h.t > since);
-    if (changed || looks.has(w.w)) rows.push({ w: w.w, now: w.s, was: since ? was(w) : null, date: w.updated, rec: w });
+  if (!since) {
+    for (const w of words) rows.push({ w: w.w, now: w.s, was: null, date: w.updated, rec: w });
+    for (const w of looks.keys()) if (!byWord.has(w)) rows.push({ w, now: null, was: null, date: now });
+  } else {
+    for (const w of new Set([...before.keys(), ...looks.keys()])) {
+      const rec = byWord.get(w);
+      const cur = rec?.s ?? null;
+      const was = before.has(w) ? before.get(w)! : cur;
+      if (was === cur && !looks.has(w)) continue; // changed and changed back: nothing to report
+      rows.push({ w, now: cur, was, date: rec?.updated ?? now, rec });
+    }
   }
-  for (const w of removed) if (!byWord.has(w)) rows.push({ w, now: null, was: null, date: now });
-  for (const w of looks.keys()) if (!byWord.has(w) && !removed.has(w)) rows.push({ w, now: null, was: null, date: now });
 
   const order = { K: 0, L: 1, F: 2, '-': 3 } as Record<string, number>;
   rows.sort((a, b) => order[code(a.now)] - order[code(b.now)] || a.date - b.date);

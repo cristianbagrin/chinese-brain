@@ -110,7 +110,7 @@ export class HoverLookup {
 
   private async check(target: EventTarget | null) {
     const seq = ++this.seq;
-    if (this.popup.contains(target)) return;
+    if (this.popup.contains(target) || this.popup.pinned) return;
     if ((target as Element | null)?.closest?.('[data-cb-own]')) return;
     const s = state.settings;
     if (!state.siteEnabled() || (s.hoverMode === 'shift' && !this.shift)) return this.scheduleHide();

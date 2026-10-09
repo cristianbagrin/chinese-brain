@@ -2,6 +2,7 @@ import { CJK } from '../shared/dict.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import { TRANS_LANG, type Status, type Token } from '../shared/types.ts';
 import { lookupText } from '../content/hover.ts';
+import { isTyping } from '../content/keys.ts';
 import type { Popup } from '../content/popup.ts';
 import { state } from '../content/state.ts';
 import { alignTranslation, cueAt, cueBefore, parseTimedText, pickChinese, pickTranslation, urlInfo, type Cue, type TrackInfo } from './captions.ts';
@@ -47,6 +48,12 @@ export class YouTubeSubs {
   private domObserver: MutationObserver | undefined;
   /** True when mirroring YouTube's on-screen captions (no track was captured). */
   private live = false;
+  private wasOn = false;
+  private hoverArmed = false;
+  private cssDone = false;
+  private pendingCues: Cue[] | undefined;
+  private shadowTimer: ReturnType<typeof setTimeout> | undefined;
+  private videoTitle = '';
   /** Gemini fallback for videos with no Chinese captions. */
   gemini: { state: 'idle' | 'working' | 'error'; error?: string } = { state: 'idle' };
   private checkedGemini = false;
@@ -73,12 +80,21 @@ export class YouTubeSubs {
     for (const t of ['click', 'mousedown', 'mouseup', 'dblclick', 'pointerdown', 'pointerup', 'touchstart']) {
       this.host.addEventListener(t, (e) => e.stopPropagation());
     }
-    box.addEventListener('mouseenter', () => this.hoverPause(true));
+    // Pause on real pointer movement over the subtitles, not when they slide under a resting cursor.
+    box.addEventListener('mouseenter', () => (this.hoverArmed = true));
+    box.addEventListener('mousemove', () => {
+      if (!this.hoverArmed) return;
+      this.hoverArmed = false;
+      this.hoverPause(true);
+    });
     box.addEventListener('mouseleave', () => this.hoverPause(false));
     this.zh.addEventListener('mouseover', (e) => this.onTokenHover(e));
     this.zh.addEventListener('mouseout', () => this.popup.hideSoon());
     this.zh.addEventListener('click', (e) => this.onTokenClick(e));
-    this.popup.onHide(() => this.maybeResume());
+    this.popup.onHide(() => {
+      this.clickStamped = '';
+      this.maybeResume();
+    });
 
     browser.runtime.onMessage.addListener((msg: { type: string; url?: string; body?: string }) => {
       if (msg.type === 'ytCaptions' && msg.url && msg.body) this.onBody(msg.url, msg.body);
@@ -149,6 +165,9 @@ export class YouTubeSubs {
     this.gemini = { state: 'idle' };
     this.checkedGemini = false;
     this.counts = { fresh: 0, learning: 0, known: 0, new: 0 };
+    this.clickStamped = '';
+    this.pendingCues = undefined;
+    clearTimeout(this.shadowTimer);
     this.loop = false;
     this.shadow = false;
     this.host.hidden = true;
@@ -256,7 +275,9 @@ export class YouTubeSubs {
       if (text === last || !this.live) return;
       last = text;
       if (!CJK.test(text)) return;
+      const id = this.videoId;
       const [toks]: Token[][] = await browser.runtime.sendMessage({ type: 'segment', lines: [text] });
+      if (this.videoId !== id || !this.live) return;
       this.cues = [{ start: 0, end: Number.MAX_SAFE_INTEGER, text }];
       this.tokens = [toks];
       this.trans = [];
@@ -273,10 +294,14 @@ export class YouTubeSubs {
       this.live = false;
       this.domObserver?.disconnect();
     }
+    const id = this.videoId;
+    this.pendingCues = cues;
+    const tokens: Token[][] = await browser.runtime.sendMessage({ type: 'segment', lines: cues.map((c) => c.text) });
+    if (this.videoId !== id || this.pendingCues !== cues) return; // a newer track or video won
     this.cues = cues;
+    this.tokens = tokens;
     this.idx = -2;
-    const lines = cues.map((c) => c.text);
-    this.tokens = await browser.runtime.sendMessage({ type: 'segment', lines });
+    this.videoTitle = document.title.replace(/ - YouTube$/, '');
     if (this.trCues) this.trans = alignTranslation(this.cues, this.trCues);
     this.computeCoverage();
     this.mount();
@@ -303,14 +328,15 @@ export class YouTubeSubs {
 
   private async translateFallback() {
     const id = this.videoId;
-    const lines = this.cues.map((c) => c.text);
+    const cues = this.cues;
+    const lines = cues.map((c) => c.text);
     const res: string[] | null = await browser.runtime.sendMessage({
       type: 'translate',
       lines,
       sl: this.src?.languageCode ?? 'zh-TW',
       tl: TRANS_LANG,
     });
-    if (!res || this.videoId !== id || this.trCues) return;
+    if (!res || this.videoId !== id || this.trCues || this.cues !== cues) return;
     this.trCues = this.cues.map((c, i) => ({ ...c, text: res[i] ?? '' }));
     this.trans = res;
     this.renderLine(true);
@@ -423,7 +449,9 @@ export class YouTubeSubs {
     this.host.hidden = !on;
     this.host.classList.toggle('dark', state.settings.subStyle === 'dark');
     document.documentElement.classList.toggle('cb-subs-on', on);
-    if (!on) this.popup.hide();
+    // Only when the subtitles are switched off: close a card opened from them.
+    if (this.wasOn && !on && this.popup.src === 'yt') this.popup.hide();
+    this.wasOn = on;
   }
 
   private mount() {
@@ -432,10 +460,13 @@ export class YouTubeSubs {
     if (this.host.parentNode !== p) p.append(this.host);
     this.applyEnabled();
     this.controls.mount();
-    browser.runtime.sendMessage({
-      type: 'insertCSS',
-      css: 'html.cb-subs-on .ytp-caption-window-container{display:none!important}',
-    });
+    if (!this.cssDone) {
+      this.cssDone = true;
+      browser.runtime.sendMessage({
+        type: 'insertCSS',
+        css: 'html.cb-subs-on .ytp-caption-window-container{display:none!important}',
+      });
+    }
     this.resize();
   }
 
@@ -477,8 +508,12 @@ export class YouTubeSubs {
         this.shadowDone = this.idx;
         v.pause();
         const wait = Math.max(1.5, (cur.end - cur.start) * state.settings.shadowFactor);
-        setTimeout(() => {
-          if (this.shadow && v.paused) v.play();
+        clearTimeout(this.shadowTimer);
+        this.shadowTimer = setTimeout(() => {
+          if (!this.shadow || !v.paused) return;
+          // Reading a card or hovering the subtitles: resume when that ends instead.
+          if (this.popup.visible || this.root.querySelector('.box:hover')) this.pausedByUs = true;
+          else v.play();
         }, wait * 1000);
         return;
       }
@@ -540,7 +575,8 @@ export class YouTubeSubs {
   }
 
   private showSeq = 0;
-  private lastClicked = '';
+  /** Word just stamped Fresh by a click (a second click undoes only that). */
+  private clickStamped = '';
 
   /** Open the card for a word span (subtitles or transcript). */
   async showFor(e: Event, pinned: boolean) {
@@ -571,11 +607,16 @@ export class YouTubeSubs {
     await this.popup.show({ matches, rect: span.getBoundingClientRect(), cursor, src: 'yt', ctx, pinned });
     if (pinned && state.settings.autoFreshOnClick) {
       // Click a new word: Fresh. Click it again: back to untracked.
-      const st = state.status(matches[0].word);
-      if (!st) this.popup.setStatus('fresh', false);
-      else if (st === 'fresh' && this.lastClicked === matches[0].word) this.popup.setStatus(null, false);
+      const w = matches[0].word;
+      const st = state.status(w);
+      if (!st) {
+        this.popup.setStatus('fresh', false);
+        this.clickStamped = w;
+      } else if (st === 'fresh' && this.clickStamped === w) {
+        this.popup.setStatus(null, false);
+        this.clickStamped = '';
+      }
     }
-    if (pinned) this.lastClicked = matches[0].word;
   }
 
   private onTokenHover(e: Event) {
@@ -621,14 +662,14 @@ export class YouTubeSubs {
   }
 
   private onKey(e: KeyboardEvent) {
-    const t = e.target as HTMLElement | null;
-    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    if (isTyping(e)) return;
     if (this.popup.visible && this.popup.handleKey(e)) {
       e.preventDefault();
       e.stopImmediatePropagation();
       return;
     }
-    if (!state.settings.ytEnabled || !this.cues.length || this.live || e.ctrlKey || e.metaKey || e.altKey) return;
+    // Shift+P / Shift+N etc. stay YouTube's.
+    if (!state.settings.ytEnabled || !this.cues.length || this.live || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
     const s = state.settings;
     let handled = true;
     switch (e.key.toLowerCase()) {
@@ -673,7 +714,7 @@ export class YouTubeSubs {
       browser.runtime.sendMessage({
         type: 'watch',
         url: `https://www.youtube.com/watch?v=${this.videoId}`,
-        title: document.title.replace(/ - YouTube$/, ''),
+        title: this.videoTitle,
         secs: Math.round(this.watchSecs),
         coverage: this.coverage,
         lang: this.src?.languageCode,

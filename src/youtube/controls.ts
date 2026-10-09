@@ -38,6 +38,7 @@ export class Controls {
   private toast: HTMLElement;
   private hideTimer: ReturnType<typeof setTimeout> | undefined;
   private toastTimer: ReturnType<typeof setTimeout> | undefined;
+  private lastKey = '';
 
   constructor(subs: YouTubeSubs) {
     this.subs = subs;
@@ -80,7 +81,10 @@ export class Controls {
     };
     const leave = () => {
       clearTimeout(this.hideTimer);
-      this.hideTimer = setTimeout(() => (this.panel.hidden = true), 280);
+      this.hideTimer = setTimeout(() => {
+        this.panel.hidden = true;
+        this.lastKey = '';
+      }, 280);
     };
     this.switchHost.addEventListener('mouseenter', enter);
     this.switchHost.addEventListener('mouseleave', leave);
@@ -102,6 +106,10 @@ export class Controls {
     this.switchHost.hidden = !this.subs.videoActive;
     this.switchRoot.querySelector('.switch')?.classList.toggle('on', s.ytEnabled);
     if (this.panel.hidden) return;
+    // Rebuild only when something shown changed (a rebuild mid-click would swallow the click).
+    const key = JSON.stringify([s, this.subs.counts, this.subs.looping, this.subs.shadowing, this.subs.trackName, this.subs.hasTranslation, this.subs.transcript.open, this.subs.gemini]);
+    if (key === this.lastKey) return;
+    this.lastKey = key;
 
     const c = this.subs.counts;
     const total = c.known + c.learning + c.fresh + c.new;

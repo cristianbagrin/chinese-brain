@@ -52,19 +52,31 @@ export class PageColors {
     await state.loadStatuses();
     await this.scan(document.body);
     this.observer = new MutationObserver((muts) => {
-      for (const m of muts) m.addedNodes.forEach((n) => this.pending.add(n));
-      clearTimeout(this.timer);
-      this.timer = setTimeout(() => {
+      for (const m of muts) {
+        if (m.type === 'characterData') {
+          // Edited text: forget its old ranges and colour it again.
+          const t = m.target as Text;
+          this.done.delete(t);
+          this.words = this.words.filter((w) => w.range.startContainer !== t);
+          this.pending.add(t);
+        } else m.addedNodes.forEach((n) => this.pending.add(n));
+      }
+      // Throttle (not debounce), so pages that change constantly still get coloured.
+      this.timer ??= setTimeout(() => {
+        this.timer = undefined;
         const nodes = [...this.pending];
         this.pending.clear();
         nodes.forEach((n) => n.isConnected && this.scan(n));
-      }, 600);
+      }, 700);
     });
-    this.observer.observe(document.body, { childList: true, subtree: true });
+    this.observer.observe(document.body, { childList: true, subtree: true, characterData: true });
   }
 
   private stop() {
     this.observer?.disconnect();
+    clearTimeout(this.timer);
+    this.timer = undefined;
+    this.pending.clear();
     for (const name of Object.values(NAMES)) CSS.highlights?.delete(name);
     this.words = [];
     this.done = new WeakSet();
@@ -74,13 +86,18 @@ export class PageColors {
   private async scan(root: Node) {
     if (!this.on || this.chars > MAX_CHARS) return;
     const nodes: Text[] = [];
+    const accept = (t: Text) => !this.done.has(t) && CJK.test(t.data) && !t.parentElement?.closest(SKIP);
+    if (root.nodeType === Node.TEXT_NODE) {
+      // A text node added on its own (a TreeWalker never returns its root).
+      const t = root as Text;
+      if (accept(t)) {
+        nodes.push(t);
+        this.done.add(t);
+        this.chars += t.data.length;
+      }
+    }
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-      acceptNode: (n) => {
-        const t = n as Text;
-        if (this.done.has(t) || !CJK.test(t.data)) return NodeFilter.FILTER_REJECT;
-        if (t.parentElement?.closest(SKIP)) return NodeFilter.FILTER_REJECT;
-        return NodeFilter.FILTER_ACCEPT;
-      },
+      acceptNode: (n) => (accept(n as Text) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT),
     });
     for (let n = walker.nextNode(); n && this.chars < MAX_CHARS; n = walker.nextNode()) {
       nodes.push(n as Text);

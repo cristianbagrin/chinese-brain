@@ -46,7 +46,14 @@ test('weekly export: only changes and lookups since the last export', () => {
     rec('進', [[now - 20 * day, 'learning'], [now - 1 * day, 'known']]), // L -> K
     rec('新', [[now - 2 * day, 'fresh']]),
   ];
-  const logs = [{ at: now - day, k: 'look' as const, w: '忘', src: 'yt' as const }];
+  const logs = [
+    { at: now - day, k: 'look' as const, w: '忘', src: 'yt' as const },
+    { at: now - day, k: 'status' as const, w: '進', s: 'known' as const, from: 'learning' as const },
+    { at: now - 2 * day, k: 'status' as const, w: '新', s: 'fresh' as const, from: null },
+    { at: now - 3 * day, k: 'status' as const, w: '刪', s: null, from: 'known' as const },
+    { at: now - 3 * day, k: 'status' as const, w: '來回', s: 'fresh' as const, from: null },
+    { at: now - 2 * day, k: 'status' as const, w: '來回', s: null, from: 'fresh' as const },
+  ];
   const out = buildClaudeExport(words, logs, since);
   const rows = out.split('\n').filter((l) => l && !l.startsWith('#') && !l.startsWith('word\t'));
   const byWord = Object.fromEntries(rows.map((r) => [r.split('\t')[0], r.split('\t')]));
@@ -55,4 +62,6 @@ test('weekly export: only changes and lookups since the last export', () => {
   assert.equal(byWord['忘'][4], '1');
   assert.deepEqual(byWord['進'].slice(1, 3), ['K', 'L']);
   assert.deepEqual(byWord['新'].slice(1, 3), ['F', '-']);
+  assert.deepEqual(byWord['刪'].slice(1, 3), ['-', 'K']); // removed this week
+  assert.ok(!byWord['來回']); // added and removed again: nothing to report
 });

@@ -339,8 +339,11 @@ Do not summarise, do not skip lines, do not add commentary.`, SCHEMA = {
       parts.length === ids.length && ids.forEach((i, k) => out[i] = parts[k].trim());
     };
     for (let i = 0; i < lines.length; i++)
-      size + lines[i].length > 3e3 && await flush(), batch.push(i), size += lines[i].length + 1;
-    return await flush(), out;
+      size + lines[i].length > 3e3 && await flush().catch(() => {
+      }), batch.push(i), size += lines[i].length + 1;
+    if (await flush().catch(() => {
+    }), out.every((x) => !x)) throw new Error("translate: no batch succeeded");
+    return out;
   }
 
   // src/background/youtube.ts
@@ -447,7 +450,7 @@ Do not summarise, do not skip lines, do not add commentary.`, SCHEMA = {
             let prev = store.words.get(w);
             if (prev?.s === item.s) continue;
             let t = item.t || Date.now();
-            recs.push({
+            prev && item.t && prev.updated > item.t || recs.push({
               ...prev ?? { w, added: t, hist: [], looks: 0, ctx: [] },
               s: item.s,
               updated: Math.max(t, prev?.updated ?? 0),

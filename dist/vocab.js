@@ -34,16 +34,18 @@
     let now = Date.now(), evs = logs2.filter((e) => e.at > since), looks = /* @__PURE__ */ new Map(), yt = 0;
     for (let e of evs)
       e.k === "look" && (looks.set(e.w, (looks.get(e.w) ?? 0) + 1), e.src === "yt" && yt++);
-    let watches = evs.filter((e) => e.k === "watch"), byWord = new Map(words2.map((w) => [w.w, w])), was = (w) => {
-      let before = w.hist.filter((h2) => h2.t <= since);
-      return before.length ? before[before.length - 1].s : null;
-    }, removed = /* @__PURE__ */ new Set();
-    for (let e of evs) e.k === "status" && (e.s ? removed.delete(e.w) : removed.add(e.w));
+    let watches = evs.filter((e) => e.k === "watch"), byWord = new Map(words2.map((w) => [w.w, w])), before = /* @__PURE__ */ new Map();
+    for (let e of evs) e.k === "status" && !before.has(e.w) && before.set(e.w, e.from ?? null);
     let rows = [];
-    for (let w of words2)
-      (w.hist.some((h2) => h2.t > since) || looks.has(w.w)) && rows.push({ w: w.w, now: w.s, was: since ? was(w) : null, date: w.updated, rec: w });
-    for (let w of removed) byWord.has(w) || rows.push({ w, now: null, was: null, date: now });
-    for (let w of looks.keys()) !byWord.has(w) && !removed.has(w) && rows.push({ w, now: null, was: null, date: now });
+    if (since)
+      for (let w of /* @__PURE__ */ new Set([...before.keys(), ...looks.keys()])) {
+        let rec = byWord.get(w), cur = rec?.s ?? null, was = before.has(w) ? before.get(w) : cur;
+        was === cur && !looks.has(w) || rows.push({ w, now: cur, was, date: rec?.updated ?? now, rec });
+      }
+    else {
+      for (let w of words2) rows.push({ w: w.w, now: w.s, was: null, date: w.updated, rec: w });
+      for (let w of looks.keys()) byWord.has(w) || rows.push({ w, now: null, was: null, date: now });
+    }
     let order = { K: 0, L: 1, F: 2, "-": 3 };
     rows.sort((a, b) => order[code(a.now)] - order[code(b.now)] || a.date - b.date);
     let changedCount = rows.filter((r) => r.now !== r.was).length, lines = [
@@ -151,15 +153,22 @@
     let b = e.target.closest("button");
     b && (filter = b.dataset.f, $("filter").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))), render());
   });
+  async function exportNew() {
+    let at = Date.now(), data = await browser.runtime.sendMessage({ type: "allData" });
+    words = data.words, logs = data.logs;
+    let { lastExportAt } = await browser.storage.local.get("lastExportAt"), text = buildClaudeExport(words, logs, lastExportAt ?? 0);
+    return await browser.storage.local.set({ lastExportAt: at }), render(), renderExportInfo(), text;
+  }
   $("exportNew").addEventListener("click", async () => {
-    let { lastExportAt } = await browser.storage.local.get("lastExportAt");
-    download(`chinese-brain-${today()}.tsv`, buildClaudeExport(words, logs, lastExportAt ?? 0), "text/tab-separated-values;charset=utf-8"), await browser.storage.local.set({ lastExportAt: Date.now() }), renderExportInfo();
+    download(`chinese-brain-${today()}.tsv`, await exportNew(), "text/tab-separated-values;charset=utf-8");
   });
   $("copyNew").addEventListener("click", async () => {
-    let { lastExportAt } = await browser.storage.local.get("lastExportAt");
-    await navigator.clipboard.writeText(buildClaudeExport(words, logs, lastExportAt ?? 0)), await browser.storage.local.set({ lastExportAt: Date.now() }), $("copyOk").textContent = "Copied. Paste it into Claude.", renderExportInfo();
+    await navigator.clipboard.writeText(await exportNew()), $("copyOk").textContent = "Copied. Paste it into Claude.";
   });
-  $("exportAll").addEventListener("click", () => download(`chinese-brain-all-${today()}.tsv`, buildClaudeExport(words, logs, 0), "text/tab-separated-values;charset=utf-8"));
+  $("exportAll").addEventListener("click", async () => {
+    let data = await browser.runtime.sendMessage({ type: "allData" });
+    download(`chinese-brain-all-${today()}.tsv`, buildClaudeExport(data.words, data.logs, 0), "text/tab-separated-values;charset=utf-8");
+  });
   $("backup").addEventListener("click", async () => {
     let all = await browser.storage.local.get(null);
     download(`chinese-brain-backup-${today()}.json`, JSON.stringify({ app: "chinese-brain", v: 1, at: Date.now(), data: all }), "application/json");

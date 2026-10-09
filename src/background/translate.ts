@@ -28,10 +28,11 @@ export async function translateLines(lines: string[], sl: string, tl: string): P
     if (parts.length === ids.length) ids.forEach((i, k) => (out[i] = parts[k].trim()));
   };
   for (let i = 0; i < lines.length; i++) {
-    if (size + lines[i].length > 3000) await flush();
+    if (size + lines[i].length > 3000) await flush().catch(() => {}); // keep the batches that worked
     batch.push(i);
     size += lines[i].length + 1;
   }
-  await flush();
+  await flush().catch(() => {});
+  if (out.every((x) => !x)) throw new Error('translate: no batch succeeded');
   return out;
 }

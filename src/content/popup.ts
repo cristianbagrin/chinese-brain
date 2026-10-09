@@ -86,6 +86,10 @@ export class Popup {
   get visible() {
     return !!this.opts;
   }
+  /** Where the open card came from ('yt' subtitles or 'web' hover). */
+  get src() {
+    return this.opts?.src;
+  }
   get pinned() {
     return !!this.opts?.pinned;
   }

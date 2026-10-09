@@ -186,7 +186,8 @@ export class Transcript {
       const res: Record<string, { py: string; g: string; zipf: number }> = await browser.runtime.sendMessage({ type: 'glosses', words: missing });
       for (const [w, v] of Object.entries(res)) this.glossCache.set(w, v);
     }
-    if (this.tab !== 'learn') return;
+    // The video (or tab) may have changed while we waited.
+    if (this.tab !== 'learn' || this.subs.data().tokens !== tokens) return;
     for (const r of rows.values()) {
       const g = this.glossCache.get(r.w);
       if (g) Object.assign(r, { g: g.g, zipf: g.zipf, py: r.py || g.py });

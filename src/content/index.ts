@@ -1,5 +1,6 @@
 import { YouTubeSubs } from '../youtube/index.ts';
 import { HoverLookup } from './hover.ts';
+import { isTyping } from './keys.ts';
 import { PageColors } from './pagecolor.ts';
 import { Popup } from './popup.ts';
 import { state } from './state.ts';
@@ -25,8 +26,7 @@ if (!w.__chineseBrain) {
       window.addEventListener(
         'keydown',
         (e) => {
-          const t = e.target as HTMLElement | null;
-          if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+          if (isTyping(e)) return;
           if (popup.visible && popup.handleKey(e)) {
             e.preventDefault();
             e.stopImmediatePropagation();

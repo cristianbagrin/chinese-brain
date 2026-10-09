@@ -87,20 +87,31 @@ $('filter').addEventListener('click', (e) => {
   render();
 });
 
-$('exportNew').addEventListener('click', async () => {
+/** Fresh data, then the export since the last one; the watermark moves to the fetch time. */
+async function exportNew(): Promise<string> {
+  const at = Date.now();
+  const data = await browser.runtime.sendMessage({ type: 'allData' });
+  words = data.words;
+  logs = data.logs;
   const { lastExportAt } = await browser.storage.local.get('lastExportAt');
-  download(`chinese-brain-${today()}.tsv`, buildClaudeExport(words, logs, (lastExportAt as number) ?? 0), 'text/tab-separated-values;charset=utf-8');
-  await browser.storage.local.set({ lastExportAt: Date.now() });
+  const text = buildClaudeExport(words, logs, (lastExportAt as number) ?? 0);
+  await browser.storage.local.set({ lastExportAt: at });
+  render();
   renderExportInfo();
+  return text;
+}
+
+$('exportNew').addEventListener('click', async () => {
+  download(`chinese-brain-${today()}.tsv`, await exportNew(), 'text/tab-separated-values;charset=utf-8');
 });
 $('copyNew').addEventListener('click', async () => {
-  const { lastExportAt } = await browser.storage.local.get('lastExportAt');
-  await navigator.clipboard.writeText(buildClaudeExport(words, logs, (lastExportAt as number) ?? 0));
-  await browser.storage.local.set({ lastExportAt: Date.now() });
+  await navigator.clipboard.writeText(await exportNew());
   $('copyOk').textContent = 'Copied. Paste it into Claude.';
-  renderExportInfo();
 });
-$('exportAll').addEventListener('click', () => download(`chinese-brain-all-${today()}.tsv`, buildClaudeExport(words, logs, 0), 'text/tab-separated-values;charset=utf-8'));
+$('exportAll').addEventListener('click', async () => {
+  const data = await browser.runtime.sendMessage({ type: 'allData' });
+  download(`chinese-brain-all-${today()}.tsv`, buildClaudeExport(data.words, data.logs, 0), 'text/tab-separated-values;charset=utf-8');
+});
 
 $('backup').addEventListener('click', async () => {
   const all = await browser.storage.local.get(null);

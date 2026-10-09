@@ -99,6 +99,7 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
           const prev = store.words.get(w);
           if (prev?.s === item.s) continue;
           const t = item.t || Date.now();
+          if (prev && item.t && prev.updated > item.t) continue; // a newer status set here wins
           recs.push({
             ...(prev ?? { w, added: t, hist: [], looks: 0, ctx: [] }),
             s: item.s,
