@@ -26,3 +26,73 @@
 2270	fix	工程師花了一個下午才找出程式出錯的原因，原來只是少了一個符號。	The engineer spent a whole afternoon finding the cause of the bug. It turned out to be just one missing symbol.
 2271	fix	我們今天要跑三個景點。	We're hitting three sights today.
 2273	fix	記得定期清除手機裡的快取。	Remember to clear your phone's cache regularly.
+2285	fix	為國爭光是很光榮的事。	Winning glory for your country is a great honor.
+2287	fix	過了河的卒可以橫著走。	In Chinese chess, a pawn that has crossed the river can move sideways.
+2289	fix	我們是地主，要好好招待遠道來的朋友。	We're the hosts here, so we should take good care of friends who came from far away.
+2292	fix	這個行動電源的容量是10000mAh，足夠幫手機充三次電。	This power bank has a 10,000 mAh capacity, enough to charge a phone three times.
+2295	fix	他被前公司控告侵權。	He was sued by his former company for infringement.
+2303	fix	簽租賃合約前要看清楚條款。	Read the terms carefully before signing a lease.
+2305	dropword	Mainland usage; Taiwan says 晶片
+2310	fix	我設了兩個鬧鐘，算是雙重保險。	I set two alarms, just as a double safeguard.
+2313	fix	歷史課教到中世紀的歐洲，老師還放了騎士和城堡的影片。	History class got to medieval Europe, and the teacher even showed videos of knights and castles.
+2314	dropword	Mainland usage; Taiwan says 記憶體
+2317	fix	我是外地來的，對這裡不熟。	I'm from out of town and don't know this area well.
+2325	fix	這艘漁船換了一台新的柴油機。	This fishing boat got a new diesel engine.
+2327	fix	他笑到淚都流出來了。	He laughed so hard that tears came out.
+2331	fix	馬拉松的終點在市政府前。	The marathon finish line is in front of City Hall.
+2339	fix	台積電是半導體業的龍頭。	TSMC is the leader of the semiconductor industry.
+2340	fix	騎腳踏車下坡時要握緊龍頭，不要突然急煞。	When biking downhill, grip the handlebars tightly and don't brake suddenly.
+2347	dropword	Mainland (Beijing) slang; not used in Taiwan
+2350	dropword	Mainland form; Taiwan uses 訂製
+2352	fix	這套系統是從零開始建構的。	This system was built from scratch.
+2366	fix	稅務的問題可以問會計師。	You can ask an accountant about tax matters.
+2370	fix	他藉由跑步來減輕壓力。	He relieves stress by running.
+2391	fix	我們下一站就要下車了。	We're getting off at the next stop.
+2394	fix	這個消息使大家都鬆了一口氣。	The news made everyone breathe a sigh of relief.
+2399	fix	關於旅行的事，我們晚上再慢慢討論吧。	As for the trip, let's take our time talking it over tonight.
+2434	fix	我平常的娛樂就是追劇。	My usual entertainment is binge-watching shows.
+2458	fix	今晚天上一顆星也看不到。	You can't see a single star in the sky tonight.
+2462	fix	歡迎觀看我們的影片。	Thanks for tuning in to our video.
+2476	fix	一碼歸一碼，借的錢還是要還。	That's a separate matter; borrowed money still has to be paid back.
+2477	fix	四分衛一個長傳，球隊一口氣推進了四十碼。	The quarterback threw a long pass, and the team gained forty yards in one go.
+2484	fix	我每天早晚各刷一次牙。	I brush my teeth once in the morning and once at night.
+2499	fix	五六月阿勃勒開花，整條路都變成了一片黃色，非常好看。	When the golden shower trees bloom in May and June, the whole street turns yellow. It's lovely.
+2502	fix	這杯咖啡有一股焦味。	This coffee has a burnt taste.
+2512	dropword	bound morpheme; not used on its own, only in compounds (症狀, 形狀, 獎狀)
+2514	dropword	refers to PRC or foreign academies; Taiwan's equivalent is 中央研究院
+2522	fix	很久沒人住，桌上積了一層厚厚的灰。	Nobody has lived here for ages, and there's a thick layer of dust on the table.
+2534	fix	把小狗丟在路邊太殘忍了。	Dumping a puppy by the roadside is too cruel.
+2554	fix	他常說自己是個廢物，其實他很努力。	He often calls himself useless, but he actually works really hard.
+2558	fix	他最討厭在背後搬弄是非的人。	He can't stand people who stir up gossip behind others' backs.
+2560	fix	這些民兵自願拿起武器保衛家園。	These militiamen volunteered to take up arms to defend their homes.
+2569	dropword	bound morpheme; not used on its own, only in compounds (車速, 限速, 超速)
+2589	fix	工廠的廢水從排水管流出，汙染了附近的河川，造成魚類大量死亡。	Wastewater flowed out of the factory's drainpipe, polluted the nearby river, and killed large numbers of fish.
+2592	dropword	bound morpheme; not used on its own, only in compounds (世紀, 紀錄, 年紀)
+2618	dropword	Mainland form; Taiwan writes 揭密 or 揭祕
+2648	fix	小心，杯子裡的水很燙。	Careful, the water in the cup is hot.
+2664	fix	這次的比賽對他來說具有特別的意義。	This competition holds special meaning for him.
+2666	fix	這位醫生今天已經開了三檯刀。	This doctor has already done three surgeries today.
+2670	fix	公司派我去日本出差。	The company is sending me to Japan on a business trip.
+2678	fix	飛機因為天氣不好延誤了。	The plane was delayed because of bad weather.
+2682	fix	這部電影獲五項金馬獎提名。	This film received five Golden Horse nominations.
+2686	fix	公眾人物說話要特別小心。	Public figures need to be extra careful about what they say.
+2688	fix	美國一共有五十個州。	The US has fifty states in all.
+2689	fix	我表姊在美國住過好幾個州，現在定居在德州，每年才回台灣一次。	My cousin has lived in several US states and is now settled in Texas. She only comes back to Taiwan once a year.
+2693	fix	這家老店從日治時期營業至今，味道一直沒有變。	This old shop has been open since the Japanese colonial era, and its flavor has never changed.
+2695	fix	這裡離火車站還有兩公里，我們還是騎腳踏車去吧。	It's still two kilometers from here to the train station, so let's just ride bikes.
+2698	dropword	bound morpheme; not used on its own, only in compounds (恢復, 復原, 回復)
+2700	fix	他已經消失好幾天，都不回訊息。	He's been gone for days and isn't answering messages.
+2718	fix	我想跟你單獨談談。	I'd like to talk to you alone.
+2730	fix	這座老廟被列為國定古蹟。	This old temple has been listed as a national monument.
+2734	dropword	bound morpheme; not used on its own, only in compounds (外幣, 日幣, 台幣)
+2737	fix	這部紀錄片獲得金馬獎最佳紀錄片的提名，讓劇組非常開心。	This documentary was nominated for Best Documentary at the Golden Horse Awards, and the crew is thrilled.
+2754	dropword	Mainland shortening; Taiwan says 模特兒
+2758	fix	我想應徵這個職位。	I'd like to apply for this position.
+2760	fix	颱風天風雨較大，盡量不要出門。	Wind and rain are stronger on typhoon days, so try not to go out.
+2764	fix	這家公司是電動機車的先鋒。	This company was a pioneer of electric scooters.
+2772	fix	他寧可辭職，也不肯為五斗米折腰。	He'd rather quit than bow and scrape for a paycheck.
+2778	dropword	bound morpheme; not used on its own, only in compounds (確實, 確認, 正確)
+2791	fix	司令下令部隊半夜出發，在天亮前抵達目的地。	The commander ordered the troops to set out at midnight and reach the destination before daybreak.
+2804	fix	他用手蒙住我的眼睛。	He covered my eyes with his hands.
+2805	fix	玩捉迷藏時，當鬼的人要先把眼睛蒙起來，數到一百。	In hide-and-seek, whoever is "it" has to cover their eyes first and count to a hundred.
+2812	fix	這張圖片被分割成九宮格。	This picture was split into a three-by-three grid.
