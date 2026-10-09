@@ -60,7 +60,12 @@ def main():
                     base[n] = None
                     dropped += 1
                 elif action == "dropword":
-                    drop_words.add(base[n][0])
+                    # Single characters are kept even when the editor calls them "bound": you
+                    # still hover them alone, and a sentence with the character in a common
+                    # compound helps. Only vulgar/obsolete ones go.
+                    reason = c[2] if len(c) > 2 else ""
+                    if len(base[n][0]) > 1 or re.search(r"vulgar|obsolete|offensive|slur|curse", reason, re.I):
+                        drop_words.add(base[n][0])
     print(f"applied {fixed} fixes, {dropped} drops, {len(drop_words)} headwords removed", file=sys.stderr)
     rows = [v for _, v in sorted(base.items()) if v and v[0] not in drop_words]
     for w, zh, en in rows:

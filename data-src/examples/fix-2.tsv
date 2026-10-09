@@ -309,3 +309,34 @@
 5586	dropword	bound morpheme, not a standalone word; only in compounds (嚮往, 嚮導)
 5594	dropword	classical bound form, not a standalone word in Taiwan Mandarin; only in compounds (尚未, 未來, 未婚)
 5604	dropword	Cantonese/classical usage; Taiwan Mandarin says 是
+5626	fix	你想去哪裡都隨你，我沒有意見。	Go wherever you like; I have no objection.
+5627	fix	隨著天氣變冷，路上穿外套的人越來越多了。	As the weather turns cold, more and more people on the street are wearing jackets.
+5634	dropword	bound morpheme, not a standalone word; only in compounds (複習, 複雜, 重複)
+5639	fix	你到底在忙啥，怎麼一直不回訊息？	What on earth are you busy with? Why aren't you replying to messages?
+5654	fix	這個決策牽涉到全公司的預算，不能草率。	This decision involves the whole company's budget, so it can't be rushed.
+5658	fix	這輛小貨車載了滿滿的西瓜，要送去市場。	This small truck is loaded with watermelons to be delivered to the market.
+5659	fix	這輛公車一次可以載五十個人。	This bus can carry fifty people at a time.
+5672	dropword	bound morpheme, not a standalone word; only in compounds (繳納, 接納, 納入)
+5676	fix	老師同意我們把上課內容錄下來。	The teacher allowed us to record the lesson.
+5682	fix	這位網紅的影響力很大，推薦的商品常常一天就賣完。	This influencer has great influence, and products she recommends often sell out in a day.
+5692	fix	我們隊長每次比賽前都會幫大家加油打氣。	Our captain cheers everyone on before every match.
+5694	fix	他白手起家，是中南部很有名的企業家。	He started from nothing and is a well-known entrepreneur in central and southern Taiwan.
+5702	dropword	bound morpheme, not a standalone word; only in compounds (控告, 控制); 控乾 is Mainland
+5723	fix	護照遺失後，他趕緊聯絡當地的大使館求助。	After losing his passport, he quickly contacted the local embassy for help.
+5724	dropword	bound morpheme, not a standalone word; only in compounds (皇帝, 上帝, 帝國)
+5731	fix	有些人靠炒股票賺錢，但也有人因此賠光積蓄。	Some people earn money speculating in stocks, but others lose all their savings.
+5732	fix	目前聯賽積分最高的是我支持的那支球隊。	The team I support currently has the most points in the league.
+5733	fix	贏一場可以拿三分，累積的積分最高者就是冠軍。	A win earns three points, and whoever accumulates the most points is champion.
+5734	fix	考試時我的腦一片空白，什麼都想不起來。	My mind went completely blank during the exam and I couldn't remember anything.
+5750	fix	他戀上了那座海邊的小鎮，後來乾脆搬了過去。	He fell for that seaside town and eventually just moved there.
+5754	dropword	Mainland usage; Taiwan says 機率
+5762	fix	遊行的隊伍排成整齊的行列，慢慢走過街道。	The parade marched in orderly ranks slowly down the street.
+5770	fix	電影裡的伯爵住在古堡，常常舉辦華麗的舞會。	The count in the film lives in a castle and often hosts lavish balls.
+5778	dropword	bound morpheme, not a standalone word; only in compounds (手帕, 百帕)
+5788	dropword	Mainland usage; Taiwan says 智慧財產權
+5804	dropword	bound morpheme, not a standalone word; only in compounds (撫卹)
+5810	fix	這場演唱會採實名制購票，入場要核對身分證。	This concert uses real-name ticketing, and ID is checked at entry.
+5820	dropword	Mainland usage; Taiwan says 位元
+5826	fix	簡易的紙箱就能變成貓咪的遊樂場。	A simple cardboard box can become a playground for the cat.
+5834	fix	他花了三年寫完這部長篇小說，終於出版了。	He spent three years finishing this novel and it was finally published.
+5836	dropword	Mainland usage; Taiwan says 太空船

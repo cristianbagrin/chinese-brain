@@ -349,3 +349,159 @@
 1407	dropword	Mainland-flavored word; Taiwan says 故鄉/母國 instead of 祖國
 1417	fix	我哥哥是軟體工程師，經常加班到半夜。	My older brother is a software engineer and often works overtime until midnight.
 1455	fix	你這樣說，我實在不服！	I really don't accept it when you put it that way!
+1484	fix	他屬虎，朋友都開玩笑說他是紙老虎。	He was born in the Year of the Tiger, and his friends joke that he's a paper tiger.
+1489	fix	家裡有人得了流感，最好和其他家人隔離，避免傳染。	If someone at home has the flu, it's best to keep them apart from the rest of the family to avoid spreading it.
+1502	fix	警察要求民眾先撤到安全的地方。	Police told people to pull back to a safe place first.
+1514	dropword	Bound character that occurs only in compounds such as 貝殼/貝類
+1522	dropword	Mainland word; Taiwan says 公車
+1530	fix	那位客人聽到被插隊，頓時大怒。	The customer flew into a rage on hearing he'd been cut in line.
+1532	fix	他肩上擔著兩桶水，慢慢走回家。	He carried two buckets of water on a shoulder pole and walked slowly home.
+1538	dropword	Vulgar and offensive slur; not suitable as a learner example
+1575	fix	太悶了，我去把窗開一下。	It's stuffy; I'll go open the window a bit.
+1579	fix	抽血時，護理師很快就找到了我的血管。	When drawing blood, the nurse found my vein quickly.
+1587	fix	不好意思，我身上只有現金，可以付現嗎？	Sorry, I only have cash on me; can I pay in cash?
+1591	fix	冰箱裡有一個空瓶子，你拿去回收吧。	There's an empty bottle in the fridge; take it for recycling.
+1600	fix	下雨天路更滑，騎機車要更小心。	Roads are even slipperier in the rain, so be extra careful riding a scooter.
+1602	fix	院子裡跑來了兩隻小狗，孩子們開心極了。	Two puppies ran into the yard, and the kids were thrilled.
+1604	fix	他只是個孩子，你就別對他這麼嚴格了。	He's only a kid, so don't be so strict with him.
+1606	fix	週末我常帶孩子去公園玩，讓他們跑一跑。	On weekends I often take my kids to the park to run around.
+1608	fix	這家店每個月只開放一次預約，要搶喔。	This shop opens reservations only once a month, so be quick.
+1610	fix	公司這個月終於發薪水了，大家都很開心。	The company finally paid salaries this month, and everyone is happy.
+1612	fix	這款新手機一推出，就受到年輕人的歡迎。	As soon as this new phone came out, it was popular with young people.
+1614	fix	真正重要的事，往往不是花錢就能買到的。	What really matters often can't be bought with money.
+1616	fix	明天北部區域會有短暫陣雨，中南部則是多雲到晴。	Tomorrow there will be brief showers in the north, and cloudy to sunny in the center and south.
+1618	fix	這個遊戲的規則很簡單，五分鐘就能學會。	The rules of this game are simple; you can learn them in five minutes.
+1620	fix	這家餐廳的服務十分周到，我們下次還會再來。	The service at this restaurant is very attentive; we'll come again.
+1622	fix	我每天早上都會看一篇新聞文章，練習中文閱讀。	Every morning I read a news article to practice reading Chinese.
+1624	fix	他正在考慮要不要換工作，搬到別的縣市去。	He's considering whether to change jobs and move to another city.
+1626	fix	她三十歲就辭掉工作，開始經營自己的事業。	She quit her job at thirty and started running her own business.
+1628	fix	政府推出新補助，幫助單親婦女重新回到職場。	The government introduced a new subsidy to help single mothers return to the workforce.
+1631	fix	難道你不知道嗎？	Don't tell me you didn't know?
+1632	fix	你每天都熬夜，難道不覺得累嗎？	You stay up late every day; don't you feel tired?
+1634	fix	現在很多公司都在推動數位化，連開會都改成線上了。	Many companies are pushing digitalization now; even meetings have moved online.
+1635	fix	他多練習，從而進步了。	He practiced more and thereby improved.
+1636	fix	新制度簡化了申請流程，從而讓民眾辦事更方便。	The new system simplified the application process, making things more convenient for the public.
+1638	fix	他一個人要打好幾份工，才能養活全家人。	He has to work several jobs alone to support his whole family.
+1640	fix	你得先搞懂比賽的規則，才知道怎麼得分。	You have to understand the rules before you know how to score.
+1642	fix	這位歌手今年首次在小巨蛋開演唱會，票一開賣就賣完。	This singer is holding a concert at the Taipei Arena for the first time, and tickets sold out right away.
+1644	fix	我的筆電突然壞掉，明天只好拿去維修。	My laptop suddenly broke, so I'll have to take it for repair tomorrow.
+1646	fix	原物料漲價，所以店家只好調高價格來補貼成本。	Raw materials got pricier, so the shop had to raise prices to cover costs.
+1648	fix	這種膠帶主要用於包裝紙箱，黏性很強。	This tape is mainly used for sealing cardboard boxes and is very sticky.
+1650	fix	裁縫師先替我量好尺寸，再開始裁剪布料。	The tailor measured my size first and then started cutting the fabric.
+1651	fix	警方在河邊發現一具男性遺體。	Police found a male body by the river.
+1652	fix	這具機器人可以幫忙搬運重物。	This robot can help carry heavy objects.
+1654	fix	天氣預報說週末會放晴，我們可以去海邊走走。	The forecast says it will clear up this weekend, so we can walk by the sea.
+1656	fix	要掌握一門新語言，最重要的就是每天持續練習。	To master a new language, the most important thing is daily practice.
+1657	dropword	Bound character that occurs only in compounds such as 物品/小物
+1659	fix	至於價錢，明天再談。	As for the price, let's discuss it tomorrow.
+1660	fix	我只負責設計，至於要怎麼印刷，就交給印刷廠決定。	I only handle the design; as for how to print it, the print shop decides.
+1662	fix	週末我們開車到鄉村，在小溪旁野餐了一整個下午。	On the weekend we drove to the countryside and picnicked by a stream all afternoon.
+1664	fix	昨天打籃球時，我不小心傷到了腳踝。	I accidentally hurt my ankle playing basketball yesterday.
+1668	fix	這件行李太大，我們只好托運，不能帶上飛機。	This bag is too big, so we have to check it in instead of carrying it on.
+1670	fix	電影裡的主角必須在倒數十秒內剪斷線，拆除炸彈。	In the movie, the hero must cut the wire within a ten-second countdown to defuse the bomb.
+1671	fix	我好興奮喔！	I'm so excited!
+1672	fix	明天就要去露營了，孩子們興奮得一整晚都睡不著。	Camping starts tomorrow, and the kids were too excited to sleep all night.
+1674	fix	地震後，居民和志工一起努力重建被震垮的社區。	After the earthquake, residents and volunteers worked together to rebuild the collapsed neighborhood.
+1676	fix	店家若違反規定，政府將依法處罰，最高可罰十萬元。	If shops break the rules, the government will penalize them by law, up to 100,000 dollars.
+1682	fix	找工作時，不應該因為性別而受到不公平的對待。	No one should be treated unfairly because of gender when job hunting.
+1686	fix	為了獎勵大家這個月的努力，老闆請全公司吃大餐。	To reward everyone's effort this month, the boss treated the whole company to a big meal.
+1688	fix	吃完晚飯後，我喜歡跟朋友在線上聊天，放鬆一下。	After dinner, I like to chat online with friends to relax.
+1689	fix	趕緊跑吧！	Hurry and run!
+1690	fix	要下雨了，大家趕緊把衣服收進來。	It's about to rain; quickly bring the laundry inside, everyone.
+1692	fix	聽到寵物過世的消息，她難過得一整天吃不下飯。	Hearing her pet had passed away, she was too sad to eat all day.
+1693	dropword	Not the usual Taiwan word; Taiwan says 媒體
+1695	dropword	Bound character that occurs only in compounds such as 食品/物品
+1697	fix	這兩個有什麼差別？	What's the difference between these two?
+1698	fix	這兩支手機的差別只有顏色，功能完全一樣。	The only difference between these two phones is color; the functions are identical.
+1700	fix	對不起，我不是故意踩到你的腳的。	Sorry, I didn't step on your foot on purpose.
+1702	fix	夏天的時候，我常和朋友一起去游泳池游泳。	In summer I often go swimming at the pool with friends.
+1703	fix	他的手機很新，忍不住拿出來秀一下。	His phone is brand new, so he couldn't help showing it off.
+1704	fix	他在朋友面前秀了一手好廚藝，大家都鼓掌叫好。	He showed off his cooking skills in front of friends, and everyone cheered.
+1706	fix	政府正在討論是否要調整行政區劃，把兩個鄉鎮合併成一個。	The government is discussing whether to adjust administrative divisions and merge two townships.
+1710	fix	媽媽身體不舒服，卻不願去看醫生。	Mom isn't feeling well but is unwilling to see a doctor.
+1712	fix	要把中文說好，得花不少功夫。	To speak good Chinese, you have to put in quite some effort.
+1714	fix	在正式場合，請盡量不要穿拖鞋。	On formal occasions, please avoid wearing slippers.
+1716	fix	在這個遊戲裡，每個角色都有不同的屬性，例如速度和力量。	In this game, each character has different attributes, such as speed and strength.
+1719	dropword	Mainland term; Taiwan says 伺服器
+1721	fix	每天早上，清潔人員都會把街道打掃得乾乾淨淨。	Every morning, the cleaning staff sweep the streets spotless.
+1723	fix	兩位老師的教法各異，學生的反應也不一樣。	The two teachers teach in different ways, and the students respond differently.
+1725	fix	我們約定好每個星期天晚上打電話給阿嬤，陪她聊天。	We agreed to call grandma every Sunday evening to chat with her.
+1727	fix	蘭花需要通風的環境，澆水太多反而會爛根。	Orchids need ventilation, and too much watering will rot the roots.
+1729	fix	辯論比賽中，雙方同學都提出了很有說服力的論點。	In the debate competition, both sides raised very persuasive points.
+1730	fix	這個字的音很難發，我練了很多次。	This character is hard to pronounce; I practiced many times.
+1731	fix	這個字的音和另一個字很像，所以很容易寫錯。	This character sounds like another one, so it's easy to write wrongly.
+1732	fix	請乘電梯到五樓，櫃台就在左手邊。	Please take the elevator to the fifth floor; the counter is on your left.
+1733	fix	他乘著暑假，一個人去環島旅行。	He took advantage of summer break to travel around the island alone.
+1735	fix	他把今年的獎金分成三份，一份存起來，一份孝敬爸媽。	He split this year's bonus in three, saving one part and giving one to his parents.
+1736	fix	每天早上七點，學校都會在操場升國旗。	Every morning at seven the school raises the national flag on the field.
+1737	fix	運動會開幕時，選手們揮著國旗進場。	At the sports meet's opening, athletes entered waving the national flag.
+1739	fix	這起官司已經審理了兩年，雙方還是沒有達成共識。	This lawsuit has been tried for two years and the two sides still haven't reached agreement.
+1741	fix	他有很多愛好，像是攝影、烹飪，還有收集老唱片。	He has many hobbies, like photography, cooking and collecting old records.
+1743	fix	附近新建了一座運動公園，有跑道和籃球場。	A new sports park was built nearby with a running track and basketball courts.
+1745	fix	入境時，海關人員會檢查你有沒有帶違禁品。	On entry, customs officers check whether you carry prohibited items.
+1747	fix	這家小店開了兩年，終於開始有盈利。	This little shop opened two years ago and is finally turning a profit.
+1749	fix	這個月錢不夠，我一直缺錢，只好跟朋友借。	I've been short of money this month and had to borrow from a friend.
+1750	dropword	Mainland term; Taiwan says 試辦
+1753	fix	作文的開頭要先吸引讀者，所以我花了很多時間想第一句話。	An essay's opening must hook the reader, so I spent a long time on the first sentence.
+1754	fix	十二地支的第二個是丑，對應的生肖是牛。	The second of the twelve Earthly Branches is chou, matching the ox in the zodiac.
+1756	dropword	Bound character that occurs only in compounds such as 充電/充實
+1758	fix	午餐吃什麼？	What's for lunch?
+1759	fix	我們公司的午餐通常是訂便當，今天吃的是排骨飯。	Our company usually orders boxed lunches, and today it's pork chop rice.
+1761	fix	科學園區裡有很多科技公司，上下班時間車子特別多。	The science park has many tech companies, with lots of cars at commuting times.
+1763	fix	我等了將近兩個小時，公車才終於來了。	I waited nearly two hours before the bus finally came.
+1765	fix	他從小就患有氣喘，所以不能做太激烈的運動。	He's had asthma since childhood, so he can't do vigorous exercise.
+1767	fix	洪水來得太快，居民只好緊急撤退到高處。	The flood came too fast, so residents had to evacuate to higher ground.
+1769	fix	俗話說「萬事俱備，只欠東風」，現在就差最後一步了。	As the saying goes, "all is ready but the east wind"; only the last step is missing.
+1771	fix	潛水員潛到海底，看到了一艘很久以前沉沒的船。	The diver went to the seabed and saw a ship that sank long ago.
+1773	fix	他計畫辭掉工作，存一筆錢，然後開始環球旅行。	He plans to quit his job, save up, and then start traveling around the world.
+1775	fix	我絲毫沒有懷疑，因為他看起來太誠懇了。	I didn't doubt at all, because he seemed so sincere.
+1777	fix	到了機場才發現行李超重，只好多付一些錢。	At the airport I found my luggage overweight and had to pay extra.
+1779	fix	這次旅行的花費超出了我的預期，回來後只好省吃儉用。	The trip cost more than I expected, so I had to scrimp afterward.
+1781	fix	這條裙子的長度剛好到膝蓋，穿起來很舒服。	This skirt reaches just to the knee and is comfortable to wear.
+1783	fix	這家店專門賣高端咖啡豆，價格雖然貴，但是香氣很特別。	This shop specializes in high-end coffee beans; they're pricey but have a special aroma.
+1785	fix	外國的客人下週要來訪，我們得先把會議室準備好。	Foreign guests will visit next week, so we must get the meeting room ready.
+1787	fix	法官依法判刑，被告被判有期徒刑三年。	The judge sentenced by law, giving the defendant three years in prison.
+1789	fix	唯有親自去一趟，才能知道那裡到底有多美。	Only by going there yourself can you know how beautiful it is.
+1790	dropword	Bound character that occurs only in compounds such as 妻子/妻小
+1793	fix	平凡的日子有時候最幸福，每天和家人一起吃飯就足夠了。	Ordinary days can be the happiest; eating with family every day is enough.
+1795	fix	週末要跟朋友出去玩，我花了一個小時打扮。	I'm going out with friends this weekend, so I spent an hour getting ready.
+1796	fix	明天要早起，你今晚早點睡吧。	You have to get up early tomorrow, so go to bed earlier tonight.
+1797	fix	會議九點開始，請大家早點到，先把資料準備好。	The meeting starts at nine, so please arrive early and get your materials ready.
+1799	fix	近年來少子化，出生嬰兒的比率每年都在下降。	With the falling birth rate, the proportion of newborns declines every year.
+1800	fix	夜市每到週末就特別熱鬧。	The night market is especially lively every weekend.
+1801	fix	過年的時候，全家人聚在一起，屋子裡熱鬧極了。	At New Year, the whole family gathers and the house is bustling.
+1802	dropword	Bound character that occurs only in compounds such as 防禦/禦寒
+1804	dropword	Bound character that occurs only in compounds such as 膽子/大膽
+1807	fix	學外語時，語法和單字一樣重要，所以我每天都練習造句。	In learning a language, grammar matters as much as vocabulary, so I practice making sentences daily.
+1811	fix	萬聖節的時候，孩子們戴著各種奇怪的面具去討糖果。	At Halloween, kids wear all kinds of weird masks to get candy.
+1813	fix	這份合約有些條款不合法規，必須重新修改。	Some clauses in this contract don't comply with regulations and must be revised.
+1815	fix	長年的海風侵蝕，讓這座古老的石像表面變得斑駁。	Years of sea wind erosion left this ancient stone statue mottled.
+1817	fix	他們先是大吵一架，其後便再也沒有聯絡。	They first had a big fight and afterward stopped contacting each other.
+1819	fix	他總是插話，這種習慣讓同事越來越反感。	He always interrupts, and this habit annoys coworkers more and more.
+1821	fix	他考上了國立大學，學費比私立學校便宜很多。	He got into a public university, whose tuition is much cheaper than private schools.
+1823	fix	這種詐騙套路很常見，遇到陌生人要求匯款一定要小心。	This scam routine is common, so be careful when strangers ask for money transfers.
+1825	fix	他在背後亂說話，真是個小人。	He badmouths people behind their backs; what a petty man.
+1827	fix	她的心思細膩，總是能察覺到朋友的小小變化。	She is perceptive and always notices small changes in her friends.
+1829	fix	牙醫幫我拔了一顆智齒，現在臉還是腫腫的。	The dentist pulled a wisdom tooth, and my face is still swollen.
+1831	fix	這所專科學校去年改制為科技大學，學生人數也增加了。	This junior college was restructured into a university of technology last year, and enrollment grew.
+1833	fix	這些年來的努力終於有了成果，大家一起享受勝利的果實。	Years of effort finally paid off, and everyone shares the fruits of victory.
+1835	fix	連日大雨使河水氾濫，低窪地區的住家都淹了水。	Days of heavy rain made the river flood, and homes in low areas were inundated.
+1836	fix	不少人去動物園，就是為了看可愛的熊貓。	Many people go to the zoo just to see the adorable pandas.
+1837	fix	動物園的熊貓正抱著竹子吃，小朋友都圍著看。	The zoo's panda is eating bamboo, and kids gather round to watch.
+1839	fix	買盜版書籍等於侵犯作者的權益，所以我只支持正版。	Buying pirated books violates the author's rights, so I only support genuine copies.
+1840	dropword	Bound character that occurs only in compounds such as 籌備/籌錢
+1845	fix	前面的人站起來，擋住了我的視線，我只好換個位子。	The person in front stood up and blocked my view, so I changed seats.
+1847	fix	昨天路過公園，看到很多人在跳舞，我也停下來看了一下。	Yesterday I passed the park and saw many dancing, so I stopped to watch.
+1849	fix	我聽到門外有腳步聲，打開門卻沒看到任何人。	I heard footsteps outside the door but saw nobody when I opened it.
+1850	dropword	Mainland word; Taiwan says 餐廳/學生餐廳
+1853	fix	他的語氣聽起來像是在生氣，但其實只是太累了。	He sounded like he was angry, but he was just too tired.
+1855	fix	武術老師把每一個招式都慢慢示範，讓大家看清楚動作。	The martial arts teacher demonstrated each move slowly so everyone could see.
+1857	fix	我在台灣長大，所以對簡體字不太熟悉，看大陸的網站會比較吃力。	I grew up in Taiwan, so I'm unfamiliar with simplified characters and find mainland websites harder.
+1859	fix	週末我會開車載爸媽去山上的餐廳吃飯，順便欣賞風景。	On weekends I drive my parents to a restaurant in the mountains, enjoying the scenery too.
+1860	fix	真的假的？你再說一次！	Really? Say that again!
+1861	fix	他說他中樂透了，我說：「真的假的？」	He said he won the lottery, and I said, "Seriously?"
+1878	fix	他十八歲就從軍，保衛家園。	He joined the army at eighteen to defend his homeland.
+1890	fix	客廳的茶几上放著一盤水果。	A plate of fruit sits on the coffee table in the living room.
+1895	dropword	Bound character that occurs only in compounds such as 亞軍/亞洲
+1903	dropword	Taiwan standard form is 身分; 身份 is a variant
+1919	fix	這份日報每天早上六點送到家門口。	This daily paper is delivered to our door at six every morning.

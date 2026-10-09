@@ -238,3 +238,41 @@
 7584	fix	下雨天不能去操場，體育課改在室內上。	On rainy days we can't go to the field, so PE class is held indoors.
 7593	fix	民眾可以上網申報所得稅，不用親自跑國稅局。	People can file their income tax online without going to the tax bureau in person.
 7594	fix	這場戰爭終於終結，雙方簽下了和平協議。	The war has finally ended, and both sides signed a peace agreement.
+7600	fix	這位主管很照顧下屬，常自掏腰包請大家吃飯。	This manager takes good care of his subordinates and often pays out of his own pocket to treat everyone.
+7604	fix	他像勇士一樣衝進火場，救出了三個孩子。	He rushed into the fire like a warrior and rescued three children.
+7607	fix	嘴裡有東西的時候別說話，這樣很不禮貌。	Don't talk while you have food in your mouth; it's rude.
+7608	fix	他提出的學說，在當時被視為離經叛道。	The theory he put forward was seen as heretical at the time.
+7610	fix	對手摸清了我們的弱點，專攻防守的空隙。	The opponents figured out our weaknesses and attacked the gaps in our defense.
+7614	fix	這部電影的主角穿越時空，回到了一百年前。	The hero of this film travels through time and space back a hundred years.
+7620	dropword	Bound form only used inside compounds (私事, 私下, 自私); not a standalone word
+7624	fix	他賴在沙發上，一整天都不想出門。	He lazed on the sofa and didn't want to go out all day.
+7626	fix	他拿著鐵槌，把木板釘在牆上。	He took a hammer and nailed the board to the wall.
+7628	fix	氣象署提前發出預警，提醒民眾注意大雨。	The Weather Administration issued an early warning, reminding people to watch out for heavy rain.
+7633	fix	從報名到放榜，其間發生了不少意外。	From registration to the release of results, quite a few unexpected things happened.
+7634	fix	他在這一行做了三十年，可謂經驗豐富。	He has worked in this field for thirty years and can fairly be called very experienced.
+7639	fix	這次詐騙案讓民眾損失了巨額財產，警方已成立專案小組。	The scam caused the public to lose huge sums, and police have set up a task force.
+7640	fix	記者冒著生命危險進入戰區採訪。	The reporter risked his life to enter the war zone for interviews.
+7650	dropword	Bound form only used inside compounds (耳朵, 耳機); not a standalone word
+7674	dropword	Mainland term; Taiwan says 賺錢
+7678	dropword	Mainland term; Taiwan says 標誌 or 標示
+7680	dropword	Mainland-leaning term; Taiwan says 日用品 or 消費性商品
+7682	fix	這位獨裁者下令關閉所有報社，人民失去了言論自由。	The dictator ordered all newspapers closed, and the people lost their freedom of speech.
+7686	dropword	Mainland term; Taiwan says 爭取權益
+7690	dropword	Bound form only used inside compounds (警察, 警告); not a standalone word
+7694	drop
+7696	fix	警方日前破獲一個黑幫，逮捕二十多名成員。	Police recently busted a gang and arrested more than twenty members.
+7705	fix	從臺北到臺中，搭高鐵大約一個小時。	From Taipei to Taichung, the high-speed rail takes about an hour.
+7735	fix	他在海邊玩了一個禮拜，整個人曬得黑黑的。	After a week at the beach, he had gotten very tanned.
+7736	fix	清朝時，人們在台北蓋了一座城，保護居民的安全。	In the Qing dynasty, people built a walled city in Taipei to protect its residents.
+7744	dropword	Bound form only used inside compounds (老師, 醫師); not a standalone word
+7746	dropword	Bound form only used inside compounds (案子, 提案); not a standalone word
+7748	fix	他是我心中的英雄，我從小就想像他一樣。	He is my hero, and I have wanted to be like him since childhood.
+7764	dropword	Bound form only used inside compounds (意見, 好意); not a standalone word
+7780	dropword	Bound form only used inside compounds (要職, 辭職); not a standalone word
+7782	fix	政府決定在河上造一座新橋，方便兩岸居民往來。	The government decided to build a new bridge over the river for residents on both banks.
+7783	fix	這位木匠會自己動手造桌椅。	This carpenter makes tables and chairs with his own hands.
+7796	fix	這條電話線路壞了，所以網路也斷了。	This phone line is faulty, so the internet is down too.
+7806	dropword	Bound form only used inside compounds (恩情, 感恩); not a standalone word
+7822	fix	小巷子裡藏著一方安靜的小天地，很適合看書。	A quiet little corner is tucked away in the alley, perfect for reading.
+7834	fix	面對這樣的考驗，他一點也沒有退縮。	Facing such a test, he didn't back down at all.
+7836	fix	這首詩很難譯，很多意境翻成英文就沒了。	This poem is hard to translate; much of its mood is lost in English.

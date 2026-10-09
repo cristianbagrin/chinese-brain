@@ -151,7 +151,7 @@
 11664	fix	婚禮上，新人逐桌向賓客敬酒。	At the wedding, the couple went table by table to toast the guests.
 11667	fix	他想出洋留學，看看外面的世界。	He wants to study abroad and see the world outside.
 11678	fix	他被主任叫去辦公室訓了一頓。	He was called to the office and given a talking-to by the director.
-11689	fix	我的手被他壓著，怎麼也抽不出來。	My hand was pinned under his and I couldn't pull it out.
+11689	dropword	not a lexical word, just 被 + 壓著
 11691	fix	我們一年只見一兩次面。	We only see each other once or twice a year.
 11733	fix	月明星稀，今晚的天空很漂亮。	The moon is bright and stars are sparse; tonight's sky is beautiful.
 11777	fix	這個消息在網路上傳得很廣。	This news has spread widely online.
@@ -213,3 +213,30 @@
 12372	fix	她在臉上撲了一層薄薄的粉。	She dusted a thin layer of powder on her face.
 12398	dropword	bound morpheme, appears only inside compounds like 秘書/秘密
 12438	dropword	bound morpheme, appears only inside compounds like 仁慈/杏仁
+12456	fix	山上的景真漂亮，我拍了好多照片。	The view up in the mountains is so pretty that I took lots of photos.
+12466	fix	水費請於月底前繳納，逾期會加收滯納金。	Please pay the water bill by month-end; late payments incur a surcharge.
+12470	fix	臭豆腐要配泡菜才好吃。	Stinky tofu tastes best with pickled cabbage.
+12473	fix	為了遏制詐騙猖獗，警方加強了宣導。	To curb rampant scams, the police stepped up public awareness efforts.
+12494	fix	我們學校離捷運站很近。	Our school is very close to the MRT station.
+12528	dropword	bound morpheme, appears only inside compounds like 言論/言語
+12538	fix	這款進口啤酒在超商就買得到。	This imported beer is available at convenience stores.
+12548	fix	航空業受到油價的影響很大。	The aviation industry is greatly affected by oil prices.
+12574	fix	不丹是位於喜馬拉雅山的一個王國。	Bhutan is a kingdom in the Himalayas.
+12576	dropword	bound morpheme, appears only inside compounds like 聯手/聯合
+12588	fix	這位經紀人旗下有十幾位藝人。	This agent has a dozen or so entertainers under him.
+12594	fix	我認得這個字，可是不會唸。	I recognize this character, but I don't know how to pronounce it.
+12610	dropword	bound morpheme, appears only inside compounds like 好漢/硬漢
+12614	dropword	bound morpheme, appears only inside compounds like 統一/統計
+12616	dropword	bound morpheme, appears only inside compounds like 華裔
+12624	dropword	bound morpheme, appears only inside compounds like 情勢/趨勢
+12664	dropword	Mainland term; Taiwan says 演算法
+12666	dropword	bound morpheme, appears only inside compounds like 菲律賓
+12688	dropword	bound morpheme, appears only inside compounds like 模仿/模樣
+12690	dropword	bound morpheme, appears only inside compounds like 澳洲/澳門
+12700	dropword	Mainland form; Taiwan writes 僱用/僱傭
+12702	dropword	Mainland term; Taiwan says 去年
+12724	dropword	bound morpheme, appears only inside compounds like 殘渣/殘酷
+12726	dropword	bound morpheme, appears only inside compounds like 光澤/色澤
+12730	dropword	Mainland term; Taiwan says 站牌/站位
+12732	dropword	bound morpheme, appears only inside compounds like 機翼/雙翼
+12736	dropword	bound morpheme, appears only inside compounds like 恭賀/道賀

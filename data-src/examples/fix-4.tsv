@@ -264,3 +264,47 @@
 9878	fix	超市的冷凍食品區常常有買一送一的活動。	The supermarket's frozen food section often has buy-one-get-one-free deals.
 9888	fix	看到警察打出停車的信號，駕駛立刻把車靠邊停下來。	Seeing the police signal him to stop, the driver pulled over at once.
 9889	fix	對方一直使眼色，我卻沒看懂那是求救的信號。	The other person kept winking, but I didn't realise it was a distress signal.
+9937	fix	吃龍眼的時候，小心不要把核吞下去。	When eating longan, be careful not to swallow the pit.
+9939	fix	阿公一早就下田，傍晚才回家。	Grandpa goes out to the field early in the morning and returns only in the evening.
+9950	dropword	bound morpheme, not used as a standalone word (only in 歐姆, 姆指)
+9972	dropword	bound morpheme, not used as a standalone word (only in 君子, 君王, 夫君)
+9974	dropword	bound morpheme, not used as a standalone word (only in 新娘, 娘家, 爹娘)
+9976	dropword	Mainland term; Taiwan uses 報告 or 匯報
+9984	dropword	bound morpheme, not used as a standalone word (only in 國籍, 書籍, 籍貫)
+9990	dropword	Mainland-only term (mainland college entrance exam); Taiwan has 學測 and 指考
+9992	fix	中年以後要開始注重保健，每年都要做健康檢查。	After middle age you should start caring about your health and get a checkup every year.
+10002	dropword	Mainland term; Taiwan uses 脫貧, 濟貧 or 社會救助
+10004	fix	我習慣早上先上聯合新聞網看頭條。	I usually check the headlines on the United Daily News website in the morning.
+10008	fix	漲潮時，沙灘上的小腳印很快就被海水沖掉了。	When the tide came in, the little footprints on the beach were soon washed away.
+10013	fix	木板被太陽曬乾以後，邊角都翹起來了。	After the board dried in the sun, its corners warped upward.
+10016	dropword	Mainland usage; Taiwan uses 轉傳 for messages and 分享 or 轉貼 for posts
+10022	dropword	bound morpheme, not used as a standalone word (only in 俠客, 武俠, 女俠)
+10042	dropword	Mainland term; Taiwan uses 太空
+10054	fix	他去廟裡求籤，想知道這次投資是吉還是凶。	He drew a fortune stick at the temple to learn whether the investment would be lucky or unlucky.
+10055	fix	這支籤是下下籤，寫著大凶，他整天都心神不寧。	It was the worst kind of fortune stick, marked very inauspicious, and he was uneasy all day.
+10070	fix	他握緊球桿，把球打向遠處。	He gripped the club tightly and hit the ball far away.
+10074	dropword	Mainland term; Taiwan uses 特務 or 情報員
+10172	fix	那位客人神秘地笑了笑，什麼也不肯多說。	The guest smiled mysteriously and refused to say any more.
+10198	fix	他女朋友是同公司的同事，兩人交往三年了。	His girlfriend is a coworker at the same company, and they've dated for three years.
+10204	fix	她男朋友每天騎機車載她上班。	Her boyfriend takes her to work on his scooter every day.
+10208	dropword	bound morpheme, not used as a standalone word (only in 資料, 資金, 資訊)
+10221	dropword	bound morpheme, not used as a standalone word (only in 母親, 母雞, 母語)
+10225	dropword	Mainland term; Taiwan uses 研發
+10233	dropword	bound morpheme, not used as a standalone word (only in 小麥, 麥片, 麥田)
+10255	dropword	bound morpheme, not used as a standalone word (only in 騷擾, 牢騷)
+10265	dropword	Mainland term; Taiwan uses 平方公尺 or 坪
+10267	dropword	bound morpheme, not used as a standalone word (only in 承認, 承辦, 承諾)
+10321	dropword	variant form; Taiwan standard is 吸菸 or 抽菸
+10331	dropword	bound morpheme, not used as a standalone word (only in 飄揚, 悠揚, 宣揚)
+10345	dropword	bound morpheme, not used as a standalone word (only in 莎草, 莎士比亞)
+10432	fix	這位戰士受傷後仍堅守崗位，沒有撤退。	The soldier stayed at his post despite being wounded and did not retreat.
+10465	dropword	bound morpheme, not used as a standalone word (only in 果然, 當然, 突然)
+10475	dropword	bound morpheme, not used as a standalone word (only in 幫助, 有助於, 樂於助人)
+10477	fix	這檔基金投資境外市場，風險比較高。	This fund invests in overseas markets, so the risk is higher.
+10529	dropword	Mainland term; Taiwan uses 志工
+10542	dropword	bound morpheme, not used as a standalone word (only in 謀職, 謀生, 陰謀)
+10548	dropword	Mainland term; Taiwan uses 首頁
+10576	dropword	Mainland term; not used in Taiwan Mandarin
+10584	dropword	Mainland particle; Taiwan uses 囉 or 啦
+10596	fix	暑假一到，墾丁的海邊就擠滿了遊客。	As soon as summer vacation starts, Kenting's beaches are packed with tourists.
+10626	dropword	obsolete variant of 才
