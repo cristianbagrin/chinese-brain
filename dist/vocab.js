@@ -30,7 +30,7 @@
     let m = Math.round(secs / 60);
     return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min` : `${m} min`;
   }
-  function buildClaudeExport(words2, logs2, since = 0) {
+  function buildClaudeExport(words2, logs2, since = 0, saved = {}) {
     let now = Date.now(), evs = logs2.filter((e) => e.at > since), watches = evs.filter((e) => e.k === "watch"), byWord = new Map(words2.map((w) => [w.w, w])), before = /* @__PURE__ */ new Map();
     for (let e of evs) e.k === "status" && !before.has(e.w) && before.set(e.w, e.from ?? null);
     let rows = [];
@@ -41,19 +41,37 @@
       }
     else
       for (let w of words2) rows.push({ w: w.w, now: w.s, was: null, date: w.updated, rec: w });
+    let savedNow = /* @__PURE__ */ new Map();
+    for (let [w, list] of Object.entries(saved)) {
+      let fresh = list.filter((x) => x.at > since);
+      if (fresh.length && (savedNow.set(w, fresh), !rows.some((r) => r.w === w))) {
+        let rec = byWord.get(w);
+        rows.push({ w, now: rec?.s ?? null, was: rec?.s ?? null, date: Math.max(...fresh.map((x) => x.at)), rec });
+      }
+    }
     let order = { K: 0, L: 1, F: 2, "-": 3 };
     rows.sort((a, b) => order[code(a.now)] - order[code(b.now)] || a.date - b.date);
     let lines = [
       `# Chinese Brain export \xB7 ${stamp(now)} \xB7 ${since ? `since ${stamp(since)}` : "everything so far"}`,
       "# Codes as in known-words.txt: K known, L learning, F fresh (met, not studied yet), - not in the list.",
       "# was = status before this period (- = new). Only status changes I made are listed.",
-      `# ${rows.length} words \xB7 ${watches.length} videos with subtitles (${duration(watches.reduce((n, e) => n + e.secs, 0))})`,
-      ["word", "now", "was", "date", "pinyin", "meaning", "sentence", "source"].join("	")
+      `# ${rows.length} words \xB7 ${[...savedNow.values()].flat().length} saved sentences \xB7 ${watches.length} videos with subtitles (${duration(watches.reduce((n, e) => n + e.secs, 0))})`,
+      ["word", "now", "was", "date", "pinyin", "meaning", "sentence", "source", "saved"].join("	")
     ];
     for (let r of rows) {
       let c = r.rec?.ctx[0];
       lines.push(
-        [r.w, code(r.now), code(r.was), dayKeyLocal(r.date), r.rec?.p?.toLowerCase(), r.rec?.g, c?.text, c ? shortSource(c.url, c.t) : ""].map((x) => clean(x)).join("	")
+        [
+          r.w,
+          code(r.now),
+          code(r.was),
+          dayKeyLocal(r.date),
+          r.rec?.p?.toLowerCase(),
+          r.rec?.g,
+          c?.text,
+          c ? shortSource(c.url, c.t) : "",
+          (savedNow.get(r.w) ?? []).map((x) => x.en ? `${x.zh} \u2014 ${x.en}` : x.zh).join(" \u2016 ")
+        ].map((x) => clean(x)).join("	")
       );
     }
     return lines.join(`
@@ -159,7 +177,7 @@
   async function exportNew() {
     let at = Date.now(), data = await browser.runtime.sendMessage({ type: "allData" });
     words = data.words, logs = data.logs;
-    let { lastExportAt } = await browser.storage.local.get("lastExportAt"), text = buildClaudeExport(words, logs, lastExportAt ?? 0);
+    let { lastExportAt } = await browser.storage.local.get("lastExportAt"), text = buildClaudeExport(words, logs, lastExportAt ?? 0, data.saved);
     return await browser.storage.local.set({ lastExportAt: at }), render(), renderExportInfo(), text;
   }
   $("exportNew").addEventListener("click", async () => {
@@ -170,7 +188,7 @@
   });
   $("exportAll").addEventListener("click", async () => {
     let data = await browser.runtime.sendMessage({ type: "allData" });
-    download(`chinese-brain-all-${today()}.tsv`, buildClaudeExport(data.words, data.logs, 0), "text/tab-separated-values;charset=utf-8");
+    download(`chinese-brain-all-${today()}.tsv`, buildClaudeExport(data.words, data.logs, 0, data.saved), "text/tab-separated-values;charset=utf-8");
   });
   $("backup").addEventListener("click", async () => {
     let all = await browser.storage.local.get(null);

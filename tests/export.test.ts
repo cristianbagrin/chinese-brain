@@ -64,3 +64,23 @@ test('weekly export: only my status changes since the last export', () => {
   assert.deepEqual(byWord['刪'].slice(1, 3), ['-', 'K']); // removed this week
   assert.ok(!byWord['來回']); // added and removed again: nothing to report
 });
+
+test('saved example sentences ride along in the export', () => {
+  const now = Date.now();
+  const since = now - 7 * 86400000;
+  const words: WordRecord[] = [{ w: '颱風', s: 'known', added: 1, updated: 1, hist: [{ t: 1, s: 'known' }], looks: 0, ctx: [], p: 'tái fēng', g: 'typhoon' }];
+  const saved = {
+    颱風: [
+      { zh: '颱風快登陸了。', en: 'The typhoon is about to make landfall.', at: now - 1000 },
+      { zh: '舊的句子。', en: 'Old one.', at: since - 1000 },
+    ],
+    捷運: [{ zh: '我搭捷運上班。', en: 'I take the MRT to work.', at: now - 500 }],
+  };
+  const out = buildClaudeExport(words, [], since, saved);
+  const rows = out.split('\n').filter((l) => l && !l.startsWith('#') && !l.startsWith('word\t')).map((r) => r.split('\t'));
+  const byWord = Object.fromEntries(rows.map((r) => [r[0], r]));
+  assert.equal(byWord['颱風'][8], '颱風快登陸了。 — The typhoon is about to make landfall.');
+  assert.deepEqual(byWord['颱風'].slice(1, 3), ['K', 'K']); // no status change, there for the sentence
+  assert.equal(byWord['捷運'][8], '我搭捷運上班。 — I take the MRT to work.');
+  assert.equal(rows.length, 2);
+});

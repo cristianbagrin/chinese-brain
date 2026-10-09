@@ -359,10 +359,10 @@ Do not summarize, skip or merge lines, and add no commentary. Skip music without
     return s === 400 && /API key/i.test(msg) ? new GeminiError("Gemini rejected the API key. Copy it again from aistudio.google.com/apikey.", 401) : s === 403 ? new GeminiError(`Gemini refused the request (403): ${msg}`, s) : s === 404 ? new GeminiError("This Gemini model is not available for your key. Pick another one in Settings.", s) : s === 429 ? new GeminiError("Gemini rate limit or free quota reached (429). Wait a minute, or pick another model in Settings.", s) : s === 503 || s === 500 || s === 504 ? new GeminiError(`Gemini's servers are busy right now (${s}). This is on Google's side and passes; try again in a few minutes.`, s) : new GeminiError(`Gemini (HTTP ${s}): ${msg}`, s);
   }
   var sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  async function generate(key, model, parts, generationConfig) {
-    let res;
+  async function generate(key, model, parts, generationConfig, onText) {
+    let id = encodeURIComponent(model.replace(/^models\//, "")), res;
     try {
-      res = await fetch(`${API}/models/${encodeURIComponent(model.replace(/^models\//, ""))}:generateContent`, {
+      res = await fetch(`${API}/models/${id}:${onText ? "streamGenerateContent?alt=sse" : "generateContent"}`, {
         method: "POST",
         headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
         body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig })
@@ -371,10 +371,37 @@ Do not summarize, skip or merge lines, and add no commentary. Skip music without
       throw new GeminiError("Could not reach Gemini. Check your connection.", 0);
     }
     if (!res.ok) throw await errorFor(res);
-    let data = await res.json();
-    if (data.promptFeedback?.blockReason) throw new GeminiError(`Gemini blocked the request (${data.promptFeedback.blockReason}).`, 400);
-    let cand = data.candidates?.[0];
-    return { text: (cand?.content?.parts ?? []).filter((p) => !p.thought).map((p) => p.text ?? "").join(""), finish: cand?.finishReason ?? "" };
+    let text = "", finish = "", take = (data) => {
+      if (data.promptFeedback?.blockReason) throw new GeminiError(`Gemini blocked the request (${data.promptFeedback.blockReason}).`, 400);
+      let cand = data.candidates?.[0];
+      text += (cand?.content?.parts ?? []).filter((p) => !p.thought).map((p) => p.text ?? "").join(""), finish = cand?.finishReason ?? finish;
+    };
+    if (!onText || !res.body || !/event-stream/i.test(res.headers.get("content-type") ?? "")) {
+      let data = await res.json();
+      for (let d of Array.isArray(data) ? data : [data]) take(d);
+      return onText?.(text), { text, finish };
+    }
+    let reader = res.body.pipeThrough(new TextDecoderStream()).getReader(), buf = "";
+    try {
+      for (; ; ) {
+        let { value, done } = await reader.read();
+        if (done) break;
+        buf += value;
+        let cut;
+        for (; (cut = buf.indexOf(`
+
+`)) >= 0; ) {
+          let block = buf.slice(0, cut);
+          buf = buf.slice(cut + 2);
+          for (let line of block.split(`
+`)) line.startsWith("data:") && take(JSON.parse(line.slice(5)));
+        }
+        onText(text);
+      }
+    } catch (e) {
+      throw e instanceof GeminiError ? e : new GeminiError("The connection to Gemini dropped.", 0);
+    }
+    return { text, finish };
   }
   async function fallbackModels(key, chosen) {
     let tag = key.slice(-6), { gemModels } = await browser.storage.local.get("gemModels"), ids = gemModels && gemModels.tag === tag && Date.now() - gemModels.at < 864e5 ? gemModels.ids : void 0;
@@ -387,13 +414,13 @@ Do not summarize, skip or merge lines, and add no commentary. Skip music without
     let rank = (id) => (/preview|exp/.test(id) ? 2 : 0) + (/lite/.test(id) ? 1 : 0) + (/flash/.test(id) ? 0 : 4);
     return ids.filter((id) => id !== chosen && /flash/.test(id)).sort((a, b) => rank(a) - rank(b)).slice(0, 2);
   }
-  async function generateSturdy(key, model, parts, config) {
+  async function generateSturdy(key, model, parts, config, onText) {
     let models = [model, ...await fallbackModels(key, model)], last;
     for (let m of models) {
       let cfg = config, retried = !1;
       for (let attempt = 0; attempt < 3; attempt++)
         try {
-          return { ...await generate(key, m, parts, cfg), model: m };
+          return { ...await generate(key, m, parts, cfg, onText), model: m };
         } catch (e) {
           last = e;
           let st = e instanceof GeminiError ? e.status : 0;
@@ -444,16 +471,27 @@ Do not summarize, skip or merge lines, and add no commentary. Skip music without
     let cacheKey = "gem:" + videoId, cached = (await browser.storage.local.get(cacheKey))[cacheKey];
     if (cached && (Array.isArray(cached) ? cached.length : cached.lines.length))
       return Array.isArray(cached) ? { lines: cached, translated: !1, model } : { ...cached, model };
-    let n = Number.isFinite(duration) && duration > 300 * 1.25 ? Math.ceil(duration / 300) : 1, clips = Array.from({ length: n }, (_, i) => ({ start: i * 300, end: Math.min(duration, (i + 1) * 300) })), partKey = (i) => `gemc:${videoId}:${i}/${n}`, stored = await browser.storage.local.get(clips.map((_, i) => partKey(i))), parts = clips.map((_, i) => stored[partKey(i)]), errors = [], used = model, report = () => progress({ done: parts.filter(Boolean).length, total: n, lines: parts.flatMap((p) => p?.lines ?? []).sort((a, b) => a.start - b.start), model: used }), config = { responseMimeType: "application/json", responseSchema: LINES_SCHEMA, maxOutputTokens: 65536, temperature: 0.2, mediaResolution: "MEDIA_RESOLUTION_LOW" }, work = async (i) => {
+    let n = Number.isFinite(duration) && duration > 300 * 1.25 ? Math.ceil(duration / 300) : 1, clips = Array.from({ length: n }, (_, i) => ({ start: i * 300, end: Math.min(duration, (i + 1) * 300) })), partKey = (i) => `gemc:${videoId}:${i}/${n}`, stored = await browser.storage.local.get(clips.map((_, i) => partKey(i))), parts = clips.map((_, i) => stored[partKey(i)]), errors = [], used = model, reached = clips.map((_, i) => parts[i] ? 1 : 0), pct = () => Number.isFinite(duration) && duration > 0 ? clips.reduce((sum, c, i) => sum + reached[i] * (c.end - c.start), 0) / duration : void 0, report = () => progress({
+      done: parts.filter(Boolean).length,
+      total: n,
+      lines: parts.flatMap((p) => p?.lines ?? []).sort((a, b) => a.start - b.start),
+      model: used,
+      pct: pct()
+    }), lastTick = 0, streamed = (i) => (text) => {
+      let times = [...text.matchAll(/"start"\s*:\s*"?([\d:.]+)/g)];
+      if (!times.length) return;
+      let clip = clips[i], t = seconds(times[times.length - 1][1]);
+      n > 1 && t < clip.start - 5 && (t += clip.start), reached[i] = Math.max(reached[i], Math.min(0.99, (t - clip.start) / Math.max(1, clip.end - clip.start))), Date.now() - lastTick > 700 && (lastTick = Date.now(), progress({ done: parts.filter(Boolean).length, total: n, lines: [], model: used, pct: pct() }));
+    }, config = { responseMimeType: "application/json", responseSchema: LINES_SCHEMA, maxOutputTokens: 65536, temperature: 0.2, mediaResolution: "MEDIA_RESOLUTION_LOW" }, work = async (i) => {
       let clip = clips[i], video = { file_data: { file_uri: `https://www.youtube.com/watch?v=${videoId}` } };
       n > 1 && (video.video_metadata = { start_offset: `${clip.start}s`, end_offset: `${Math.ceil(clip.end)}s` });
       try {
-        let out = await generateSturdy(key, used, [video, { text: subtitlePrompt(n > 1 ? clip : void 0) }], config);
+        let out = await generateSturdy(key, used, [video, { text: subtitlePrompt(n > 1 ? clip : void 0) }], config, streamed(i));
         used = out.model;
         let reply = parseReply(out.text);
         if (!reply.lines.length && !out.text.trim()) throw new Error(`Gemini sent an empty reply${out.finish ? ` (${out.finish})` : ""}.`);
         let part = { lines: n > 1 ? placeChunk(reply.lines, clip) : reply.lines, spoken: reply.spoken };
-        parts[i] = part, await browser.storage.local.set({ [partKey(i)]: part }), report();
+        parts[i] = part, reached[i] = 1, await browser.storage.local.set({ [partKey(i)]: part }), report();
       } catch (e) {
         errors.push(String(e instanceof Error ? e.message : e));
       }
@@ -484,9 +522,11 @@ Do not summarize, skip or merge lines, and add no commentary. Skip music without
     return out.sort((a, b) => ver(b.id) - ver(a.id) || preview(a.id) - preview(b.id) || tier(a.id) - tier(b.id) || a.id.localeCompare(b.id));
   }
   async function geminiExamples(word, gloss, key, model, want = 2) {
-    let cacheKey = "gex:" + word, got = await browser.storage.local.get([cacheKey, "exh:" + word]), cached = got[cacheKey] ?? [], hidden = new Set(got["exh:" + word] ?? []), prompt = `Write two natural example sentences that a Taiwanese person would really say or write, using the word \u300C${word}\u300D (${gloss}).
-Use Traditional Chinese characters as used in Taiwan and Taiwan vocabulary (not Mainland forms, no \u5152\u5316).
-The first sentence: 12 to 25 characters, showing typical everyday usage. The second: short and simple, under 12 characters.
+    let cacheKey = "gex:" + word, got = await browser.storage.local.get([cacheKey, "exh:" + word]), cached = got[cacheKey] ?? [], hidden = new Set(got["exh:" + word] ?? []), prompt = `Write ${want === 1 ? "one natural example sentence" : "two natural example sentences"} that a Taiwanese person would really say or write, using the word \u300C${word}\u300D (${gloss}).
+- Show the word's most common meaning, in a concrete, everyday situation (not textbook, not a definition).
+- Besides \u300C${word}\u300D, use only common, everyday words, so a learner can understand everything else.
+- Traditional Chinese characters and Taiwan vocabulary (not Mainland forms, no \u5152\u5316).
+- ${want === 1 ? "About 10 to 22 characters." : "The first 12 to 25 characters; the second short and simple, under 12."}
 Give each with a natural American English translation.`, schema = {
       type: "OBJECT",
       properties: { examples: { type: "ARRAY", items: { type: "OBJECT", properties: { zh: { type: "STRING" }, en: { type: "STRING" } }, required: ["zh", "en"] } } },
@@ -597,6 +637,82 @@ Give each with a natural American English translation.`, schema = {
     return out;
   }
 
+  // src/background/examples.ts
+  var ExampleBank = class {
+    /** Sentences written for each word. */
+    own = /* @__PURE__ */ new Map();
+    pool = [];
+    /** word -> pool sentences that use it (built in the background after start-up). */
+    index = /* @__PURE__ */ new Map();
+    load(tsv) {
+      let seen = /* @__PURE__ */ new Set();
+      for (let line of tsv.split(`
+`)) {
+        let [w, zh, en] = line.split("	");
+        if (!w || !zh) continue;
+        let list = this.own.get(w);
+        list ? list.push([zh, en ?? ""]) : this.own.set(w, [[zh, en ?? ""]]), seen.has(zh) || (seen.add(zh), this.pool.push([zh, en ?? ""]));
+      }
+    }
+    /** Split every sentence into words, a few hundred at a time, without hogging the browser. */
+    buildIndex(d, done) {
+      let i = 0, step = () => {
+        let end = Math.min(this.pool.length, i + 400);
+        for (; i < end; i++) {
+          let words = new Set(d.segment(this.pool[i][0]).filter((t) => t.word && CJK.test(t.text)).map((t) => t.word));
+          for (let w of words) {
+            let ids = this.index.get(w);
+            ids ? ids.push(i) : this.index.set(w, [i]);
+          }
+        }
+        i < this.pool.length ? setTimeout(step, 0) : done?.();
+      };
+      step();
+    }
+    /**
+     * The best two sentences for `word`. `extra` are sentences Gemini wrote for it; `hidden`
+     * the ones you deleted; `saved` the ones you saved (always shown first).
+     */
+    pick(word, d, statusOf, extra = [], hidden = /* @__PURE__ */ new Set(), saved = /* @__PURE__ */ new Set(), n = 2) {
+      let cands = /* @__PURE__ */ new Map(), add = (zh, en, base) => {
+        !hidden.has(zh) && !cands.has(zh) && cands.set(zh, { zh, en, base });
+      };
+      for (let [zh, en] of this.own.get(word) ?? []) add(zh, en, 2);
+      for (let [zh, en] of extra) add(zh, en, 2);
+      for (let id of (this.index.get(word) ?? []).slice(0, 80)) add(this.pool[id][0], this.pool[id][1], 0);
+      let scored = [...cands.values()].map((c) => {
+        let toks = d.segment(c.zh);
+        return { ...c, toks, score: (saved.has(c.zh) ? 100 : c.base) + readability(toks, word, d, statusOf) };
+      });
+      scored.sort((a, b) => b.score - a.score);
+      let out = [];
+      for (let c of scored) out.length < n && !out.some((o) => similar(o.zh, c.zh)) && out.push(c);
+      for (let c of scored) out.length < n && !out.includes(c) && out.push(c);
+      return out.map(({ zh, en, toks }) => ({ zh, en, toks }));
+    }
+  };
+  function similar(a, b) {
+    let A = new Set(a.replace(/[，。！？、\s]/g, "")), B = new Set(b.replace(/[，。！？、\s]/g, "")), common = 0;
+    for (let c of A) B.has(c) && common++;
+    return common / Math.min(A.size, B.size) > 0.6;
+  }
+  function readability(toks, word, d, statusOf) {
+    let unknown = 0, counted = /* @__PURE__ */ new Set();
+    for (let t of toks) {
+      if (!t.word || !CJK.test(t.text) || t.word === word || counted.has(t.word)) continue;
+      counted.add(t.word);
+      let st = statusOf(t.word);
+      if (st !== "known")
+        if (st === "learning") unknown += 0.4;
+        else {
+          let zipf = Math.max(0, ...d.get(t.word).map((e) => e.zipf));
+          unknown += zipf >= 60 ? 0.2 : zipf >= 52 ? 0.6 : 1;
+        }
+    }
+    let len = toks.reduce((n, t) => n + t.text.length, 0), lenCost = len > 26 ? (len - 26) * 0.08 : len < 6 ? 0.6 : 0;
+    return -0.6 * unknown - lenCost;
+  }
+
   // src/background/youtube.ts
   var cache = /* @__PURE__ */ new Map();
   function startCaptionCapture() {
@@ -635,19 +751,12 @@ Give each with a natural American English translation.`, schema = {
   // src/background/index.ts
   var dict, dictReady = loadDictionary(), store = new Store(), storeReady = store.load();
   startCaptionCapture();
-  var examples = /* @__PURE__ */ new Map(), examplesReady = loadExamples();
+  var examples = new ExampleBank(), examplesReady = loadExamples();
   async function loadExamples() {
     try {
       let res = await fetch(browser.runtime.getURL("data/examples.tsv.gz"));
       if (!res.ok) return;
-      let text = await new Response(res.body.pipeThrough(new DecompressionStream("gzip"))).text();
-      for (let line of text.split(`
-`)) {
-        let [w, zh, en] = line.split("	");
-        if (!w || !zh) continue;
-        let list = examples.get(w);
-        list ? list.push([zh, en ?? ""]) : examples.set(w, [[zh, en ?? ""]]);
-      }
+      examples.load(await new Response(res.body.pipeThrough(new DecompressionStream("gzip"))).text()), dictReady.then((d) => examples.buildIndex(d));
     } catch {
     }
   }
@@ -699,7 +808,11 @@ Give each with a natural American English translation.`, schema = {
       case "ytCached":
         return Promise.resolve(sender.tab?.id != null ? cachedCaptions(sender.tab.id) : []);
       case "allData":
-        return storeReady.then(async () => ({ words: [...store.words.values()], logs: await store.allLogs() }));
+        return storeReady.then(async () => {
+          let all = await browser.storage.local.get(null), saved = {};
+          for (let [k, v] of Object.entries(all)) k.startsWith("sav:") && (saved[k.slice(4)] = v);
+          return { words: [...store.words.values()], logs: await store.allLogs(), saved };
+        });
       case "importWords":
         return storeReady.then(() => store.importWords(any.words, any.mode ?? "merge"));
       case "insertCSS":
@@ -751,6 +864,11 @@ Give each with a natural American English translation.`, schema = {
           let word = String(any.word), zh = String(any.zh), hidden = [.../* @__PURE__ */ new Set([...got["exh:" + word] ?? [], zh])], gex = (got["gex:" + word] ?? []).filter(([x]) => x !== zh);
           return browser.storage.local.set({ ["exh:" + word]: hidden, ["gex:" + word]: gex }).then(() => !0);
         });
+      case "saveSentence":
+        return browser.storage.local.get("sav:" + any.word).then((got) => {
+          let key = "sav:" + any.word, list = (got[key] ?? []).filter((x) => x.zh !== any.zh);
+          return any.on && list.push({ zh: String(any.zh), en: String(any.en ?? ""), at: Date.now() }), (list.length ? browser.storage.local.set({ [key]: list }) : browser.storage.local.remove(key)).then(() => !0);
+        });
       case "forgetContext":
         return storeReady.then(() => store.removeContext(String(any.word), String(any.text))).then(() => !0);
       case "geminiExamples":
@@ -765,8 +883,8 @@ Give each with a natural American English translation.`, schema = {
         });
       case "wordInfo":
         return Promise.all([dictReady, storeReady, examplesReady]).then(async ([d]) => {
-          let word = any.word, py = String(any.py ?? ""), chars = breakdown(d, word, py.split(/\s+/)), record = store.words.get(word) ?? null, got = await browser.storage.local.get(["gex:" + word, "exh:" + word]), hidden = new Set(got["exh:" + word] ?? []), gex = got["gex:" + word] ?? [], ex = [...examples.get(word) ?? [], ...gex].filter(([zh]) => !hidden.has(zh)).slice(0, 2).map(([zh, en]) => ({ zh, en, toks: d.segment(zh) })), seen = (record?.ctx ?? []).map((c) => ({ c, zh: cleanSentence(c.text.split(" \u2014 ")[0], word) })).filter(({ zh }) => usefulSentence(zh, word)).slice(0, 3).map(({ c, zh }) => ({ ...c, zh, toks: d.segment(zh) }));
-          return { chars, examples: ex, seen, record };
+          let word = any.word, py = String(any.py ?? ""), chars = breakdown(d, word, py.split(/\s+/)), record = store.words.get(word) ?? null, got = await browser.storage.local.get(["gex:" + word, "exh:" + word, "sav:" + word]), saved = (got["sav:" + word] ?? []).map((x) => x.zh), hidden = new Set(got["exh:" + word] ?? []), gex = got["gex:" + word] ?? [], ex = examples.pick(word, d, (w) => store.words.get(w)?.s, gex, hidden, new Set(saved)), seen = (record?.ctx ?? []).map((c) => ({ c, zh: cleanSentence(c.text.split(" \u2014 ")[0], word) })).filter(({ zh }) => usefulSentence(zh, word)).slice(0, 3).map(({ c, zh }) => ({ ...c, zh, toks: d.segment(zh) }));
+          return { chars, examples: ex, seen, record, saved };
         });
       case "glosses":
         return dictReady.then((d) => {

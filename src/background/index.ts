@@ -1,12 +1,13 @@
 import { cleanSentence, usefulSentence } from '../shared/context.ts';
 import { Dictionary } from '../shared/dict.ts';
-import type { Entry } from '../shared/types.ts';
+import type { Entry, SavedSentence } from '../shared/types.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import { DEFAULT_SETTINGS, normalizeSettings, type Msg, type Settings, type Status, type WordRecord } from '../shared/types.ts';
 import { shortGloss, Store } from './store.ts';
 import { geminiExamples, geminiModels, geminiTranscribe } from './gemini.ts';
 import { checkAzure, ttsAudio } from './speech.ts';
 import { translateLines } from './translate.ts';
+import { ExampleBank } from './examples.ts';
 import { cachedCaptions, startCaptionCapture } from './youtube.ts';
 
 declare const __TEST__: boolean;
@@ -18,22 +19,17 @@ const storeReady = store.load();
 
 startCaptionCapture();
 
-/** Example sentences: word -> [[sentence, English], ...]. */
-const examples = new Map<string, [string, string][]>();
+/** Example sentences, and the best two for a word and for you. */
+const examples = new ExampleBank();
 const examplesReady = loadExamples();
 
 async function loadExamples() {
   try {
     const res = await fetch(browser.runtime.getURL('data/examples.tsv.gz'));
     if (!res.ok) return;
-    const text = await new Response(res.body!.pipeThrough(new DecompressionStream('gzip'))).text();
-    for (const line of text.split('\n')) {
-      const [w, zh, en] = line.split('\t');
-      if (!w || !zh) continue;
-      const list = examples.get(w);
-      if (list) list.push([zh, en ?? '']);
-      else examples.set(w, [[zh, en ?? '']]);
-    }
+    examples.load(await new Response(res.body!.pipeThrough(new DecompressionStream('gzip'))).text());
+    // Which sentences use which words: built quietly once the dictionary is there.
+    void dictReady.then((d) => examples.buildIndex(d));
   } catch {
     /* no example file in this build */
   }
@@ -106,7 +102,12 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
     case 'ytCached':
       return Promise.resolve(sender.tab?.id != null ? cachedCaptions(sender.tab.id) : []);
     case 'allData':
-      return storeReady.then(async () => ({ words: [...store.words.values()], logs: await store.allLogs() }));
+      return storeReady.then(async () => {
+        const all = await browser.storage.local.get(null);
+        const saved: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(all)) if (k.startsWith('sav:')) saved[k.slice(4)] = v;
+        return { words: [...store.words.values()], logs: await store.allLogs(), saved };
+      });
     case 'importWords':
       return storeReady.then(() => store.importWords(any.words as never, (any.mode as 'merge' | 'replace') ?? 'merge'));
     case 'insertCSS':
@@ -173,6 +174,14 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
         const gex = ((got['gex:' + word] as [string, string][] | undefined) ?? []).filter(([x]) => x !== zh);
         return browser.storage.local.set({ ['exh:' + word]: hidden, ['gex:' + word]: gex }).then(() => true);
       });
+    case 'saveSentence':
+      // Save (or unsave) an example sentence; saved ones go into the export for Claude.
+      return browser.storage.local.get('sav:' + any.word).then((got) => {
+        const key = 'sav:' + any.word;
+        const list = ((got[key] as SavedSentence[] | undefined) ?? []).filter((x) => x.zh !== any.zh);
+        if (any.on) list.push({ zh: String(any.zh), en: String(any.en ?? ''), at: Date.now() });
+        return (list.length ? browser.storage.local.set({ [key]: list }) : browser.storage.local.remove(key)).then(() => true);
+      });
     case 'forgetContext':
       return storeReady.then(() => store.removeContext(String(any.word), String(any.text))).then(() => true);
     case 'geminiExamples':
@@ -197,20 +206,18 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
         const record = store.words.get(word) ?? null;
         // Sentences come pre-split into words so every word in the card is clickable and colored.
         // Bundled sentences first, then ones Gemini wrote on request; minus any you deleted.
-        const got = await browser.storage.local.get(['gex:' + word, 'exh:' + word]);
+        const got = await browser.storage.local.get(['gex:' + word, 'exh:' + word, 'sav:' + word]);
+        const saved = ((got['sav:' + word] as SavedSentence[] | undefined) ?? []).map((x) => x.zh);
         const hidden = new Set((got['exh:' + word] as string[] | undefined) ?? []);
         const gex = (got['gex:' + word] as [string, string][] | undefined) ?? [];
-        const ex = [...(examples.get(word) ?? []), ...gex]
-          .filter(([zh]) => !hidden.has(zh))
-          .slice(0, 2)
-          .map(([zh, en]) => ({ zh, en, toks: d.segment(zh) }));
+        const ex = examples.pick(word, d, (w) => store.words.get(w)?.s, gex, hidden, new Set(saved));
         // Where you met it: the last two real sentences, without page-title clutter.
         const seen = (record?.ctx ?? [])
           .map((c) => ({ c, zh: cleanSentence(c.text.split(' — ')[0], word) }))
           .filter(({ zh }) => usefulSentence(zh, word))
           .slice(0, 3)
           .map(({ c, zh }) => ({ ...c, zh, toks: d.segment(zh) }));
-        return { chars, examples: ex, seen, record };
+        return { chars, examples: ex, seen, record, saved };
       });
     case 'glosses':
       return dictReady.then((d) => {

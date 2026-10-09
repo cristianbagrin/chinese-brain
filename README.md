@@ -9,7 +9,8 @@ shared by everything:
   you), the meanings on one line, a top-down breakdown (臺北市 → 臺北 → 臺, 北;
   then 市), two natural Taiwan-Mandarin example sentences, and the last two
   sentences you met the word in (page-title clutter trimmed). Every sentence has
-  a play button and a × to delete it; Gemini can write new examples on request.
+  a play button and a × to delete it, and examples a ★ to save them for your
+  export; Gemini can write new examples on request.
   The card never covers the word or the pointer (below, above, or beside it),
   waits while the pointer travels to it, and stays put while you scroll. Hover
   any word inside it for a small hint with its meaning; the card's shortcuts
@@ -33,16 +34,15 @@ shared by everything:
 Free and local. No accounts, no servers. Gemini and Azure are optional, and
 only used with your own keys.
 
-## Install (no build needed)
+## Install
 
-1. Download this repository (green **Code** button → *Download ZIP*, then
-   unzip), or `git clone` it.
-2. In Firefox or Zen, open `about:debugging#/runtime/this-firefox`.
-3. Click **Load Temporary Add-on…** and pick `dist/manifest.json`.
+From Firefox Add-ons (once the listing is live): search for **Chinese Brain**
+and click *Add to Firefox*. It needs Firefox 140 or newer (or Zen).
 
-A temporary add-on stays until the browser restarts. For a permanent install,
-sign it as an unlisted add-on on [AMO](https://addons.mozilla.org/developers/)
-(free): run `npm run zip` and upload `release/*.zip` as "On your own".
+To try a version from this repository instead: download it (green **Code**
+button → *Download ZIP*, then unzip) or `git clone` it, open
+`about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and
+pick `dist/manifest.json`. A temporary add-on stays until the browser restarts.
 
 ## Keys
 
@@ -76,8 +76,8 @@ Toolbar button → **Word list & export**.
 - **Import** your `known-words.txt` (`word⇥K|L⇥date`). K → Known, L → Learning,
   and the dates are kept.
 - **Export what's new** (or **Copy what's new**) gives one small TSV: words
-  whose status you changed since the last export. Only your own stamps count;
-  lookups don't.
+  whose status you changed since the last export, plus example sentences you
+  saved (`saved` column). Only your own stamps count; lookups don't.
 - **Backup / restore** saves everything as JSON, for moving to another
   browser or computer.
 

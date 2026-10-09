@@ -20,6 +20,8 @@ export interface TranscribeProgress {
   total: number;
   lines: GeminiLine[];
   model: string;
+  /** How far through the video Gemini has written, 0..1 (from the timestamps it has sent). */
+  pct?: number;
 }
 
 const API = 'https://generativelanguage.googleapis.com/v1beta';
@@ -95,11 +97,21 @@ async function errorFor(res: Response): Promise<GeminiError> {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** One generateContent call; returns the model's text (thoughts left out). */
-async function generate(key: string, model: string, parts: unknown[], generationConfig: Record<string, unknown>): Promise<{ text: string; finish: string }> {
+/**
+ * One generateContent call; returns the model's text (thoughts left out). With `onText`
+ * the reply is streamed and onText sees the text so far as it grows (for real progress).
+ */
+async function generate(
+  key: string,
+  model: string,
+  parts: unknown[],
+  generationConfig: Record<string, unknown>,
+  onText?: (text: string) => void,
+): Promise<{ text: string; finish: string }> {
+  const id = encodeURIComponent(model.replace(/^models\//, ''));
   let res: Response;
   try {
-    res = await fetch(`${API}/models/${encodeURIComponent(model.replace(/^models\//, ''))}:generateContent`, {
+    res = await fetch(`${API}/models/${id}:${onText ? 'streamGenerateContent?alt=sse' : 'generateContent'}`, {
       method: 'POST',
       headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ role: 'user', parts }], generationConfig }),
@@ -108,14 +120,45 @@ async function generate(key: string, model: string, parts: unknown[], generation
     throw new GeminiError('Could not reach Gemini. Check your connection.', 0);
   }
   if (!res.ok) throw await errorFor(res);
-  const data = (await res.json()) as GenerateResponse;
-  if (data.promptFeedback?.blockReason) throw new GeminiError(`Gemini blocked the request (${data.promptFeedback.blockReason}).`, 400);
-  const cand = data.candidates?.[0];
-  const text = (cand?.content?.parts ?? [])
-    .filter((p) => !p.thought)
-    .map((p) => p.text ?? '')
-    .join('');
-  return { text, finish: cand?.finishReason ?? '' };
+  let text = '';
+  let finish = '';
+  const take = (data: GenerateResponse) => {
+    if (data.promptFeedback?.blockReason) throw new GeminiError(`Gemini blocked the request (${data.promptFeedback.blockReason}).`, 400);
+    const cand = data.candidates?.[0];
+    text += (cand?.content?.parts ?? [])
+      .filter((p) => !p.thought)
+      .map((p) => p.text ?? '')
+      .join('');
+    finish = cand?.finishReason ?? finish;
+  };
+  if (!onText || !res.body || !/event-stream/i.test(res.headers.get('content-type') ?? '')) {
+    // Plain JSON (also what a stream call returns without SSE: an array of chunks).
+    const data = (await res.json()) as GenerateResponse | GenerateResponse[];
+    for (const d of Array.isArray(data) ? data : [data]) take(d);
+    onText?.(text);
+    return { text, finish };
+  }
+  // Server-sent events: "data: {json}" blocks separated by blank lines.
+  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buf = '';
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += value;
+      let cut: number;
+      while ((cut = buf.indexOf('\n\n')) >= 0) {
+        const block = buf.slice(0, cut);
+        buf = buf.slice(cut + 2);
+        for (const line of block.split('\n')) if (line.startsWith('data:')) take(JSON.parse(line.slice(5)) as GenerateResponse);
+      }
+      onText(text);
+    }
+  } catch (e) {
+    if (e instanceof GeminiError) throw e;
+    throw new GeminiError('The connection to Gemini dropped.', 0);
+  }
+  return { text, finish };
 }
 
 /** Other models this key can use, cached for a day, best fallbacks first (stable flash, then lite). */
@@ -148,6 +191,7 @@ async function generateSturdy(
   model: string,
   parts: unknown[],
   config: Record<string, unknown>,
+  onText?: (text: string) => void,
 ): Promise<{ text: string; finish: string; model: string }> {
   const models = [model, ...(await fallbackModels(key, model))];
   let last: unknown;
@@ -156,7 +200,7 @@ async function generateSturdy(
     let retried = false;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        return { ...(await generate(key, m, parts, cfg)), model: m };
+        return { ...(await generate(key, m, parts, cfg, onText)), model: m };
       } catch (e) {
         last = e;
         const st = e instanceof GeminiError ? e.status : 0;
@@ -266,8 +310,30 @@ export async function geminiTranscribe(
   const parts: ({ lines: GeminiLine[]; spoken: string } | undefined)[] = clips.map((_, i) => stored[partKey(i)] as { lines: GeminiLine[]; spoken: string } | undefined);
   const errors: string[] = [];
   let used = model;
+  // Real progress: each part counts by how far into its stretch of video the written lines reach.
+  const reached: number[] = clips.map((_, i) => (parts[i] ? 1 : 0));
+  const pct = () => (Number.isFinite(duration) && duration > 0 ? clips.reduce((sum, c, i) => sum + reached[i] * (c.end - c.start), 0) / duration : undefined);
   const report = () =>
-    progress({ done: parts.filter(Boolean).length, total: n, lines: parts.flatMap((p) => p?.lines ?? []).sort((a, b) => a.start - b.start), model: used });
+    progress({
+      done: parts.filter(Boolean).length,
+      total: n,
+      lines: parts.flatMap((p) => p?.lines ?? []).sort((a, b) => a.start - b.start),
+      model: used,
+      pct: pct(),
+    });
+  let lastTick = 0;
+  const streamed = (i: number) => (text: string) => {
+    const times = [...text.matchAll(/"start"\s*:\s*"?([\d:.]+)/g)];
+    if (!times.length) return;
+    const clip = clips[i];
+    let t = seconds(times[times.length - 1][1]);
+    if (n > 1 && t < clip.start - 5) t += clip.start; // counted from the clip's start
+    reached[i] = Math.max(reached[i], Math.min(0.99, (t - clip.start) / Math.max(1, clip.end - clip.start)));
+    if (Date.now() - lastTick > 700) {
+      lastTick = Date.now();
+      progress({ done: parts.filter(Boolean).length, total: n, lines: [], model: used, pct: pct() });
+    }
+  };
 
   const config = { responseMimeType: 'application/json', responseSchema: LINES_SCHEMA, maxOutputTokens: 65536, temperature: 0.2, mediaResolution: 'MEDIA_RESOLUTION_LOW' };
   const work = async (i: number) => {
@@ -275,12 +341,13 @@ export async function geminiTranscribe(
     const video: Record<string, unknown> = { file_data: { file_uri: `https://www.youtube.com/watch?v=${videoId}` } };
     if (n > 1) video.video_metadata = { start_offset: `${clip.start}s`, end_offset: `${Math.ceil(clip.end)}s` };
     try {
-      const out = await generateSturdy(key, used, [video, { text: subtitlePrompt(n > 1 ? clip : undefined) }], config);
+      const out = await generateSturdy(key, used, [video, { text: subtitlePrompt(n > 1 ? clip : undefined) }], config, streamed(i));
       used = out.model; // a fallback that worked keeps going for the remaining parts
       const reply = parseReply(out.text);
       if (!reply.lines.length && !out.text.trim()) throw new Error(`Gemini sent an empty reply${out.finish ? ` (${out.finish})` : ''}.`);
       const part = { lines: n > 1 ? placeChunk(reply.lines, clip) : reply.lines, spoken: reply.spoken };
       parts[i] = part;
+      reached[i] = 1;
       await browser.storage.local.set({ [partKey(i)]: part });
       report();
     } catch (e) {
@@ -347,9 +414,11 @@ export async function geminiExamples(word: string, gloss: string, key: string, m
   const got = await browser.storage.local.get([cacheKey, 'exh:' + word]);
   const cached = (got[cacheKey] as [string, string][] | undefined) ?? [];
   const hidden = new Set((got['exh:' + word] as string[] | undefined) ?? []);
-  const prompt = `Write two natural example sentences that a Taiwanese person would really say or write, using the word 「${word}」 (${gloss}).
-Use Traditional Chinese characters as used in Taiwan and Taiwan vocabulary (not Mainland forms, no 兒化).
-The first sentence: 12 to 25 characters, showing typical everyday usage. The second: short and simple, under 12 characters.
+  const prompt = `Write ${want === 1 ? 'one natural example sentence' : 'two natural example sentences'} that a Taiwanese person would really say or write, using the word 「${word}」 (${gloss}).
+- Show the word's most common meaning, in a concrete, everyday situation (not textbook, not a definition).
+- Besides 「${word}」, use only common, everyday words, so a learner can understand everything else.
+- Traditional Chinese characters and Taiwan vocabulary (not Mainland forms, no 兒化).
+- ${want === 1 ? 'About 10 to 22 characters.' : 'The first 12 to 25 characters; the second short and simple, under 12.'}
 Give each with a natural American English translation.`;
   const schema = {
     type: 'OBJECT',

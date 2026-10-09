@@ -64,6 +64,13 @@ export interface WordRecord {
   ctx: Context[];
 }
 
+/** An example sentence saved from the card ("I want to learn this one"). */
+export interface SavedSentence {
+  zh: string;
+  en: string;
+  at: number;
+}
+
 export type LogEvent =
   | { at: number; k: 'look'; w: string; src: 'yt' | 'web'; url?: string }
   | { at: number; k: 'status'; w: string; s: Status | null; from?: Status | null }

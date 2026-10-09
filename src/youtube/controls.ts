@@ -36,6 +36,7 @@ export class Controls {
   private panelRoot: ShadowRoot;
   private panel: HTMLElement;
   private toast: HTMLElement;
+  private pill: HTMLElement;
   private hideTimer: ReturnType<typeof setTimeout> | undefined;
   private toastTimer: ReturnType<typeof setTimeout> | undefined;
   private lastKey = '';
@@ -68,7 +69,9 @@ export class Controls {
     this.panel.hidden = true;
     this.toast = el('div', 'toast');
     this.toast.hidden = true;
-    this.panelRoot.append(s2, this.panel, this.toast);
+    this.pill = el('div', 'pill');
+    this.pill.hidden = true;
+    this.panelRoot.append(s2, this.panel, this.toast, this.pill);
 
     for (const t of ['click', 'mousedown', 'mouseup', 'dblclick', 'pointerdown', 'pointerup']) {
       this.switchHost.addEventListener(t, (e) => e.stopPropagation());
@@ -106,9 +109,10 @@ export class Controls {
     const s = state.settings;
     this.switchHost.hidden = !this.subs.videoActive;
     this.switchRoot.querySelector('.switch')?.classList.toggle('on', s.ytEnabled);
+    this.updatePill();
     if (this.panel.hidden) return;
     // Rebuild only when something shown changed (a rebuild mid-click would swallow the click).
-    const key = JSON.stringify([s, this.subs.counts, this.subs.looping, this.subs.shadowing, this.subs.trackName, this.subs.hasTranslation, this.subs.transcript.open, this.subs.gemini]);
+    const key = JSON.stringify([s, this.subs.counts, this.subs.looping, this.subs.shadowing, this.subs.trackName, this.subs.hasTranslation, this.subs.transcript.open, this.subs.gemini, this.subs.captionState]);
     if (key === this.lastKey) return;
     this.lastKey = key;
 
@@ -132,12 +136,6 @@ export class Controls {
     const save = (settings: Record<string, unknown>) => browser.runtime.sendMessage({ type: 'saveSettings', settings });
 
     this.panel.replaceChildren(
-      el(
-        'div',
-        'head',
-        el('span', 'title', '中文腦'),
-        el('span', 'state', s.ytEnabled ? 'subtitles on' : 'subtitles off · click the switch'),
-      ),
       total
         ? el(
             'div',
@@ -170,9 +168,13 @@ export class Controls {
     );
   }
 
-  /** No Chinese track: offer the opt-in Gemini transcript. */
+  /** Captions not here (yet): say which, and offer Gemini when the video has none. */
   private noCaptions() {
     const g = this.subs.gemini;
+    const cs = this.subs.captionState;
+    if (g.state !== 'working' && (cs === 'finding' || cs === 'loading')) {
+      return el('div', 'cov', el('div', 'note', cs === 'finding' ? 'Looking for captions…' : `Loading the Chinese captions (${this.subs.trackName})…`));
+    }
     const box = el('div', 'cov', el('div', '', 'No Chinese captions for this video.'));
     if (!state.settings.geminiKey) {
       box.append(el('div', 'note', 'Add a Gemini API key in Settings to get subtitles for videos like this one.'));
@@ -196,11 +198,28 @@ export class Controls {
     return box;
   }
 
+  /** Gemini's progress, from the timestamps it has written so far (so the percentage is real). */
   private progressText() {
     const g = this.subs.gemini;
-    return g.total && g.total > 1
-      ? `Making subtitles with Gemini… ${g.done ?? 0} of ${g.total} parts done (lines appear as parts finish).`
-      : 'Making subtitles with Gemini… this takes about a minute.';
+    if (g.pct == null) return el('div', '', 'Making subtitles with Gemini…');
+    const pct = Math.round(g.pct * 100);
+    const bar = el('div', 'gbar', el('i'));
+    (bar.firstChild as HTMLElement).style.width = `${pct}%`;
+    return el(
+      'div',
+      '',
+      el('div', '', pct ? `Making subtitles with Gemini: ${pct}%` : 'Gemini is listening to the video…'),
+      bar,
+      g.total && g.total > 1 ? el('div', '', `Long video: ${g.total} parts, lines appear as each part finishes.`) : null,
+    );
+  }
+
+  /** A small pill on the video while Gemini works, so progress shows without opening the panel. */
+  private updatePill() {
+    const g = this.subs.gemini;
+    const on = g.state === 'working';
+    this.pill.hidden = !on;
+    if (on) this.pill.textContent = g.pct ? `Gemini subtitles ${Math.round(g.pct * 100)}%` : 'Gemini subtitles…';
   }
 
   /** Gemini still working on, or stuck on, some parts of a video that already shows lines. */

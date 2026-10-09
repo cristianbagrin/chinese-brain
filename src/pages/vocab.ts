@@ -107,7 +107,7 @@ async function exportNew(): Promise<string> {
   words = data.words;
   logs = data.logs;
   const { lastExportAt } = await browser.storage.local.get('lastExportAt');
-  const text = buildClaudeExport(words, logs, (lastExportAt as number) ?? 0);
+  const text = buildClaudeExport(words, logs, (lastExportAt as number) ?? 0, data.saved);
   await browser.storage.local.set({ lastExportAt: at });
   render();
   renderExportInfo();
@@ -123,7 +123,7 @@ $('copyNew').addEventListener('click', async () => {
 });
 $('exportAll').addEventListener('click', async () => {
   const data = await browser.runtime.sendMessage({ type: 'allData' });
-  download(`chinese-brain-all-${today()}.tsv`, buildClaudeExport(data.words, data.logs, 0), 'text/tab-separated-values;charset=utf-8');
+  download(`chinese-brain-all-${today()}.tsv`, buildClaudeExport(data.words, data.logs, 0, data.saved), 'text/tab-separated-values;charset=utf-8');
 });
 
 $('backup').addEventListener('click', async () => {

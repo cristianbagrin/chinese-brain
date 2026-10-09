@@ -317,9 +317,6 @@
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
 }
 .panel[hidden], .toast[hidden] { display: none; }
-.head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
-.title { font-weight: 600; font-size: 14px; }
-.state { font-size: 12px; color: var(--text3); }
 .big { font-size: 13px; color: var(--text2); }
 .big b { font-size: 26px; font-weight: 600; color: var(--known); margin-right: 4px; }
 .bar { display: flex; height: 6px; margin: 8px 0 6px; border-radius: 3px; overflow: hidden; background: var(--line); }
@@ -365,6 +362,23 @@
 .note { margin-top: 6px; font-size: 12px; color: var(--text3); }
 .note.err { color: var(--fresh); }
 .gem { margin-top: 8px; }
+
+/* Gemini progress: a bar in the panel and a pill on the video. */
+.gbar { height: 4px; margin: 6px 0 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.gbar i { display: block; height: 100%; background: var(--known); transition: width 0.4s ease; }
+.pill {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 71;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(22, 24, 50, 0.75);
+  color: #fff;
+  font: 500 12px/1.3 var(--sans);
+  pointer-events: none;
+}
+.pill[hidden] { display: none; }
 `;
 
   // src/youtube/controls.ts
@@ -392,6 +406,7 @@
     panelRoot;
     panel;
     toast;
+    pill;
     hideTimer;
     toastTimer;
     lastKey = "";
@@ -406,7 +421,7 @@
         e.stopPropagation(), browser.runtime.sendMessage({ type: "saveSettings", settings: { ytEnabled: !state.settings.ytEnabled } });
       }), this.panelHost = document.createElement("div"), this.panelHost.dataset.cbOwn = "", this.panelRoot = this.panelHost.attachShadow({ mode });
       let s2 = document.createElement("style");
-      s2.textContent = controls_default, this.panel = el("div", "panel"), this.panel.hidden = !0, this.toast = el("div", "toast"), this.toast.hidden = !0, this.panelRoot.append(s2, this.panel, this.toast);
+      s2.textContent = controls_default, this.panel = el("div", "panel"), this.panel.hidden = !0, this.toast = el("div", "toast"), this.toast.hidden = !0, this.pill = el("div", "pill"), this.pill.hidden = !0, this.panelRoot.append(s2, this.panel, this.toast, this.pill);
       for (let t of ["click", "mousedown", "mouseup", "dblclick", "pointerdown", "pointerup"])
         this.switchHost.addEventListener(t, (e) => e.stopPropagation()), this.panelHost.addEventListener(t, (e) => e.stopPropagation());
       let enter = () => {
@@ -425,8 +440,8 @@
     }
     render() {
       let s = state.settings;
-      if (this.switchHost.hidden = !this.subs.videoActive, this.switchRoot.querySelector(".switch")?.classList.toggle("on", s.ytEnabled), this.panel.hidden) return;
-      let key = JSON.stringify([s, this.subs.counts, this.subs.looping, this.subs.shadowing, this.subs.trackName, this.subs.hasTranslation, this.subs.transcript.open, this.subs.gemini]);
+      if (this.switchHost.hidden = !this.subs.videoActive, this.switchRoot.querySelector(".switch")?.classList.toggle("on", s.ytEnabled), this.updatePill(), this.panel.hidden) return;
+      let key = JSON.stringify([s, this.subs.counts, this.subs.looping, this.subs.shadowing, this.subs.trackName, this.subs.hasTranslation, this.subs.transcript.open, this.subs.gemini, this.subs.captionState]);
       if (key === this.lastKey) return;
       this.lastKey = key;
       let c = this.subs.counts, total = c.known + c.learning + c.fresh + c.new, pct = (n) => total ? Math.round(n / total * 100) : 0, seg = (k, label) => {
@@ -439,12 +454,6 @@
         }), b;
       }, save = (settings) => browser.runtime.sendMessage({ type: "saveSettings", settings });
       this.panel.replaceChildren(
-        el(
-          "div",
-          "head",
-          el("span", "title", "\u4E2D\u6587\u8166"),
-          el("span", "state", s.ytEnabled ? "subtitles on" : "subtitles off \xB7 click the switch")
-        ),
         total ? el(
           "div",
           "cov",
@@ -474,9 +483,12 @@
         el("div", "keys", "A \u25C0 previous line \xB7 S replay \xB7 D next line \u25B6")
       );
     }
-    /** No Chinese track: offer the opt-in Gemini transcript. */
+    /** Captions not here (yet): say which, and offer Gemini when the video has none. */
     noCaptions() {
-      let g = this.subs.gemini, box = el("div", "cov", el("div", "", "No Chinese captions for this video."));
+      let g = this.subs.gemini, cs = this.subs.captionState;
+      if (g.state !== "working" && (cs === "finding" || cs === "loading"))
+        return el("div", "cov", el("div", "note", cs === "finding" ? "Looking for captions\u2026" : `Loading the Chinese captions (${this.subs.trackName})\u2026`));
+      let box = el("div", "cov", el("div", "", "No Chinese captions for this video."));
       if (!state.settings.geminiKey)
         return box.append(el("div", "note", "Add a Gemini API key in Settings to get subtitles for videos like this one.")), box;
       if (g.state === "working")
@@ -491,9 +503,23 @@
         )
       ), g.state === "error" && box.append(el("div", "note err", g.error ?? "Something went wrong.")), box;
     }
+    /** Gemini's progress, from the timestamps it has written so far (so the percentage is real). */
     progressText() {
       let g = this.subs.gemini;
-      return g.total && g.total > 1 ? `Making subtitles with Gemini\u2026 ${g.done ?? 0} of ${g.total} parts done (lines appear as parts finish).` : "Making subtitles with Gemini\u2026 this takes about a minute.";
+      if (g.pct == null) return el("div", "", "Making subtitles with Gemini\u2026");
+      let pct = Math.round(g.pct * 100), bar = el("div", "gbar", el("i"));
+      return bar.firstChild.style.width = `${pct}%`, el(
+        "div",
+        "",
+        el("div", "", pct ? `Making subtitles with Gemini: ${pct}%` : "Gemini is listening to the video\u2026"),
+        bar,
+        g.total && g.total > 1 ? el("div", "", `Long video: ${g.total} parts, lines appear as each part finishes.`) : null
+      );
+    }
+    /** A small pill on the video while Gemini works, so progress shows without opening the panel. */
+    updatePill() {
+      let g = this.subs.gemini, on = g.state === "working";
+      this.pill.hidden = !on, on && (this.pill.textContent = g.pct ? `Gemini subtitles ${Math.round(g.pct * 100)}%` : "Gemini subtitles\u2026");
     }
     /** Gemini still working on, or stuck on, some parts of a video that already shows lines. */
     geminiStatus() {
@@ -880,6 +906,9 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     /** Gemini fallback for videos with no Chinese captions. */
     gemini = { state: "idle" };
     checkedGemini = !1;
+    /** The player's caption list was read for this video. */
+    tracksRead = !1;
+    kickTimers = [];
     constructor(popup) {
       this.popup = popup, this.host = document.createElement("div"), this.host.dataset.cbOwn = "", this.host.hidden = !0, this.root = this.host.attachShadow({ mode: "closed" });
       let style = document.createElement("style");
@@ -928,7 +957,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       }));
     }
     reset() {
-      clearTimeout(this.fallbackTimer), this.domObserver?.disconnect(), this.domObserver = void 0, this.live = !1, this.tracks = [], this.src = void 0, this.cues = [], this.tokens = [], this.trans = [], this.notes = [], this.trCues = void 0, this.idx = -2, this.requestedTr = !1, this.gemini = { state: "idle" }, this.checkedGemini = !1, this.counts = { fresh: 0, learning: 0, known: 0, new: 0 }, this.clickStamped = "", this.pendingCues = void 0, clearTimeout(this.shadowTimer), this.loop = !1, this.shadow = !1, this.host.hidden = !0, document.documentElement.classList.remove("cb-subs-on"), this.transcript?.refresh();
+      clearTimeout(this.fallbackTimer), this.kickTimers.forEach(clearTimeout), this.kickTimers = [], this.tracksRead = !1, this.domObserver?.disconnect(), this.domObserver = void 0, this.live = !1, this.tracks = [], this.src = void 0, this.cues = [], this.tokens = [], this.trans = [], this.notes = [], this.trCues = void 0, this.idx = -2, this.requestedTr = !1, this.gemini = { state: "idle" }, this.checkedGemini = !1, this.counts = { fresh: 0, learning: 0, known: 0, new: 0 }, this.clickStamped = "", this.pendingCues = void 0, clearTimeout(this.shadowTimer), this.loop = !1, this.shadow = !1, this.host.hidden = !0, document.documentElement.classList.remove("cb-subs-on"), this.transcript?.refresh();
     }
     findTracks() {
       let p = this.player();
@@ -947,7 +976,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         name: String(t.name?.simpleText ?? t.name?.runs?.[0]?.text ?? t.languageCode),
         vssId: t.vssId ? String(t.vssId) : void 0,
         isTranslatable: !!t.isTranslatable
-      }));
+      })), this.tracksRead = !0;
       let zh = pickChinese(this.tracks);
       if (!zh) {
         if (this.controls.mount(), !this.checkedGemini) {
@@ -959,11 +988,30 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         }
         return;
       }
-      this.src = zh, this.setTrack(zh);
+      this.src = zh;
       let id = this.videoId;
-      clearTimeout(this.fallbackTimer), this.fallbackTimer = setTimeout(() => {
+      this.kickTimers.forEach(clearTimeout), this.kickTimers = [0, 1e3, 2e3, 3200, 5e3, 8e3, 12e3].map(
+        (ms, k) => setTimeout(() => {
+          if (!(this.videoId !== id || this.cues.length || this.src !== zh)) {
+            if (k < 2) return this.setTrack(zh);
+            this.restartCaptions(), setTimeout(() => this.videoId === id && !this.cues.length && this.setTrack(zh), 600);
+          }
+        }, ms)
+      ), clearTimeout(this.fallbackTimer), this.fallbackTimer = setTimeout(() => {
         !this.cues.length && this.videoId === id && this.startDomFallback();
-      }, 6e3);
+      }, 9e3);
+    }
+    /** Like switching YouTube's CC off and on: reload the player's captions module. */
+    restartCaptions() {
+      let p = this.player();
+      try {
+        p?.unloadModule?.("captions"), p?.loadModule?.("captions");
+      } catch {
+      }
+    }
+    /** What the panel says about captions: still looking, loading the Chinese track, none, or ready. */
+    get captionState() {
+      return this.cues.length ? "ready" : this.src ? "loading" : this.tracksRead ? "none" : "finding";
     }
     /** Ask the player to show a track; it downloads it and we capture the body. */
     setTrack(track, tlang) {
@@ -1077,7 +1125,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     }
     /** Parts of a long video arrive one by one: show them as they come. */
     onGeminiProgress(p) {
-      p.videoId !== this.videoId || this.gemini.state !== "working" || (this.gemini = { state: "working", done: p.done, total: p.total }, p.lines.length && p.lines.length !== this.cues.length && this.applyGemini(p.lines, !1), this.controls.render());
+      p.videoId !== this.videoId || this.gemini.state !== "working" || (this.gemini = { state: "working", done: p.done, total: p.total, pct: p.pct }, p.lines.length && p.lines.length !== this.cues.length && this.applyGemini(p.lines, !1), this.controls.render());
     }
     applyGemini(lines, translated) {
       this.src = { languageCode: "zh-TW", name: translated ? "Gemini (translated into Mandarin)" : "Gemini transcript" }, this.requestedTr = !0, this.trCues = lines.map((l) => ({ start: l.start, end: l.end, text: l.en })), this.trans = lines.map((l) => l.en), this.setSource(lines.map((l) => ({ start: l.start, end: l.end, text: l.zh })));
@@ -1137,7 +1185,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     resize() {
       let p = document.getElementById("movie_player");
       if (!p) return;
-      let h2 = p.clientHeight || 480, fs = Math.max(14, Math.min(60, state.settings.subFontSize * h2 / 720));
+      let h2 = p.clientHeight || 480, w2 = p.clientWidth || 854, scale = Math.max(h2 / 720, w2 / 1280), fs = Math.max(14, Math.min(60, state.settings.subFontSize * scale, h2 / 7));
       this.host.style.setProperty("--fs", `${fs}px`);
     }
     tick(now) {
@@ -1806,6 +1854,11 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 .say:hover { color: var(--link); background: var(--bg2); }
 .say svg { width: 0.95em; height: 0.95em; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
 .say svg path { fill: none; }
+.save { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; vertical-align: -0.2em; border-radius: 50%; color: var(--text3); }
+.save:hover { color: var(--link); background: var(--bg2); }
+.save svg { width: 0.9em; height: 0.9em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; }
+.save.on { color: var(--link); }
+.save.on svg { fill: currentColor; }
 .del { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.2em; height: 1.2em; margin-left: 0.1em; vertical-align: -0.15em; border-radius: 50%; color: var(--text3); font-size: 0.95em; line-height: 1; opacity: 0; transition: opacity 0.12s; }
 .ex li:hover .del { opacity: 1; }
 .del:hover { color: var(--fresh); background: var(--bg2); }
@@ -1879,19 +1932,16 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
   border-radius: 6px;
   background: var(--text);
   color: #fff;
-  font: 13px/1.35 var(--sans);
+  font: 12px/1.3 var(--sans);
   box-shadow: 0 3px 10px rgba(27, 29, 58, 0.25);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.hint.large { font-size: 15px; }
+.hint.large { font-size: 13px; }
 .hint[hidden] { display: none; }
-.hint .hg, .hint.st-fresh { box-shadow: inset 3px 0 0 var(--fresh), 0 3px 10px rgba(27, 29, 58, 0.25); }
-.hint.st-learning { box-shadow: inset 3px 0 0 var(--learning), 0 3px 10px rgba(27, 29, 58, 0.25); }
-.hint.st-known { box-shadow: inset 3px 0 0 var(--known), 0 3px 10px rgba(27, 29, 58, 0.25); }
-.hint .hpy { overflow: hidden; text-overflow: ellipsis; }
-.hint .hpy { color: #c9cdf0; font-size: 0.92em; }
+.hint .hg, .hint .hpy { overflow: hidden; text-overflow: ellipsis; }
+.hint .hpy { color: #c9cdf0; font-size: 0.82em; }
 `;
 
   // src/content/popup.ts
@@ -2162,7 +2212,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       if (key === "i") return this.images(m.word);
       let want = key === "1" ? "fresh" : key === "2" ? "learning" : key === "3" ? "known" : null, cur = state.status(m.word), next = want && cur === want ? null : want;
       if (next === cur) return;
-      next ? state.statuses.set(m.word, next) : state.statuses.delete(m.word), stampSound(next), this.hint.classList.remove("st-fresh", "st-learning", "st-known"), next && this.hint.classList.add("st-" + next);
+      next ? state.statuses.set(m.word, next) : state.statuses.delete(m.word), stampSound(next);
       let ctx2 = target.sentence ? { text: target.sentence, url: location.href, title: document.title, at: Date.now(), src: this.opts.src } : void 0;
       browser.runtime.sendMessage({ type: "setStatus", word: m.word, status: next, entry: m.entries[0], ctx: ctx2 });
     }
@@ -2174,9 +2224,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       let m = matches.find((x) => x.text === q) ?? matches[0];
       if (!m) return this.hideHint();
       let e = m.entries[0], hint = this.hint;
-      hint.classList.toggle("large", state.settings.cardSize === "large"), hint.classList.remove("st-fresh", "st-learning", "st-known");
-      let st = state.status(m.word);
-      st && hint.classList.add("st-" + st), hint.replaceChildren(
+      hint.classList.toggle("large", state.settings.cardSize === "large"), hint.replaceChildren(
         h("div", { class: "hg" }, mainSense(e)),
         state.settings.pinyin ? h("div", { class: "hpy" }, numberedToMarked(e.tw || e.py, !1)) : ""
       ), hint.hidden = !1;
@@ -2190,12 +2238,13 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     async writeExamples(word, want) {
       this.gemState = { word, busy: !0 }, this.render();
       let res = await browser.runtime.sendMessage({ type: "geminiExamples", word, want });
-      if (this.current?.word === word) {
+      this.infoCache.delete(word), this.gemState = res.ok ? void 0 : { word, busy: !1, error: res.error };
+      let cur = this.current;
+      if (cur?.word === word) {
         if (res.ok) {
-          this.gemState = void 0, this.infoCache.delete(word);
-          let e0 = this.current.entries[0];
-          this.info = await this.wordInfo(word, e0.tw || e0.py);
-        } else this.gemState = { word, busy: !1, error: res.error };
+          let e0 = cur.entries[0];
+          if (this.info = await this.wordInfo(word, e0.tw || e0.py), this.current?.word !== word) return;
+        }
         this.render();
       }
     }
@@ -2223,15 +2272,32 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       let c = this.card, b = c.getBoundingClientRect(), vh = window.innerHeight;
       b.bottom > vh - 8 && (c.style.top = `${Math.max(8, vh - 8 - b.height)}px`);
     }
+    /** Save an example sentence to learn it: it goes into the export for Claude. */
+    saveButton(word, zh, en) {
+      let on = !!this.info?.saved?.includes(zh), b = h("button", { class: `save${on ? " on" : ""}`, title: on ? "Saved for your export (click to unsave)" : "Save this sentence to learn it", "aria-label": "Save this sentence" }), NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
+      svg.setAttribute("viewBox", "0 0 16 16");
+      let path = document.createElementNS(NS, "path");
+      return path.setAttribute("d", "M4 2.5h8v11l-4-3-4 3z"), svg.append(path), b.append(svg), b.addEventListener("click", (e) => {
+        e.stopPropagation(), e.preventDefault();
+        let next = !this.info?.saved?.includes(zh);
+        this.info && (this.info = { ...this.info, saved: next ? [...this.info.saved ?? [], zh] : (this.info.saved ?? []).filter((x) => x !== zh) }), next && stampSound("known"), this.infoCache.delete(word), this.render(), browser.runtime.sendMessage({ type: "saveSentence", word, zh, en, on: next });
+      }), b;
+    }
     /** A small × that deletes a sentence from this word's card for good. */
     deleteButton(word, msg) {
       let b = h("button", { class: "del", title: "Delete this sentence", "aria-label": "Delete this sentence" }, "\xD7");
-      return b.addEventListener("click", async (e) => {
-        e.stopPropagation(), b.closest("li")?.classList.add("gone"), await browser.runtime.sendMessage({ ...msg, word }), this.infoCache.delete(word);
-        let cur = this.current;
-        if (cur?.word !== word) return;
-        let e0 = cur.entries[0];
-        this.info = await this.wordInfo(word, e0.tw || e0.py), this.render();
+      return b.addEventListener("click", (e) => {
+        e.stopPropagation(), e.preventDefault(), this.info && this.current?.word === word && (this.info = {
+          ...this.info,
+          examples: msg.type === "hideExample" ? this.info.examples.filter((x) => x.zh !== msg.zh) : this.info.examples,
+          seen: msg.type === "forgetContext" ? this.info.seen.filter((c) => c.text !== msg.text) : this.info.seen
+        }, this.render()), this.infoCache.delete(word), browser.runtime.sendMessage({ ...msg, word }).then(async () => {
+          this.infoCache.delete(word);
+          let cur = this.current;
+          if (cur?.word !== word) return;
+          let e0 = cur.entries[0];
+          this.info = await this.wordInfo(word, e0.tw || e0.py), this.current?.word === word && this.render();
+        });
       }), b;
     }
     /** A small speaker button that reads a sentence aloud. */
@@ -2346,6 +2412,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
                 null,
                 h("span", { class: "zh" }, ...this.sentence(x.toks, m.word)),
                 this.sayButton(x.zh),
+                this.saveButton(m.word, x.zh, x.en),
                 this.deleteButton(m.word, { type: "hideExample", zh: x.zh }),
                 h("span", { class: "en" }, x.en)
               )

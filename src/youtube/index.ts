@@ -58,8 +58,11 @@ export class YouTubeSubs {
   private shadowTimer: ReturnType<typeof setTimeout> | undefined;
   private videoTitle = '';
   /** Gemini fallback for videos with no Chinese captions. */
-  gemini: { state: 'idle' | 'working' | 'error'; error?: string; done?: number; total?: number } = { state: 'idle' };
+  gemini: { state: 'idle' | 'working' | 'error'; error?: string; done?: number; total?: number; pct?: number } = { state: 'idle' };
   private checkedGemini = false;
+  /** The player's caption list was read for this video. */
+  private tracksRead = false;
+  private kickTimers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(popup: Popup) {
     this.popup = popup;
@@ -175,6 +178,9 @@ export class YouTubeSubs {
 
   private reset() {
     clearTimeout(this.fallbackTimer);
+    this.kickTimers.forEach(clearTimeout);
+    this.kickTimers = [];
+    this.tracksRead = false;
     this.domObserver?.disconnect();
     this.domObserver = undefined;
     this.live = false;
@@ -218,6 +224,7 @@ export class YouTubeSubs {
       vssId: t.vssId ? String(t.vssId) : undefined,
       isTranslatable: !!t.isTranslatable,
     }));
+    this.tracksRead = true;
     const zh = pickChinese(this.tracks);
     if (!zh) {
       this.controls.mount();
@@ -234,12 +241,41 @@ export class YouTubeSubs {
       return;
     }
     this.src = zh;
-    this.setTrack(zh);
     const id = this.videoId;
+    // The player ignores a track request while its captions module is still starting, and
+    // nothing asked again: captions only came after toggling YouTube's CC by hand. So ask a
+    // few times; from the third try, restart the captions module first (what the CC toggle does).
+    this.kickTimers.forEach(clearTimeout);
+    this.kickTimers = [0, 1000, 2000, 3200, 5000, 8000, 12000].map((ms, k) =>
+      setTimeout(() => {
+        if (this.videoId !== id || this.cues.length || this.src !== zh) return;
+        if (k < 2) return this.setTrack(zh);
+        this.restartCaptions();
+        setTimeout(() => this.videoId === id && !this.cues.length && this.setTrack(zh), 600);
+      }, ms),
+    );
     clearTimeout(this.fallbackTimer);
     this.fallbackTimer = setTimeout(() => {
       if (!this.cues.length && this.videoId === id) this.startDomFallback();
-    }, 6000);
+    }, 9000);
+  }
+
+  /** Like switching YouTube's CC off and on: reload the player's captions module. */
+  private restartCaptions() {
+    const p = this.player();
+    try {
+      p?.unloadModule?.('captions');
+      p?.loadModule?.('captions');
+    } catch {
+      /* not this player version */
+    }
+  }
+
+  /** What the panel says about captions: still looking, loading the Chinese track, none, or ready. */
+  get captionState(): 'finding' | 'loading' | 'none' | 'ready' {
+    if (this.cues.length) return 'ready';
+    if (this.src) return 'loading';
+    return this.tracksRead ? 'none' : 'finding';
   }
 
   /** Ask the player to show a track; it downloads it and we capture the body. */
@@ -426,9 +462,9 @@ export class YouTubeSubs {
   }
 
   /** Parts of a long video arrive one by one: show them as they come. */
-  private onGeminiProgress(p: { videoId: string; done: number; total: number; lines: GeminiLine[] }) {
+  private onGeminiProgress(p: { videoId: string; done: number; total: number; lines: GeminiLine[]; pct?: number }) {
     if (p.videoId !== this.videoId || this.gemini.state !== 'working') return;
-    this.gemini = { state: 'working', done: p.done, total: p.total };
+    this.gemini = { state: 'working', done: p.done, total: p.total, pct: p.pct };
     if (p.lines.length && p.lines.length !== this.cues.length) this.applyGemini(p.lines, false);
     this.controls.render();
   }
@@ -523,8 +559,12 @@ export class YouTubeSubs {
   private resize() {
     const p = document.getElementById('movie_player');
     if (!p) return;
+    // Scale with the player as if it were 16:9: YouTube makes the player shorter for wide
+    // videos (2.39:1 films), and sizing by height alone made those captions tiny.
     const h = p.clientHeight || 480;
-    const fs = Math.max(14, Math.min(60, (state.settings.subFontSize * h) / 720));
+    const w = p.clientWidth || 854;
+    const scale = Math.max(h / 720, w / 1280);
+    const fs = Math.max(14, Math.min(60, state.settings.subFontSize * scale, h / 7));
     this.host.style.setProperty('--fs', `${fs}px`);
   }
 

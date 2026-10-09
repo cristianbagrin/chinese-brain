@@ -21,6 +21,8 @@ interface WordInfo {
   chars: { ch: string; py: string; gloss: string; depth: number }[];
   examples: (Sentence & { en: string })[];
   seen: (Sentence & Context)[];
+  /** Example sentences you saved (for the export). */
+  saved: string[];
 }
 
 type H = HTMLElement;
@@ -465,8 +467,6 @@ export class Popup {
     if (next) state.statuses.set(m.word, next);
     else state.statuses.delete(m.word);
     stampSound(next);
-    this.hint.classList.remove('st-fresh', 'st-learning', 'st-known');
-    if (next) this.hint.classList.add('st-' + next);
     const ctx: Context | undefined = target.sentence
       ? { text: target.sentence, url: location.href, title: document.title, at: Date.now(), src: this.opts.src }
       : undefined;
@@ -484,9 +484,6 @@ export class Popup {
     const e = m.entries[0];
     const hint = this.hint;
     hint.classList.toggle('large', state.settings.cardSize === 'large');
-    hint.classList.remove('st-fresh', 'st-learning', 'st-known');
-    const st = state.status(m.word);
-    if (st) hint.classList.add('st-' + st);
     hint.replaceChildren(
       h('div', { class: 'hg' }, mainSense(e)),
       state.settings.pinyin ? h('div', { class: 'hpy' }, numberedToMarked(e.tw || e.py, false)) : '',
@@ -510,14 +507,17 @@ export class Popup {
   private async writeExamples(word: string, want: number) {
     this.gemState = { word, busy: true };
     this.render();
+    // The request finishes in the background even if you move on; the result waits for you.
     const res: { ok?: boolean; error?: string } = await browser.runtime.sendMessage({ type: 'geminiExamples', word, want });
-    if (this.current?.word !== word) return;
+    this.infoCache.delete(word);
+    this.gemState = res.ok ? undefined : { word, busy: false, error: res.error };
+    const cur = this.current;
+    if (cur?.word !== word) return;
     if (res.ok) {
-      this.gemState = undefined;
-      this.infoCache.delete(word);
-      const e0 = this.current.entries[0];
+      const e0 = cur.entries[0];
       this.info = await this.wordInfo(word, e0.tw || e0.py);
-    } else this.gemState = { word, busy: false, error: res.error };
+      if (this.current?.word !== word) return;
+    }
     this.render();
   }
 
@@ -570,19 +570,54 @@ export class Popup {
     if (b.bottom > vh - 8) c.style.top = `${Math.max(8, vh - 8 - b.height)}px`;
   }
 
-  /** A small × that deletes a sentence from this word's card for good. */
-  private deleteButton(word: string, msg: Record<string, unknown>): H {
-    const b = h('button', { class: 'del', title: 'Delete this sentence', 'aria-label': 'Delete this sentence' }, '×');
-    b.addEventListener('click', async (e) => {
+  /** Save an example sentence to learn it: it goes into the export for Claude. */
+  private saveButton(word: string, zh: string, en: string): H {
+    const on = !!this.info?.saved?.includes(zh);
+    const b = h('button', { class: `save${on ? ' on' : ''}`, title: on ? 'Saved for your export (click to unsave)' : 'Save this sentence to learn it', 'aria-label': 'Save this sentence' });
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16');
+    const path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', 'M4 2.5h8v11l-4-3-4 3z');
+    svg.append(path);
+    b.append(svg);
+    b.addEventListener('click', (e) => {
       e.stopPropagation();
-      (b.closest('li') as H | null)?.classList.add('gone');
-      await browser.runtime.sendMessage({ ...msg, word });
+      e.preventDefault();
+      const next = !this.info?.saved?.includes(zh);
+      if (this.info) this.info = { ...this.info, saved: next ? [...(this.info.saved ?? []), zh] : (this.info.saved ?? []).filter((x) => x !== zh) };
+      if (next) stampSound('known');
       this.infoCache.delete(word);
-      const cur = this.current;
-      if (cur?.word !== word) return;
-      const e0 = cur.entries[0];
-      this.info = await this.wordInfo(word, e0.tw || e0.py);
       this.render();
+      void browser.runtime.sendMessage({ type: 'saveSentence', word, zh, en, on: next });
+    });
+    return b;
+  }
+
+  /** A small × that deletes a sentence from this word's card for good. */
+  private deleteButton(word: string, msg: { type: 'hideExample'; zh: string } | { type: 'forgetContext'; text: string }): H {
+    const b = h('button', { class: 'del', title: 'Delete this sentence', 'aria-label': 'Delete this sentence' }, '×');
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      // Gone at once; the stored lists follow (and the card refills from them).
+      if (this.info && this.current?.word === word) {
+        this.info = {
+          ...this.info,
+          examples: msg.type === 'hideExample' ? this.info.examples.filter((x) => x.zh !== msg.zh) : this.info.examples,
+          seen: msg.type === 'forgetContext' ? this.info.seen.filter((c) => c.text !== msg.text) : this.info.seen,
+        };
+        this.render();
+      }
+      this.infoCache.delete(word);
+      void browser.runtime.sendMessage({ ...msg, word }).then(async () => {
+        this.infoCache.delete(word);
+        const cur = this.current;
+        if (cur?.word !== word) return;
+        const e0 = cur.entries[0];
+        this.info = await this.wordInfo(word, e0.tw || e0.py);
+        if (this.current?.word === word) this.render();
+      });
     });
     return b;
   }
@@ -756,6 +791,7 @@ export class Popup {
                 null,
                 h('span', { class: 'zh' }, ...this.sentence(x.toks, m.word)),
                 this.sayButton(x.zh),
+                this.saveButton(m.word, x.zh, x.en),
                 this.deleteButton(m.word, { type: 'hideExample', zh: x.zh }),
                 h('span', { class: 'en' }, x.en),
               ),

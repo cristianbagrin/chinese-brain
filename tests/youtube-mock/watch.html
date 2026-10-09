@@ -31,8 +31,12 @@
     let i = 0;
     setInterval(() => (document.querySelector('.ytp-caption-segment').textContent = lines[i++ % lines.length]), 2000);
   }
+  // ?slowcc: like a real player whose captions module is still starting, track requests in the
+  // first 3 seconds are ignored (captions then only came after toggling CC by hand).
+  const bornAt = Date.now();
   p.setOption = (m, k, t) => {
     if (noFetch) return;
+    if (location.search.includes('slowcc') && Date.now() - bornAt < 3000) return;
     window.__setOption = (window.__setOption || []).concat([JSON.stringify(t)]);
     const tl = t.translationLanguage ? '&tlang=' + t.translationLanguage.languageCode : '';
     fetch('/api/timedtext?v=TEST&lang=' + t.languageCode + (t.kind ? '&kind=' + t.kind : '') + tl + '&fmt=json3&pot=xyz');

@@ -1,5 +1,5 @@
 import { dayKeyLocal } from './time.ts';
-import { STATUS_CODE, type LogEvent, type Status, type WordRecord } from './types.ts';
+import { STATUS_CODE, type LogEvent, type SavedSentence, type Status, type WordRecord } from './types.ts';
 
 const clean = (s: string | undefined) => (s ?? '').replace(/[\t\r\n]+/g, ' ').trim();
 const stamp = (t: number) => {
@@ -28,10 +28,10 @@ function duration(secs: number) {
 
 /**
  * The weekly export for Claude: one small TSV with the words whose status you
- * changed in the period (only your own stamps count; lookups don't). Status
- * codes match known-words.txt.
+ * changed in the period (only your own stamps count; lookups don't), plus the
+ * example sentences you saved in it. Status codes match known-words.txt.
  */
-export function buildClaudeExport(words: WordRecord[], logs: LogEvent[], since = 0): string {
+export function buildClaudeExport(words: WordRecord[], logs: LogEvent[], since = 0, saved: Record<string, SavedSentence[]> = {}): string {
   const now = Date.now();
   const evs = logs.filter((e) => e.at > since);
   const watches = evs.filter((e) => e.k === 'watch') as Extract<LogEvent, { k: 'watch' }>[];
@@ -53,6 +53,17 @@ export function buildClaudeExport(words: WordRecord[], logs: LogEvent[], since =
       rows.push({ w, now: cur, was, date: rec?.updated ?? now, rec });
     }
   }
+  // Sentences saved in the period, on their word's row (a word of its own if its status didn't change).
+  const savedNow = new Map<string, SavedSentence[]>();
+  for (const [w, list] of Object.entries(saved)) {
+    const fresh = list.filter((x) => x.at > since);
+    if (!fresh.length) continue;
+    savedNow.set(w, fresh);
+    if (!rows.some((r) => r.w === w)) {
+      const rec = byWord.get(w);
+      rows.push({ w, now: rec?.s ?? null, was: rec?.s ?? null, date: Math.max(...fresh.map((x) => x.at)), rec });
+    }
+  }
 
   const order = { K: 0, L: 1, F: 2, '-': 3 } as Record<string, number>;
   rows.sort((a, b) => order[code(a.now)] - order[code(b.now)] || a.date - b.date);
@@ -61,13 +72,23 @@ export function buildClaudeExport(words: WordRecord[], logs: LogEvent[], since =
     `# Chinese Brain export · ${stamp(now)} · ${since ? `since ${stamp(since)}` : 'everything so far'}`,
     '# Codes as in known-words.txt: K known, L learning, F fresh (met, not studied yet), - not in the list.',
     '# was = status before this period (- = new). Only status changes I made are listed.',
-    `# ${rows.length} words · ${watches.length} videos with subtitles (${duration(watches.reduce((n, e) => n + e.secs, 0))})`,
-    ['word', 'now', 'was', 'date', 'pinyin', 'meaning', 'sentence', 'source'].join('\t'),
+    `# ${rows.length} words · ${[...savedNow.values()].flat().length} saved sentences · ${watches.length} videos with subtitles (${duration(watches.reduce((n, e) => n + e.secs, 0))})`,
+    ['word', 'now', 'was', 'date', 'pinyin', 'meaning', 'sentence', 'source', 'saved'].join('\t'),
   ];
   for (const r of rows) {
     const c = r.rec?.ctx[0];
     lines.push(
-      [r.w, code(r.now), code(r.was), dayKeyLocal(r.date), r.rec?.p?.toLowerCase(), r.rec?.g, c?.text, c ? shortSource(c.url, c.t) : '']
+      [
+        r.w,
+        code(r.now),
+        code(r.was),
+        dayKeyLocal(r.date),
+        r.rec?.p?.toLowerCase(),
+        r.rec?.g,
+        c?.text,
+        c ? shortSource(c.url, c.t) : '',
+        (savedNow.get(r.w) ?? []).map((x) => (x.en ? `${x.zh} — ${x.en}` : x.zh)).join(' ‖ '),
+      ]
         .map((x) => clean(x))
         .join('\t'),
     );
