@@ -7,10 +7,10 @@ Copy each block into the matching field of the AMO Developer Hub.
 ```bash
 git pull
 npm ci
-npm run zip      # -> release/chinese_brain-1.0.0.zip      (the add-on)
+npm run zip      # -> release/chinese_brain-1.0.1.zip      (the add-on)
 ```
 
-Upload `chinese_brain-1.0.0.zip` under **Submit a New Add-on → On this site**.
+Upload `chinese_brain-1.0.1.zip` under **Submit a New Add-on → On this site**.
 When asked "Do you need to submit source code?", answer **No**.
 
 ## 2. Listing
@@ -107,7 +107,7 @@ Some features send data to third-party services, only to perform the feature:
 Nothing else leaves your browser. Uninstalling the add-on deletes its data.
 ```
 
-## 4. Version notes (1.0.0)
+## 4. Version notes (1.0.1)
 
 ```
 First public release.

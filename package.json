@@ -1,6 +1,6 @@
 {
   "name": "chinese-brain",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Firefox extension for Taiwan Mandarin learners: YouTube dual subtitles + hover lookup on any page, one shared dictionary and word store.",
   "license": "UNLICENSED",
