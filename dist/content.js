@@ -1675,7 +1675,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 .w.st-fresh { background: var(--fresh-mark); }
 .w.st-learning { background: var(--learning-mark); }
 .w.st-known { background: var(--known-mark); }
-.ex .w.head { box-shadow: inset 0 -2px 0 var(--learning); }
+.ex .w.hw { box-shadow: inset 0 -2px 0 var(--learning); }
 .chars .w.c { font-size: 19px; padding: 0 2px; }
 .top { position: relative; }
 .back { all: unset; cursor: pointer; position: absolute; left: 6px; top: 6px; font-size: 13px; color: var(--text3); padding: 2px 5px; border-radius: 4px; }
@@ -1858,7 +1858,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         let text = t.trad ?? t.text;
         if (!t.word && !CJK.test(t.text)) return text;
         let el3 = this.word(text, t.text, t.word);
-        return (t.word === head || text === head) && el3.classList.add("head"), el3;
+        return (t.word === head || text === head) && el3.classList.add("hw"), el3;
       });
     }
     /** Plain text with its Chinese runs made clickable (definitions, measure words). */

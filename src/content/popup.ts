@@ -307,7 +307,7 @@ export class Popup {
       const text = t.trad ?? t.text;
       if (!t.word && !CJK.test(t.text)) return text;
       const el = this.word(text, t.text, t.word);
-      if (t.word === head || text === head) el.classList.add('head');
+      if (t.word === head || text === head) el.classList.add('hw');
       return el;
     });
   }

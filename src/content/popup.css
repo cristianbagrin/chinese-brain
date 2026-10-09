@@ -116,7 +116,7 @@
 .w.st-fresh { background: var(--fresh-mark); }
 .w.st-learning { background: var(--learning-mark); }
 .w.st-known { background: var(--known-mark); }
-.ex .w.head { box-shadow: inset 0 -2px 0 var(--learning); }
+.ex .w.hw { box-shadow: inset 0 -2px 0 var(--learning); }
 .chars .w.c { font-size: 19px; padding: 0 2px; }
 .top { position: relative; }
 .back { all: unset; cursor: pointer; position: absolute; left: 6px; top: 6px; font-size: 13px; color: var(--text3); padding: 2px 5px; border-radius: 4px; }
