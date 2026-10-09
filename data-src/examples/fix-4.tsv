@@ -245,3 +245,22 @@
 9616	dropword	bound morpheme, not used as a standalone word (only in 力氣, 努力, 盡力)
 9618	fix	羅馬帝國在最強盛的時候，領土涵蓋了整個地中海。	At its peak the Roman Empire's territory covered the whole Mediterranean.
 9635	fix	爸爸每天早上都先看股市行情，再決定要不要買股票。	Every morning my dad checks the stock market before deciding whether to buy shares.
+9652	fix	警察在路口執法，臨檢酒駕的駕駛。	The police enforce the law at the intersection, checking drivers for drunk driving.
+9656	fix	這場官司損害了公司的名譽，客戶接連解約。	The lawsuit damaged the company's reputation and clients cancelled one after another.
+9668	fix	抽菸不只危害自己，也危害身邊的人。	Smoking endangers not only yourself but also the people around you.
+9670	fix	我們週末去鹿港的天后宮拜拜，順便逛老街。	This weekend we'll worship at the Mazu temple in Lukang and stroll the old street.
+9671	fix	新年第一天，許多人到行天宮排隊拜拜。	On the first day of the new year, many people queue to pray at Hsing Tian Temple.
+9674	dropword	bound morpheme, not used as a standalone word (only in 經歷, 歷史, 歷經)
+9686	fix	台灣四大超商的門市密度非常高，幾乎每個街角都有一間。	Taiwan's four big convenience store chains are so dense that there's one on almost every corner.
+9687	fix	四大會計師事務所每年都會到各大學招募新人。	The Big Four accounting firms recruit new graduates from universities every year.
+9716	fix	新娘換上紅色的敬酒服，跟著新郎一桌一桌敬酒。	The bride changed into a red toasting dress and toasted table by table with the groom.
+9764	fix	傳說蛇修練千年會變成妖，專門迷惑路過的人。	Legend says a snake that cultivates for a thousand years becomes a demon that lures passersby.
+9774	dropword	variant form; Taiwan standard is 菸草
+9809	fix	過年前，我們家會添幾件新衣服，圖個好兆頭。	Before the New Year our family adds a few new clothes for good luck.
+9814	fix	這項補助先由鄉公所初審，再送縣級單位複審。	This subsidy is first screened by the township office and then re-examined by a county-level office.
+9820	dropword	bound morpheme, not used as a standalone word (only in 遼闊, 遼遠)
+9832	dropword	bound morpheme, not used as a standalone word (only in 出示, 指示, 表示)
+9867	fix	大家都說這家店的老闆做菜很神，每道菜都好吃。	Everyone says this shop owner is amazing at cooking, and every dish is delicious.
+9878	fix	超市的冷凍食品區常常有買一送一的活動。	The supermarket's frozen food section often has buy-one-get-one-free deals.
+9888	fix	看到警察打出停車的信號，駕駛立刻把車靠邊停下來。	Seeing the police signal him to stop, the driver pulled over at once.
+9889	fix	對方一直使眼色，我卻沒看懂那是求救的信號。	The other person kept winking, but I didn't realise it was a distress signal.

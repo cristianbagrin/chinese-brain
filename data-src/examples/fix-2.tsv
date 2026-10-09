@@ -285,3 +285,27 @@
 5315	fix	這家素食餐廳的菜色很豐富，連不吃素的朋友也很喜歡。	This vegetarian restaurant has a rich menu that even non-vegetarian friends love.
 5317	fix	下大雨的時候，雨傘根本擋不住，衣服還是濕了一大半。	In heavy rain an umbrella can't keep you dry, and half my clothes got wet.
 5319	fix	教室裡有的同學在寫作業，有的同學在聊天，很熱鬧。	In the classroom some students are doing homework and some are chatting, so it's lively.
+5384	dropword	bound morpheme, not a standalone word; only in compounds (博物館, 旅館, 圖書館)
+5406	fix	我每天上班都要騎車過橋，遇到塞車要多花二十分鐘。	I ride across the bridge to work every day, and traffic jams add twenty minutes.
+5410	fix	風一吹，一片葉從樹上飄了下來。	With a gust of wind, a leaf drifted down from the tree.
+5411	fix	秋天一到，枯黃的葉一片接一片地掉下來。	When autumn comes, the yellowed leaves fall one after another.
+5424	fix	這家小店的生意很好，每天中午都大排長龍。	This little shop does great business, with a long queue every noon.
+5425	fix	最近景氣不好，我們店的生意差了一半。	With the economy poor lately, our shop's business has dropped by half.
+5436	fix	警方在現場找到了一顆子彈。	The police found a bullet at the scene.
+5440	dropword	bound morpheme, not a standalone word; only in compounds (從政, 政府, 政策)
+5442	fix	用瓦斯爐要小心，漏出來的氣體很危險。	Be careful with a gas stove, because leaking gas is dangerous.
+5452	fix	他發現了一個要陷害自己的陰謀。	He discovered a plot to frame him.
+5454	fix	他從小打三級棒球，現在是職棒選手。	He played the three tiers of youth baseball from childhood and is now a pro player.
+5455	fix	三級棒球指少棒、青少棒和青棒，是台灣培養球員的重要管道。	The three tiers of youth baseball, Little League, junior and senior, are an important path for developing players in Taiwan.
+5472	dropword	bound morpheme, not a standalone word; only in compounds (守衛, 捍衛, 衛生)
+5508	fix	別再傳同事的八卦了，被聽到就不好了。	Stop spreading gossip about coworkers; it'd be bad if they heard.
+5542	fix	這座廣場是圓形的，中間有一座噴水池。	This plaza is circular, with a fountain in the middle.
+5544	dropword	Mainland usage (始建於); Taiwan says 創建於
+5548	fix	輸給對手並不可恥，放棄才是恥辱。	Losing to an opponent is not shameful; giving up is the disgrace.
+5562	fix	他幫每個人開門又讓座，真是個紳士。	He opens the door and gives up seats for everyone, truly a gentleman.
+5564	dropword	bound morpheme, not a standalone word; only in compounds (宿舍, 校舍, 舍弟)
+5572	fix	宮崎駿的《魔女宅急便》講的是一位年輕魔女的成長故事。	Miyazaki's Kiki's Delivery Service tells the coming-of-age story of a young witch.
+5573	fix	《魔女宅急便》裡的小魔女騎著掃帚送貨，深受小朋友喜愛。	The little witch in Kiki's Delivery Service delivers parcels on a broomstick and is loved by children.
+5586	dropword	bound morpheme, not a standalone word; only in compounds (嚮往, 嚮導)
+5594	dropword	classical bound form, not a standalone word in Taiwan Mandarin; only in compounds (尚未, 未來, 未婚)
+5604	dropword	Cantonese/classical usage; Taiwan Mandarin says 是

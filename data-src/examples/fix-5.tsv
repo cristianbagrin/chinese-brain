@@ -185,3 +185,31 @@
 12111	fix	郭小姐預約了晚上七點的位子。	Ms. Guo reserved a table for seven in the evening.
 12128	fix	媽祖廟的正殿供奉著媽祖神像。	The main hall of the Mazu temple enshrines the statue of Mazu.
 12129	fix	遊客走進正殿時，都會安靜下來，雙手合十拜拜。	Visitors quiet down on entering the main hall and pray with palms together.
+12134	fix	他最近胖了三公斤，褲子都變緊了。	He's put on three kilos lately and his pants have gotten tight.
+12135	fix	貓咪吃得太多，胖得連跳上沙發都很吃力。	The cat ate so much it got fat and struggles to jump onto the sofa.
+12138	fix	這台迷你冰箱剛好放得進宿舍。	This mini fridge fits just right in the dorm room.
+12148	dropword	Mainland potato / Hokkien peanut; Taiwan Mandarin says 花生 or 馬鈴薯
+12162	dropword	bound morpheme, appears only inside compounds like 競爭/競賽
+12164	dropword	bound morpheme, appears only inside compounds like 荷花/荷蘭
+12174	dropword	bound morpheme, appears only inside compounds like 倉庫/穀倉
+12198	fix	台灣的礦產不多，大部分資源都靠進口。	Taiwan has few mineral resources, and most are imported.
+12202	dropword	Mainland abbreviation; Taiwan says 航空母艦/航艦
+12208	dropword	bound morpheme, appears only inside compounds like 隆重/隆起
+12226	fix	請問你住幾號房？	Which room number are you staying in?
+12227	fix	他們家住在中山路三十二號，很好找。	Their home is at No. 32 Zhongshan Road, so it's easy to find.
+12230	fix	需要幫助者，請撥打服務專線。	Those who need help, please call the service hotline.
+12252	fix	他在公司很有權，連老闆都聽他的。	He has real power at the company; even the boss listens to him.
+12260	fix	這間是普通房，不是景觀房。	This is a standard room, not one with a view.
+12282	fix	過年的時候，家裡到處都是紅色的裝飾。	At New Year the house is full of red decorations.
+12288	fix	請給我一杯熱咖啡，不加糖。	A hot coffee with no sugar, please.
+12316	dropword	bound morpheme, appears only inside compounds like 京都/東京
+12320	fix	這部影集的第二季什麼時候上映？	When does the second season of this series come out?
+12330	fix	這家店的牛肉麵料很足，吃起來很過癮。	This shop's beef noodles are generously topped and very satisfying.
+12334	fix	明天全省各地有午後雷陣雨。	Tomorrow there will be afternoon thunderstorms across the island.
+12337	fix	唐先生是我們公司新來的經理。	Mr. Tang is our company's new manager.
+12350	fix	胡老師今天請假，由代課老師上課。	Teacher Hu is on leave today, so a substitute is teaching.
+12362	fix	她的名字叫安娜。	Her name is Anna.
+12363	fix	小娜是我們班上最愛唱歌的女生。	Nana is the girl in our class who loves singing the most.
+12372	fix	她在臉上撲了一層薄薄的粉。	She dusted a thin layer of powder on her face.
+12398	dropword	bound morpheme, appears only inside compounds like 秘書/秘密
+12438	dropword	bound morpheme, appears only inside compounds like 仁慈/杏仁

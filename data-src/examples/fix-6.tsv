@@ -276,3 +276,61 @@
 13755	fix	公司剛成立的時候，建制還不完整，很多工作都由老闆自己做。	When the company was founded, the structure was incomplete and the boss did much of the work himself.
 13757	fix	電梯裡的按鈕壞了，管理員正在處理，請先走樓梯。	The buttons in the elevator are broken and the manager is dealing with it, so please use the stairs.
 13759	fix	你曉得這附近哪裡有賣好吃的豆花嗎？我朋友下星期要來玩。	Do you know where around here sells good tofu pudding? My friend is visiting next week.
+13761	fix	他在婚禮上承諾永不分離，兩個人的眼睛都紅了。	At the wedding he vowed never to part, and both of them teared up.
+13763	fix	這家店獲利不多，但是老闆說只要客人開心就值得了。	This shop doesn't earn much, but the boss says it's worth it as long as customers are happy.
+13764	dropword	bound morpheme 童, only occurs inside compounds
+13767	fix	這架飛機正在三萬英尺的高空飛行，機長提醒乘客繫好安全帶。	This plane is cruising at thirty thousand feet, and the captain reminds passengers to fasten their seat belts.
+13769	fix	這項議案在議會討論了三次，最後以多數贊成通過。	This motion was discussed three times in the council and finally passed by majority.
+13771	fix	受傷休息了半年後，他終於重返球場，讓球迷們非常期待。	After half a year's rest from injury, he finally returned to the court, which fans eagerly awaited.
+13772	fix	他瘦得皮包骨，看起來讓人擔心。	He is so thin he's just skin and bones, which looks worrying.
+13773	fix	冷風刺骨，大家都縮著脖子走路。	The wind was piercingly cold, and everyone walked with their necks hunched.
+13774	dropword	bound morpheme 乎, only occurs inside compounds
+13777	fix	年輕人買房子常常要向銀行借貸，每個月都要還一筆錢。	Young people buying houses often borrow from banks and repay a sum every month.
+13779	fix	她刻意早一點出門，避開上班時間的人潮。	She deliberately left home earlier to avoid the rush-hour crowds.
+13781	fix	鄰居們合力把倒下的樹搬開，讓救護車順利通過。	The neighbors joined forces to move the fallen tree so the ambulance could pass.
+13783	fix	這位導演第一次執導電視劇，就獲得了不少好評。	The director got plenty of praise for directing a TV drama for the first time.
+13785	fix	警方公布了嫌疑人的畫像，呼籲民眾提供線索。	Police released a sketch of the suspect and urged the public to provide leads.
+13786	fix	已知的事實是，他那天晚上並不在現場。	The known fact is that he was not at the scene that night.
+13787	fix	根據已知的資料，這種病毒主要透過空氣傳播。	According to known data, this virus mainly spreads through the air.
+13789	fix	看到老家變成一棟棟大樓，爺爺感嘆地說：「變化真大啊。」	Seeing his hometown turned into tall buildings, Grandpa sighed, "So much has changed."
+13791	fix	這首歌在排行榜上連續三週拿到第一名，大街小巷都在放。	This song has stayed at number one on the chart for three weeks and plays everywhere.
+13793	fix	這本文集收錄了作者三十年來寫的文章，從年輕寫到老。	This anthology collects the author's writings over thirty years, from youth to old age.
+13795	fix	只要你需要，我隨時樂意陪你去醫院做檢查。	As long as you need me, I'm glad to accompany you to the hospital for checkups.
+13797	fix	遇到困難不要消極，試著找朋友聊聊，也許會有新的想法。	Don't be negative when you meet difficulties; try talking to friends, who may offer new ideas.
+13799	fix	颱風帶來猛烈的風雨，不少樹木被連根拔起。	The typhoon brought fierce wind and rain, uprooting many trees.
+13800	fix	醫生檢查後確診他得了腸病毒，要在家休息一個星期。	After the examination the doctor confirmed he had enterovirus, and he must rest at home for a week.
+13801	fix	醫院昨天確診了三個登革熱病例，衛生局正在替社區消毒。	The hospital confirmed three dengue fever cases yesterday, and the health bureau is disinfecting the neighbourhood.
+13803	fix	這場經貿論壇邀請了多位企業代表，討論未來合作的機會。	The economic and trade forum invited many business representatives to discuss future cooperation.
+13805	fix	這間咖啡廳在老郵局的舊址，保留了一些古老的磚牆。	This cafe is on the old post office site and kept some of its ancient brick walls.
+13807	fix	你別誇我了，我只是運氣好而已，真的沒有那麼厲害啦。	Stop praising me. I was just lucky, really not that good.
+13809	fix	雨季過後，農田一片綠油油，吸引了不少攝影愛好者。	After the rainy season, the farmland is lush green, attracting many photography lovers.
+13811	fix	經過三天的海上航行，看到遠處的陸地時，大家都歡呼起來。	After three days at sea, everyone cheered on seeing land in the distance.
+13813	fix	有些人體質容易過敏，春天一到就一直打噴嚏。	Some people are prone to allergies and keep sneezing once spring comes.
+13815	fix	他這次的表現大有進步，老師特別在班上稱讚他。	His performance improved greatly this time, and the teacher praised him in class.
+13817	fix	爬山的時候一定要帶水壺，而且要多帶一點，以免脫水。	Always bring a water bottle when hiking, and extra, to avoid dehydration.
+13819	fix	他感冒發燒，今天請假一天，醫生要他在家休息。	He has a cold and fever, took today off, and the doctor told him to rest at home.
+13821	fix	夜市裡有很多好吃的東西，我每次都不知道該先吃哪一個。	The night market has so much good food that I never know which to eat first.
+13822	dropword	bound character 瞭, only occurs inside compounds (瞭解, 一目瞭然)
+13852	fix	市中心的商業區，每天都擠滿了上班族。	The downtown business district is packed with office workers every day.
+13856	fix	這個鄉人口不到一萬人，大家幾乎都互相認識。	This township has fewer than ten thousand people, and almost everyone knows each other.
+13862	fix	創業的時候，他把小店登記成了有限公司。	When he started the business, he registered his small shop as a limited company.
+13867	fix	天空的雲被夕陽染成了橘紅色，真的很美。	The clouds in the sky were dyed orange-red by the sunset, truly beautiful.
+13874	fix	論年紀，我比他大；論經驗，他比我多。	In age I'm older than him; in experience he has more than me.
+13875	fix	討論時要論事不論人，不要攻擊別人。	In discussion, judge the matter and not the person, and don't attack others.
+13890	dropword	bound morpheme 器, only occurs inside compounds
+13892	fix	這是我自己的錯，不能怪別人。	This is my own fault, and I can't blame others.
+13900	fix	這家餐廳的人工成本越來越高，老闆很傷腦筋。	This restaurant's labour costs keep rising, which gives the owner a headache.
+13901	fix	現在人工很貴，所以很多工廠改用機器。	Labour is expensive now, so many factories have switched to machines.
+13902	dropword	bound morpheme 劇, mostly occurs inside compounds (韓劇, 戲劇)
+13906	dropword	bound morpheme 形, only occurs inside compounds
+13940	fix	週末我常和朋友一起去看展。	On weekends I often go to see exhibitions with friends.
+13941	fix	這個展下週開幕，展出的都是本地藝術家的作品。	This exhibition opens next week, showing works by local artists.
+13952	fix	要說好吃，我推薦這一家。	If we're talking about delicious food, I recommend this place.
+13960	fix	實驗室的助手每天都要先整理好器材。	The lab assistant has to tidy up the equipment first every day.
+13968	fix	小朋友從小就要學習正確的書寫姿勢。	Children need to learn the correct writing posture from a young age.
+13976	fix	資本家為了賺錢，常常壓低工人的薪水。	Capitalists often push down workers' wages in order to make money.
+13982	dropword	Mainland usage; Taiwan says 西元前
+13988	fix	小孩子一看到氣球，眼睛都亮了起來。	The moment the children saw the balloons, their eyes lit up.
+13990	dropword	Mainland usage (spouse); in Taiwan it means lover and sounds unnatural
+13992	dropword	bound morpheme 擊, only occurs inside compounds
+14004	fix	這起搶案發生在中山分局的轄區內。	This robbery happened within the jurisdiction of the Zhongshan Precinct.
