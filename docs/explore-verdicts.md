@@ -11,7 +11,7 @@ feasibility check. **KEEP** = built. **LATER** = feasible, not built yet.
 | 3 | Export only what's new | **KEEP** | One weekly TSV (or clipboard copy) with K/L/F codes like `known-words.txt`: your own status changes only (lookups are not counted). The always-on live feed was removed at your request. |
 | 4 | Click-to-seek, loop line | **KEEP** | `A` `S` `D`, `R` loop, and a transcript panel where clicking a line seeks to it. |
 | 5 | Shadowing | **KEEP** | `Q`: pauses after each line for 1.5× its length, then resumes. |
-| 6 | Pinyin toggles | **KEEP** | `P` toggles subtitle pinyin. In Settings, card pinyin can be hidden until you press `P`. |
+| 6 | Pinyin toggles | **KEEP** | `P` toggles subtitle pinyin only. The card and hints always show pinyin. |
 | 7 | Learn-first list | **KEEP** | A tab in the transcript panel. It ranks this video's unknown words by how often they occur and how common they are, and shows the coverage gain. |
 | 8 | Example sentences | **KEEP** | About 16,000 Taiwan-natural sentences for the ~8,500 most common words plus your known-words list, written to a Taiwan-usage brief and machine-checked. The card also shows up to 3 sentences you met the word in. Tatoeba was dropped: half of it is Simplified, and it has almost no Taiwan words. |
 | 9 | Caption fallback | Gemini **KEEP**, Whisper **DROP** | Gemini is opt-in per video, uses your key and caches the result. In-browser Whisper: 77–250 MB models, 43–53% character error on Chinese, and it would need the audio stream. |

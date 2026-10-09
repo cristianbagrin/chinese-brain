@@ -1818,7 +1818,6 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 .head.st-learning { background: var(--learning-mark); }
 .head.st-known { background: var(--known-mark); }
 .py { font-size: 1.07em; color: var(--text3); letter-spacing: 0.01em; }
-.py.hidden { color: transparent; text-shadow: 0 0 9px var(--text2); cursor: pointer; }
 
 /* How common the word is, in words (the tooltip says what that means for you). */
 .freq { margin-left: auto; display: flex; align-items: center; gap: 0.45em; font-size: 0.86em; color: var(--text3); white-space: nowrap; cursor: default; }
@@ -2004,7 +2003,6 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     exit;
     shownAt = 0;
     hovered = !1;
-    revealPy = !1;
     /** Cards visited by clicking words inside the card, and where we are in them (← →). */
     trail = [];
     pos = 0;
@@ -2119,7 +2117,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     }
     async show(opts, keepPlace = !1) {
       let sameWord = this.opts?.matches[0]?.word === opts.matches[0]?.word;
-      this.opts = opts, this.cancelHide(), sameWord || (this.revealPy = !1), keepPlace || (this.trail = [opts], this.pos = 0), this.mount();
+      this.opts = opts, this.cancelHide(), keepPlace || (this.trail = [opts], this.pos = 0), this.mount();
       let m = opts.matches[0], e0 = m.entries[0], [, info] = await Promise.all([state.loadStatuses(), this.wordInfo(m.word, e0.tw || e0.py)]);
       this.opts === opts && (this.info = info, this.hoverWord = void 0, this.hideHint(), this.render(), keepPlace ? this.keepOnScreen() : (this.anchor = opts.rect, this.exit = this.px >= 0 ? { x: this.px, y: this.py } : void 0, this.position(opts)), this.shownAt = Date.now(), clearTimeout(this.lookTimer), this.lookTimer = setTimeout(() => this.recordLook(), opts.pinned ? 0 : 1200));
     }
@@ -2191,10 +2189,6 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
           return this.speak(), !0;
         case "i":
           return this.images(), !0;
-        case "p": {
-          let pinyin = !state.settings.pinyin;
-          return state.settings = { ...state.settings, pinyin }, this.revealPy = !1, this.render(), browser.runtime.sendMessage({ type: "saveSettings", settings: { pinyin } }), !0;
-        }
         case "ArrowLeft":
           return this.back();
         case "ArrowRight":
@@ -2226,7 +2220,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       let e = m.entries[0], hint = this.hint;
       hint.classList.toggle("large", state.settings.cardSize === "large"), hint.replaceChildren(
         h("div", { class: "hg" }, mainSense(e)),
-        state.settings.pinyin ? h("div", { class: "hpy" }, numberedToMarked(e.tw || e.py, !1)) : ""
+        h("div", { class: "hpy" }, numberedToMarked(e.tw || e.py, !1))
       ), hint.hidden = !1;
       let r = el3.getBoundingClientRect(), w2 = hint.offsetWidth, ht = hint.offsetHeight, y = r.top - ht - 6;
       y < 4 && (y = r.bottom + 6), hint.style.left = `${Math.min(Math.max(4, r.left + r.width / 2 - w2 / 2), window.innerWidth - w2 - 4)}px`, hint.style.top = `${y}px`;
@@ -2340,11 +2334,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       if (!o || !m) return;
       let status = state.status(m.word), e0 = m.entries[0], s = state.settings, card = this.card;
       card.classList.toggle("pinned", !!o.pinned), card.classList.toggle("large", s.cardSize === "large"), card.replaceChildren();
-      let freq = frequency(Math.max(...m.entries.map((e) => e.zipf))), pyHidden = !s.pinyin && !this.revealPy, pyEl = h("span", { class: `py${pyHidden ? " hidden" : ""}`, title: pyHidden ? "p: show pinyin" : "" }, numberedToMarked(e0.tw || e0.py, !1));
-      pyEl.addEventListener("click", () => {
-        this.revealPy = !0, this.render();
-      });
-      let groups = /* @__PURE__ */ new Map();
+      let freq = frequency(Math.max(...m.entries.map((e) => e.zipf))), pyEl = h("span", { class: "py" }, numberedToMarked(e0.tw || e0.py, !1)), groups = /* @__PURE__ */ new Map();
       for (let e of m.entries) {
         let k = (e.tw || e.py).toLowerCase();
         groups.has(k) || groups.set(k, []), groups.get(k).push(e);
@@ -2395,7 +2385,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
           let ch = this.word(c.ch, c.ch, c.ch);
           ch.classList.add("c");
           let cell = h("span", { class: `cw d${Math.min(c.depth, 3)}` }, ch);
-          grid.append(cell, h("span", { class: "cpy" }, pyHidden ? "" : numberedToMarked(c.py, !1)), h("span", { class: "cg" }, c.gloss));
+          grid.append(cell, h("span", { class: "cpy" }, numberedToMarked(c.py, !1)), h("span", { class: "cg" }, c.gloss));
         }
         card.append(h("div", { class: "sect" }, grid));
       }

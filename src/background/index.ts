@@ -215,6 +215,8 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
         const seen = (record?.ctx ?? [])
           .map((c) => ({ c, zh: cleanSentence(c.text.split(' — ')[0], word) }))
           .filter(({ zh }) => usefulSentence(zh, word))
+          // The same line met twice (e.g. a replayed caption with a different tail) is one sentence.
+          .filter(({ zh }, i, all) => all.findIndex((x) => x.zh === zh) === i)
           .slice(0, 3)
           .map(({ c, zh }) => ({ ...c, zh, toks: d.segment(zh) }));
         return { chars, examples: ex, seen, record, saved };

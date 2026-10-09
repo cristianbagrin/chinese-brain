@@ -114,7 +114,6 @@ export class Popup {
   private exit: Pt | undefined;
   private shownAt = 0;
   private hovered = false;
-  private revealPy = false;
   /** Cards visited by clicking words inside the card, and where we are in them (← →). */
   private trail: ShowOptions[] = [];
   private pos = 0;
@@ -289,7 +288,6 @@ export class Popup {
     const sameWord = this.opts?.matches[0]?.word === opts.matches[0]?.word;
     this.opts = opts;
     this.cancelHide();
-    if (!sameWord) this.revealPy = false;
     if (!keepPlace) {
       this.trail = [opts];
       this.pos = 0;
@@ -433,15 +431,6 @@ export class Popup {
       case 'i':
         this.images();
         return true;
-      case 'p': {
-        // One pinyin switch for the card, the hints and the subtitles.
-        const pinyin = !state.settings.pinyin;
-        state.settings = { ...state.settings, pinyin };
-        this.revealPy = false;
-        this.render();
-        browser.runtime.sendMessage({ type: 'saveSettings', settings: { pinyin } });
-        return true;
-      }
       case 'ArrowLeft':
         return this.back();
       case 'ArrowRight':
@@ -486,7 +475,7 @@ export class Popup {
     hint.classList.toggle('large', state.settings.cardSize === 'large');
     hint.replaceChildren(
       h('div', { class: 'hg' }, mainSense(e)),
-      state.settings.pinyin ? h('div', { class: 'hpy' }, numberedToMarked(e.tw || e.py, false)) : '',
+      h('div', { class: 'hpy' }, numberedToMarked(e.tw || e.py, false)),
     );
     hint.hidden = false;
     const r = el.getBoundingClientRect();
@@ -685,12 +674,8 @@ export class Popup {
     card.replaceChildren();
 
     const freq = frequency(Math.max(...m.entries.map((e) => e.zipf)));
-    const pyHidden = !s.pinyin && !this.revealPy;
-    const pyEl = h('span', { class: `py${pyHidden ? ' hidden' : ''}`, title: pyHidden ? 'p: show pinyin' : '' }, numberedToMarked(e0.tw || e0.py, false));
-    pyEl.addEventListener('click', () => {
-      this.revealPy = true;
-      this.render();
-    });
+    // Pinyin is always shown here: opening the card means you are learning the word.
+    const pyEl = h('span', { class: 'py' }, numberedToMarked(e0.tw || e0.py, false));
 
     // Senses grouped by reading; each group on one line.
     const groups = new Map<string, Entry[]>();
@@ -768,7 +753,7 @@ export class Popup {
         const ch = this.word(c.ch, c.ch, c.ch);
         ch.classList.add('c');
         const cell = h('span', { class: `cw d${Math.min(c.depth, 3)}` }, ch);
-        grid.append(cell, h('span', { class: 'cpy' }, pyHidden ? '' : numberedToMarked(c.py, false)), h('span', { class: 'cg' }, c.gloss));
+        grid.append(cell, h('span', { class: 'cpy' }, numberedToMarked(c.py, false)), h('span', { class: 'cg' }, c.gloss));
       }
       card.append(h('div', { class: 'sect' }, grid));
     }

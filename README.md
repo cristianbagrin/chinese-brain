@@ -48,14 +48,14 @@ pick `dist/manifest.json`. A temporary add-on stays until the browser restarts.
 
 | Where | Keys |
 | --- | --- |
-| Card open | `1` 新 Fresh · `2` 學 Learning · `3` 熟 Known (again = clear) · `0` remove · `V` say it · `I` images · `P` pinyin on / off · `←` `→` back / forward through words opened in the card · `Esc` close |
+| Card open | `1` 新 Fresh · `2` 學 Learning · `3` 熟 Known (again = clear) · `0` remove · `V` say it · `I` images · `←` `→` back / forward through words opened in the card · `Esc` close |
 | Pointing at a word inside the card | `1` `2` `3` `0` `V` `I` act on that word (the card stays on its own word) |
 | YouTube | `A` previous line · `S` replay line · `D` next line · `R` loop line · `Q` shadowing · `P` pinyin · `X` English line (show / blur / hide) · `E` transcript |
 
 On YouTube, click a new word to stamp it Fresh. Click it again to undo.
 
-`P` is one switch for pinyin everywhere: the card, the word hints and the
-subtitles.
+`P` toggles pinyin in the subtitles only. The card and word hints always show
+pinyin, since opening one means you are learning that word.
 
 ## Settings
 
