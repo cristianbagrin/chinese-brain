@@ -101,3 +101,20 @@ kbd { font: 600 12px var(--sans); background: var(--ground); border: 1px solid v
   .row { grid-template-columns: 1fr; }
   .rows { grid-template-columns: 1fr; }
 }
+
+.status { font-size: 13px; margin-left: 8px; color: var(--ink2); }
+.status.ok { color: var(--known); }
+.status.err { color: var(--fresh); }
+.rows .azure[hidden] { display: none; }
+.saved {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+  box-shadow: 0 4px 14px rgba(27, 29, 58, 0.2);
+}
+.saved[hidden] { display: none; }

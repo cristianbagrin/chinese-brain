@@ -7,7 +7,7 @@ feasibility check. **KEEP** = built. **LATER** = feasible, not built yet.
 | # | Idea | Verdict | Notes |
 |---|------|---------|-------|
 | 1 | Image search | **KEEP** (link) / DROP (inline thumbnails) | `I` opens DuckDuckGo image search, Taiwan region. Inline thumbnails would mean scraping DuckDuckGo or Brave, which answer with captchas and rate limits. |
-| 2 | Status colours + coverage | **KEEP** | 新 red / 學 yellow / 熟 green in the card, subtitles, transcript, word list, and optionally on any page. Coverage % is in the player panel, the learn-first list and the toolbar menu. |
+| 2 | Status colors + coverage | **KEEP** | 新 red / 學 yellow / 熟 green in the card, subtitles, transcript, word list, and optionally on any page. Coverage % is in the player panel, the learn-first list and the toolbar menu. |
 | 3 | Export only what's new | **KEEP** | One weekly TSV (or clipboard copy) with K/L/F codes like `known-words.txt`: status changes plus lookups. The always-on live feed was removed at your request. |
 | 4 | Click-to-seek, loop line | **KEEP** | `A` `S` `D`, `R` loop, and a transcript panel where clicking a line seeks to it. |
 | 5 | Shadowing | **KEEP** | `Q`: pauses after each line for 1.5× its length, then resumes. |
@@ -24,9 +24,9 @@ feasibility check. **KEEP** = built. **LATER** = feasible, not built yet.
 | Idea | Verdict | Why |
 |------|---------|-----|
 | Import `known-words.txt` with K/L and dates | **KEEP** | Makes coverage accurate from day one. |
-| Colour words on any page | **KEEP** | Toolbar toggle. Uses the CSS Highlight API, so pages are never rewritten. Shows page coverage in the toolbar menu. |
+| Color words on any page | **KEEP** | Toolbar toggle. Uses the CSS Highlight API, so pages are never rewritten. Shows page coverage in the toolbar menu. |
 | Stamp sounds | **KEEP** | Short synthesized cues, a different one per status. Can be turned off. |
-| Azure neural voice | **KEEP** (optional) | With a free key, words are read by a Taiwan neural voice, faded out cleanly. Otherwise the Mac's Meijia voice. |
+| Voices | **KEEP** | Google's online Taiwan voice by default (played through Web Audio with a fade, so no click at the end), the system voice offline, or an Azure neural voice with your own key. |
 | On-screen caption mirroring | **KEEP** | Fallback if caption capture ever breaks. |
 | Monolingual MOE definitions in the card | **LATER** | Good for intermediate learners. Adds about 25 MB. |
 | Taiwan words missing from CC-CEDICT (滷肉飯 …) | **LATER** | A small supplement list. Neither CC-CEDICT nor MOE has every everyday Taiwan food or slang compound. |

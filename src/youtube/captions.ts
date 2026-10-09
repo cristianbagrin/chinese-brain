@@ -202,3 +202,37 @@ export function urlInfo(url: string): { lang: string; tlang: string; kind: strin
     v: u.searchParams.get('v') ?? '',
   };
 }
+
+const HAN = /[㐀-䶿一-鿿豈-﫿]/;
+const latinWords = (s: string) => (s.match(/[A-Za-z]+(?:['’][A-Za-z]+)?/g) ?? []).length;
+
+/**
+ * Split an uploader's English note off a Chinese caption, e.g.
+ * "一個(胡椒餅) (Note: locals usually omit the food name.)" -> text "一個(胡椒餅)", note
+ * "Note: locals usually omit the food name." Only English that is clearly an
+ * aside moves: a bracketed run of 4+ English words, or a trailing "Note: …".
+ * English words that are part of the sentence ("我去 Costco 買") stay where they are.
+ */
+export function splitNote(line: string): { text: string; note: string } {
+  const notes: string[] = [];
+  let text = line.replace(/[(（[［【]([^()（）[\]［］【】]*)[)）\]］】]/g, (all, inner: string) => {
+    if (HAN.test(inner) || latinWords(inner) < 4) return all;
+    notes.push(inner.trim());
+    return ' ';
+  });
+  text = text.replace(/(?<![A-Za-z])(?:note|n\.b\.|p\.?s\.?)\s*[:：][^㐀-䶿一-鿿豈-﫿]*$/i, (note) => {
+    if (latinWords(note) < 3) return note;
+    notes.push(note.trim());
+    return '';
+  });
+  if (!notes.length) return { text: line, note: '' };
+  return { text: text.replace(/\s+/g, ' ').trim(), note: notes.join(' ') };
+}
+
+/** The same note removed from the English line (YouTube's translation repeats it). */
+export function stripNote(tr: string, note: string): string {
+  const words = note.match(/[A-Za-z0-9]+/g);
+  if (!tr || !words || words.length < 3) return tr;
+  const re = new RegExp(`[(（[]?\\s*${words.join("[^A-Za-z0-9]+")}[^A-Za-z0-9()（）[\\]]*[)）\\]]?`, 'i');
+  return tr.replace(re, ' ').replace(/\s+/g, ' ').trim();
+}

@@ -11,7 +11,8 @@ const seg = (s: string) => dict.segment(s).map((t) => t.text).join('|');
 test('pinyin marks', () => {
   assert.equal(numberedToMarked('xing1 qi2'), 'xīngqí');
   assert.equal(numberedToMarked('lu:4 se4'), 'lǜsè');
-  assert.equal(numberedToMarked('Xi1 an1'), "Xī'ān");
+  assert.equal(numberedToMarked('Xi1 an1'), "xī'ān");
+  assert.equal(numberedToMarked('Zhong1 wen2'), 'zhōngwén');
   assert.equal(numberedToMarked('liu2'), 'liú');
   assert.equal(numberedToMarked('gui4'), 'guì');
   assert.equal(numberedToMarked('de5'), 'de');
@@ -31,6 +32,12 @@ test('segmentation', () => {
   ]) {
     console.log(seg(s));
     assert.equal(seg(s), want);
+  }
+});
+
+test('everyday reading of common heteronyms', () => {
+  for (const [w, py] of [['要', 'yao4'], ['著', 'zhe5'], ['看', 'kan4'], ['行', 'xing2'], ['了', 'le5'], ['還', 'hai2']]) {
+    assert.equal(dict.segment(w)[0].py, py, w);
   }
 });
 

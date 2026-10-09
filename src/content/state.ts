@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, type Settings, type Status, type WordRecord } from '../shared/types.ts';
+import { DEFAULT_SETTINGS, normalizeSettings, type Settings, type Status, type WordRecord } from '../shared/types.ts';
 
 type Listener = () => void;
 
@@ -12,14 +12,14 @@ class State {
 
   constructor() {
     this.settingsLoaded = browser.storage.local.get('settings').then(({ settings }) => {
-      this.settings = { ...DEFAULT_SETTINGS, ...(settings as Partial<Settings> | undefined) };
+      this.settings = normalizeSettings(settings as Record<string, unknown> | undefined);
     });
     browser.storage.onChanged.addListener((changes, area) => {
       if (area !== 'local') return;
       let dirty = false;
       for (const [k, ch] of Object.entries(changes)) {
         if (k === 'settings') {
-          this.settings = { ...DEFAULT_SETTINGS, ...(ch.newValue as Partial<Settings> | undefined) };
+          this.settings = normalizeSettings(ch.newValue as Record<string, unknown> | undefined);
           dirty = true;
         } else if (k.startsWith('w:') && this.statusesLoaded) {
           const rec = ch.newValue as WordRecord | undefined;

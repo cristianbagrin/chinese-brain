@@ -28,6 +28,9 @@ import unicodedata
 import urllib.request
 import zipfile
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from american import definition as american  # noqa: E402
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE = os.path.join(ROOT, ".cache")
 OUT = os.path.join(ROOT, "static", "data", "dict.tsv.gz")
@@ -201,6 +204,7 @@ def main():
     buf = io.StringIO()
     buf.write("# CC-CEDICT (MDBG, CC BY-SA 4.0); Taiwan readings: MOE 重編國語辭典修訂本 (CC BY-ND 3.0 TW); frequency: wordfreq (CC BY-SA 4.0); TOCFL levels via LingLook\n")
     for e in entries:
+        e[4] = american(e[4])  # American spelling in the definitions
         buf.write("\t".join(str(x) for x in e) + "\n")
     with gzip.open(OUT, "wb", compresslevel=9) as f:
         f.write(buf.getvalue().encode("utf-8"))

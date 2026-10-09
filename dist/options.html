@@ -23,16 +23,18 @@
         <option value="off">never</option>
       </select>
     </div>
-    <label for="cardPinyin">Pinyin in the card</label>
+    <label for="pinyin">Show pinyin</label>
+    <div><input type="checkbox" id="pinyin"> <span class="help">In the card, the word hints and the subtitles. Press <kbd>P</kbd> anywhere to switch. When off, the card blurs it until you click it (self-test).</span></div>
+    <label for="cardSize">Card size</label>
     <div>
-      <select id="cardPinyin">
-        <option value="show">always shown</option>
-        <option value="hover">hidden until I press P (self-test)</option>
+      <select id="cardSize">
+        <option value="normal">normal</option>
+        <option value="large">large</option>
       </select>
     </div>
-    <label for="cardColors">Colour words in the card by status</label>
+    <label for="cardColors">Color words in the card by status</label>
     <div><input type="checkbox" id="cardColors"></div>
-    <label for="pageColors">Colour words on every page</label>
+    <label for="pageColors">Color words on every page</label>
     <div><input type="checkbox" id="pageColors"> <span class="help">Highlights words in your list by status, like the subtitles. Also in the toolbar menu.</span></div>
     <label for="sounds">Sound when stamping</label>
     <div><input type="checkbox" id="sounds"></div>
@@ -42,17 +44,38 @@
 
   <h2>Voice</h2>
   <div class="panel rows">
-    <label for="speechRate">Speed</label>
-    <div><input type="number" id="speechRate" min="0.5" max="1.5" step="0.1"></div>
-    <label for="azureKey">Azure key (optional)</label>
+    <label for="voice">Voice</label>
     <div>
-      <input type="password" id="azureKey" size="36" autocomplete="off">
-      <div class="help">Leave empty to use your Mac's Taiwan voice (Meijia). With a free Azure Speech key, words are read by a Taiwan neural voice instead.</div>
+      <select id="voice">
+        <option value="google">Google Taiwan voice (online, free)</option>
+        <option value="system">System voice (offline, e.g. Meijia on a Mac)</option>
+        <option value="azure">Azure neural voice (your own key)</option>
+      </select>
+      <button type="button" id="testVoice">▶ Test</button>
+      <span class="status" id="voiceStatus"></span>
+      <div class="help">Google and Azure play through a smooth fade, so words end cleanly. The system voice can end with a click; that comes from the operating system and can't be changed.</div>
     </div>
-    <label for="azureRegion">Azure region</label>
-    <div><input type="text" id="azureRegion" size="14"></div>
-    <label for="azureVoice">Azure voice</label>
+    <label for="speechRate">Speed</label>
     <div>
+      <select id="speechRate">
+        <option value="0.6">slow</option>
+        <option value="0.8">a little slow</option>
+        <option value="0.9">natural, slightly slow</option>
+        <option value="1">natural</option>
+      </select>
+      <span class="help">Google's voice has two speeds: normal, and slow (for "slow").</span>
+    </div>
+    <label for="azureKey" class="azure">Azure key</label>
+    <div class="azure">
+      <input type="password" id="azureKey" size="36" autocomplete="off" spellcheck="false">
+      <button type="button" id="checkAzure">Check key</button>
+      <span class="status" id="azureStatus"></span>
+      <div class="help">A free Azure Speech resource (F0) reads 500,000 characters a month. Paste "KEY 1" from the resource's "Keys and Endpoint" page; "Check key" finds its region for you.</div>
+    </div>
+    <label for="azureRegion" class="azure">Azure region</label>
+    <div class="azure"><select id="azureRegion"></select></div>
+    <label for="azureVoice" class="azure">Azure voice</label>
+    <div class="azure">
       <select id="azureVoice">
         <option value="zh-TW-HsiaoChenNeural">HsiaoChen (female)</option>
         <option value="zh-TW-HsiaoYuNeural">HsiaoYu (female)</option>
@@ -80,8 +103,6 @@
         <option value="dark">dark band</option>
       </select>
     </div>
-    <label for="subPinyin">Pinyin above words</label>
-    <div><input type="checkbox" id="subPinyin"></div>
     <label for="pauseOnHover">Pause while the mouse is on the subtitles</label>
     <div><input type="checkbox" id="pauseOnHover"></div>
     <label for="autoFreshOnClick">Clicking a new word stamps it 新 Fresh</label>
@@ -98,23 +119,31 @@
   <div class="panel rows">
     <label for="geminiKey">Gemini API key</label>
     <div>
-      <input type="password" id="geminiKey" size="36" autocomplete="off">
-      <div class="help">For videos without Chinese captions: hover the 中 switch and press "Transcribe with Gemini". It only runs when you press it, once per video (the result is kept). On the free tier Google may use requests to improve its models.</div>
+      <input type="password" id="geminiKey" size="36" autocomplete="off" spellcheck="false">
+      <button type="button" id="checkGemini">Check key</button>
+      <span class="status" id="geminiStatus"></span>
+      <div class="help">Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>. Used only when you ask: "Transcribe with Gemini" in the 中 panel for videos without Chinese captions (once per video; the result is kept), and "Write example sentences" in the card for words without any. On the free tier Google may use requests to improve its models.</div>
     </div>
     <label for="geminiModel">Model</label>
-    <div><input type="text" id="geminiModel" size="22"></div>
+    <div>
+      <select id="geminiModel"></select>
+      <div class="help">Check the key to list the models it can use. A "flash" model is fast and has the most free quota.</div>
+    </div>
   </div>
 
   <h2>Keys</h2>
   <div class="panel keys">
     <span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span><span>新 Fresh · 學 Learning · 熟 Known (press again to clear)</span>
     <span><kbd>0</kbd></span><span>remove from the list</span>
-    <span><kbd>V</kbd> <kbd>I</kbd> <kbd>P</kbd></span><span>say it · image search · show hidden pinyin</span>
+    <span><kbd>V</kbd> <kbd>I</kbd></span><span>say it · image search</span>
+    <span><kbd>P</kbd></span><span>pinyin on / off (card, hints and subtitles)</span>
+    <span><kbd>Esc</kbd></span><span>back (after clicking a word in the card) · close</span>
     <span><kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></span><span>YouTube: previous line · replay line · next line</span>
     <span><kbd>R</kbd> <kbd>Q</kbd> <kbd>E</kbd></span><span>YouTube: loop line · shadowing · transcript</span>
-    <span><kbd>P</kbd> <kbd>X</kbd></span><span>YouTube: pinyin · English line</span>
+    <span><kbd>X</kbd></span><span>YouTube: English line (show / blur / hide)</span>
   </div>
 </main>
+<div class="saved" id="saved" hidden>Saved</div>
 <script src="options.js"></script>
 </body>
 </html>

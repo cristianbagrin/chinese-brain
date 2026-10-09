@@ -5,18 +5,23 @@ shared by everything:
 
 - **Hover lookup on any page.** Point at Chinese text and a card opens just
   under the pointer. It shows Traditional characters, **Taiwan standard
-  pinyin**, how common the word is, the meanings on one line, a breakdown of
-  each character, and two natural Taiwan-Mandarin example sentences. It also
-  shows the sentences you met the word in before.
+  pinyin**, how common the word is (essential → rare, with what that means for
+  you), the meanings on one line, a breakdown of each character, and two
+  natural Taiwan-Mandarin example sentences. Words the list doesn't cover get
+  other lines from the same video or page instead (or two sentences written by
+  Gemini, on request). It also shows the sentences you met the word in before.
+  The card waits while the pointer travels from the word to it, and stays put
+  while you scroll. Hover any word inside it for a small hint with its meaning.
 - **Three statuses everywhere:** 新 Fresh (red), 學 Learning (yellow),
-  熟 Known (green). Press `1` `2` `3` in the card. The same colours appear in
+  熟 Known (green). Press `1` `2` `3` in the card. The same colors appear in
   the card, the YouTube subtitles, the transcript, the word list, and
   optionally on every page you read.
 - **YouTube dual subtitles.** Our own Chinese + English lines over the video.
   Every word is hoverable and clickable, and the video pauses while you read.
   A 中 switch in the player turns them on or off. Hover the switch to see how
   much of the video you know, toggles, keys, and the **transcript** with a
-  **learn-first list**.
+  **learn-first list**. English notes that uploaders put inside the Chinese
+  captions ("(Note: …)") get their own line.
 - **Weekly export for Claude** in the same K / L format as `known-words.txt`,
   with only what changed since the last export.
 
@@ -38,10 +43,25 @@ sign it as an unlisted add-on on [AMO](https://addons.mozilla.org/developers/)
 
 | Where | Keys |
 | --- | --- |
-| Card open | `1` 新 Fresh · `2` 學 Learning · `3` 熟 Known (again = clear) · `0` remove · `V` say it · `I` images · `P` show hidden pinyin · `Esc` close |
+| Card open | `1` 新 Fresh · `2` 學 Learning · `3` 熟 Known (again = clear) · `0` remove · `V` say it · `I` images · `P` pinyin on / off · `Esc` back / close |
 | YouTube | `A` previous line · `S` replay line · `D` next line · `R` loop line · `Q` shadowing · `P` pinyin · `X` English line (show / blur / hide) · `E` transcript |
 
 On YouTube, click a new word to stamp it Fresh. Click it again to undo.
+
+`P` is one switch for pinyin everywhere: the card, the word hints and the
+subtitles.
+
+## Settings
+
+The toolbar button opens quick settings (lookup mode, pinyin, card size, page
+colors, voice, YouTube subtitles). **All settings** has the rest:
+
+- **Voice.** Google's Taiwan voice (online, free; the default), the system
+  voice, or an Azure neural voice with your own key. Google and Azure audio is
+  faded in and out, so words end cleanly. **Test** plays a sample and says which
+  voice answered; **Check key** tests an Azure key and finds its region.
+- **Gemini.** Paste a free key from aistudio.google.com/apikey and press
+  **Check key** to pick a model from the ones the key can use.
 
 ## Your word list
 
@@ -81,7 +101,7 @@ the subtitle overlay without YouTube (`python3 tests/youtube-mock/server.py`).
 
 ```
 src/background/   dictionary service, word store, caption capture, translate + Gemini fallbacks
-src/content/      lookup card, hover lookup, page colouring, sounds and speech
+src/content/      lookup card, hover lookup, page coloring, sounds and speech
 src/youtube/      caption parsing, subtitle overlay, player switch + panel, transcript
 src/pages/        word list, settings, toolbar menu
 src/shared/       types, dictionary + segmenter, pinyin, export/import formats
@@ -101,7 +121,7 @@ translator instead. If no track is captured, the extension reads YouTube's
 on-screen captions. Videos with no Chinese captions can be transcribed with
 Gemini, on request.
 
-## Data and licences
+## Data and licenses
 
 - Code: GPL-3.0 (see `LICENSE`). TOCFL levels come from
   [LingLook](https://github.com/ph0ngp/linglook) (GPL-3.0); they are kept in

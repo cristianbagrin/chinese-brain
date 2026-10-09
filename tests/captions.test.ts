@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { alignTranslation, cueAt, parseTimedText, pickChinese } from '../src/youtube/captions.ts';
+import { alignTranslation, cueAt, parseTimedText, pickChinese, splitNote, stripNote } from '../src/youtube/captions.ts';
 
 const json3 = JSON.stringify({
   events: [
@@ -92,4 +92,20 @@ test('stress: garbage bodies never throw', () => {
       assert.ok(e instanceof SyntaxError, `${b}: ${e}`);
     }
   }
+});
+
+test('uploader notes move off the Chinese line; English inside sentences stays', () => {
+  const n = splitNote('一個(胡椒餅) (Note: The truth is locals usually omit the food name. Many famous stalls only sell one item.)');
+  assert.equal(n.text, '一個(胡椒餅)');
+  assert.equal(n.note, 'Note: The truth is locals usually omit the food name. Many famous stalls only sell one item.');
+  for (const keep of ['我今天去 Costco 買東西', '這是 iPhone 15 Pro Max 的新功能', '他說 I love you 然後就走了', '我們來玩 (笑)', '(Sorry) 不好意思', 'OK 好啊']) {
+    assert.deepEqual(splitNote(keep), { text: keep, note: '' });
+  }
+  assert.deepEqual(splitNote('好吃！Note: this stall only opens at night'), { text: '好吃！', note: 'Note: this stall only opens at night' });
+  assert.deepEqual(splitNote('【The stall has been here for forty years】老店'), { text: '老店', note: 'The stall has been here for forty years' });
+  assert.equal(
+    stripNote('One (pepper cake) (Note: The truth is locals usually omit the food name. Many famous stalls only sell one item.)', n.note),
+    'One (pepper cake)',
+  );
+  assert.equal(stripNote('I went to Costco', 'Note: something else entirely here'), 'I went to Costco');
 });

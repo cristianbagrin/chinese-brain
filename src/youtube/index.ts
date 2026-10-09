@@ -5,7 +5,7 @@ import { lookupText } from '../content/lookup.ts';
 import { isTyping } from '../content/keys.ts';
 import type { Popup } from '../content/popup.ts';
 import { state } from '../content/state.ts';
-import { alignTranslation, cueAt, cueBefore, parseTimedText, pickChinese, pickTranslation, urlInfo, type Cue, type TrackInfo } from './captions.ts';
+import { alignTranslation, cueAt, cueBefore, parseTimedText, pickChinese, pickTranslation, splitNote, stripNote, urlInfo, type Cue, type TrackInfo } from './captions.ts';
 import type { GeminiLine } from '../background/gemini.ts';
 import { Controls } from './controls.ts';
 import { Transcript } from './transcript.ts';
@@ -27,6 +27,8 @@ export class YouTubeSubs {
   private cues: Cue[] = [];
   private tokens: Token[][] = [];
   private trans: string[] = [];
+  /** English asides split off the Chinese lines ("(Note: …)"), shown on their own line. */
+  private notes: string[] = [];
   private trCues: Cue[] | undefined;
   private idx = -2;
   private loop = false;
@@ -39,6 +41,7 @@ export class YouTubeSubs {
   private host: HTMLElement;
   private root: ShadowRoot;
   private zh: HTMLElement;
+  private note: HTMLElement;
   private tr: HTMLElement;
   private controls: Controls;
   transcript: Transcript;
@@ -71,9 +74,11 @@ export class YouTubeSubs {
     box.className = 'box';
     this.zh = document.createElement('div');
     this.zh.className = 'zh';
+    this.note = document.createElement('div');
+    this.note.className = 'note';
     this.tr = document.createElement('div');
     this.tr.className = 'tr';
-    box.append(this.zh, this.tr);
+    box.append(this.zh, this.note, this.tr);
     this.root.append(style, box);
 
     // Keep clicks away from the player (which would pause or go fullscreen).
@@ -159,6 +164,7 @@ export class YouTubeSubs {
     this.cues = [];
     this.tokens = [];
     this.trans = [];
+    this.notes = [];
     this.trCues = undefined;
     this.idx = -2;
     this.requestedTr = false;
@@ -249,7 +255,7 @@ export class YouTubeSubs {
     }
     if (isZh) {
       if (this.src && this.src.languageCode !== info.lang && this.cues.length) return;
-      if (sameCues(cues, this.cues)) return;
+      if (sameCues(withoutNotes(cues), this.cues)) return;
       if (!this.src) this.src = { languageCode: info.lang, kind: info.kind || undefined, name: info.lang };
       await this.setSource(cues);
       return;
@@ -260,7 +266,7 @@ export class YouTubeSubs {
   /**
    * Fallback when no caption download was captured: read the text YouTube
    * renders on screen and show it as a single live line (no timing, no
-   * second line). Keeps lookup and colouring working.
+   * second line). Keeps lookup and coloring working.
    */
   private startDomFallback() {
     const p = document.getElementById('movie_player');
@@ -276,10 +282,12 @@ export class YouTubeSubs {
       last = text;
       if (!CJK.test(text)) return;
       const id = this.videoId;
-      const [toks]: Token[][] = await browser.runtime.sendMessage({ type: 'segment', lines: [text] });
+      const split = splitNote(text);
+      const [toks]: Token[][] = await browser.runtime.sendMessage({ type: 'segment', lines: [split.text] });
       if (this.videoId !== id || !this.live) return;
-      this.cues = [{ start: 0, end: Number.MAX_SAFE_INTEGER, text }];
+      this.cues = [{ start: 0, end: Number.MAX_SAFE_INTEGER, text: split.text }];
       this.tokens = [toks];
+      this.notes = [split.note];
       this.trans = [];
       this.idx = -2;
       this.mount();
@@ -289,17 +297,20 @@ export class YouTubeSubs {
     read();
   }
 
-  private async setSource(cues: Cue[]) {
+  private async setSource(raw: Cue[]) {
     if (this.live) {
       this.live = false;
       this.domObserver?.disconnect();
     }
     const id = this.videoId;
+    const split = raw.map((c) => splitNote(c.text));
+    const cues = raw.map((c, i) => ({ ...c, text: split[i].text }));
     this.pendingCues = cues;
     const tokens: Token[][] = await browser.runtime.sendMessage({ type: 'segment', lines: cues.map((c) => c.text) });
     if (this.videoId !== id || this.pendingCues !== cues) return; // a newer track or video won
     this.cues = cues;
     this.tokens = tokens;
+    this.notes = split.map((x) => x.note);
     this.idx = -2;
     this.videoTitle = document.title.replace(/ - YouTube$/, '');
     if (this.trCues) this.trans = alignTranslation(this.cues, this.trCues);
@@ -414,7 +425,7 @@ export class YouTubeSubs {
   }
 
   data() {
-    return { cues: this.cues, tokens: this.tokens, trans: this.trans };
+    return { cues: this.cues, tokens: this.tokens, trans: this.trans, notes: this.notes };
   }
   currentLine() {
     return this.idx;
@@ -546,7 +557,7 @@ export class YouTubeSubs {
         const st = state.status(t.word);
         if (st) span.classList.add('st-' + st);
         else if (s.markUntracked && t.word) span.classList.add('untracked');
-        if (s.subPinyin && t.py) {
+        if (s.pinyin && t.py) {
           const ruby = document.createElement('ruby');
           ruby.append(text);
           const rt = document.createElement('rt');
@@ -557,7 +568,9 @@ export class YouTubeSubs {
         this.zh.append(span);
       });
     }
-    const tr = i >= 0 ? this.trans[i] ?? '' : '';
+    const note = i >= 0 ? this.notes[i] ?? '' : '';
+    this.note.textContent = note;
+    const tr = i >= 0 ? stripNote(this.trans[i] ?? '', note) : '';
     this.tr.textContent = s.translation === 'hide' ? '' : tr;
     this.tr.classList.toggle('blur', s.translation === 'blur');
     this.resize();
@@ -581,6 +594,8 @@ export class YouTubeSubs {
 
   /** Open the card for a word span (subtitles or transcript). */
   async showFor(e: Event, pinned: boolean) {
+    // Words crossed on the way from a word to its card don't take the card over.
+    if (!pinned && e instanceof MouseEvent && this.popup.visible && this.popup.inBridge(e.clientX, e.clientY)) return;
     const seq = ++this.showSeq;
     const hit = this.tokenAt(e);
     if (!hit) return;
@@ -596,8 +611,9 @@ export class YouTubeSubs {
     (span.getRootNode() as ParentNode).querySelectorAll('.tok.active').forEach((el) => el.classList.remove('active'));
     span.classList.add('active');
     const cue = this.cues[line];
+    const trLine = stripNote(this.trans[line] ?? '', this.notes[line] ?? '');
     const ctx = {
-      text: cue.text + (this.trans[line] ? ` — ${this.trans[line]}` : ''),
+      text: cue.text + (trLine ? ` — ${trLine}` : ''),
       url: location.href.split('&')[0],
       title: document.title.replace(/ - YouTube$/, ''),
       t: Math.floor(cue.start),
@@ -605,7 +621,20 @@ export class YouTubeSubs {
       src: 'yt' as const,
     };
     const cursor = e instanceof MouseEvent ? { x: e.clientX, y: e.clientY } : undefined;
-    await this.popup.show({ matches, rect: span.getBoundingClientRect(), cursor, src: 'yt', ctx, pinned });
+    await this.popup.show({
+      matches,
+      rect: span.getBoundingClientRect(),
+      cursor,
+      src: 'yt',
+      ctx,
+      pinned,
+      related: (word) => this.linesWith(word, line),
+      relatedLabel: 'Elsewhere in this video',
+      seek: (t) => {
+        const v = this.video();
+        if (v) v.currentTime = t;
+      },
+    });
     if (pinned && state.settings.autoFreshOnClick) {
       // Click a new word: Fresh. Click it again: back to untracked.
       const w = matches[0].word;
@@ -618,6 +647,22 @@ export class YouTubeSubs {
         this.clickStamped = '';
       }
     }
+  }
+
+  /** Other lines of this video with the word, nearest to the current one first. */
+  private linesWith(word: string, line: number): { text: string; t: number }[] {
+    const hits: number[] = [];
+    this.tokens.forEach((toks, i) => {
+      if (i !== line && toks.some((t) => t.word === word)) hits.push(i);
+    });
+    hits.sort((a, b) => Math.abs(a - line) - Math.abs(b - line));
+    const out: { text: string; t: number }[] = [];
+    for (const i of hits) {
+      const text = this.cues[i].text;
+      if (text !== this.cues[line]?.text && !out.some((o) => o.text === text)) out.push({ text, t: this.cues[i].start });
+      if (out.length >= 3) break;
+    }
+    return out;
   }
 
   private onTokenHover(e: Event) {
@@ -693,7 +738,7 @@ export class YouTubeSubs {
         this.transcript.toggle();
         break;
       case 'p':
-        browser.runtime.sendMessage({ type: 'saveSettings', settings: { subPinyin: !s.subPinyin } });
+        browser.runtime.sendMessage({ type: 'saveSettings', settings: { pinyin: !s.pinyin } });
         break;
       case 'x': {
         const next = TRANSLATION_MODES[(TRANSLATION_MODES.indexOf(s.translation) + 1) % 3];
@@ -723,6 +768,10 @@ export class YouTubeSubs {
     }
     this.watchSecs = 0;
   }
+}
+
+function withoutNotes(cues: Cue[]): Cue[] {
+  return cues.map((c) => ({ ...c, text: splitNote(c.text).text }));
 }
 
 function sameCues(a: Cue[], b: Cue[]) {

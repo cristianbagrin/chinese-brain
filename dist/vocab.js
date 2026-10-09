@@ -58,7 +58,7 @@
     for (let r of rows) {
       let c = r.rec?.ctx[0];
       lines.push(
-        [r.w, code(r.now), code(r.was), dayKeyLocal(r.date), String(looks.get(r.w) ?? 0), r.rec?.p, r.rec?.g, c?.text, c ? shortSource(c.url, c.t) : ""].map((x) => clean(x)).join("	")
+        [r.w, code(r.now), code(r.was), dayKeyLocal(r.date), String(looks.get(r.w) ?? 0), r.rec?.p?.toLowerCase(), r.rec?.g, c?.text, c ? shortSource(c.url, c.t) : ""].map((x) => clean(x)).join("	")
       );
     }
     return lines.join(`
@@ -135,7 +135,7 @@
     return del.addEventListener("click", () => setStatus(w, null)), pills.append(del, h("span", { class: "when" }, ago(w.updated))), h(
       "div",
       { class: `row ${w.s}` },
-      h("div", { class: "w" }, h("b", null, w.w), h("span", null, w.p ?? "")),
+      h("div", { class: "w" }, h("b", null, w.w), h("span", null, (w.p ?? "").toLowerCase())),
       h("div", { class: "mean" }, w.g ?? "", c ? h("span", { class: "ctx" }, c.text.split(" \u2014 ")[0], link) : null),
       pills
     );

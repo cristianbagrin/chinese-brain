@@ -77,7 +77,7 @@ export function buildClaudeExport(words: WordRecord[], logs: LogEvent[], since =
   for (const r of rows) {
     const c = r.rec?.ctx[0];
     lines.push(
-      [r.w, code(r.now), code(r.was), dayKeyLocal(r.date), String(looks.get(r.w) ?? 0), r.rec?.p, r.rec?.g, c?.text, c ? shortSource(c.url, c.t) : '']
+      [r.w, code(r.now), code(r.was), dayKeyLocal(r.date), String(looks.get(r.w) ?? 0), r.rec?.p?.toLowerCase(), r.rec?.g, c?.text, c ? shortSource(c.url, c.t) : '']
         .map((x) => clean(x))
         .join('\t'),
     );

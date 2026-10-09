@@ -21,7 +21,7 @@ Write ONLY the lines that need action to your output file, TSV, no header:
 - `n<TAB>drop`  (remove the line; use when the line is a duplicate of another line for the same word)
 - `n<TAB>dropword<TAB>reason`  (the headword itself is Mainland-only, vulgar, an obsolete variant, or not a real word in Taiwan; all its lines will be removed)
 
-Keep the headword exactly as given inside any rewritten sentence. Keep Taiwan flavour
+Keep the headword exactly as given inside any rewritten sentence. Keep Taiwan flavor
 but vary scenes. Lines that are already good: write nothing for them.
 Work through the whole file in order, appending in batches (Bash heredoc `cat >> file <<'EOF'`).
 When finished reply only "done: X fix, Y drop, Z dropword".

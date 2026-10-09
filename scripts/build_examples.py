@@ -12,6 +12,9 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from american import sentence as american  # noqa: E402
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DICT = os.path.join(ROOT, "static", "data", "dict.tsv.gz")
 OUT = os.path.join(ROOT, "static", "data", "examples.tsv.gz")
@@ -71,7 +74,7 @@ def main():
     drop_words |= {"網絡", "一周", "上周", "下周", "本周", "周末", "每周", "職工"}
     rows = [v for _, v in sorted(base.items()) if v and v[0] not in drop_words]
     for w, zh, en in rows:
-        w, zh, en = w.strip(), zh.strip(), en.strip()
+        w, zh, en = w.strip(), zh.strip(), american(en.strip())
         # Full-width punctuation in Chinese text.
         zh = re.sub(r"(?<=[\u3400-\u9fff」』）]),\s*", "，", zh)
         zh = re.sub(r"(?<=[\u3400-\u9fff」』）])\?", "？", zh)

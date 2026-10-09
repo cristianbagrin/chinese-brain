@@ -1,6 +1,7 @@
 import { state } from '../content/state.ts';
 import { CJK } from '../shared/dict.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
+import { stripNote } from './captions.ts';
 import { clock } from '../shared/time.ts';
 import type { Status } from '../shared/types.ts';
 import type { YouTubeSubs } from './index.ts';
@@ -55,7 +56,7 @@ export class Transcript {
     this.tabs = el('div', 'tabs');
     this.body = el('div', 'body');
     const close = el('button', 'close', '×');
-    close.title = 'Close (T)';
+    close.title = 'Close (E)';
     close.addEventListener('click', () => this.toggle(false));
     this.box = el('div', 'box', el('div', 'top', this.tabs, close), this.body);
     this.root.append(style, this.box);
@@ -156,7 +157,7 @@ export class Transcript {
   }
 
   private renderLines() {
-    const { cues, tokens, trans } = this.subs.data();
+    const { cues, tokens, trans, notes } = this.subs.data();
     const s = state.settings;
     this.lineEls = cues.map((c, i) => {
       const zh = el('div', 'zh');
@@ -170,8 +171,10 @@ export class Transcript {
         if (st) span.classList.add('st-' + st);
         zh.append(span);
       });
-      const en = s.translation !== 'hide' && trans[i] ? el('div', `en${s.translation === 'blur' ? ' blur' : ''}`, trans[i]) : null;
-      const line = el('div', 'line', el('button', 'time', clock(c.start)), el('div', 'txt', zh, en));
+      const tr = stripNote(trans[i] ?? '', notes[i] ?? '');
+      const en = s.translation !== 'hide' && tr ? el('div', `en${s.translation === 'blur' ? ' blur' : ''}`, tr) : null;
+      const note = notes[i] ? el('div', 'note', notes[i]) : null;
+      const line = el('div', 'line', el('button', 'time', clock(c.start)), el('div', 'txt', zh, note, en));
       line.dataset.i = String(i);
       return line;
     });

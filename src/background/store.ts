@@ -5,7 +5,7 @@ import type { Context, Entry, LogEvent, Status, WordRecord } from '../shared/typ
 /**
  * The single word list shared by every page. Each word lives under its own
  * storage key ("w:<word>") so writes stay small; content scripts watch
- * storage.onChanged for live status colouring.
+ * storage.onChanged for live status coloring.
  */
 export class Store {
   words = new Map<string, WordRecord>();

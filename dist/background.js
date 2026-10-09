@@ -79,7 +79,7 @@
     }
     /**
      * Split a line into words: dynamic programming over dictionary words,
-     * maximising the summed log-frequency (a unigram model, like jieba).
+     * maximizing the summed log-frequency (a unigram model, like jieba).
      */
     segment(line) {
       let tokens = [], re = /[㐀-䶿一-鿿豈-﫿]+|[^㐀-䶿一-鿿豈-﫿]+/g;
@@ -112,11 +112,21 @@
       let e = entries[0];
       return { text, word: e.trad, py: e.tw || e.py, trad: e.trad };
     }
-  }, LOW_VALUE = /^(old )?variant of|^see |^surname |^used in |^\(old\)|^archaic /i;
+  }, LOW_VALUE = /^(old )?variant of|^see |^surname |^used in |^\(old\)|^archaic /i, PREFERRED = {
+    \u8981: "yao4",
+    \u8457: "zhe5",
+    \u7740: "zhe5",
+    \u770B: "kan4",
+    \u884C: "xing2",
+    \u91CD: "zhong4",
+    \u80CC: "bei4",
+    \u6559: "jiao4",
+    \u7A7A: "kong1"
+  };
   function rankEntries(entries, query) {
     let rank = (e) => {
       let r = 0;
-      return e.trad !== query && (r += 1), /^[A-Z]/.test(e.py) && (r += 4), LOW_VALUE.test(e.defs[0] ?? "") && (r += 8), e.defs.every((d) => /^(old )?variant of|^see /i.test(d)) && (r += 8), r;
+      return e.trad !== query && (r += 1), PREFERRED[query] === (e.tw || e.py) && (r -= 1), /^[A-Z]/.test(e.py) && (r += 4), LOW_VALUE.test(e.defs[0] ?? "") && (r += 8), e.defs.every((d) => /^(old )?variant of|^see /i.test(d)) && (r += 8), r;
     };
     return entries.map((e, i) => ({ e, i, r: rank(e) })).sort((a, b) => a.r - b.r || b.e.zipf - a.e.zipf || a.i - b.i).map((x) => x.e);
   }
@@ -132,20 +142,18 @@
   };
   function syllableToMarked(syl) {
     let m = /^([a-zA-Z:üÜ]+)([1-5])$/.exec(syl);
-    if (!m) return syl;
-    let [, base, toneStr] = m, tone = Number(toneStr) - 1;
-    base = base.replace(/u:/g, "\xFC").replace(/U:/g, "\xDC").replace(/v/g, "\xFC");
-    let lower = base.toLowerCase(), idx = lower.search(/[ae]/);
-    if (idx < 0 && (idx = lower.indexOf("ou")), idx < 0) {
-      for (let i = lower.length - 1; i >= 0; i--)
-        if ("aeiou\xFC".includes(lower[i])) {
+    if (!m) return syl.toLowerCase();
+    let [, raw, toneStr] = m, tone = Number(toneStr) - 1, base = raw.toLowerCase().replace(/u:/g, "\xFC").replace(/v/g, "\xFC"), idx = base.search(/[ae]/);
+    if (idx < 0 && (idx = base.indexOf("ou")), idx < 0) {
+      for (let i = base.length - 1; i >= 0; i--)
+        if ("aeiou\xFC".includes(base[i])) {
           idx = i;
           break;
         }
     }
     if (idx < 0) return base;
-    let v = lower[idx], marked = MARKS[v][tone];
-    return base[idx] !== lower[idx] && (marked = marked.toUpperCase()), base.slice(0, idx) + marked + base.slice(idx + 1);
+    let marked = MARKS[base[idx]][tone];
+    return base.slice(0, idx) + marked + base.slice(idx + 1);
   }
   function numberedToMarked(py, joined = !0) {
     let sylls = py.split(/\s+/).filter(Boolean).map(syllableToMarked);
@@ -157,7 +165,7 @@
     hoverMode: "hover",
     disabledSites: [],
     ytEnabled: !0,
-    subPinyin: !1,
+    pinyin: !0,
     translation: "blur",
     pauseOnHover: !0,
     autoFreshOnClick: !0,
@@ -165,17 +173,22 @@
     subFontSize: 30,
     subStyle: "light",
     shadowFactor: 1.5,
-    cardPinyin: "show",
+    cardSize: "normal",
     cardColors: !0,
     sounds: !0,
     pageColors: !1,
     speechRate: 0.9,
+    voice: "google",
     azureKey: "",
     azureRegion: "eastasia",
     azureVoice: "zh-TW-HsiaoChenNeural",
     geminiKey: "",
     geminiModel: "gemini-3.8-flash"
   };
+  function normalizeSettings(raw) {
+    let r = { ...raw ?? {} };
+    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), delete r.subPinyin, delete r.cardPinyin, { ...DEFAULT_SETTINGS, ...r };
+  }
 
   // src/shared/time.ts
   function dayKeyLocal(t) {
@@ -259,22 +272,22 @@
   }
 
   // src/background/gemini.ts
-  var PROMPT = `Transcribe all spoken Mandarin Chinese in this video, verbatim, in Traditional Chinese characters as used in Taiwan (\u53F0\u7063\u6B63\u9AD4\u5B57).
+  var API = "https://generativelanguage.googleapis.com/v1beta", TRANSCRIBE = `Transcribe all spoken Mandarin Chinese in this video, verbatim, in Traditional Chinese characters as used in Taiwan (\u53F0\u7063\u6B63\u9AD4\u5B57).
 Split it into subtitle lines at natural pauses, about 1 to 4 seconds and at most about 20 characters each.
-For each line give start and end times in seconds from the start of the video, the Chinese text, and a natural English translation.
+For each line give start and end times in seconds from the start of the video (numbers, e.g. 83.5), the Chinese text, and a natural American English translation.
 If someone speaks Taiwanese Hokkien or another language, transcribe what you can and translate it.
-Do not summarise, do not skip lines, do not add commentary.`, SCHEMA = {
-    type: "object",
+Do not summarize, do not skip lines, do not add commentary. If nobody speaks Chinese, return an empty list.`, LINES_SCHEMA = {
+    type: "OBJECT",
     properties: {
       lines: {
-        type: "array",
+        type: "ARRAY",
         items: {
-          type: "object",
+          type: "OBJECT",
           properties: {
-            start: { type: "number" },
-            end: { type: "number" },
-            zh: { type: "string" },
-            en: { type: "string" }
+            start: { type: "NUMBER" },
+            end: { type: "NUMBER" },
+            zh: { type: "STRING" },
+            en: { type: "STRING" }
           },
           required: ["start", "end", "zh", "en"]
         }
@@ -282,43 +295,173 @@ Do not summarise, do not skip lines, do not add commentary.`, SCHEMA = {
     },
     required: ["lines"]
   };
+  async function errorMessage(res) {
+    let raw = await res.text(), msg = raw.slice(0, 200);
+    try {
+      let j = JSON.parse(raw);
+      msg = (Array.isArray(j) ? j[0] : j)?.error?.message ?? msg;
+    } catch {
+    }
+    return res.status === 400 && /API key/i.test(msg) ? "Gemini rejected the API key. Copy it again from aistudio.google.com/apikey." : res.status === 403 ? `Gemini refused the request (403): ${msg}` : res.status === 404 ? "This Gemini model is not available for your key. Pick another one in Settings." : res.status === 429 ? "Gemini rate limit or free quota reached (429). Try again later or pick a lighter model." : `Gemini (HTTP ${res.status}): ${msg}`;
+  }
+  async function generate(key, model, parts, generationConfig) {
+    let res = await fetch(`${API}/models/${encodeURIComponent(model.replace(/^models\//, ""))}:generateContent`, {
+      method: "POST",
+      headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig })
+    });
+    if (!res.ok) throw new Error(await errorMessage(res));
+    let data = await res.json();
+    if (data.promptFeedback?.blockReason) throw new Error(`Gemini blocked the request (${data.promptFeedback.blockReason}).`);
+    let cand = data.candidates?.[0];
+    return { text: (cand?.content?.parts ?? []).filter((p) => !p.thought).map((p) => p.text ?? "").join(""), finish: cand?.finishReason ?? "" };
+  }
+  function seconds(v) {
+    if (typeof v == "number") return v;
+    let parts = String(v ?? "").trim().split(":").map(Number);
+    return parts.some((n) => !Number.isFinite(n)) ? NaN : parts.reduce((acc, n) => acc * 60 + n, 0);
+  }
+  function parseLines(text) {
+    let body = text.trim().replace(/^```(?:json)?\s*|\s*```$/g, ""), raw = [];
+    try {
+      let json = JSON.parse(body);
+      raw = Array.isArray(json) ? json : json.lines ?? [];
+    } catch {
+      for (let m of body.matchAll(/\{[^{}]*\}/g))
+        try {
+          raw.push(JSON.parse(m[0]));
+        } catch {
+        }
+    }
+    return raw.filter((l) => l && typeof l.zh == "string" && l.zh.trim()).map((l) => {
+      let start = seconds(l.start), end = seconds(l.end);
+      return { start, end: Number.isFinite(end) && end > start ? end : start + 2, zh: String(l.zh).trim(), en: String(l.en ?? "").trim() };
+    }).filter((l) => Number.isFinite(l.start)).sort((a, b) => a.start - b.start);
+  }
   async function geminiTranscribe(videoId, key, model) {
     let cacheKey = "gem:" + videoId, cached = (await browser.storage.local.get(cacheKey))[cacheKey];
     if (cached?.length) return cached;
-    let call = async (structured) => {
-      let body = {
-        model,
-        input: [
-          { type: "text", text: PROMPT },
-          { type: "video", uri: `https://www.youtube.com/watch?v=${videoId}` }
-        ]
-      };
-      structured && (body.response_format = { type: "text", mime_type: "application/json", schema: SCHEMA });
-      let res = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
-        method: "POST",
-        headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-      if (!res.ok) {
-        let raw = await res.text(), msg = raw.slice(0, 200);
-        try {
-          let j = JSON.parse(raw);
-          msg = (Array.isArray(j) ? j[0] : j)?.error?.message ?? msg;
-        } catch {
-        }
-        throw new Error(`Gemini (HTTP ${res.status}): ${msg}`);
-      }
-      return ((await res.json()).steps ?? []).filter((s) => s.type === "model_output").flatMap((s) => s.content ?? []).map((c) => c.text ?? "").join("");
-    }, text;
+    let parts = [{ file_data: { file_uri: `https://www.youtube.com/watch?v=${videoId}` } }, { text: TRANSCRIBE }], config = {
+      responseMimeType: "application/json",
+      responseSchema: LINES_SCHEMA,
+      maxOutputTokens: 65536,
+      temperature: 0.2,
+      // Fewer tokens per second of video, so long videos fit the free tier.
+      mediaResolution: "MEDIA_RESOLUTION_LOW"
+    }, out;
     try {
-      text = await call(!0);
+      out = await generate(key, model, parts, config);
     } catch (e) {
-      if (!/HTTP 400/.test(String(e)) || /API key/i.test(String(e))) throw e;
-      text = await call(!1);
+      if (!/HTTP 400/.test(String(e))) throw e;
+      out = await generate(key, model, parts, { responseMimeType: "application/json" });
     }
-    let json = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, "")), lines = (Array.isArray(json) ? json : json.lines ?? []).filter((l) => l && typeof l.zh == "string" && l.zh.trim()).map((l) => ({ start: Number(l.start) || 0, end: Number(l.end) || Number(l.start) + 2, zh: l.zh.trim(), en: (l.en ?? "").trim() })).sort((a, b) => a.start - b.start);
-    if (!lines.length) throw new Error("Gemini returned no lines");
+    let lines = parseLines(out.text);
+    if (!lines.length)
+      throw out.finish === "SAFETY" || out.finish === "RECITATION" || out.finish === "PROHIBITED_CONTENT" ? new Error(`Gemini stopped (${out.finish}).`) : out.text.trim() ? new Error("Gemini heard no Mandarin in this video.") : new Error(`Gemini sent an empty reply${out.finish ? ` (${out.finish})` : ""}. Try again, or pick another model in Settings.`);
     return await browser.storage.local.set({ [cacheKey]: lines }), lines;
+  }
+  async function geminiModels(key) {
+    let out = [], page = "";
+    do {
+      let res = await fetch(`${API}/models?pageSize=200${page ? `&pageToken=${page}` : ""}`, { headers: { "x-goog-api-key": key.trim() } });
+      if (!res.ok) throw new Error(await errorMessage(res));
+      let data = await res.json();
+      for (let m of data.models ?? []) {
+        let id = m.name.replace(/^models\//, "");
+        m.supportedGenerationMethods?.includes("generateContent") && (!/^gemini-/.test(id) || /embedding|image|tts|audio|live|robotics|computer-use|aqa/.test(id) || out.push({ id, name: m.displayName || id }));
+      }
+      page = data.nextPageToken ?? "";
+    } while (page);
+    let ver = (id) => Number(/gemini-(\d+(?:\.\d+)?)/.exec(id)?.[1] ?? 0), tier = (id) => /flash-lite/.test(id) ? 1 : /flash/.test(id) ? 0 : 2, preview = (id) => /preview|exp/.test(id) ? 1 : 0;
+    return out.sort((a, b) => ver(b.id) - ver(a.id) || preview(a.id) - preview(b.id) || tier(a.id) - tier(b.id) || a.id.localeCompare(b.id));
+  }
+  async function geminiExamples(word, gloss, key, model) {
+    let cacheKey = "gex:" + word, cached = (await browser.storage.local.get(cacheKey))[cacheKey];
+    if (cached?.length) return cached;
+    let prompt = `Write two natural example sentences that a Taiwanese person would really say or write, using the word \u300C${word}\u300D (${gloss}).
+Use Traditional Chinese characters as used in Taiwan and Taiwan vocabulary (not Mainland forms, no \u5152\u5316).
+The first sentence: 12 to 25 characters, showing typical everyday usage. The second: short and simple, under 12 characters.
+Give each with a natural American English translation.`, schema = {
+      type: "OBJECT",
+      properties: { examples: { type: "ARRAY", items: { type: "OBJECT", properties: { zh: { type: "STRING" }, en: { type: "STRING" } }, required: ["zh", "en"] } } },
+      required: ["examples"]
+    }, { text } = await generate(key, model, [{ text: prompt }], { responseMimeType: "application/json", responseSchema: schema, temperature: 0.7 }), list = (JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, "")).examples ?? []).filter((x) => x.zh?.includes(word)).slice(0, 2).map((x) => [x.zh.trim(), (x.en ?? "").trim()]);
+    if (!list.length) throw new Error("Gemini wrote no usable sentences.");
+    return await browser.storage.local.set({ [cacheKey]: list }), list;
+  }
+
+  // src/background/speech.ts
+  var AZURE_REGIONS = [
+    "eastasia",
+    "southeastasia",
+    "japaneast",
+    "koreacentral",
+    "westeurope",
+    "northeurope",
+    "uksouth",
+    "francecentral",
+    "germanywestcentral",
+    "swedencentral",
+    "switzerlandnorth",
+    "norwayeast",
+    "italynorth",
+    "eastus",
+    "eastus2",
+    "westus",
+    "westus2",
+    "westus3",
+    "centralus",
+    "northcentralus",
+    "southcentralus",
+    "westcentralus",
+    "canadacentral",
+    "brazilsouth",
+    "australiaeast",
+    "centralindia",
+    "japanwest",
+    "southafricanorth",
+    "uaenorth",
+    "qatarcentral"
+  ], xml = (s) => s.replace(/[<&>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+  async function ttsAudio(engine, text, st) {
+    if (engine === "google") {
+      let url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=zh-TW&ttsspeed=${st.speechRate < 0.75 ? "0.24" : "1"}&q=${encodeURIComponent(text.slice(0, 200))}`, res2 = await fetch(url);
+      if (!res2.ok) throw new Error(`Google voice: HTTP ${res2.status}`);
+      return res2.arrayBuffer();
+    }
+    if (!st.azureKey) throw new Error("No Azure key");
+    let pct = Math.round((st.speechRate - 1) * 100), ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="zh-TW"><voice name="${xml(st.azureVoice)}"><prosody rate="${pct}%">${xml(text)}</prosody></voice></speak>`, res = await fetch(`https://${st.azureRegion}.tts.speech.microsoft.com/cognitiveservices/v1`, {
+      method: "POST",
+      headers: {
+        "Ocp-Apim-Subscription-Key": st.azureKey,
+        "Content-Type": "application/ssml+xml",
+        "X-Microsoft-OutputFormat": "audio-24khz-96kbitrate-mono-mp3"
+      },
+      body: ssml
+    });
+    if (!res.ok) throw new Error(azureError(res.status));
+    return res.arrayBuffer();
+  }
+  function azureError(status) {
+    return status === 401 ? 'Azure rejected the key for this region (401). Press "Check key" to find the right region.' : status === 429 ? "Azure: too many requests or the free monthly quota is used up (429)." : status === 400 ? "Azure: bad request (400). Try another voice." : `Azure: HTTP ${status}`;
+  }
+  async function azureKeyWorks(key, region) {
+    try {
+      return (await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/voices/list`, {
+        headers: { "Ocp-Apim-Subscription-Key": key }
+      })).status;
+    } catch {
+      return 0;
+    }
+  }
+  async function checkAzure(key, region) {
+    if (key = key.trim(), !key) return { ok: !1, error: "Paste your Azure Speech key first." };
+    let first = await azureKeyWorks(key, region);
+    if (first === 200) return { ok: !0, region };
+    if (first === 0) return { ok: !1, error: "Could not reach Azure. Check your connection." };
+    if (first !== 401 && first !== 403) return { ok: !1, error: azureError(first) };
+    let others = AZURE_REGIONS.filter((r) => r !== region), hit = (await Promise.all(others.map(async (r) => [r, await azureKeyWorks(key, r)]))).find(([, st]) => st === 200);
+    return hit ? { ok: !0, region: hit[0] } : { ok: !1, error: 'Azure did not accept this key in any region. Copy "KEY 1" from your Speech resource in the Azure portal.' };
   }
 
   // src/background/translate.ts
@@ -407,7 +550,7 @@ Do not summarise, do not skip lines, do not add commentary.`, SCHEMA = {
   }
   async function getSettings() {
     let { settings } = await browser.storage.local.get("settings");
-    return { ...DEFAULT_SETTINGS, ...settings };
+    return normalizeSettings(settings);
   }
   browser.runtime.onMessage.addListener((msg, sender) => {
     let m = msg;
@@ -469,26 +612,36 @@ Do not summarise, do not skip lines, do not add commentary.`, SCHEMA = {
         return;
       case "translate":
         return translateLines(any.lines, String(any.sl ?? "zh-TW"), String(any.tl ?? "en")).catch((e) => (console.warn("[chinese-brain] translate fallback failed", e), null));
-      case "azureTTS":
-        return getSettings().then(async (st) => {
-          let res = await fetch(`https://${st.azureRegion}.tts.speech.microsoft.com/cognitiveservices/v1`, {
-            method: "POST",
-            headers: {
-              "Ocp-Apim-Subscription-Key": st.azureKey,
-              "Content-Type": "application/ssml+xml",
-              "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3"
-            },
-            body: any.ssml
-          });
-          if (!res.ok) throw new Error(`Azure TTS HTTP ${res.status}`);
-          return res.arrayBuffer();
+      case "tts":
+        return getSettings().then(
+          (st) => ttsAudio(any.engine, String(any.text), st).then(
+            (audio) => ({ audio }),
+            (e) => ({ error: String(e instanceof Error ? e.message : e) })
+          )
+        );
+      case "azureCheck":
+        return checkAzure(String(any.key ?? ""), String(any.region ?? "eastasia"));
+      case "geminiModels":
+        return geminiModels(String(any.key ?? "")).then(
+          (models) => ({ models }),
+          (e) => ({ error: String(e instanceof Error ? e.message : e) })
+        );
+      case "geminiExamples":
+        return Promise.all([getSettings(), dictReady]).then(async ([st, d]) => {
+          if (!st.geminiKey) return { error: "Add a Gemini API key in Settings first." };
+          let word = String(any.word), e = d.get(word)[0];
+          try {
+            return await geminiExamples(word, e ? shortGloss(e) : "", st.geminiKey, st.geminiModel), { ok: !0 };
+          } catch (err) {
+            return { error: String(err instanceof Error ? err.message : err) };
+          }
         });
       case "wordInfo":
-        return Promise.all([dictReady, storeReady, examplesReady]).then(([d]) => {
+        return Promise.all([dictReady, storeReady, examplesReady]).then(async ([d]) => {
           let word = any.word, sylls = String(any.py ?? "").split(/\s+/), chars = [...word].length > 1 ? [...word].map((ch, i) => {
             let e = d.charEntry(ch, sylls[i]);
             return { ch, py: sylls[i] ?? e?.tw ?? e?.py ?? "", gloss: e ? shortGloss(e) : "" };
-          }) : [], record = store.words.get(word) ?? null, ex = (examples.get(word) ?? []).slice(0, 2).map(([zh, en]) => ({ zh, en, toks: d.segment(zh) })), seen = (record?.ctx ?? []).slice(0, 4).map((c) => {
+          }) : [], record = store.words.get(word) ?? null, gex = (await browser.storage.local.get("gex:" + word))["gex:" + word] ?? [], ex = (examples.get(word)?.length ? examples.get(word) : gex).slice(0, 2).map(([zh, en]) => ({ zh, en, toks: d.segment(zh) })), seen = (record?.ctx ?? []).slice(0, 4).map((c) => {
             let zh = c.text.split(" \u2014 ")[0];
             return { ...c, zh, toks: d.segment(zh) };
           });
@@ -507,7 +660,7 @@ Do not summarise, do not skip lines, do not add commentary.`, SCHEMA = {
         return getSettings().then(async (st) => {
           if (!st.geminiKey) return { error: "Add your Gemini API key in Settings first." };
           try {
-            return { lines: await geminiTranscribe(String(any.videoId), st.geminiKey, st.geminiModel || "gemini-3.8-flash") };
+            return { lines: await geminiTranscribe(String(any.videoId), st.geminiKey, st.geminiModel || DEFAULT_SETTINGS.geminiModel) };
           } catch (e) {
             return { error: String(e instanceof Error ? e.message : e) };
           }

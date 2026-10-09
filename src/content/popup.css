@@ -16,15 +16,17 @@
   --sans: -apple-system, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
 }
 
+/* Sizes are in em of the card's 14px (16px when large), so the whole card scales together. */
 .card {
   position: fixed;
   z-index: 2147483647;
   box-sizing: border-box;
   width: max-content;
-  min-width: 240px;
-  max-width: min(420px, calc(100vw - 16px));
-  max-height: min(72vh, 560px);
+  min-width: 17em;
+  max-width: min(30em, calc(100vw - 16px));
+  max-height: min(72vh, 40em);
   overflow: auto;
+  overscroll-behavior: contain;
   background: var(--bg);
   color: var(--text);
   border: 1px solid var(--line);
@@ -35,62 +37,72 @@
   pointer-events: auto;
   scrollbar-width: thin;
 }
+.card.large { font-size: 16px; }
 .card[hidden] { display: none; }
 
-.top { padding: 12px 16px 10px; }
-.headrow { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-.head { font: 600 30px/1.15 var(--sans); letter-spacing: 0.02em; }
-.head { padding: 0 3px; margin: 0 -3px; border-radius: 4px; }
+.top { position: relative; padding: 0.86em 1.15em 0.7em; }
+.headrow { display: flex; align-items: baseline; gap: 0.85em; flex-wrap: wrap; }
+.head { font: 600 2.15em/1.15 var(--sans); letter-spacing: 0.02em; padding: 0 3px; margin: 0 -3px; border-radius: 4px; }
 .head.st-fresh { background: var(--fresh-mark); }
 .head.st-learning { background: var(--learning-mark); }
 .head.st-known { background: var(--known-mark); }
-.py { font-size: 15px; color: var(--text3); letter-spacing: 0.01em; }
-.py.hidden { color: transparent; text-shadow: 0 0 9px var(--text2); }
-.freq { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text3); white-space: nowrap; }
-.bars { display: inline-flex; gap: 2px; align-items: flex-end; height: 11px; }
+.py { font-size: 1.07em; color: var(--text3); letter-spacing: 0.01em; }
+.py.hidden { color: transparent; text-shadow: 0 0 9px var(--text2); cursor: pointer; }
+
+/* How common the word is, in words (the tooltip says what that means for you). */
+.freq { margin-left: auto; display: flex; align-items: center; gap: 0.45em; font-size: 0.86em; color: var(--text3); white-space: nowrap; cursor: default; }
+.bars { display: inline-flex; gap: 2px; align-items: flex-end; height: 0.9em; }
 .bars i { width: 3px; background: var(--line); border-radius: 1px; }
+.bars i:nth-child(1) { height: 30%; }
+.bars i:nth-child(2) { height: 47%; }
+.bars i:nth-child(3) { height: 64%; }
+.bars i:nth-child(4) { height: 82%; }
+.bars i:nth-child(5) { height: 100%; }
 .bars i.on { background: var(--link); }
+.freq.f5, .freq.f4 { color: var(--link); }
 
-.defs { margin-top: 6px; color: var(--text); }
-.defs .sep { color: var(--text3); padding: 0 6px; }
-.reading + .reading { margin-top: 6px; }
-.reading .rpy { color: var(--text2); margin-right: 8px; }
-.cl { margin-top: 4px; font-size: 13px; color: var(--text2); }
-.cl b { font-weight: 500; color: var(--text); }
+.defs { margin-top: 0.43em; color: var(--text); }
+.defs .sep { color: var(--text3); padding: 0 0.43em; }
+.reading + .reading { margin-top: 0.43em; }
+.reading .rpy { color: var(--text2); margin-right: 0.57em; }
+.cl { margin-top: 0.3em; font-size: 0.93em; color: var(--text2); }
 
-.sect { border-top: 1px solid var(--line); padding: 8px 16px; }
-.chars { display: grid; grid-template-columns: auto auto 1fr; gap: 3px 10px; align-items: baseline; }
-.chars .c { font-size: 19px; }
-.chars .cpy { color: var(--text3); font-size: 12px; white-space: nowrap; }
-.chars .cg { color: var(--text2); font-size: 13px; line-height: 1.4; }
+.sect { border-top: 1px solid var(--line); padding: 0.57em 1.15em; }
+.chars { display: grid; grid-template-columns: auto auto 1fr; gap: 0.2em 0.7em; align-items: baseline; }
+.chars .cpy { color: var(--text3); font-size: 0.86em; white-space: nowrap; }
+.chars .cg { color: var(--text2); font-size: 0.93em; line-height: 1.4; }
 
 .ex { margin: 0; padding: 0; list-style: none; }
-.ex li + li { margin-top: 5px; }
-.ex .zh { font-size: 15px; }
+.ex li + li { margin-top: 0.36em; }
+.ex .zh { font-size: 1.07em; }
+.ex .en { display: block; font-size: 0.89em; color: var(--text2); }
+.label { font-size: 0.79em; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 0.3em; }
+.seen .src { all: unset; cursor: pointer; font-size: 0.86em; color: var(--link); margin-left: 0.43em; text-decoration: none; }
+.seen .src:hover { text-decoration: underline; }
+.gem { all: unset; cursor: pointer; font-size: 0.89em; color: var(--link); }
+.gem:hover { text-decoration: underline; }
+.gem[disabled] { cursor: default; color: var(--text3); text-decoration: none; }
+.gemrow .err { font-size: 0.86em; color: var(--fresh); margin-top: 0.2em; }
 
-.ex .en { display: block; font-size: 12.5px; color: var(--text2); }
-.label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 4px; }
-.seen .src { font-size: 12px; color: var(--link); margin-left: 6px; text-decoration: none; }
-
-.foot { display: flex; align-items: center; gap: 10px; padding: 8px 12px 10px 14px; border-top: 1px solid var(--line); background: var(--bg2); }
-.stamps { display: flex; gap: 8px; }
+.foot { display: flex; align-items: center; gap: 0.7em; padding: 0.57em 0.85em 0.7em 1em; border-top: 1px solid var(--line); background: var(--bg2); }
+.stamps { display: flex; gap: 0.57em; }
 .stamp {
   all: unset;
   cursor: pointer;
   box-sizing: border-box;
   position: relative;
-  width: 36px;
-  height: 36px;
+  width: 2.57em;
+  height: 2.57em;
   border-radius: 50%;
   display: grid;
   place-items: center;
   border: 1.5px solid var(--line);
   background: var(--bg);
-  font: 600 16px/1 var(--sans);
+  font: 600 1.15em/1 var(--sans);
   color: var(--text2);
   transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.12s, border-color 0.12s, color 0.12s;
 }
-.stamp small { position: absolute; right: -3px; bottom: -3px; font: 600 9px/1 var(--sans); color: var(--text3); background: var(--bg2); padding: 1px 2px; border-radius: 3px; }
+.stamp small { position: absolute; right: -3px; bottom: -3px; font: 600 0.56em/1 var(--sans); color: var(--text3); background: var(--bg2); padding: 1px 2px; border-radius: 3px; }
 .stamp:hover { border-color: var(--text3); color: var(--text); }
 .stamp:active { transform: scale(0.88); }
 .stamp.fresh { border-color: color-mix(in srgb, var(--fresh) 45%, var(--line)); }
@@ -106,19 +118,38 @@
   60% { transform: rotate(-14deg) scale(1.08); }
   100% { transform: rotate(-10deg) scale(1); }
 }
-.tools { margin-left: auto; display: flex; gap: 12px; font-size: 12.5px; }
+.tools { margin-left: auto; display: flex; gap: 0.85em; font-size: 0.89em; }
 .tools button { all: unset; cursor: pointer; color: var(--link); }
 .tools kbd { font: inherit; color: var(--text3); margin-left: 3px; }
 
-/* Every Chinese word in the card is clickable; a quiet underline on hover, nothing popping up. */
+/* Every Chinese word in the card is clickable; a quiet underline on hover, plus a small hint. */
 .w { cursor: pointer; border-radius: 3px; }
 .w:hover { text-decoration: underline; text-decoration-color: var(--text3); text-underline-offset: 3px; }
 .w.st-fresh { background: var(--fresh-mark); }
 .w.st-learning { background: var(--learning-mark); }
 .w.st-known { background: var(--known-mark); }
 .ex .w.hw { box-shadow: inset 0 -2px 0 var(--learning); }
-.chars .w.c { font-size: 19px; padding: 0 2px; }
-.top { position: relative; }
-.back { all: unset; cursor: pointer; position: absolute; left: 6px; top: 6px; font-size: 13px; color: var(--text3); padding: 2px 5px; border-radius: 4px; }
+.chars .w.c { font-size: 1.36em; padding: 0 2px; }
+.back { all: unset; cursor: pointer; position: absolute; left: 0.43em; top: 0.43em; font-size: 0.93em; color: var(--text3); padding: 2px 5px; border-radius: 4px; }
 .back:hover { color: var(--text); background: var(--bg2); }
-.top:has(.back) .headrow { padding-left: 16px; }
+.top:has(.back) .headrow { padding-left: 1.15em; }
+
+/* The word hint: read-only, never in the way (the pointer passes straight through it). */
+.hint {
+  position: fixed;
+  z-index: 2147483647;
+  pointer-events: none;
+  max-width: 22em;
+  padding: 0.25em 0.6em 0.3em;
+  border-radius: 6px;
+  background: var(--text);
+  color: #fff;
+  font: 13px/1.35 var(--sans);
+  box-shadow: 0 3px 10px rgba(27, 29, 58, 0.25);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hint.large { font-size: 15px; }
+.hint[hidden] { display: none; }
+.hint .hpy { color: #c9cdf0; margin-right: 0.5em; }

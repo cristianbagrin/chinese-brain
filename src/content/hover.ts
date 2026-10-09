@@ -1,6 +1,6 @@
 import { CJK } from '../shared/dict.ts';
 import { lookupText } from './lookup.ts';
-import { Popup } from './popup.ts';
+import { Popup, type Related } from './popup.ts';
 import { state } from './state.ts';
 
 const HIGHLIGHT = 'chinese-brain-hit';
@@ -63,6 +63,23 @@ export function sentenceAround(node: Text, offset: number): string {
   return full.slice(a, Math.min(full.length, b + 1)).trim();
 }
 
+const SKIP_TEXT = 'script,style,noscript,textarea,code,pre,chinese-brain-popup,[data-cb-own]';
+
+/** Other sentences on this page that use the word (a few, nearest the top). */
+function pageSentences(word: string): Related[] {
+  const out: Related[] = [];
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let scanned = 0;
+  for (let n = walker.nextNode() as Text | null; n && out.length < 4 && scanned < 400_000; n = walker.nextNode() as Text | null) {
+    scanned += n.data.length;
+    const i = n.data.indexOf(word);
+    if (i < 0 || n.parentElement?.closest(SKIP_TEXT)) continue;
+    const text = sentenceAround(n, i);
+    if (text.length >= word.length + 2 && text.length <= 80 && !out.some((r) => r.text === text)) out.push({ text });
+  }
+  return out;
+}
+
 /** Hover lookup on any page. Elements marked data-cb-own are left to their owners. */
 export class HoverLookup {
   private popup: Popup;
@@ -80,7 +97,16 @@ export class HoverLookup {
     document.addEventListener('mousedown', (e) => {
       if (!this.popup.contains(e.target)) this.popup.hide();
     });
-    window.addEventListener('scroll', () => !this.popup.pinned && this.popup.hide(), { passive: true });
+    // Scrolling (wheel, trackpad or keys) keeps a card the pointer rests on; otherwise the word left, so the card goes.
+    document.addEventListener(
+      'scroll',
+      () => {
+        if (!this.popup.visible || this.popup.pinned) return;
+        if (this.popup.isHovered) this.popup.detach();
+        else this.popup.hide();
+      },
+      { capture: true, passive: true },
+    );
     this.popup.onHide(() => {
       this.currentKey = '';
       CSS.highlights?.delete(HIGHLIGHT);
@@ -128,6 +154,8 @@ export class HoverLookup {
       cursor: e ? { x: e.clientX, y: e.clientY } : undefined,
       src: 'web',
       pinned: true,
+      related: pageSentences,
+      relatedLabel: 'Also on this page',
       ctx: { text: ctxText || (field ? active!.value.slice(0, 200) : text), url: location.href, title: document.title, at: Date.now(), src: 'web' },
     });
   }
@@ -149,9 +177,11 @@ export class HoverLookup {
     if (this.popup.contains(target)) {
       // Resting on the card keeps it. Landing on a card that only just opened means the
       // pointer is sweeping past: close it and look at the text underneath instead.
-      if (this.popup.age() > 450) return;
+      if (this.popup.age() > 300) return;
       this.popup.hide();
     }
+    // On the way from the word to its card: text crossed on the way doesn't count.
+    if (this.popup.visible && this.popup.inBridge(this.lastX, this.lastY)) return;
     if ((target as Element | null)?.closest?.('[data-cb-own]')) return;
     const s = state.settings;
     if (!state.siteEnabled() || (s.hoverMode === 'shift' && !this.shift)) return this.scheduleHide();
@@ -183,6 +213,8 @@ export class HoverLookup {
       cursor: { x: this.lastX, y: this.lastY },
       src: 'web',
       ctx: { text: sentenceAround(text, offset), url: location.href, title: document.title, at: Date.now(), src: 'web' },
+      related: pageSentences,
+      relatedLabel: 'Also on this page',
     });
   }
 
@@ -223,7 +255,7 @@ export class HoverLookup {
       browser.runtime.sendMessage({ type: 'insertCSS', css: `::highlight(${HIGHLIGHT}){background:#f3d27a;color:#31261a}` });
     }
     const hl = new Highlight(range);
-    hl.priority = 10; // above the page colours
+    hl.priority = 10; // above the page colors
     CSS.highlights.set(HIGHLIGHT, hl);
   }
 

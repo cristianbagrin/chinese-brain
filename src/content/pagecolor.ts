@@ -11,7 +11,7 @@ const SKIP = 'script,style,noscript,textarea,input,select,code,pre,[contentedita
 const MAX_CHARS = 300_000;
 
 /**
- * Colours every word on the page by its status, like the subtitles do. Uses
+ * Colors every word on the page by its status, like the subtitles do. Uses
  * the CSS Custom Highlight API, so the page's DOM is never modified.
  */
 export class PageColors {
@@ -54,14 +54,14 @@ export class PageColors {
     this.observer = new MutationObserver((muts) => {
       for (const m of muts) {
         if (m.type === 'characterData') {
-          // Edited text: forget its old ranges and colour it again.
+          // Edited text: forget its old ranges and color it again.
           const t = m.target as Text;
           this.done.delete(t);
           this.words = this.words.filter((w) => w.range.startContainer !== t);
           this.pending.add(t);
         } else m.addedNodes.forEach((n) => this.pending.add(n));
       }
-      // Throttle (not debounce), so pages that change constantly still get coloured.
+      // Throttle (not debounce), so pages that change constantly still get colored.
       this.timer ??= setTimeout(() => {
         this.timer = undefined;
         const nodes = [...this.pending];

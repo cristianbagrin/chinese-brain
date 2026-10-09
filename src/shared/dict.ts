@@ -106,7 +106,7 @@ export class Dictionary {
 
   /**
    * Split a line into words: dynamic programming over dictionary words,
-   * maximising the summed log-frequency (a unigram model, like jieba).
+   * maximizing the summed log-frequency (a unigram model, like jieba).
    */
   segment(line: string): Token[] {
     const tokens: Token[] = [];
@@ -153,11 +153,20 @@ export class Dictionary {
 
 const LOW_VALUE = /^(old )?variant of|^see |^surname |^used in |^\(old\)|^archaic /i;
 
+/**
+ * The everyday reading of characters CC-CEDICT lists with a rarer one first
+ * (要 is far more often yào "want" than yāo "demand").
+ */
+const PREFERRED: Record<string, string> = {
+  要: 'yao4', 著: 'zhe5', 着: 'zhe5', 看: 'kan4', 行: 'xing2', 重: 'zhong4', 背: 'bei4', 教: 'jiao4', 空: 'kong1',
+};
+
 /** Order entries: matching script first, common senses before proper nouns and variants. */
 export function rankEntries(entries: Entry[], query: string): Entry[] {
   const rank = (e: Entry) => {
     let r = 0;
     if (e.trad !== query) r += 1; // query is simplified: still fine, small penalty
+    if (PREFERRED[query] === (e.tw || e.py)) r -= 1;
     if (/^[A-Z]/.test(e.py)) r += 4; // proper noun
     if (LOW_VALUE.test(e.defs[0] ?? '')) r += 8;
     if (e.defs.every((d) => /^(old )?variant of|^see /i.test(d))) r += 8;

@@ -28,7 +28,7 @@ Assessed: `ph0ngp/linglook` v1.2.4 (last commit 2026-09-14), GPL-3.0-only.
 
 ## What it lacks for our brief
 No YouTube or subtitle layer, no saved-word store, no word status
-(Fresh/Difficult/Known), no page-wide status colouring, no export, no
+(Fresh/Difficult/Known), no page-wide status coloring, no export, no
 known-word coverage. That is most of what we need.
 
 ## Build check
@@ -49,7 +49,7 @@ We still borrow from LingLook:
 - optionally Hanzi Writer stroke data (MIT) if stroke order gets a KEEP.
 
 We license the project GPL-3.0 so we can copy individual LingLook files
-verbatim where useful. Data keeps its own licences (CC-CEDICT CC BY-SA 4.0).
+verbatim where useful. Data keeps its own licenses (CC-CEDICT CC BY-SA 4.0).
 
 Effort, in my estimate: fork ≈ 6/10 (mostly untangling plus new features);
 fresh ≈ 5.5/10.

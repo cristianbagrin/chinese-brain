@@ -13,6 +13,8 @@ LINES = [
     (6.2, 9.0, '颱風要來了，記得多買一點泡麵', "A typhoon is coming, remember to buy some instant noodles"),
     (9.2, 12.5, '我騎機車去捷運站，然後搭捷運回家', 'I ride my scooter to the MRT station and then take the MRT home'),
     (12.7, 16.0, '这句是简体字幕，我们明天见', 'This line is in simplified characters, see you tomorrow'),
+    (16.2, 19.5, '一個(胡椒餅) (Note: The truth is locals usually omit the food name. Many famous stalls only sell one item.)',
+     'One (pepper cake) (Note: The truth is locals usually omit the food name. Many famous stalls only sell one item.)'),
 ]
 
 def json3(tlang):

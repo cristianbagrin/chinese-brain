@@ -1,8 +1,9 @@
 import { Dictionary } from '../shared/dict.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
-import { DEFAULT_SETTINGS, type Msg, type Settings, type Status, type WordRecord } from '../shared/types.ts';
+import { DEFAULT_SETTINGS, normalizeSettings, type Msg, type Settings, type Status, type WordRecord } from '../shared/types.ts';
 import { shortGloss, Store } from './store.ts';
-import { geminiTranscribe } from './gemini.ts';
+import { geminiExamples, geminiModels, geminiTranscribe } from './gemini.ts';
+import { checkAzure, ttsAudio } from './speech.ts';
 import { translateLines } from './translate.ts';
 import { cachedCaptions, startCaptionCapture } from './youtube.ts';
 
@@ -48,7 +49,7 @@ async function loadDictionary(): Promise<Dictionary> {
 
 async function getSettings(): Promise<Settings> {
   const { settings } = await browser.storage.local.get('settings');
-  return { ...DEFAULT_SETTINGS, ...(settings as Partial<Settings> | undefined) };
+  return normalizeSettings(settings as Record<string, unknown> | undefined);
 }
 
 browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: unknown }, sender) => {
@@ -123,24 +124,36 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
         console.warn('[chinese-brain] translate fallback failed', e);
         return null;
       });
-    case 'azureTTS':
-      return getSettings().then(async (st) => {
-        const res = await fetch(`https://${st.azureRegion}.tts.speech.microsoft.com/cognitiveservices/v1`, {
-          method: 'POST',
-          headers: {
-            'Ocp-Apim-Subscription-Key': st.azureKey,
-            'Content-Type': 'application/ssml+xml',
-            'X-Microsoft-OutputFormat': 'audio-24khz-48kbitrate-mono-mp3',
-          },
-          body: any.ssml as string,
-        });
-        if (!res.ok) throw new Error(`Azure TTS HTTP ${res.status}`);
-        return res.arrayBuffer();
+    case 'tts':
+      return getSettings().then((st) =>
+        ttsAudio(any.engine as 'google' | 'azure', String(any.text), st).then(
+          (audio) => ({ audio }),
+          (e) => ({ error: String(e instanceof Error ? e.message : e) }),
+        ),
+      );
+    case 'azureCheck':
+      return checkAzure(String(any.key ?? ''), String(any.region ?? 'eastasia'));
+    case 'geminiModels':
+      return geminiModels(String(any.key ?? '')).then(
+        (models) => ({ models }),
+        (e) => ({ error: String(e instanceof Error ? e.message : e) }),
+      );
+    case 'geminiExamples':
+      return Promise.all([getSettings(), dictReady]).then(async ([st, d]) => {
+        if (!st.geminiKey) return { error: 'Add a Gemini API key in Settings first.' };
+        const word = String(any.word);
+        const e = d.get(word)[0];
+        try {
+          await geminiExamples(word, e ? shortGloss(e) : '', st.geminiKey, st.geminiModel);
+          return { ok: true };
+        } catch (err) {
+          return { error: String(err instanceof Error ? err.message : err) };
+        }
       });
     case 'wordInfo':
       // Everything the card shows beyond the dictionary entry: character breakdown,
       // example sentences and the user's own record.
-      return Promise.all([dictReady, storeReady, examplesReady]).then(([d]) => {
+      return Promise.all([dictReady, storeReady, examplesReady]).then(async ([d]) => {
         const word = any.word as string;
         const py = String(any.py ?? '');
         const sylls = py.split(/\s+/);
@@ -151,8 +164,10 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
             })
           : [];
         const record = store.words.get(word) ?? null;
-        // Sentences come pre-split into words so every word in the card is clickable and coloured.
-        const ex = (examples.get(word) ?? []).slice(0, 2).map(([zh, en]) => ({ zh, en, toks: d.segment(zh) }));
+        // Sentences come pre-split into words so every word in the card is clickable and colored.
+        // Bundled sentences first; for words the list lacks, ones Gemini wrote on request.
+        const gex = ((await browser.storage.local.get('gex:' + word))['gex:' + word] as [string, string][] | undefined) ?? [];
+        const ex = (examples.get(word)?.length ? examples.get(word)! : gex).slice(0, 2).map(([zh, en]) => ({ zh, en, toks: d.segment(zh) }));
         const seen = (record?.ctx ?? []).slice(0, 4).map((c) => {
           const zh = c.text.split(' — ')[0];
           return { ...c, zh, toks: d.segment(zh) };
@@ -172,7 +187,7 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
       return getSettings().then(async (st) => {
         if (!st.geminiKey) return { error: 'Add your Gemini API key in Settings first.' };
         try {
-          return { lines: await geminiTranscribe(String(any.videoId), st.geminiKey, st.geminiModel || 'gemini-3.8-flash') };
+          return { lines: await geminiTranscribe(String(any.videoId), st.geminiKey, st.geminiModel || DEFAULT_SETTINGS.geminiModel) };
         } catch (e) {
           return { error: String(e instanceof Error ? e.message : e) };
         }

@@ -37,13 +37,37 @@ function prettyDef(d: string): string {
   return d.replace(/([^\s\[|,;(]+)(?:\|([^\s\[,;]+))?\[([a-zA-Z0-9: ]+)\]/g, (_, t: string, _s: string, p: string) => `${t} ${numberedToMarked(p)}`);
 }
 
-/** 1..5 bars from the Zipf score. */
-function freqBars(zipf: number): number {
-  if (zipf >= 60) return 5;
-  if (zipf >= 50) return 4;
-  if (zipf >= 42) return 3;
-  if (zipf >= 33) return 2;
-  return zipf > 0 ? 1 : 0;
+/** How common a word is, in words: Zipf score (x10) thresholds, roughly the top 1k / 4k / 9k / 23k words. */
+const FREQ = [
+  { min: 52, bars: 5, label: 'essential', tip: "One of the words you'll meet every day. Learn it now." },
+  { min: 45, bars: 4, label: 'very common', tip: 'Comes up all the time in speech and writing. Worth learning soon.' },
+  { min: 40, bars: 3, label: 'common', tip: "You'll meet it regularly in shows, news and conversation." },
+  { min: 33, bars: 2, label: 'less common', tip: 'Shows up now and then. Learn it if it keeps coming back.' },
+  { min: 1, bars: 1, label: 'rare', tip: 'Rarely used. Fine to skip for now.' },
+];
+export function frequency(zipf: number) {
+  return FREQ.find((f) => zipf >= f.min);
+}
+
+/** The first real sense of an entry, short enough for a one-line hint. */
+function mainSense(e: Entry): string {
+  const d = e.defs.find((x) => !x.startsWith('CL:') && !/^(old )?variant of|^see /i.test(x)) ?? e.defs[0] ?? '';
+  const first = prettyDef(d).split(/;\s*/)[0];
+  return first.length > 60 ? first.slice(0, 58) + '…' : first;
+}
+
+/** Same point-in-shape test for both axes: is q inside the trapezoid between two parallel edges? */
+function inTrapezoid(p: number, p0: number, p1: number, lo0: number, hi0: number, lo1: number, hi1: number, q: number, pad: number): boolean {
+  if (p < Math.min(p0, p1) - pad || p > Math.max(p0, p1) + pad) return false;
+  const t = p1 === p0 ? 0 : Math.min(1, Math.max(0, (p - p0) / (p1 - p0)));
+  return q >= lo0 + (lo1 - lo0) * t - pad && q <= hi0 + (hi1 - hi0) * t + pad;
+}
+
+/** Another sentence with the word, from the same video or page (used when the dictionary has few examples). */
+export interface Related {
+  text: string;
+  /** Seconds into the video. */
+  t?: number;
 }
 
 export interface ShowOptions {
@@ -56,6 +80,11 @@ export interface ShowOptions {
   src: 'yt' | 'web';
   /** Keep the card open until closed. */
   pinned?: boolean;
+  /** Other sentences with the word in this video or page, and what to call them. */
+  related?: (word: string) => Related[];
+  relatedLabel?: string;
+  /** Jump the video to a time (for related lines from a video). */
+  seek?: (t: number) => void;
 }
 
 /** The one lookup card, used by hover lookup, selections and the YouTube subtitles. */
@@ -63,8 +92,17 @@ export class Popup {
   private host: H;
   private root: ShadowRoot;
   private card: H;
+  /** The small, non-interactive hint over words inside the card. */
+  private hint: H;
+  private hintSeq = 0;
   private opts: ShowOptions | undefined;
   private info: WordInfo | undefined;
+  private extra: (Sentence & Related)[] = [];
+  private gemState: { word: string; busy: boolean; error?: string } | undefined;
+  /** The word the card belongs to, for the corridor between them (gone after a scroll). */
+  private anchor: DOMRect | undefined;
+  private px = -1;
+  private py = -1;
   private shownAt = 0;
   private hovered = false;
   private revealPy = false;
@@ -81,7 +119,27 @@ export class Popup {
     const style = document.createElement('style');
     style.textContent = css;
     this.card = h('div', { class: 'card', hidden: '' });
-    this.root.append(style, this.card);
+    this.hint = h('div', { class: 'hint', hidden: '' });
+    this.root.append(style, this.card, this.hint);
+    document.addEventListener(
+      'mousemove',
+      (e) => {
+        this.px = e.clientX;
+        this.py = e.clientY;
+      },
+      { capture: true, passive: true },
+    );
+    // Hovering a word inside the card shows its main sense (and pinyin): look, don't touch.
+    this.card.addEventListener('mouseover', (e) => {
+      const w = (e.target as HTMLElement).closest('.w') as H | null;
+      if (w && !w.classList.contains('c')) void this.showHint(w);
+      else this.hideHint();
+    });
+    this.card.addEventListener('mouseout', (e) => {
+      const w = (e.target as HTMLElement).closest('.w');
+      if (w && !w.contains(e.relatedTarget as Node | null)) this.hideHint();
+    });
+    this.card.addEventListener('scroll', () => this.hideHint(), { passive: true });
     for (const t of ['mousedown', 'mouseup', 'dblclick', 'pointerdown', 'pointerup']) this.card.addEventListener(t, (e) => e.stopPropagation());
     this.card.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -93,6 +151,7 @@ export class Popup {
     });
     this.card.addEventListener('mouseleave', () => {
       this.hovered = false;
+      this.hideHint();
       if (!this.pinned) this.hideSoon();
     });
     state.onChange(() => {
@@ -138,13 +197,42 @@ export class Popup {
     this.hideListeners.add(fn);
   }
 
-  /** Hide after a short grace period, unless the pointer is on the card. */
+  /**
+   * Hide after a short grace period, unless the pointer is on the card or on its
+   * way there: while it is in the corridor between the word and the card, however
+   * slowly it moves, the card waits.
+   */
   hideSoon(ms = 300) {
     if (!this.opts || this.pinned) return;
     clearTimeout(this.softTimer);
-    this.softTimer = setTimeout(() => {
-      if (!this.hovered && !this.pinned) this.hide();
-    }, ms);
+    const check = () => {
+      if (!this.opts || this.pinned || this.hovered) return;
+      if (this.inBridge(this.px, this.py)) {
+        this.softTimer = setTimeout(check, 100);
+        return;
+      }
+      this.hide();
+    };
+    this.softTimer = setTimeout(check, ms);
+  }
+
+  /** Is (x, y) in the corridor between the word and the card (whichever side the card is on)? */
+  inBridge(x: number, y: number): boolean {
+    const a = this.anchor;
+    if (!this.opts || !a || this.card.hidden || x < 0) return false;
+    const c = this.card.getBoundingClientRect();
+    const pad = 8;
+    if (c.top >= a.bottom - 2) return inTrapezoid(y, a.bottom, c.top, a.left, a.right, c.left, c.right, x, pad);
+    if (c.bottom <= a.top + 2) return inTrapezoid(y, a.top, c.bottom, a.left, a.right, c.left, c.right, x, pad);
+    if (c.left >= a.right - 2) return inTrapezoid(x, a.right, c.left, a.top, a.bottom, c.top, c.bottom, y, pad);
+    if (c.right <= a.left + 2) return inTrapezoid(x, a.left, c.right, a.top, a.bottom, c.top, c.bottom, y, pad);
+    return false;
+  }
+
+  /** The page scrolled under a card the pointer rests on: keep it, but the word has moved away. */
+  detach() {
+    this.anchor = undefined;
+    this.hideHint();
   }
 
   cancelHide() {
@@ -162,13 +250,35 @@ export class Popup {
     const e0 = m.entries[0];
     const [, info] = await Promise.all([state.loadStatuses(), this.wordInfo(m.word, e0.tw || e0.py)]);
     if (this.opts !== opts) return; // a newer show() won
+    const extra = await this.relatedFor(opts, m.word, info);
+    if (this.opts !== opts) return;
     this.info = info;
+    this.extra = extra;
+    this.hideHint();
     this.render();
-    if (!keepPlace) this.position(opts);
+    if (!keepPlace) {
+      this.anchor = opts.rect;
+      this.position(opts);
+    }
     this.shownAt = Date.now();
     clearTimeout(this.lookTimer);
     // A card left open for a moment counts as a deliberate lookup.
     this.lookTimer = setTimeout(() => this.recordLook(), opts.pinned ? 0 : 1200);
+  }
+
+  /** Sentences from this video or page to fill in when the dictionary has fewer than two examples. */
+  private async relatedFor(opts: ShowOptions, word: string, info: WordInfo): Promise<(Sentence & Related)[]> {
+    const want = 2 - info.examples.length;
+    if (want <= 0 || !opts.related) return [];
+    const here = opts.ctx?.text.split(' — ')[0].trim();
+    const seenTexts = new Set(info.seen.map((c) => c.zh));
+    const list = opts
+      .related(word)
+      .filter((r) => r.text !== here && !seenTexts.has(r.text))
+      .slice(0, want);
+    if (!list.length) return [];
+    const toks: Token[][] = await browser.runtime.sendMessage({ type: 'segment', lines: list.map((r) => r.text) });
+    return list.map((r, i) => ({ ...r, zh: r.text, toks: toks[i] ?? [] }));
   }
 
   private async wordInfo(word: string, py: string): Promise<WordInfo> {
@@ -187,7 +297,9 @@ export class Popup {
     this.opts = undefined;
     this.history = [];
     this.hovered = false;
+    this.anchor = undefined;
     this.card.hidden = true;
+    this.hideHint();
     this.hideListeners.forEach((f) => f());
   }
 
@@ -264,17 +376,67 @@ export class Popup {
       case 'i':
         this.images();
         return true;
-      case 'p':
-        if (state.settings.cardPinyin !== 'hover') return false;
-        this.revealPy = !this.revealPy;
+      case 'p': {
+        // One pinyin switch for the card, the hints and the subtitles.
+        const pinyin = !state.settings.pinyin;
+        state.settings = { ...state.settings, pinyin };
+        this.revealPy = false;
         this.render();
+        browser.runtime.sendMessage({ type: 'saveSettings', settings: { pinyin } });
         return true;
+      }
       case 'Escape':
         if (this.history.length) this.back();
         else this.hide();
         return true;
     }
     return false;
+  }
+
+  private async showHint(el: H) {
+    const q = el.dataset.q;
+    if (!q) return;
+    const seq = ++this.hintSeq;
+    const matches = await lookupText(q);
+    if (seq !== this.hintSeq || !el.isConnected || this.card.hidden) return;
+    const m = matches.find((x) => x.text === q) ?? matches[0];
+    if (!m) return this.hideHint();
+    const e = m.entries[0];
+    const hint = this.hint;
+    hint.classList.toggle('large', state.settings.cardSize === 'large');
+    hint.replaceChildren(
+      state.settings.pinyin ? h('span', { class: 'hpy' }, numberedToMarked(e.tw || e.py)) : '',
+      h('span', { class: 'hg' }, mainSense(e)),
+    );
+    hint.hidden = false;
+    const r = el.getBoundingClientRect();
+    const w = hint.offsetWidth;
+    const ht = hint.offsetHeight;
+    let y = r.top - ht - 6;
+    if (y < 4) y = r.bottom + 6;
+    hint.style.left = `${Math.min(Math.max(4, r.left + r.width / 2 - w / 2), window.innerWidth - w - 4)}px`;
+    hint.style.top = `${y}px`;
+  }
+
+  private hideHint() {
+    this.hintSeq++;
+    this.hint.hidden = true;
+  }
+
+  /** Ask Gemini for two sentences when the bundled list has none for this word. */
+  private async writeExamples(word: string) {
+    this.gemState = { word, busy: true };
+    this.render();
+    const res: { ok?: boolean; error?: string } = await browser.runtime.sendMessage({ type: 'geminiExamples', word });
+    if (this.current?.word !== word) return;
+    if (res.ok) {
+      this.gemState = undefined;
+      this.infoCache.delete(word);
+      const e0 = this.current.entries[0];
+      this.info = await this.wordInfo(word, e0.tw || e0.py);
+      this.extra = [];
+    } else this.gemState = { word, busy: false, error: res.error };
+    this.render();
   }
 
   /** Just below the pointer (or the word), never on top of the line being read. */
@@ -293,7 +455,7 @@ export class Popup {
     c.style.top = `${y}px`;
   }
 
-  /** A clickable, status-coloured word. */
+  /** A clickable, status-colored word. */
   private word(text: string, q: string, word?: string): H {
     const el = h('span', { class: 'w', 'data-q': q }, text);
     const st = state.settings.cardColors && word ? state.status(word) : undefined;
@@ -330,12 +492,11 @@ export class Popup {
     const s = state.settings;
     const card = this.card;
     card.classList.toggle('pinned', !!o.pinned);
+    card.classList.toggle('large', s.cardSize === 'large');
     card.replaceChildren();
 
-    const zipf = Math.max(...m.entries.map((e) => e.zipf));
-    const rank = e0.rank ?? 0;
-    const bars = freqBars(zipf);
-    const pyHidden = s.cardPinyin === 'hover' && !this.revealPy;
+    const freq = frequency(Math.max(...m.entries.map((e) => e.zipf)));
+    const pyHidden = !s.pinyin && !this.revealPy;
     const pyEl = h('span', { class: `py${pyHidden ? ' hidden' : ''}`, title: pyHidden ? 'p: show pinyin' : '' }, numberedToMarked(e0.tw || e0.py, false));
     pyEl.addEventListener('click', () => {
       this.revealPy = true;
@@ -392,12 +553,12 @@ export class Popup {
         { class: 'headrow' },
         head,
         pyEl,
-        bars
+        freq
           ? h(
               'span',
-              { class: 'freq', title: `Frequency rank #${rank.toLocaleString()} of all words` },
-              h('span', { class: 'bars' }, ...[1, 2, 3, 4, 5].map((i) => h('i', { class: i <= bars ? 'on' : '', style: `height:${3 + i * 2}px` }))),
-              rank ? `#${rank.toLocaleString()}` : '',
+              { class: `freq f${freq.bars}`, title: freq.tip },
+              h('span', { class: 'bars' }, ...[1, 2, 3, 4, 5].map((i) => h('i', { class: i <= freq.bars ? 'on' : '' }))),
+              freq.label,
             )
           : null,
       ),
@@ -417,7 +578,9 @@ export class Popup {
     }
 
     const seen = (info?.seen ?? []).filter((c) => c.text !== o.ctx?.text).slice(0, 3);
-    if (info?.examples.length || seen.length) {
+    const extra = this.extra;
+    const canWrite = !info?.examples.length && !!s.geminiKey;
+    if (info?.examples.length || seen.length || extra.length || canWrite) {
       const sect = h('div', { class: 'sect' });
       if (info?.examples.length) {
         sect.append(
@@ -428,9 +591,34 @@ export class Popup {
           ),
         );
       }
+      if (extra.length) {
+        sect.append(
+          h('div', { class: 'label', style: info?.examples.length ? 'margin-top:8px' : '' }, o.relatedLabel ?? 'Also here'),
+          h(
+            'ul',
+            { class: 'ex seen' },
+            ...extra.map((x) => {
+              let link: H | null = null;
+              if (x.t != null && o.seek) {
+                const t = x.t;
+                link = h('button', { class: 'src', title: 'Play from here' }, `▶ ${clock(t)}`);
+                link.addEventListener('click', () => o.seek!(t));
+              }
+              return h('li', null, h('span', { class: 'zh' }, ...this.sentence(x.toks, m.word)), link);
+            }),
+          ),
+        );
+      }
+      if (canWrite) {
+        const g = this.gemState?.word === m.word ? this.gemState : undefined;
+        const b = h('button', { class: 'gem' }, g?.busy ? 'Writing example sentences…' : '✦ Write example sentences with Gemini');
+        if (g?.busy) b.setAttribute('disabled', '');
+        b.addEventListener('click', () => void this.writeExamples(m.word));
+        sect.append(h('div', { class: 'gemrow', style: info?.examples.length || extra.length ? 'margin-top:8px' : '' }, b, g?.error ? h('div', { class: 'err' }, g.error) : null));
+      }
       if (seen.length) {
         sect.append(
-          h('div', { class: 'label', style: info?.examples.length ? 'margin-top:8px' : '' }, 'You met it in'),
+          h('div', { class: 'label', style: info?.examples.length || extra.length || canWrite ? 'margin-top:8px' : '' }, 'You met it in'),
           h(
             'ul',
             { class: 'ex seen' },

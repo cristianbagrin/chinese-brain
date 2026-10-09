@@ -71,14 +71,15 @@ export type LogEvent =
 
 export type TranslationMode = 'show' | 'blur' | 'hide';
 export type HoverMode = 'hover' | 'shift' | 'off';
+export type VoiceEngine = 'google' | 'system' | 'azure';
 
 export interface Settings {
   hoverMode: HoverMode;
   disabledSites: string[];
   /** Our subtitles on YouTube (the switch in the player). */
   ytEnabled: boolean;
-  /** Show pinyin above subtitle words. */
-  subPinyin: boolean;
+  /** Pinyin everywhere: above subtitle words, in the card and in word hints (P toggles it). */
+  pinyin: boolean;
   /** Show the English line. */
   translation: TranslationMode;
   /** Pause while the mouse is over the subtitles. */
@@ -92,16 +93,18 @@ export interface Settings {
   subStyle: 'light' | 'dark';
   /** Shadowing: seconds to wait = line duration * factor. */
   shadowFactor: number;
-  /** Pinyin in the lookup card: always shown, or hidden until hovered (self-test). */
-  cardPinyin: 'show' | 'hover';
-  /** Colour the Chinese words inside the card by status. */
+  /** Lookup card text size. */
+  cardSize: 'normal' | 'large';
+  /** Color the Chinese words inside the card by status. */
   cardColors: boolean;
   /** Short sound when stamping a status. */
   sounds: boolean;
-  /** Colour words by status on every page (highlighter style). */
+  /** Color words by status on every page (highlighter style). */
   pageColors: boolean;
   speechRate: number;
-  /** Optional Azure neural voice (free tier); empty key = system voice. */
+  /** Who reads words aloud: Google's online voice, the system voice, or Azure (own key). */
+  voice: VoiceEngine;
+  /** Optional Azure neural voice (free tier). */
   azureKey: string;
   azureRegion: string;
   azureVoice: string;
@@ -114,7 +117,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hoverMode: 'hover',
   disabledSites: [],
   ytEnabled: true,
-  subPinyin: false,
+  pinyin: true,
   translation: 'blur',
   pauseOnHover: true,
   autoFreshOnClick: true,
@@ -122,17 +125,32 @@ export const DEFAULT_SETTINGS: Settings = {
   subFontSize: 30,
   subStyle: 'light',
   shadowFactor: 1.5,
-  cardPinyin: 'show',
+  cardSize: 'normal',
   cardColors: true,
   sounds: true,
   pageColors: false,
   speechRate: 0.9,
+  voice: 'google',
   azureKey: '',
   azureRegion: 'eastasia',
   azureVoice: 'zh-TW-HsiaoChenNeural',
   geminiKey: '',
   geminiModel: 'gemini-3.8-flash',
 };
+
+/** Stored settings (possibly from an older version) merged over the defaults. */
+export function normalizeSettings(raw: Record<string, unknown> | undefined): Settings {
+  const r = { ...(raw ?? {}) };
+  // One pinyin switch replaced the separate subtitle and card ones.
+  if (r.pinyin === undefined && (r.subPinyin !== undefined || r.cardPinyin !== undefined)) {
+    r.pinyin = r.subPinyin === true || r.cardPinyin !== 'hover';
+  }
+  // Before the voice choice existed, an Azure key meant "use Azure".
+  if (r.voice === undefined && typeof r.azureKey === 'string' && r.azureKey) r.voice = 'azure';
+  delete r.subPinyin;
+  delete r.cardPinyin;
+  return { ...DEFAULT_SETTINGS, ...(r as Partial<Settings>) };
+}
 
 /** Language of the second subtitle line. */
 export const TRANS_LANG = 'en';

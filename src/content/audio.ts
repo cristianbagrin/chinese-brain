@@ -1,4 +1,4 @@
-import type { Status } from '../shared/types.ts';
+import type { Status, VoiceEngine } from '../shared/types.ts';
 import { state } from './state.ts';
 
 let ctx: AudioContext | undefined;
@@ -53,25 +53,86 @@ export function stampSound(status: Status | null) {
 
 // --- Speech -----------------------------------------------------------------
 
-const azureCache = new Map<string, AudioBuffer>();
+const clipCache = new Map<string, AudioBuffer>();
+let playing: { src: AudioBufferSourceNode; gain: GainNode } | undefined;
 
 /**
- * Speak a word. With an Azure key it uses a Taiwan neural voice, played through
- * Web Audio with a short fade so it ends cleanly. Otherwise the system voice
- * (on a Mac: Meijia), with a trailing full stop so the voice ends on a natural
- * pause instead of a hard cut.
+ * Speak a word with the chosen voice: Google's online Taiwan voice (default),
+ * an Azure neural voice (own key), or the system voice. Google and Azure audio
+ * is played through Web Audio with a short fade in and out, so it never ends
+ * on a click; if they fail, the next voice in line takes over.
  */
-export async function speak(text: string) {
+export async function speak(text: string): Promise<{ engine: VoiceEngine; errors: string[] }> {
   const s = state.settings;
-  if (s.azureKey) {
+  const order: VoiceEngine[] = s.voice === 'azure' ? ['azure', 'google', 'system'] : s.voice === 'google' ? ['google', 'system'] : ['system'];
+  const errors: string[] = [];
+  for (const engine of order) {
     try {
-      await speakAzure(text);
-      return;
+      if (engine === 'system') {
+        speakSystem(text);
+        return { engine, errors };
+      }
+      if (engine === 'azure' && !s.azureKey) {
+        errors.push('No Azure key yet.');
+        continue;
+      }
+      await playClip(engine, text);
+      return { engine, errors };
     } catch (e) {
-      console.warn('[chinese-brain] Azure speech failed, using the system voice', e);
+      const msg = String(e instanceof Error ? e.message : e);
+      errors.push(msg);
+      console.warn(`[chinese-brain] ${engine} voice failed, trying the next one:`, msg);
     }
   }
-  speakSystem(text);
+  return { engine: 'system', errors };
+}
+
+async function playClip(engine: 'google' | 'azure', text: string) {
+  const s = state.settings;
+  const key = `${engine}|${engine === 'azure' ? s.azureVoice : ''}|${s.speechRate}|${text}`;
+  const ac = audio();
+  let buf = clipCache.get(key);
+  if (!buf) {
+    const res: { audio?: ArrayBuffer; error?: string } = await browser.runtime.sendMessage({ type: 'tts', engine, text });
+    if (!res?.audio) throw new Error(res?.error ?? 'no audio');
+    buf = await ac.decodeAudioData(res.audio.slice(0));
+    if (clipCache.size > 100) clipCache.clear();
+    clipCache.set(key, buf);
+  }
+  stopPlaying(ac);
+  const src = ac.createBufferSource();
+  const gain = ac.createGain();
+  src.buffer = buf;
+  const t = ac.currentTime + 0.01;
+  const end = t + buf.duration;
+  const fade = Math.min(0.04, buf.duration / 4);
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(1, t + 0.008);
+  gain.gain.setValueAtTime(1, end - fade);
+  gain.gain.linearRampToValueAtTime(0, end);
+  src.connect(gain).connect(ac.destination);
+  src.start(t);
+  src.stop(end + 0.02);
+  playing = { src, gain };
+  src.onended = () => {
+    if (playing?.src === src) playing = undefined;
+  };
+}
+
+/** Fade out whatever is still speaking (pressing V again mid-word). */
+function stopPlaying(ac: AudioContext) {
+  if (!playing) return;
+  const { src, gain } = playing;
+  const t = ac.currentTime;
+  gain.gain.cancelScheduledValues(t);
+  gain.gain.setValueAtTime(gain.gain.value, t);
+  gain.gain.linearRampToValueAtTime(0, t + 0.02);
+  try {
+    src.stop(t + 0.03);
+  } catch {
+    /* already stopped */
+  }
+  playing = undefined;
 }
 
 let voice: SpeechSynthesisVoice | undefined;
@@ -85,6 +146,7 @@ function pickVoice() {
 }
 if ('speechSynthesis' in window) speechSynthesis.addEventListener?.('voiceschanged', pickVoice);
 
+/** The browser's own voice (on a Mac: Meijia). Its audio can't be faded, so it may end with a click. */
 function speakSystem(text: string) {
   if (!('speechSynthesis' in window)) return;
   if (!voice) pickVoice();
@@ -94,28 +156,4 @@ function speakSystem(text: string) {
   if (voice) u.voice = voice;
   u.rate = state.settings.speechRate;
   speechSynthesis.speak(u);
-}
-
-async function speakAzure(text: string) {
-  const s = state.settings;
-  const key = `${s.azureVoice}|${s.speechRate}|${text}`;
-  const ac = audio();
-  let buf = azureCache.get(key);
-  if (!buf) {
-    const pct = Math.round((s.speechRate - 1) * 100);
-    const ssml = `<speak version="1.0" xml:lang="zh-TW"><voice name="${s.azureVoice}"><prosody rate="${pct}%">${text.replace(/[<&>]/g, '')}</prosody></voice></speak>`;
-    const data: ArrayBuffer = await browser.runtime.sendMessage({ type: 'azureTTS', ssml });
-    if (!data) throw new Error('no audio');
-    buf = await ac.decodeAudioData(data.slice(0));
-    azureCache.set(key, buf);
-  }
-  const src = ac.createBufferSource();
-  const g = ac.createGain();
-  src.buffer = buf;
-  const t = ac.currentTime;
-  g.gain.setValueAtTime(1, t);
-  g.gain.setValueAtTime(1, t + Math.max(0, buf.duration - 0.06));
-  g.gain.linearRampToValueAtTime(0, t + buf.duration);
-  src.connect(g).connect(ac.destination);
-  src.start();
 }

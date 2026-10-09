@@ -12,7 +12,7 @@ const TOAST: Record<string, (s: YouTubeSubs) => string> = {
   d: () => 'next line ▶',
   r: (s) => (s.looping ? '↻ looping this line' : 'loop off'),
   q: (s) => (s.shadowing ? 'shadowing on: pause after each line' : 'shadowing off'),
-  p: () => (state.settings.subPinyin ? 'pinyin on' : 'pinyin off'),
+  p: () => (state.settings.pinyin ? 'pinyin on' : 'pinyin off'),
   e: (s) => (s.transcript.open ? 'transcript open' : 'transcript closed'),
   x: () => `English: ${state.settings.translation === 'show' ? 'shown' : state.settings.translation === 'blur' ? 'blurred until hover' : 'hidden'}`,
 };
@@ -157,8 +157,8 @@ export class Controls {
       el(
         'div',
         'chips',
-        chip('Pinyin', 'P', s.subPinyin, () => save({ subPinyin: !s.subPinyin })),
-        chip(`English: ${s.translation}`, 'X', s.translation !== 'hide', () => save({ translation: MODES[(MODES.indexOf(s.translation) + 1) % 3] })),
+        chip('Pinyin', 'P', s.pinyin, () => save({ pinyin: !s.pinyin })),
+        chip(`English: ${{ show: 'shown', blur: 'blurred', hide: 'hidden' }[s.translation]}`, 'X', s.translation !== 'hide', () => save({ translation: MODES[(MODES.indexOf(s.translation) + 1) % 3] })),
         chip('Loop line', 'R', this.subs.looping, () => this.subs.toggleLoop()),
         chip('Shadowing', 'Q', this.subs.shadowing, () => this.subs.toggleShadow()),
         chip('Pause on hover', '', s.pauseOnHover, () => save({ pauseOnHover: !s.pauseOnHover })),

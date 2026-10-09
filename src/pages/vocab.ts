@@ -59,7 +59,7 @@ function row(w: WordRecord) {
   return h(
     'div',
     { class: `row ${w.s}` },
-    h('div', { class: 'w' }, h('b', null, w.w), h('span', null, w.p ?? '')),
+    h('div', { class: 'w' }, h('b', null, w.w), h('span', null, (w.p ?? '').toLowerCase())),
     h('div', { class: 'mean' }, w.g ?? '', c ? h('span', { class: 'ctx' }, c.text.split(' — ')[0], link) : null),
     pills,
   );
