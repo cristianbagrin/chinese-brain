@@ -500,7 +500,11 @@
     geminiStatus() {
       let g = this.subs.gemini;
       if (g.state === "working") return el("div", "note", this.progressText());
-      if (g.state !== "error") return null;
+      if (g.state !== "error") {
+        if (!this.subs.trackName.startsWith("Gemini")) return null;
+        let redo = el("button", "chip", "Redo with Gemini");
+        return redo.title = "Throw these subtitles away and make new ones (for example with another model)", redo.addEventListener("click", () => void this.subs.redoGemini()), el("div", "gem", redo);
+      }
       let b = el("button", "chip", "Try the missing parts again");
       return b.addEventListener("click", () => void this.subs.transcribeWithGemini()), el("div", "", el("div", "note err", g.error ?? "Something went wrong."), el("div", "gem", b));
     }
@@ -1061,6 +1065,10 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         duration: this.video()?.duration
       });
       this.videoId === id && (res.lines?.length && this.applyGemini(res.lines, res.translated), this.gemini = res.error ? { state: "error", error: res.error } : { state: "idle" }, this.controls.render());
+    }
+    /** Throw away this video's saved Gemini subtitles and make new ones. */
+    async redoGemini() {
+      await browser.runtime.sendMessage({ type: "geminiForget", videoId: this.videoId }), await this.transcribeWithGemini();
     }
     /** Parts of a long video arrive one by one: show them as they come. */
     onGeminiProgress(p) {

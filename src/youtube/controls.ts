@@ -207,7 +207,13 @@ export class Controls {
   private geminiStatus() {
     const g = this.subs.gemini;
     if (g.state === 'working') return el('div', 'note', this.progressText());
-    if (g.state !== 'error') return null;
+    if (g.state !== 'error') {
+      if (!this.subs.trackName.startsWith('Gemini')) return null;
+      const redo = el('button', 'chip', 'Redo with Gemini');
+      redo.title = 'Throw these subtitles away and make new ones (for example with another model)';
+      redo.addEventListener('click', () => void this.subs.redoGemini());
+      return el('div', 'gem', redo);
+    }
     const b = el('button', 'chip', 'Try the missing parts again');
     b.addEventListener('click', () => void this.subs.transcribeWithGemini());
     return el('div', '', el('div', 'note err', g.error ?? 'Something went wrong.'), el('div', 'gem', b));

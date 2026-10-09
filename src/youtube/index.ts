@@ -402,6 +402,12 @@ export class YouTubeSubs {
     this.controls.render();
   }
 
+  /** Throw away this video's saved Gemini subtitles and make new ones. */
+  async redoGemini() {
+    await browser.runtime.sendMessage({ type: 'geminiForget', videoId: this.videoId });
+    await this.transcribeWithGemini();
+  }
+
   /** Parts of a long video arrive one by one: show them as they come. */
   private onGeminiProgress(p: { videoId: string; done: number; total: number; lines: GeminiLine[] }) {
     if (p.videoId !== this.videoId || this.gemini.state !== 'working') return;

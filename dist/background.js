@@ -771,6 +771,10 @@ Give each with a natural American English translation.`, schema = {
             return { error: String(e instanceof Error ? e.message : e) };
           }
         });
+      case "geminiForget":
+        return browser.storage.local.get(null).then(
+          (all) => browser.storage.local.remove(Object.keys(all).filter((k) => k === "gem:" + any.videoId || k.startsWith(`gemc:${any.videoId}:`))).then(() => !0)
+        );
       case "geminiCached":
         return browser.storage.local.get("gem:" + any.videoId).then((r) => r["gem:" + any.videoId] ?? null);
       case "entries":
