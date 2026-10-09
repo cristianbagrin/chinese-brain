@@ -421,6 +421,7 @@ export class YouTubeSubs {
   private applyEnabled() {
     const on = state.settings.ytEnabled && this.cues.length > 0;
     this.host.hidden = !on;
+    this.host.classList.toggle('dark', state.settings.subStyle === 'dark');
     document.documentElement.classList.toggle('cb-subs-on', on);
     if (!on) this.popup.hide();
   }

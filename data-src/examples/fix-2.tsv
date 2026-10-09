@@ -92,3 +92,97 @@
 4683	fix	坐船的時候我一直覺得頭很暈，下船後才好一點。	I felt dizzy the whole boat ride and only felt better after getting off.
 4687	fix	這個山區以前產煤，現在變成了很受歡迎的觀光老街。	This mountain area used to produce coal and is now a popular old-street tourist spot.
 4694	fix	軍方今天試射了一枚遠程飛彈。	The military test-fired a long-range missile today.
+4708	fix	他是今年金馬獎最佳男主角的得主。	He is this year's Golden Horse Award winner for Best Actor.
+4726	fix	龜兔賽跑的故事裡，龜靠著不放棄贏了比賽。	In the story of the tortoise and the hare, the tortoise won by never giving up.
+4727	fix	那隻龜把頭縮進殼裡，怎麼叫都不出來。	The turtle pulled its head into its shell and wouldn't come out no matter how we called.
+4736	fix	我舅舅是外交官，常常被派到國外工作。	My uncle is a diplomat and is often posted abroad.
+4740	fix	這棟老房子是一位日本建築師設計的。	This old house was designed by a Japanese architect.
+4758	fix	這件藝術品是藝術家花了三年才完成的。	This work of art took the artist three years to finish.
+4777	fix	我媽每天早上都上山運動，中午才回來。	My mom goes up the mountain to exercise every morning and only comes back at noon.
+4791	fix	我阿嬤過年前都會找老師傅占一卦，看看今年運勢如何。	Before the New Year, my grandma has an old master divine a fortune to see how the year will go.
+4814	fix	今天的太陽很強烈，出門要記得擦防曬。	The sun is intense today, so remember to put on sunscreen before going out.
+4827	fix	我們班這學期新來了一位轉學生。	Our class got a new transfer student this semester.
+4828	fix	跑到最後一圈，他一口氣超了三個人。	On the last lap, he overtook three people in one go.
+4829	fix	這個月的預算又超了，只好少出去吃飯。	We went over budget again this month, so we'll have to eat out less.
+4830	dropword	bound morpheme, not a standalone word; only in compounds (侷促, 侷限)
+4838	fix	他為朋友兩肋插刀，真是有情有義。	He goes to any length for his friends, truly a man of feeling and loyalty.
+4839	fix	見義勇為的路人制伏了小偷，大家都很佩服他。	The passerby who bravely stepped in subdued the thief, and everyone admired him.
+4842	fix	你的作業寫完了嗎？	Have you finished your homework?
+4855	fix	出國前有幾個事項要確認，像是護照效期和簽證。	There are a few things to check before going abroad, such as passport validity and visa.
+4860	dropword	bound morpheme, not a standalone word; only in compounds (倉庫, 車庫, 金庫)
+4883	fix	她眼眶紅紅的，一眼就看得出剛哭過。	Her eyes were red, and you could tell at a glance she had just cried.
+4902	fix	獅子張大嘴巴，露出尖尖的牙齒。	The lion opened its mouth wide, showing its sharp teeth.
+4904	dropword	Mainland usage; Taiwan says 研究/科學研究
+4913	fix	每個月一號我都會繳房租，所以月底要先留好錢。	I pay rent on the first of every month, so I have to set money aside by the end of the month.
+4916	fix	寺裡有一位老和尚，每天都在掃落葉。	There's an old monk at the temple who sweeps fallen leaves every day.
+4923	fix	他每天下班都要擼一擼家裡的貓，才肯去洗澡。	Every day after work he has to pet the cat at home before he'll go take a shower.
+4924	fix	這是一家有牌照的正規業者，價格也公開透明。	This is a licensed, legitimate business with transparent pricing.
+4956	dropword	bound morpheme, not a standalone word; only in compounds (氣象署, 署長); also 環保署 is now 環境部
+4960	dropword	Mainland military term; Taiwan does not use 軍區 for a military command
+4968	dropword	bound morpheme, not a standalone word; only in compounds (折價券, 餐券, 票券)
+4972	dropword	bound morpheme, not a standalone word; only in compounds (結婚, 婚禮, 離婚)
+4985	fix	日式炸雞在台灣也常被稱作唐揚雞，居酒屋裡很常見。	Japanese-style fried chicken is also often called karaage chicken in Taiwan and is common in izakaya.
+4990	fix	中華郵政的服務很方便，連偏遠山區也送得到。	Chunghwa Post's service is convenient and reaches even remote mountain areas.
+4993	fix	氣象署預告下週有鋒面通過，出門記得帶傘。	The Central Weather Administration forecasts a front passing next week, so remember an umbrella.
+4998	dropword	bound morpheme, not a standalone word; only in compounds (冠軍, 花冠, 皇冠)
+5022	fix	精神病的成因很複雜，不是單純的壓力或個性問題。	The causes of mental illness are complex, not simply stress or personality.
+5028	dropword	Mainland usage; Taiwan says 工廠/廠房/產線
+5030	fix	這款遊戲的開發者是一位住在台中的大學生。	The developer of this game is a university student living in Taichung.
+5046	drop
+5047	drop
+5048	drop
+5049	fix	你這次可要小心，路面濕滑，很容易摔車。	Be careful this time, the road is slick and it's easy to wipe out.
+5050	drop
+5054	drop
+5055	drop
+5058	drop
+5059	drop
+5061	drop
+5062	drop
+5064	fix	這次考試他考了全班第三名。	He placed third in the whole class on this exam.
+5070	fix	他講話很慢，每個字都講得很清楚。	He speaks slowly and pronounces every word clearly.
+5078	fix	停車場裡停滿了汽車，我們繞了三圈才找到位子。	The lot was full of cars, and we circled three times before finding a spot.
+5106	fix	這是我一生中最難忘的一趟旅行。	This is the most unforgettable trip of my whole life.
+5116	fix	這個電話號碼很重要，你先記下來。	This phone number is important, so write it down first.
+5117	fix	我怕忘記，所以把明天的行程記在手機裡。	I'm afraid I'll forget, so I noted tomorrow's schedule in my phone.
+5142	fix	大樓的監控室二十四小時都有保全值班。	The building's monitoring room is staffed by security twenty-four hours a day.
+5053	fix	進入醫院之前，所有人都必須戴口罩並量體溫。	Before entering the hospital, everyone must wear a mask and have their temperature taken.
+5057	fix	我聽不太懂他的口音，可以請他再說一次嗎？	I can't quite understand his accent. Could you ask him to say it again?
+5065	fix	這次比賽有一百多名選手參加，競爭非常激烈。	More than a hundred contestants took part in this competition, and it was very fierce.
+5066	fix	請進，不用客氣。	Please come in, make yourself at home.
+5067	fix	我們的團隊今年進了決賽，大家都很興奮。	Our team made it to the finals this year, and everyone is excited.
+5069	fix	只要肯努力，總有一天你的願望會實現的。	As long as you work hard, your wish will come true one day.
+5071	fix	你講話可以小聲一點嗎？寶寶剛睡著。	Could you keep your voice down? The baby just fell asleep.
+5073	fix	醫生建議我每天運動半小時，少吃油炸的東西。	The doctor recommended I exercise half an hour every day and eat less fried food.
+5075	fix	我已經等了二十分鐘，最後一班車還是沒來。	I've waited twenty minutes and the last bus still hasn't come.
+5077	fix	這張照片好像是在花蓮拍的，背景有山有海。	This photo looks like it was taken in Hualien, with mountains and sea in the background.
+5081	fix	每個週末早上，公園裡都有一群小朋友在踢足球。	Every weekend morning a group of kids plays soccer in the park.
+5083	fix	我們昨天騎腳踏車沿著河邊騎了二十公里，累壞了。	Yesterday we rode our bikes twenty kilometers along the river and were exhausted.
+5085	fix	市政府積極推動垃圾分類，希望大家一起配合。	The city government is actively promoting waste sorting and hopes everyone will cooperate.
+5087	fix	新進員工要先接受兩週的訓練，才能直接面對客人。	New employees must receive two weeks of training before dealing with customers directly.
+5089	fix	很多家長主張學校應該減少功課，讓孩子多休息。	Many parents argue that schools should reduce homework and let kids rest more.
+5091	fix	老師問了一個很難的問題，同學們都不知道怎麼回答。	The teacher asked a difficult question, and no one knew how to answer.
+5095	fix	當年我們一起在小巷子裡吃宵夜的日子，真是讓人懷念。	I really miss those days back then when we ate late-night snacks together in the little alley.
+5096	fix	我們隊贏了！	Our team won!
+5097	fix	他下棋很厲害，我跟他下了三盤都沒贏過。	He's great at chess. I played him three games and never won.
+5099	fix	老闆，這份合約我已經簽好了，放在你桌上。	Boss, I've signed this contract and left it on your desk.
+5101	fix	這群少年每天放學後都在公園打籃球，看起來很開心。	These teenagers play basketball in the park after school every day and look happy.
+5103	fix	昨天下班後，我在路上遇到小學同學，聊了很久。	After work yesterday, I ran into an elementary school classmate on the street and we chatted for a long time.
+5107	fix	外公一生都在種田，從來沒有離開過這個小村子。	My grandfather farmed his whole life and never left this little village.
+5109	fix	多虧鄰居及時發現，才沒有造成更大的損失。	Thanks to the neighbor spotting it in time, there was no greater loss.
+5111	fix	展示櫃裡擺著很多老照片，讓人彷彿回到過去。	Many old photographs are displayed in the cabinet, making you feel like you've gone back in time.
+5113	fix	停車場暫時關閉，請把車停在對面的空地。	The parking lot is temporarily closed. Please park in the empty lot across the street.
+5115	fix	這家店看起來很普通，沒想到裡面的咖啡這麼好喝。	This shop looks ordinary, but I didn't expect the coffee inside to be so good.
+5119	fix	爸爸今天去市場買了一尾新鮮的魚，晚上要煮湯。	Dad bought a fresh fish at the market today and will make soup tonight.
+5120	fix	加油！你可以的！	Come on! You can do it!
+5121	fix	車子沒油了，我們先去加油站加油再上高速公路。	The car is out of gas, so let's fill up at a gas station before getting on the freeway.
+5123	fix	兩個對手在決賽中勢均力敵，比賽打了整整三個小時。	The two opponents were evenly matched in the final, and the game lasted three whole hours.
+5125	fix	外婆常常用生活的智慧，幫我們解決很多小問題。	Grandma often uses her life wisdom to solve many of our little problems.
+5127	fix	夏天出門要擦防曬乳，才不會曬傷皮膚。	In summer, put on sunscreen when you go out so you don't burn your skin.
+5129	fix	託你的福，我的面試很順利，下週就開始上班了。	Thanks to you, my interview went smoothly, and I start work next week.
+5131	fix	我養了兩隻貓，每天下班回家都要先餵牠們。	I keep two cats, and when I get home from work I feed them first.
+5133	fix	捷運上有博愛座，請優先讓給需要的人。	There are priority seats on the MRT, so please give them first to those who need them.
+5135	fix	雖然朋友一再問他，他還是否認自己知道這件事。	Even though his friends kept asking, he still denied knowing about it.
+5137	fix	寫作需要每天練習，不能只靠靈感。	Writing takes daily practice; you can't rely only on inspiration.
+5141	fix	新聞標題寫得太誇張，點進去才發現內容根本不是這樣。	The news headline was exaggerated; when I clicked, the content wasn't like that at all.
+5143	fix	社區大樓裝了監控系統，保全二十四小時都在注意畫面。	The apartment building has a monitoring system, and the guards watch the screens twenty-four hours a day.

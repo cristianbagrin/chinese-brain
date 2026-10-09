@@ -88,6 +88,8 @@ export interface Settings {
   /** Mark untracked words with a faint underline. */
   markUntracked: boolean;
   subFontSize: number;
+  /** Subtitle band: light (default) or dark. */
+  subStyle: 'light' | 'dark';
   /** Shadowing: seconds to wait = line duration * factor. */
   shadowFactor: number;
   /** Pinyin in the lookup card: always shown, or hidden until hovered (self-test). */
@@ -116,6 +118,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoFreshOnClick: true,
   markUntracked: true,
   subFontSize: 30,
+  subStyle: 'light',
   shadowFactor: 1.5,
   cardPinyin: 'show',
   sounds: true,

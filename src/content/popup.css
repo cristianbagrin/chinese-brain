@@ -1,15 +1,18 @@
 :host {
   all: initial;
-  --bg: #1b1d3a;
-  --bg2: #232650;
-  --line: #34386a;
-  --text: #eceeff;
-  --text2: #a7acd8;
-  --text3: #7b80b0;
-  --fresh: #ff4d5e;
-  --learning: #ffd23f;
-  --known: #47d774;
-  --link: #9fb8ff;
+  --bg: #ffffff;
+  --bg2: #f5f5f9;
+  --line: #e2e2ec;
+  --text: #1b1d3a;
+  --text2: #565a7e;
+  --text3: #8a8eb0;
+  --fresh: #ef2f42;
+  --learning: #ffc81f;
+  --known: #1fae4f;
+  --fresh-mark: #ffd3d8;
+  --learning-mark: #ffe680;
+  --known-mark: #c9eed5;
+  --link: #3b48c4;
   --sans: -apple-system, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
 }
 
@@ -27,7 +30,7 @@
   border: 1px solid var(--line);
   border-radius: 10px;
   font: 14px/1.45 var(--sans);
-  box-shadow: 0 10px 30px rgba(10, 10, 30, 0.35);
+  box-shadow: 0 8px 28px rgba(27, 29, 58, 0.16), 0 1px 3px rgba(27, 29, 58, 0.08);
   text-align: left;
   pointer-events: none; /* a hover card never blocks the page */
   scrollbar-width: thin;
@@ -38,15 +41,16 @@
 .top { padding: 12px 16px 10px; }
 .headrow { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .head { font: 600 30px/1.15 var(--sans); letter-spacing: 0.02em; }
-.head.st-fresh { color: var(--fresh); }
-.head.st-learning { color: var(--learning); }
-.head.st-known { color: var(--known); }
+.head { padding: 0 3px; margin: 0 -3px; border-radius: 4px; }
+.head.st-fresh { background: var(--fresh-mark); }
+.head.st-learning { background: var(--learning-mark); }
+.head.st-known { background: var(--known-mark); }
 .py { font-size: 17px; color: var(--text2); letter-spacing: 0.01em; }
 .py.hidden { color: transparent; text-shadow: 0 0 9px var(--text2); }
 .freq { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text3); white-space: nowrap; }
 .bars { display: inline-flex; gap: 2px; align-items: flex-end; height: 11px; }
 .bars i { width: 3px; background: var(--line); border-radius: 1px; }
-.bars i.on { background: var(--text2); }
+.bars i.on { background: var(--link); }
 
 .defs { margin-top: 6px; color: var(--text); }
 .defs .sep { color: var(--text3); padding: 0 6px; }
@@ -64,7 +68,7 @@
 .ex { margin: 0; padding: 0; list-style: none; }
 .ex li + li { margin-top: 5px; }
 .ex .zh { font-size: 15px; }
-.ex .zh mark { background: none; color: inherit; border-bottom: 2px solid var(--text3); }
+.ex .zh mark { background: none; color: inherit; border-bottom: 2px solid var(--learning); }
 .ex .en { display: block; font-size: 12.5px; color: var(--text2); }
 .label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 4px; }
 .seen .src { font-size: 12px; color: var(--link); margin-left: 6px; text-decoration: none; }
@@ -84,11 +88,12 @@
   color: var(--text2);
 }
 .stamp kbd { font: 600 10px/1 var(--sans); color: var(--text3); }
-.stamp.fresh { border-color: color-mix(in srgb, var(--fresh) 55%, transparent); }
-.stamp.learning { border-color: color-mix(in srgb, var(--learning) 55%, transparent); }
-.stamp.known { border-color: color-mix(in srgb, var(--known) 55%, transparent); }
-.stamp.on { color: #15172e; }
-.stamp.on kbd { color: #15172e; opacity: 0.6; }
+.stamp.fresh { border-color: color-mix(in srgb, var(--fresh) 45%, transparent); }
+.stamp.learning { border-color: color-mix(in srgb, var(--learning) 80%, transparent); }
+.stamp.known { border-color: color-mix(in srgb, var(--known) 45%, transparent); }
+.stamp.on { color: #fff; }
+.stamp.on kbd { color: #fff; opacity: 0.75; }
+.stamp.learning.on, .stamp.learning.on kbd { color: var(--text); }
 .stamp.fresh.on { background: var(--fresh); border-color: var(--fresh); }
 .stamp.learning.on { background: var(--learning); border-color: var(--learning); }
 .stamp.known.on { background: var(--known); border-color: var(--known); }

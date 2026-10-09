@@ -99,3 +99,185 @@
 587	fix	他一聽到要放假就樂了。	He lit up as soon as he heard about the day off.
 591	fix	這個縣的財政很困難。	This county's finances are in bad shape.
 595	fix	我跟同事約好下班去吃火鍋。	I made plans with a coworker to have hot pot after work.
+599	fix	凡事欲速則不達，還是慢慢來比較穩。	Haste makes waste, so it's steadier to take it slowly.
+600	fix	天色暗下來，看起來大雨欲來，我們趕快回家吧。	The sky is darkening and rain looks about to pour, so let's hurry home.
+601	fix	他立在門口等了很久，朋友才終於出現。	He stood at the door for a long time before his friend finally showed up.
+602	fix	路口立了一塊牌子，提醒大家減速慢行。	A sign was put up at the intersection reminding everyone to slow down.
+603	fix	請問這間店的負責人在嗎？我想談合作。	Excuse me, is the person in charge of this shop in? I'd like to discuss a collaboration.
+611	fix	納粹對猶太人進行了大規模的屠殺。	The Nazis carried out a large-scale massacre of Jews.
+615	fix	請把名片正面朝上，雙手遞給對方。	Please hand your business card over with both hands, front side up.
+619	fix	請把你的電話號碼寫在這張表格上。	Please write your phone number on this form.
+631	fix	村民每天清晨都會到廟口的榕樹下聊天。	Every morning the villagers chat under the banyan tree in front of the temple.
+635	fix	清朝時期，鹿港曾是非常繁榮的港口。	During the Qing dynasty, Lukang was a very prosperous port.
+637	dropword	Mainland form; Taiwan writes 帳號
+639	fix	他每天騎腳踏車去上學。	He rides his bicycle to school every day.
+640	fix	週末我們全家一起騎腳踏車到河濱公園，玩得很開心。	On the weekend our whole family cycled to the riverside park and had a great time.
+641	fix	他為了還債務，下班後還得去打工。	To pay off his debts, he has to do a part-time job after work.
+655	fix	我近視很深，沒戴眼鏡就看不清楚黑板。	My eyesight is very poor, and without glasses I can't see the blackboard clearly.
+659	fix	畢業後，學校會把畢業證書寄到家裡。	After graduation, the school will mail the diploma to your home.
+663	dropword	Bound character that only occurs in compounds such as 鬍子/鬍鬚; not a free word
+667	fix	他想用這個笑話博大家一笑。	He wanted to get everyone to laugh with this joke.
+668	fix	這部電影博得許多觀眾的好評。	This film won praise from many viewers.
+670	fix	消防大隊接獲通報後，十分鐘內就趕到現場。	The fire brigade arrived at the scene within ten minutes of getting the call.
+671	fix	從高鐵車窗往外看，西部平原一片綠油油。	Looking out the high-speed rail window, the western plain is a sea of green.
+675	fix	這棟房子的鋼筋框架已經完成，接著要砌牆。	The steel frame of this house is finished, and next the walls will be built.
+679	fix	他窮得連下個月的房租都付不出來。	He's so poor he can't even pay next month's rent.
+683	fix	外套被雨淋透了，他一回到家就趕快換衣服。	His jacket was drenched through, so he changed clothes as soon as he got home.
+693	fix	她外表很文靜，沒想到唱起歌來很有爆發力。	She looks quiet, but surprisingly her singing is full of power.
+695	fix	遠處傳來尖銳的煞車聲，大家都嚇了一跳。	A shrill screech of brakes came from afar and everyone was startled.
+699	fix	你可以自由支配這筆獎金，想買什麼都行。	You can spend this bonus however you like.
+705	fix	這場手術關係到病人的生死，醫生不敢大意。	This operation is a matter of the patient's life or death, so the doctor dares not be careless.
+711	dropword	Mainland usage; Taiwan says 發揮/產生 作用 instead of 起到
+717	fix	他太專心看書，以至於忘了吃午餐。	He was so absorbed in his book that he forgot to eat lunch.
+719	fix	他騎車騎太快，結果在路口出事了。	He rode too fast and ended up in an accident at the intersection.
+721	fix	老虎和獅子都是同類的大型貓科動物。	Tigers and lions are both large animals of the cat family.
+729	fix	這學期的教科書很貴，我打算買二手的。	This semester's textbooks are expensive, so I plan to buy them second-hand.
+733	fix	瓦斯爐的火力調小一點，湯才不會滾出來。	Turn down the gas stove's heat so the soup doesn't boil over.
+735	fix	沒戴眼鏡，我連黑板上的字都看不見。	Without my glasses I can't even see the writing on the blackboard.
+743	fix	這家店賣的東西很雜，什麼都有一點。	This shop sells a real mix of things, a bit of everything.
+744	fix	市場裡人多聲音雜，我幾乎聽不到你在說什麼。	The market is crowded and noisy, so I can hardly hear what you're saying.
+755	fix	動物園的大象每天要吃上百公斤的草。	The elephants at the zoo eat over a hundred kilograms of grass every day.
+759	dropword	Mainland word; Taiwan says 電影院
+761	fix	他靠著一技之長，在新的城市找到了工作。	He found a job in the new city thanks to his one special skill.
+762	fix	多學一技，將來找工作就多一條路。	Learn one more skill and you'll have one more path when job hunting.
+763	dropword	Mainland term; Taiwan says 作業系統
+773	fix	跳水是一項需要高度專注的競技運動。	Diving is a competitive sport that demands intense concentration.
+777	fix	請你把事情的經過清楚表述一遍。	Please state clearly how the matter unfolded.
+781	fix	日本是台灣的鄰國，坐飛機三小時就到了。	Japan is Taiwan's neighbour, and it takes only three hours to fly there.
+787	fix	我明天要考試，今晚得念書到很晚。	I have an exam tomorrow, so I have to study late tonight.
+791	fix	我們去夜市逛逛吧，順便吃晚餐。	Let's stroll around the night market and have dinner while we're there.
+793	fix	你先在這裡候一下，我去請經理過來。	Wait here a moment while I go ask the manager to come over.
+794	fix	他早早就到月台候著，沒想到火車誤點了。	He waited on the platform early, only to find the train was delayed.
+795	fix	電影中的主角是一位溫柔的老師。	The lead in the film is a gentle teacher.
+796	fix	這些照片中，我最喜歡第三張。	Of all these photos, I like the third one best.
+799	fix	這個字怎麼念？	How do you pronounce this character?
+800	fix	你怎麼這麼晚才回來？我們都擔心死了。	Why did you come back so late? We were all worried sick.
+803	fix	這次考試失敗的主要原因是我準備得不夠。	The main reason I failed this exam is that I didn't prepare enough.
+807	fix	你是哪一國人？	What country are you from?
+808	fix	我們學校有來自十幾個國家的學生，大家相處得很好。	Our school has students from over ten countries, and everyone gets along well.
+809	fix	你們那一國的人都這麼愛吃辣嗎？	Do all you folks love spicy food this much?
+816	fix	冬天皮膚很乾，所以我都會擦乳液。	My skin gets very dry in winter, so I always put on lotion.
+817	fix	你喜歡哪一種顏色？	Which kind of color do you like?
+818	fix	這家店賣好幾種口味的鳳梨酥，我每種都想試試。	This shop sells several flavors of pineapple cake, and I want to try every one.
+820	fix	我媽告訴我，不管再忙，每天都要好好吃早餐。	My mom told me that no matter how busy I am, I should have a proper breakfast every day.
+822	fix	經過一番討論，大家決定把旅行日期改到下個月。	After some discussion, everyone decided to move the trip to next month.
+824	fix	同樣的錯誤不要再犯第二次，這次一定要小心。	Don't make the same mistake twice. Be careful this time.
+826	fix	這篇報告的結構不太清楚，建議你重新整理一下段落。	The structure of this report isn't very clear. I suggest reorganizing the paragraphs.
+829	fix	下過雨之後，山路變得更加難走。	After the rain, the mountain road became even harder to walk.
+830	fix	有了朋友的鼓勵，她對未來更加有信心。	With her friends' encouragement, she became even more confident about the future.
+832	fix	老師肯定了我的努力，還在全班面前稱讚我。	The teacher recognized my effort and even praised me in front of the class.
+833	fix	每個人都有受教育的權利，這是基本人權。	Everyone has the right to an education; it is a basic human right.
+834	fix	這個團體長期關心人權議題，也經常舉辦座談會。	This group has long cared about human rights issues and often holds seminars.
+836	fix	這個班的平均分數是八十分，大家表現得不錯。	The class average is eighty points, and everyone did fairly well.
+837	fix	這樣算便宜嗎？	Does this count as cheap?
+838	fix	算了啦，別再想那件事，明天還要上班。	Forget it. Stop thinking about that. You've got work tomorrow.
+840	fix	面對考試的壓力，她每天都去操場慢跑來放鬆。	Facing exam pressure, she jogs around the field every day to relax.
+842	fix	面對經濟危機，老闆決定先不加薪，大家都能理解。	Facing an economic crisis, the boss decided not to give raises for now, and everyone understood.
+844	fix	網路恢復正常之後，我們才能繼續處理剩下的訂單。	Once the network is back to normal, we can continue handling the remaining orders.
+846	fix	弟弟每個月都會去書店買新出的漫畫，房間裡堆滿了書。	My younger brother buys new comics at the bookstore every month, and his room is stacked with them.
+848	fix	為了安全，市政府決定在路口設置更多監視器。	For safety, the city government decided to install more security cameras at intersections.
+850	fix	他送了我一條高級領帶，質料摸起來非常好。	He gave me a high-quality necktie, and the fabric feels wonderful.
+852	fix	他把事情的經過完整地說了一遍，大家才明白發生了什麼。	He told the whole story from start to finish, and only then did everyone understand.
+854	fix	剛開始接觸程式設計的時候，我連最簡單的指令都看不懂。	When I first got into programming, I couldn't understand even the simplest commands.
+856	fix	週末的夜市總是人潮眾多，想買東西得有耐心。	Weekend night markets are always crowded with people, so you need patience to shop.
+858	fix	手機放在旁邊的話，很難集中精神寫作業。	With your phone beside you, it's hard to focus on homework.
+859	fix	有別的顏色嗎？	Is there another color?
+860	fix	這件有點大，可以給我看看別的尺寸嗎？	This one is a bit big. Can you show me other sizes?
+862	fix	不管遇到什麼困難，她始終相信自己一定能做到。	No matter what difficulties she met, she always believed she could do it.
+864	fix	演唱會的票一開賣就被搶光了，我連網頁都打不開。	Concert tickets were snapped up the moment they went on sale; I couldn't even open the page.
+866	fix	這個小鎮的交通設施已經現代化，不用再擔心不方便。	This town's transportation facilities are now modernized, so there's no need to worry about inconvenience.
+867	fix	政府的政策要落實到每個鄉鎮才有意義。	Government policy is only meaningful if it is carried out in every township.
+868	fix	這項政策如果沒有落實，就算寫得再好也沒有用。	If this policy isn't carried out, it's useless no matter how well it's written.
+870	fix	我先把文件寄出去，隨後再打電話跟你確認。	I'll send the documents first and call you afterward to confirm.
+871	fix	現在買兩件打八折，還有免運費優惠。	Right now it's 20% off when you buy two, plus a free-shipping offer.
+872	fix	用悠遊卡搭公車有優惠，轉乘捷運還可以再便宜一點。	Using an EasyCard on the bus gets a discount, and transferring to the MRT is even cheaper.
+874	fix	早起有很多好處，例如可以悠閒地吃早餐，不用趕時間。	Getting up early has many benefits, like having a relaxed breakfast without rushing.
+875	fix	這次段考，我的排名進步了十名。	In this midterm, my ranking improved by ten places.
+876	fix	這所大學今年的排名上升了五名，同學們都很開心。	This university rose five places in the rankings this year, and the students are happy.
+878	fix	小孩子難免會犯錯，爸媽只要耐心教就好。	Kids inevitably make mistakes, so parents just need to teach them patiently.
+880	fix	他的著作已經被翻譯成日文，在日本也有不少讀者。	His writings have been translated into Japanese and have quite a few readers in Japan too.
+881	fix	你陪我去好嗎？	Will you go with me?
+882	fix	週末我要陪外婆去醫院做檢查，所以不能跟你們去爬山。	This weekend I'm accompanying my grandma to a hospital checkup, so I can't hike with you.
+883	fix	余老師教我們國文，上課很有趣。	Mr. Yu teaches us Chinese class, and his lessons are fun.
+884	fix	他姓余，是我們公司新來的會計。	His surname is Yu, and he's the new accountant at our company.
+885	dropword	Bound character used almost only in compounds like 參加/參考; 參加 already has its own entry
+888	fix	下過雨以後，天空出現一道彩虹，路人都停下來拍照。	After the rain, a rainbow appeared in the sky, and passersby stopped to take photos.
+889	fix	一想到要上台演講，他就感到恐懼。	Just thinking about speaking on stage fills him with fear.
+890	fix	面對未知的事情，很多人心裡都會有恐懼，這很正常。	Many people feel fear when facing the unknown, and that's perfectly normal.
+891	fix	子曰：學而時習之。	The Master said: To learn and practice what one has learned.
+892	fix	老師說，「子曰」就是「孔子說」的意思。	The teacher said that 「子曰」 means "Confucius said."
+894	fix	這支球隊今年表現很好，球迷每場比賽都到現場加油。	This team has played well this year, and fans come to cheer at every game.
+896	fix	創辦人把一部分股權分給了早期的員工，大家都很感動。	The founder gave part of the equity to early employees, and everyone was touched.
+897	fix	他退伍以前是職業軍人，現在開了一家餐廳。	Before leaving the service he was a career soldier, and now he runs a restaurant.
+898	fix	爺爺以前是軍人，所以他到現在還是每天很早起床。	Grandpa used to be a soldier, so he still gets up very early every day.
+899	fix	他頂著大太陽走了一個小時，滿頭大汗。	He walked for an hour under the blazing sun and was drenched in sweat.
+900	fix	我買了一頂新帽子，戴起來很好看。	I bought a new hat, and it looks good on me.
+901	fix	這家咖啡廳的設計用了很多復古元素。	This café's design uses many retro elements.
+902	fix	這部電影結合了科幻和愛情元素，所以很多人喜歡。	This film blends sci-fi and romance elements, which is why many people like it.
+904	fix	我們只是單純想幫忙，沒有別的意思，請不要誤會。	We simply wanted to help with no other meaning, so please don't misunderstand.
+906	fix	外婆雖然年紀大了，但她每天早上都去公園做體操。	Although Grandma is old, she goes to the park for exercises every morning.
+908	fix	今天婚禮上，新人在大家的祝福中交換戒指，現場非常溫馨。	At today's wedding, the newlyweds exchanged rings amid everyone's blessings, and it was heartwarming.
+910	fix	住了半年以後，我漸漸喜歡上這個安靜的小城市。	After living here half a year, I gradually came to like this quiet little city.
+911	fix	他竟然忘了！	He actually forgot!
+912	fix	我沒想到這麼小的店，竟然有這麼多人排隊。	I never expected such a small shop to have so many people lining up.
+914	fix	氣象署預測，西南氣流會帶來豪大雨，中南部要小心。	The Central Weather Administration forecasts that the southwesterly flow will bring torrential rain, so central and southern Taiwan should be careful.
+916	fix	家裡的醫藥箱裡放著退燒藥和繃帶，以備不時之需。	The home medicine box holds fever medicine and bandages in case of need.
+917	fix	他把家人放在事業之上，從不加班。	He puts family above his career and never works overtime.
+918	fix	在法律之上，沒有任何人可以享有特權。	No one is above the law or entitled to special privileges.
+920	fix	這部連續劇的劇情太誇張，但我每週都忍不住要追。	The plot of this drama series is over the top, but I can't help following it every week.
+921	fix	我想報名下個月的路跑活動。	I'd like to sign up for next month's fun run.
+922	fix	我已經幫你報名了下週的游泳課，記得帶泳衣和毛巾。	I've signed you up for next week's swimming class, so remember your swimsuit and towel.
+924	fix	颱風把屋頂的鐵皮吹走了，爸爸只好爬上去修理。	The typhoon blew off the metal sheet on the roof, so Dad had to climb up and fix it.
+925	dropword	Bound character that only occurs in compounds such as 抗議/抵抗/抗爭
+928	fix	這本筆記很有用，考試前我都會拿出來複習。	This notebook is very useful, and I take it out to review before exams.
+930	fix	水跟油混不在一起，所以做沙拉醬的時候要用力搖。	Water and oil don't mix, so shake hard when making salad dressing.
+932	fix	他在美國留學五年，回國後在大學當老師。	He studied abroad in the United States for five years and teaches at a university after returning.
+933	fix	我姓簡，竹字頭的簡，請多指教。	My surname is Jian, the one with the bamboo radical. Pleased to meet you.
+934	fix	簡老師每週五都會帶我們去操場運動。	Teacher Jian takes us to the sports field every Friday.
+935	fix	董事長明天要來視察新工廠，大家要準備資料。	The chairman is coming tomorrow to inspect the new factory, so everyone must prepare materials.
+937	fix	手機有輻射嗎？	Do mobile phones give off radiation?
+938	fix	醫院在拍X光之前，會請你穿上防輻射的衣服保護身體。	Before an X-ray, the hospital has you wear radiation-proof clothing to protect your body.
+939	fix	聽到這個消息，大家都震驚得說不出話。	On hearing the news, everyone was too shocked to speak.
+940	fix	這個消息震驚了整個社區，居民們都聚在一起討論。	The news shocked the whole neighborhood, and residents gathered to discuss it.
+942	fix	爺爺長期失眠，中醫幫他把脈後開了幾帖中藥。	Grandpa has long had insomnia, and the Chinese medicine doctor took his pulse and prescribed some herbal remedies.
+944	fix	這首歌的歌詞出自一位年輕詩人的作品，讀起來很感人。	The lyrics of this song come from a young poet's work and are moving to read.
+946	fix	公司面臨困境的時候，老闆沒有裁員，而是和大家一起想辦法。	When the company was in trouble, the boss didn't lay off staff and instead worked it out with everyone.
+948	fix	她寧願自己辛苦一點，也不想麻煩別人。	She would rather have it a bit harder herself than trouble others.
+950	fix	警方認為嫌犯並沒有傷人的意圖，只是想把車子開走。	Police believe the suspect had no intention of harming anyone and just wanted to drive the car away.
+952	fix	本店新增了素食菜單，歡迎吃素的朋友來試試。	This shop has added a vegetarian menu; vegetarian friends are welcome to try it.
+954	fix	新員工到職的流程很簡單，先填資料，再領電腦和門禁卡。	The onboarding process for new employees is simple: fill in forms, then collect a computer and access card.
+956	fix	老師很會發掘學生的長處，讓每個人都有機會表現。	The teacher is good at discovering students' strengths and gives everyone a chance to shine.
+957	fix	日治時期，台灣總督掌管全島的行政大權。	During the Japanese colonial period, the Governor-General held the island's administrative power.
+958	fix	日治時期的台灣總督府現在是總統府，很多遊客來參觀。	The Governor-General's Office from the Japanese colonial period is now the Presidential Office, and many tourists visit.
+959	fix	這張圖要怎麼解讀？	How should this chart be read?
+960	fix	大家對這份報告的解讀不太一樣，所以才需要再開會討論。	People interpret this report differently, which is why we need another meeting.
+962	fix	阿姨每次來都會帶一盒水果，小孩子們都很期待。	Auntie brings a box of fruit every visit, and the kids look forward to it.
+964	fix	整場演講中，台下的觀眾不時發出笑聲，氣氛很好。	Throughout the speech, laughter came from the audience now and then, and the atmosphere was great.
+966	fix	這個地區的地理位置優越，交通和生活機能都很方便。	This area has a superior location, with convenient transportation and amenities.
+967	fix	十一點了，該睡了。	It's eleven o'clock; time for bed.
+968	fix	十一月的天氣開始轉涼，早晚要記得多穿一件外套。	In November the weather turns cool, so remember an extra jacket morning and evening.
+970	fix	大雪把車子困在山路上，救難人員花了兩個小時才把大家救出來。	Heavy snow stranded cars on the mountain road, and rescuers took two hours to get everyone out.
+971	fix	公司的流程太官僚，簽一個名要等三天。	The company's process is too bureaucratic; getting one signature takes three days.
+972	fix	辦一張證件要跑好幾個地方，大家都說這太官僚了。	Getting a single document means going to several places, and everyone says it's too bureaucratic.
+974	fix	他從沒遲到過，所以今天沒到，大家都很擔心。	He's never been late, so everyone is worried that he hasn't shown up today.
+976	fix	剛畢業的時候，我一個月掙不到三萬塊，過得很辛苦。	Just after graduating, I earned less than thirty thousand a month and lived hard.
+978	fix	警方出動大批人員，終於在天亮前平息了這場暴動。	Police deployed large numbers of officers and finally put down the riot before dawn.
+980	fix	船太重了，一下子就沉到了海底。	The boat was so heavy that it sank to the bottom of the sea at once.
+982	fix	基隆附近曾經有很多煤礦，現在變成了觀光景點。	There used to be many coal mines near Keelung, which have now become tourist sites.
+984	fix	對長輩說話要有禮貌，這是爸媽從小就教我的。	You should speak politely to elders, which is what my parents taught me from a young age.
+986	fix	吃火鍋時太燙，他的舌頭被燙到，痛得說不出話來。	The hot pot was too hot, and he burned his tongue and couldn't speak from the pain.
+988	fix	這匹馬需要有經驗的人慢慢調教，才能順利參加比賽。	This horse needs an experienced person to train it gradually before it can race.
+990	fix	選區劃分重新調整之後，有些里被分到了隔壁的區域。	After the electoral districts were redrawn, some neighborhoods were moved into the adjoining district.
+992	fix	這座博物館隸屬於市政府，免費開放給市民參觀。	This museum is subordinate to the city government and open to residents free of charge.
+994	fix	主管下達的指示很清楚，大家照著做就不會出錯。	The instructions the manager issued are clear; if everyone follows them, there won't be mistakes.
+996	fix	她手上的戒指鑲著一顆兩克拉的寶石，在陽光下閃閃發光。	The ring on her hand is set with a two-carat gem that sparkles in the sunlight.
+998	fix	媽媽生日的時候，我在卡片裡寫了幾句感謝的話放進禮物盒。	For Mom's birthday I wrote a few words of thanks in a card and put it in the gift box.
+999	fix	清明節到了，爺爺的墓地在山腳下，我們一早就出發。	Tomb-Sweeping Day arrived, and since Grandpa's grave is at the foot of the hill, we set off early.
+1000	fix	清明節的時候，全家人都會到墓地掃墓，帶著鮮花和水果。	At Tomb-Sweeping Day, the whole family goes to the cemetery with flowers and fruit.
+1001	fix	過去一黨專政的年代，人民沒有言論自由。	In the era of one-party rule, the people had no freedom of speech.
+1002	fix	歷史上的專政政權，往往限制人民的言論自由。	Dictatorial regimes in history often restricted freedom of speech.
+1004	fix	從業人員必須定期接受健康檢查，以保障顧客的安全。	Practitioners must receive regular health checks to ensure customer safety.
+1006	fix	研究結果揭示了睡眠不足與情緒之間的關係，引起不少討論。	The research reveals the link between lack of sleep and mood, sparking quite a lot of discussion.
+1008	fix	本月底是繳交報告的最後期限，請大家務必注意。	The end of this month is the final deadline to hand in reports, so please take note.
+1009	fix	幾個流氓在夜市裡收保護費，攤販都敢怒不敢言。	A few thugs collect protection money in the night market, and the vendors dare not speak up.
+1010	fix	深夜裡有幾個流氓在巷口鬧事，鄰居趕緊報警處理。	Late at night some hoodlums caused trouble at the alley entrance, and neighbors quickly called the police.

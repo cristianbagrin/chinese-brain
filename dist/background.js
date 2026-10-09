@@ -163,6 +163,7 @@
     autoFreshOnClick: !0,
     markUntracked: !0,
     subFontSize: 30,
+    subStyle: "light",
     shadowFactor: 1.5,
     cardPinyin: "show",
     sounds: !0,

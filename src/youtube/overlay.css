@@ -10,16 +10,30 @@
   align-items: center;
   pointer-events: none;
   transition: bottom 0.15s ease;
-  --fresh: #ff5c6c;
-  --learning: #ffd23f;
-  --known: #5fe08a;
-  --ink-band: rgba(22, 24, 50, 0.78);
-  --mint: #d4d8ff;
+  /* Light band (default) */
+  --band: rgba(255, 255, 255, 0.9);
+  --text: #1b1d3a;
+  --text2: #3d4166;
+  --fresh: #ffccd2;
+  --learning: #ffe066;
+  --known: #c3ecd0;
+  --hover: rgba(27, 29, 58, 0.1);
+  --rt: #565a7e;
+  --dots: rgba(27, 29, 58, 0.4);
   --serif: 'Songti TC', 'Noto Serif TC', 'Noto Serif CJK TC', 'PMingLiU', serif;
   --sans: -apple-system, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, monospace;
 }
 :host(.low) { bottom: 3%; }
+/* Dark band (setting): status shown as text colour. */
+:host(.dark) {
+  --band: rgba(22, 24, 50, 0.8);
+  --text: #ffffff;
+  --text2: #d4d8ff;
+  --hover: rgba(255, 255, 255, 0.18);
+  --rt: #c9cdf0;
+  --dots: rgba(255, 255, 255, 0.45);
+}
 :host([hidden]) { display: none; }
 
 .box {
@@ -32,8 +46,8 @@
   font-size: var(--fs, 30px);
 }
 .zh {
-  background: var(--ink-band);
-  color: #fff;
+  background: var(--band);
+  color: var(--text);
   padding: 0.12em 0.45em 0.16em;
   border-radius: 0.18em;
   font: 400 1em/1.45 var(--sans);
@@ -42,17 +56,20 @@
 }
 .zh:empty, .tr:empty { display: none; }
 .tok { cursor: pointer; border-radius: 0.12em; padding: 0 0.02em; }
-.tok:hover, .tok.active { background: rgba(255, 255, 255, 0.18); }
-.tok.st-fresh { color: var(--fresh); }
-.tok.st-learning { color: var(--learning); }
-.tok.st-known { color: var(--known); }
-.tok.untracked { text-decoration: underline dotted rgba(255, 255, 255, 0.45); text-underline-offset: 0.22em; text-decoration-thickness: 1.5px; }
+.tok:hover, .tok.active { box-shadow: 0 0 0 2px var(--hover); }
+.tok.st-fresh { background: var(--fresh); }
+.tok.st-learning { background: var(--learning); }
+.tok.st-known { background: var(--known); }
+:host(.dark) .tok.st-fresh { background: none; color: #ff6b7a; }
+:host(.dark) .tok.st-learning { background: none; color: #ffd84a; }
+:host(.dark) .tok.st-known { background: none; color: #5fe08a; }
+.tok.untracked { text-decoration: underline dotted var(--dots); text-underline-offset: 0.22em; text-decoration-thickness: 1.5px; }
 ruby { ruby-position: over; }
-rt { font: 400 0.42em/1 var(--sans); color: #c9cdf0; letter-spacing: 0; }
+rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
 
 .tr {
-  background: var(--ink-band);
-  color: var(--mint);
+  background: var(--band);
+  color: var(--text2);
   padding: 0.1em 0.5em 0.14em;
   border-radius: 0.18em;
   font: 400 0.62em/1.4 var(--sans);
