@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Chinese Brain",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Learn Taiwan Mandarin while you read and watch: hover lookup with Taiwan pinyin, YouTube dual subtitles, one word list.",
   "browser_specific_settings": {
     "gecko": {
@@ -13,6 +13,9 @@
           "browsingActivity"
         ]
       }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
     }
   },
   "icons": {
