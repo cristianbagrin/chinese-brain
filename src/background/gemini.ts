@@ -338,11 +338,15 @@ export async function geminiModels(key: string): Promise<{ id: string; name: str
   return out.sort((a, b) => ver(b.id) - ver(a.id) || preview(a.id) - preview(b.id) || tier(a.id) - tier(b.id) || a.id.localeCompare(b.id));
 }
 
-/** Two Taiwan-Mandarin example sentences for a word the bundled list lacks (cached per word). */
-export async function geminiExamples(word: string, gloss: string, key: string, model: string): Promise<[string, string][]> {
+/**
+ * Taiwan-Mandarin example sentences for a word, up to `want` new ones (cached per word,
+ * added to any kept earlier). Sentences you deleted are never brought back.
+ */
+export async function geminiExamples(word: string, gloss: string, key: string, model: string, want = 2): Promise<[string, string][]> {
   const cacheKey = 'gex:' + word;
-  const cached = (await browser.storage.local.get(cacheKey))[cacheKey] as [string, string][] | undefined;
-  if (cached?.length) return cached;
+  const got = await browser.storage.local.get([cacheKey, 'exh:' + word]);
+  const cached = (got[cacheKey] as [string, string][] | undefined) ?? [];
+  const hidden = new Set((got['exh:' + word] as string[] | undefined) ?? []);
   const prompt = `Write two natural example sentences that a Taiwanese person would really say or write, using the word 「${word}」 (${gloss}).
 Use Traditional Chinese characters as used in Taiwan and Taiwan vocabulary (not Mainland forms, no 兒化).
 The first sentence: 12 to 25 characters, showing typical everyday usage. The second: short and simple, under 12 characters.
@@ -354,11 +358,12 @@ Give each with a natural American English translation.`;
   };
   const { text } = await generateSturdy(key, model, [{ text: prompt }], { responseMimeType: 'application/json', responseSchema: schema, temperature: 0.7 });
   const json = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, '')) as { examples?: { zh?: string; en?: string }[] };
-  const list = (json.examples ?? [])
-    .filter((x) => x.zh?.includes(word))
-    .slice(0, 2)
-    .map((x) => [x.zh!.trim(), (x.en ?? '').trim()] as [string, string]);
-  if (!list.length) throw new Error('Gemini wrote no usable sentences.');
+  const fresh = (json.examples ?? [])
+    .map((x) => [(x.zh ?? '').trim(), (x.en ?? '').trim()] as [string, string])
+    .filter(([zh]) => zh.includes(word) && !hidden.has(zh) && !cached.some(([c]) => c === zh))
+    .slice(0, want);
+  if (!fresh.length) throw new Error('Gemini wrote no usable sentences. Try again.');
+  const list = [...cached, ...fresh];
   await browser.storage.local.set({ [cacheKey]: list });
   return list;
 }

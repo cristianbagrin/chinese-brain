@@ -86,8 +86,6 @@ export interface Settings {
   pauseOnHover: boolean;
   /** Clicking a new word in subtitles marks it Fresh (clicking again undoes it). */
   autoFreshOnClick: boolean;
-  /** Mark untracked words with a faint underline. */
-  markUntracked: boolean;
   subFontSize: number;
   /** Subtitle band: light (default) or dark. */
   subStyle: 'light' | 'dark';
@@ -121,7 +119,6 @@ export const DEFAULT_SETTINGS: Settings = {
   translation: 'blur',
   pauseOnHover: true,
   autoFreshOnClick: true,
-  markUntracked: true,
   subFontSize: 30,
   subStyle: 'light',
   shadowFactor: 1.5,
@@ -149,6 +146,7 @@ export function normalizeSettings(raw: Record<string, unknown> | undefined): Set
   if (r.voice === undefined && typeof r.azureKey === 'string' && r.azureKey) r.voice = 'azure';
   delete r.subPinyin;
   delete r.cardPinyin;
+  delete r.markUntracked; // the dotted underline on new subtitle words was dropped
   return { ...DEFAULT_SETTINGS, ...(r as Partial<Settings>) };
 }
 

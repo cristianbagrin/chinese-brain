@@ -98,6 +98,7 @@ export class YouTubeSubs {
     this.zh.addEventListener('click', (e) => this.onTokenClick(e));
     this.popup.onHide(() => {
       this.clickStamped = '';
+      this.shownAt = '';
       this.maybeResume();
     });
 
@@ -118,7 +119,7 @@ export class YouTubeSubs {
     new ResizeObserver(() => this.resize()).observe(document.documentElement);
     this.checkVideo();
     this.tick = this.tick.bind(this);
-    requestAnimationFrame(this.tick);
+    this.wake();
   }
 
   private player(): Player | undefined {
@@ -126,8 +127,22 @@ export class YouTubeSubs {
     return el?.wrappedJSObject ?? el ?? undefined;
   }
 
+  private videoEl: HTMLVideoElement | null = null;
   private video(): HTMLVideoElement | null {
-    return document.querySelector('#movie_player video');
+    if (this.videoEl?.isConnected) return this.videoEl;
+    this.videoEl = document.querySelector('#movie_player video');
+    // The frame loop sleeps while nothing plays; these wake it.
+    for (const ev of ['play', 'playing', 'seeked', 'loadeddata', 'ratechange']) this.videoEl?.addEventListener(ev, () => this.wake());
+    return this.videoEl;
+  }
+
+  /** Light on the browser: the per-frame loop runs only while a video with subtitles plays. */
+  private ticking = false;
+  private wake() {
+    if (this.ticking) return;
+    this.ticking = true;
+    this.lastTick = 0;
+    requestAnimationFrame(this.tick);
   }
 
   private currentId(): string {
@@ -137,6 +152,8 @@ export class YouTubeSubs {
 
   private checkVideo() {
     const id = this.currentId();
+    // While the frame loop sleeps (paused video), still follow the player's controls showing/hiding.
+    if (!this.ticking) this.host.classList.toggle('low', !!this.host.parentElement?.classList.contains('ytp-autohide'));
     if (id === this.videoId) {
       if (id && !this.src) this.findTracks();
       // YouTube builds (and rebuilds) its control bar on its own schedule: keep the switch in it.
@@ -478,6 +495,7 @@ export class YouTubeSubs {
   private applyEnabled() {
     const on = state.settings.ytEnabled && this.cues.length > 0;
     this.host.hidden = !on;
+    if (on) this.wake();
     this.host.classList.toggle('dark', state.settings.subStyle === 'dark');
     document.documentElement.classList.toggle('cb-subs-on', on);
     // Only when the subtitles are switched off: close a card opened from them.
@@ -511,17 +529,22 @@ export class YouTubeSubs {
   }
 
   private tick(now: number) {
-    requestAnimationFrame(this.tick);
-    if (!this.cues.length || this.host.hidden) return;
     const v = this.video();
-    if (this.live && v) {
+    if (!this.cues.length || this.host.hidden || !v) {
+      this.ticking = false;
+      return;
+    }
+    if (this.live) {
       if (this.idx !== 0) {
         this.idx = 0;
         this.renderLine();
       }
+      this.ticking = false;
       return;
     }
-    if (!v) return;
+    // One more frame after a pause or seek updates the line; then sleep until the video plays.
+    if (v.paused) this.ticking = false;
+    else requestAnimationFrame(this.tick);
     const t = v.currentTime;
     const dt = this.lastTick ? (now - this.lastTick) / 1000 : 0;
     this.lastTick = now;
@@ -576,7 +599,6 @@ export class YouTubeSubs {
         span.dataset.k = String(k);
         const st = state.status(t.word);
         if (st) span.classList.add('st-' + st);
-        else if (s.markUntracked && t.word) span.classList.add('untracked');
         if (s.pinyin && t.py) {
           const ruby = document.createElement('ruby');
           ruby.append(text);
@@ -609,6 +631,8 @@ export class YouTubeSubs {
   }
 
   private showSeq = 0;
+  /** The subtitle or transcript word whose card is open ("sub:line:k"). */
+  private shownAt = '';
   /** Word just stamped Fresh by a click (a second click undoes only that). */
   private clickStamped = '';
 
@@ -620,6 +644,14 @@ export class YouTubeSubs {
     const hit = this.tokenAt(e);
     if (!hit) return;
     const { span, tok, line } = hit;
+    // Moving within the word showing now (its characters, its pinyin) changes nothing:
+    // re-opening it would move the card and restart its clock.
+    const at = `${span.dataset.line ?? 'sub'}:${line}:${span.dataset.k}`;
+    if (!pinned && this.popup.visible && !this.popup.pinned && this.popup.src === 'yt' && this.shownAt === at) {
+      this.popup.cancelHide();
+      return;
+    }
+    this.shownAt = at;
     // Look up from this token onward so longer words still show as tabs.
     const rest = this.tokens[line].slice(Number(span.dataset.k)).map((t) => t.text).join('');
     let matches = await lookupText(rest);
@@ -648,12 +680,6 @@ export class YouTubeSubs {
       src: 'yt',
       ctx,
       pinned,
-      related: (word) => this.linesWith(word, line),
-      relatedLabel: 'Elsewhere in this video',
-      seek: (t) => {
-        const v = this.video();
-        if (v) v.currentTime = t;
-      },
     });
     if (pinned && state.settings.autoFreshOnClick) {
       // Click a new word: Fresh. Click it again: back to untracked.
@@ -667,22 +693,6 @@ export class YouTubeSubs {
         this.clickStamped = '';
       }
     }
-  }
-
-  /** Other lines of this video with the word, nearest to the current one first. */
-  private linesWith(word: string, line: number): { text: string; t: number }[] {
-    const hits: number[] = [];
-    this.tokens.forEach((toks, i) => {
-      if (i !== line && toks.some((t) => t.word === word)) hits.push(i);
-    });
-    hits.sort((a, b) => Math.abs(a - line) - Math.abs(b - line));
-    const out: { text: string; t: number }[] = [];
-    for (const i of hits) {
-      const text = this.cues[i].text;
-      if (text !== this.cues[line]?.text && !out.some((o) => o.text === text)) out.push({ text, t: this.cues[i].start });
-      if (out.length >= 3) break;
-    }
-    return out;
   }
 
   private onTokenHover(e: Event) {

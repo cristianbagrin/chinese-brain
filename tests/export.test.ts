@@ -25,7 +25,7 @@ test("the user's real file parses completely", () => {
   assert.equal(items.filter((i) => i.s === 'learning').length, 91);
 });
 
-test('weekly export: only changes and lookups since the last export', () => {
+test('weekly export: only my status changes since the last export', () => {
   const day = 86400000;
   const now = Date.now();
   const since = now - 7 * day;
@@ -42,7 +42,7 @@ test('weekly export: only changes and lookups since the last export', () => {
   });
   const words = [
     rec('舊', [[now - 30 * day, 'known']]), // unchanged, not looked up: excluded
-    rec('忘', [[now - 30 * day, 'known']]), // looked up this week: included, K with looks
+    rec('忘', [[now - 30 * day, 'known']]), // only looked up this week: lookups don't count
     rec('進', [[now - 20 * day, 'learning'], [now - 1 * day, 'known']]), // L -> K
     rec('新', [[now - 2 * day, 'fresh']]),
   ];
@@ -58,8 +58,7 @@ test('weekly export: only changes and lookups since the last export', () => {
   const rows = out.split('\n').filter((l) => l && !l.startsWith('#') && !l.startsWith('word\t'));
   const byWord = Object.fromEntries(rows.map((r) => [r.split('\t')[0], r.split('\t')]));
   assert.ok(!byWord['舊']);
-  assert.deepEqual(byWord['忘'].slice(1, 3), ['K', 'K']);
-  assert.equal(byWord['忘'][4], '1');
+  assert.ok(!byWord['忘']);
   assert.deepEqual(byWord['進'].slice(1, 3), ['K', 'L']);
   assert.deepEqual(byWord['新'].slice(1, 3), ['F', '-']);
   assert.deepEqual(byWord['刪'].slice(1, 3), ['-', 'K']); // removed this week

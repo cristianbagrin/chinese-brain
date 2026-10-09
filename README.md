@@ -7,12 +7,13 @@ shared by everything:
   under the pointer. It shows Traditional characters, **Taiwan standard
   pinyin**, how common the word is (essential → rare, with what that means for
   you), the meanings on one line, a top-down breakdown (臺北市 → 臺北 → 臺, 北;
-  then 市), and two natural Taiwan-Mandarin example sentences, each with a play
-  button. Words the list doesn't cover get
-  other lines from the same video or page instead (or two sentences written by
-  Gemini, on request). It also shows the sentences you met the word in before.
-  The card waits while the pointer travels from the word to it, and stays put
-  while you scroll. Hover any word inside it for a small hint with its meaning.
+  then 市), two natural Taiwan-Mandarin example sentences, and the last two
+  sentences you met the word in (page-title clutter trimmed). Every sentence has
+  a play button and a × to delete it; Gemini can write new examples on request.
+  The card never covers the word or the pointer (below, above, or beside it),
+  waits while the pointer travels to it, and stays put while you scroll. Hover
+  any word inside it for a small hint with its meaning; the card's shortcuts
+  then act on that word.
 - **Three statuses everywhere:** 新 Fresh (red), 學 Learning (yellow),
   熟 Known (green). Press `1` `2` `3` in the card. The same colors appear in
   the card, the YouTube subtitles, the transcript, the word list, and
@@ -47,7 +48,8 @@ sign it as an unlisted add-on on [AMO](https://addons.mozilla.org/developers/)
 
 | Where | Keys |
 | --- | --- |
-| Card open | `1` 新 Fresh · `2` 學 Learning · `3` 熟 Known (again = clear) · `0` remove · `V` say it · `I` images · `P` pinyin on / off · `Esc` back / close |
+| Card open | `1` 新 Fresh · `2` 學 Learning · `3` 熟 Known (again = clear) · `0` remove · `V` say it · `I` images · `P` pinyin on / off · `←` `→` back / forward through words opened in the card · `Esc` close |
+| Pointing at a word inside the card | `1` `2` `3` `0` `V` `I` act on that word (the card stays on its own word) |
 | YouTube | `A` previous line · `S` replay line · `D` next line · `R` loop line · `Q` shadowing · `P` pinyin · `X` English line (show / blur / hide) · `E` transcript |
 
 On YouTube, click a new word to stamp it Fresh. Click it again to undo.
@@ -74,8 +76,8 @@ Toolbar button → **Word list & export**.
 - **Import** your `known-words.txt` (`word⇥K|L⇥date`). K → Known, L → Learning,
   and the dates are kept.
 - **Export what's new** (or **Copy what's new**) gives one small TSV: words
-  whose status changed since the last export, plus the words you looked up.
-  A Known word that you looked up again is marked, since it means you forgot it.
+  whose status you changed since the last export. Only your own stamps count;
+  lookups don't.
 - **Backup / restore** saves everything as JSON, for moving to another
   browser or computer.
 

@@ -40,7 +40,7 @@
       <button id="exportAll">Export everything</button>
       <span class="ok" id="copyOk"></span>
     </div>
-    <p class="help">A small TSV for your weekly update: words whose status changed, plus words you looked up (a Known word looked up again = forgotten). Uses the K / L codes of known-words.txt, with F for Fresh.</p>
+    <p class="help">A small TSV for your weekly update: the words whose status you changed (only your own stamps count, not lookups). Uses the K / L codes of known-words.txt, with F for Fresh.</p>
   </div>
 
   <h2 id="import">Import</h2>
@@ -64,5 +64,7 @@
   </div>
 </main>
 <script src="vocab.js"></script>
+<!-- Hover lookup on this page too (content scripts do not run on extension pages). -->
+<script src="content.js"></script>
 </body>
 </html>

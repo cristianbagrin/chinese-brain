@@ -22,7 +22,9 @@
         ["fresh", "\u65B0 Fresh"],
         ["learning", "\u5B78 Learning"],
         ["known", "\u719F Known"]
-      ].map(([k, label]) => h("div", { class: `count ${k}` }, h("b", null, String(vals.filter((v) => v === k).length)), h("span", null, label)))
+      ].map(
+        ([k, label]) => h("a", { class: `count ${k}`, href: `vocab.html#${k}`, target: "_blank", title: `Open the ${label.split(" ")[1]} words` }, h("b", null, String(vals.filter((v) => v === k).length)), h("span", null, label))
+      )
     );
     for (let el of document.querySelectorAll("[data-setting]")) {
       let key = el.dataset.setting;

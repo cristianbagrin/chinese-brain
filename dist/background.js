@@ -1,5 +1,15 @@
 "use strict";
 (() => {
+  // src/shared/context.ts
+  var HAN = /[㐀-䶿一-鿿豈-﫿]/g;
+  function cleanSentence(text, word) {
+    let withWord = text.split(/\s*(?:[|｜]|\s[-–—]\s|(?<=[^\s\x00-\x7f])[-–—_](?=[^\s\x00-\x7f]))\s*/).map((p) => p.replace(/\[\d+\]|【\d+】/g, "").trim()).filter((p) => p && !/^(pdf|docx?|pptx?|xlsx?|html?|…|\.\.\.)$/i.test(p)).filter((p) => p.includes(word));
+    return withWord.length ? withWord.sort((a, b) => b.length - a.length)[0] : text.trim();
+  }
+  function usefulSentence(text, word) {
+    return (text.match(HAN)?.length ?? 0) >= [...word].length + 2;
+  }
+
   // src/shared/dict.ts
   var CJK = /[㐀-䶿一-鿿豈-﫿]/;
   var Dictionary = class _Dictionary {
@@ -189,7 +199,6 @@
     translation: "blur",
     pauseOnHover: !0,
     autoFreshOnClick: !0,
-    markUntracked: !0,
     subFontSize: 30,
     subStyle: "light",
     shadowFactor: 1.5,
@@ -207,7 +216,7 @@
   };
   function normalizeSettings(raw) {
     let r = { ...raw ?? {} };
-    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), delete r.subPinyin, delete r.cardPinyin, { ...DEFAULT_SETTINGS, ...r };
+    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, { ...DEFAULT_SETTINGS, ...r };
   }
 
   // src/shared/time.ts
@@ -253,6 +262,11 @@
       let rec = this.words.get(word);
       rec && (rec.looks++, ctx && addContext(rec, ctx), await browser.storage.local.set({ ["w:" + word]: rec }));
     }
+    /** Forget a sentence the word was met in (the × in the card). */
+    async removeContext(word, text) {
+      let rec = this.words.get(word);
+      rec && (rec.ctx = rec.ctx.filter((c) => c.text !== text), await browser.storage.local.set({ ["w:" + word]: rec }));
+    }
     log(ev) {
       this.pendingLog.push(ev), clearTimeout(this.logTimer), this.logTimer = setTimeout(() => this.flushLog(), 3e3);
     }
@@ -284,8 +298,10 @@
     }
   };
   function addContext(rec, ctx) {
-    let text = ctx.text.trim().slice(0, 300);
-    text && (rec.ctx.some((c) => c.text === text) || (rec.ctx.unshift({ ...ctx, text }), rec.ctx = rec.ctx.slice(0, 5)));
+    let [zh, ...en] = ctx.text.trim().split(" \u2014 "), clean = cleanSentence(zh, rec.w);
+    if (!usefulSentence(clean, rec.w)) return;
+    let text = [clean, ...en].join(" \u2014 ").slice(0, 300);
+    rec.ctx.some((c) => c.text === text) || (rec.ctx.unshift({ ...ctx, text }), rec.ctx = rec.ctx.slice(0, 5));
   }
   function shortGloss(e) {
     return e.defs.filter((d) => !d.startsWith("CL:")).slice(0, 3).join("; ").slice(0, 120);
@@ -467,18 +483,17 @@ Do not summarize, skip or merge lines, and add no commentary. Skip music without
     let ver = (id) => Number(/gemini-(\d+(?:\.\d+)?)/.exec(id)?.[1] ?? 0), tier = (id) => /flash-lite/.test(id) ? 1 : /flash/.test(id) ? 0 : 2, preview = (id) => /preview|exp/.test(id) ? 1 : 0;
     return out.sort((a, b) => ver(b.id) - ver(a.id) || preview(a.id) - preview(b.id) || tier(a.id) - tier(b.id) || a.id.localeCompare(b.id));
   }
-  async function geminiExamples(word, gloss, key, model) {
-    let cacheKey = "gex:" + word, cached = (await browser.storage.local.get(cacheKey))[cacheKey];
-    if (cached?.length) return cached;
-    let prompt = `Write two natural example sentences that a Taiwanese person would really say or write, using the word \u300C${word}\u300D (${gloss}).
+  async function geminiExamples(word, gloss, key, model, want = 2) {
+    let cacheKey = "gex:" + word, got = await browser.storage.local.get([cacheKey, "exh:" + word]), cached = got[cacheKey] ?? [], hidden = new Set(got["exh:" + word] ?? []), prompt = `Write two natural example sentences that a Taiwanese person would really say or write, using the word \u300C${word}\u300D (${gloss}).
 Use Traditional Chinese characters as used in Taiwan and Taiwan vocabulary (not Mainland forms, no \u5152\u5316).
 The first sentence: 12 to 25 characters, showing typical everyday usage. The second: short and simple, under 12 characters.
 Give each with a natural American English translation.`, schema = {
       type: "OBJECT",
       properties: { examples: { type: "ARRAY", items: { type: "OBJECT", properties: { zh: { type: "STRING" }, en: { type: "STRING" } }, required: ["zh", "en"] } } },
       required: ["examples"]
-    }, { text } = await generateSturdy(key, model, [{ text: prompt }], { responseMimeType: "application/json", responseSchema: schema, temperature: 0.7 }), list = (JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, "")).examples ?? []).filter((x) => x.zh?.includes(word)).slice(0, 2).map((x) => [x.zh.trim(), (x.en ?? "").trim()]);
-    if (!list.length) throw new Error("Gemini wrote no usable sentences.");
+    }, { text } = await generateSturdy(key, model, [{ text: prompt }], { responseMimeType: "application/json", responseSchema: schema, temperature: 0.7 }), fresh = (JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, "")).examples ?? []).map((x) => [(x.zh ?? "").trim(), (x.en ?? "").trim()]).filter(([zh]) => zh.includes(word) && !hidden.has(zh) && !cached.some(([c]) => c === zh)).slice(0, want);
+    if (!fresh.length) throw new Error("Gemini wrote no usable sentences. Try again.");
+    let list = [...cached, ...fresh];
     return await browser.storage.local.set({ [cacheKey]: list }), list;
   }
 
@@ -731,22 +746,26 @@ Give each with a natural American English translation.`, schema = {
           (models) => ({ models }),
           (e) => ({ error: String(e instanceof Error ? e.message : e) })
         );
+      case "hideExample":
+        return browser.storage.local.get(["exh:" + any.word, "gex:" + any.word]).then((got) => {
+          let word = String(any.word), zh = String(any.zh), hidden = [.../* @__PURE__ */ new Set([...got["exh:" + word] ?? [], zh])], gex = (got["gex:" + word] ?? []).filter(([x]) => x !== zh);
+          return browser.storage.local.set({ ["exh:" + word]: hidden, ["gex:" + word]: gex }).then(() => !0);
+        });
+      case "forgetContext":
+        return storeReady.then(() => store.removeContext(String(any.word), String(any.text))).then(() => !0);
       case "geminiExamples":
         return Promise.all([getSettings(), dictReady]).then(async ([st, d]) => {
           if (!st.geminiKey) return { error: "Add a Gemini API key in Settings first." };
           let word = String(any.word), e = d.get(word)[0];
           try {
-            return await geminiExamples(word, e ? shortGloss(e) : "", st.geminiKey, st.geminiModel), { ok: !0 };
+            return await geminiExamples(word, e ? shortGloss(e) : "", st.geminiKey, st.geminiModel, Math.max(1, Number(any.want) || 2)), { ok: !0 };
           } catch (err) {
             return { error: String(err instanceof Error ? err.message : err) };
           }
         });
       case "wordInfo":
         return Promise.all([dictReady, storeReady, examplesReady]).then(async ([d]) => {
-          let word = any.word, py = String(any.py ?? ""), chars = breakdown(d, word, py.split(/\s+/)), record = store.words.get(word) ?? null, gex = (await browser.storage.local.get("gex:" + word))["gex:" + word] ?? [], ex = (examples.get(word)?.length ? examples.get(word) : gex).slice(0, 2).map(([zh, en]) => ({ zh, en, toks: d.segment(zh) })), seen = (record?.ctx ?? []).slice(0, 4).map((c) => {
-            let zh = c.text.split(" \u2014 ")[0];
-            return { ...c, zh, toks: d.segment(zh) };
-          });
+          let word = any.word, py = String(any.py ?? ""), chars = breakdown(d, word, py.split(/\s+/)), record = store.words.get(word) ?? null, got = await browser.storage.local.get(["gex:" + word, "exh:" + word]), hidden = new Set(got["exh:" + word] ?? []), gex = got["gex:" + word] ?? [], ex = [...examples.get(word) ?? [], ...gex].filter(([zh]) => !hidden.has(zh)).slice(0, 2).map(([zh, en]) => ({ zh, en, toks: d.segment(zh) })), seen = (record?.ctx ?? []).map((c) => ({ c, zh: cleanSentence(c.text.split(" \u2014 ")[0], word) })).filter(({ zh }) => usefulSentence(zh, word)).slice(0, 3).map(({ c, zh }) => ({ ...c, zh, toks: d.segment(zh) }));
           return { chars, examples: ex, seen, record };
         });
       case "glosses":

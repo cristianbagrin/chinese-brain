@@ -31,34 +31,29 @@
     return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min` : `${m} min`;
   }
   function buildClaudeExport(words2, logs2, since = 0) {
-    let now = Date.now(), evs = logs2.filter((e) => e.at > since), looks = /* @__PURE__ */ new Map(), yt = 0;
-    for (let e of evs)
-      e.k === "look" && (looks.set(e.w, (looks.get(e.w) ?? 0) + 1), e.src === "yt" && yt++);
-    let watches = evs.filter((e) => e.k === "watch"), byWord = new Map(words2.map((w) => [w.w, w])), before = /* @__PURE__ */ new Map();
+    let now = Date.now(), evs = logs2.filter((e) => e.at > since), watches = evs.filter((e) => e.k === "watch"), byWord = new Map(words2.map((w) => [w.w, w])), before = /* @__PURE__ */ new Map();
     for (let e of evs) e.k === "status" && !before.has(e.w) && before.set(e.w, e.from ?? null);
     let rows = [];
     if (since)
-      for (let w of /* @__PURE__ */ new Set([...before.keys(), ...looks.keys()])) {
-        let rec = byWord.get(w), cur = rec?.s ?? null, was = before.has(w) ? before.get(w) : cur;
-        was === cur && !looks.has(w) || rows.push({ w, now: cur, was, date: rec?.updated ?? now, rec });
+      for (let [w, was] of before) {
+        let rec = byWord.get(w), cur = rec?.s ?? null;
+        was !== cur && rows.push({ w, now: cur, was, date: rec?.updated ?? now, rec });
       }
-    else {
+    else
       for (let w of words2) rows.push({ w: w.w, now: w.s, was: null, date: w.updated, rec: w });
-      for (let w of looks.keys()) byWord.has(w) || rows.push({ w, now: null, was: null, date: now });
-    }
     let order = { K: 0, L: 1, F: 2, "-": 3 };
     rows.sort((a, b) => order[code(a.now)] - order[code(b.now)] || a.date - b.date);
-    let changedCount = rows.filter((r) => r.now !== r.was).length, lines = [
+    let lines = [
       `# Chinese Brain export \xB7 ${stamp(now)} \xB7 ${since ? `since ${stamp(since)}` : "everything so far"}`,
       "# Codes as in known-words.txt: K known, L learning, F fresh (met, not studied yet), - not in the list.",
-      "# was = status before this period (- = new). looks = deliberate lookups in this period (a K word looked up = forgotten).",
-      `# ${changedCount} status changes \xB7 ${[...looks.values()].reduce((a, b) => a + b, 0)} lookups (YouTube ${yt}) \xB7 ${watches.length} videos with subtitles (${duration(watches.reduce((n, e) => n + e.secs, 0))})`,
-      ["word", "now", "was", "date", "looks", "pinyin", "meaning", "sentence", "source"].join("	")
+      "# was = status before this period (- = new). Only status changes I made are listed.",
+      `# ${rows.length} words \xB7 ${watches.length} videos with subtitles (${duration(watches.reduce((n, e) => n + e.secs, 0))})`,
+      ["word", "now", "was", "date", "pinyin", "meaning", "sentence", "source"].join("	")
     ];
     for (let r of rows) {
       let c = r.rec?.ctx[0];
       lines.push(
-        [r.w, code(r.now), code(r.was), dayKeyLocal(r.date), String(looks.get(r.w) ?? 0), r.rec?.p?.toLowerCase(), r.rec?.g, c?.text, c ? shortSource(c.url, c.t) : ""].map((x) => clean(x)).join("	")
+        [r.w, code(r.now), code(r.was), dayKeyLocal(r.date), r.rec?.p?.toLowerCase(), r.rec?.g, c?.text, c ? shortSource(c.url, c.t) : ""].map((x) => clean(x)).join("	")
       );
     }
     return lines.join(`
@@ -149,6 +144,14 @@
   }
   $("q").addEventListener("input", render);
   $("sort").addEventListener("change", render);
+  function filterFromHash() {
+    let f = location.hash.slice(1);
+    ["all", "fresh", "learning", "known"].includes(f) && (filter = f, $("filter").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.f === f))));
+  }
+  filterFromHash();
+  window.addEventListener("hashchange", () => {
+    filterFromHash(), render();
+  });
   $("filter").addEventListener("click", (e) => {
     let b = e.target.closest("button");
     b && (filter = b.dataset.f, $("filter").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))), render());

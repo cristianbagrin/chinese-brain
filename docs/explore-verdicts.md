@@ -8,7 +8,7 @@ feasibility check. **KEEP** = built. **LATER** = feasible, not built yet.
 |---|------|---------|-------|
 | 1 | Image search | **KEEP** (link) / DROP (inline thumbnails) | `I` opens DuckDuckGo image search, Taiwan region. Inline thumbnails would mean scraping DuckDuckGo or Brave, which answer with captchas and rate limits. |
 | 2 | Status colors + coverage | **KEEP** | 新 red / 學 yellow / 熟 green in the card, subtitles, transcript, word list, and optionally on any page. Coverage % is in the player panel, the learn-first list and the toolbar menu. |
-| 3 | Export only what's new | **KEEP** | One weekly TSV (or clipboard copy) with K/L/F codes like `known-words.txt`: status changes plus lookups. The always-on live feed was removed at your request. |
+| 3 | Export only what's new | **KEEP** | One weekly TSV (or clipboard copy) with K/L/F codes like `known-words.txt`: your own status changes only (lookups are not counted). The always-on live feed was removed at your request. |
 | 4 | Click-to-seek, loop line | **KEEP** | `A` `S` `D`, `R` loop, and a transcript panel where clicking a line seeks to it. |
 | 5 | Shadowing | **KEEP** | `Q`: pauses after each line for 1.5× its length, then resumes. |
 | 6 | Pinyin toggles | **KEEP** | `P` toggles subtitle pinyin. In Settings, card pinyin can be hidden until you press `P`. |

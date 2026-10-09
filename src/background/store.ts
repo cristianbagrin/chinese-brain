@@ -1,3 +1,4 @@
+import { cleanSentence, usefulSentence } from '../shared/context.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import { dayKeyLocal } from '../shared/time.ts';
 import type { Context, Entry, LogEvent, Status, WordRecord } from '../shared/types.ts';
@@ -73,6 +74,14 @@ export class Store {
     }
   }
 
+  /** Forget a sentence the word was met in (the × in the card). */
+  async removeContext(word: string, text: string) {
+    const rec = this.words.get(word);
+    if (!rec) return;
+    rec.ctx = rec.ctx.filter((c) => c.text !== text);
+    await browser.storage.local.set({ ['w:' + word]: rec });
+  }
+
   log(ev: LogEvent) {
     this.pendingLog.push(ev);
     clearTimeout(this.logTimer);
@@ -122,8 +131,11 @@ export class Store {
 
 
 function addContext(rec: WordRecord, ctx: Context) {
-  const text = ctx.text.trim().slice(0, 300);
-  if (!text) return;
+  // YouTube contexts are "Chinese — English"; only the Chinese part is cleaned.
+  const [zh, ...en] = ctx.text.trim().split(' — ');
+  const clean = cleanSentence(zh, rec.w);
+  if (!usefulSentence(clean, rec.w)) return;
+  const text = [clean, ...en].join(' — ').slice(0, 300);
   if (rec.ctx.some((c) => c.text === text)) return;
   rec.ctx.unshift({ ...ctx, text });
   rec.ctx = rec.ctx.slice(0, 5);

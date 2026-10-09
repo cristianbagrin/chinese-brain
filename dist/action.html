@@ -8,6 +8,8 @@
   .wrap { padding: 12px 14px 12px; }
   .counts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0 0 4px; }
   .count { min-width: 0; padding: 5px 8px 4px; border-top-width: 3px; border-radius: 8px; background: var(--ground); border-left: 0; border-right: 0; border-bottom: 0; }
+  a.count { color: inherit; text-decoration: none; transition: background 0.12s; }
+  a.count:hover { background: var(--rule); }
   .count b { font-size: 18px; }
   .count span { font-size: 11.5px; }
   .group { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--rule); }

@@ -27,20 +27,13 @@ function duration(secs: number) {
 }
 
 /**
- * The weekly export for Claude: one small TSV. Only words whose status changed
- * in the period, plus words looked up in it (a lookup of a Known word is a
- * recall failure worth seeing). Status codes match known-words.txt.
+ * The weekly export for Claude: one small TSV with the words whose status you
+ * changed in the period (only your own stamps count; lookups don't). Status
+ * codes match known-words.txt.
  */
 export function buildClaudeExport(words: WordRecord[], logs: LogEvent[], since = 0): string {
   const now = Date.now();
   const evs = logs.filter((e) => e.at > since);
-  const looks = new Map<string, number>();
-  let yt = 0;
-  for (const e of evs) {
-    if (e.k !== 'look') continue;
-    looks.set(e.w, (looks.get(e.w) ?? 0) + 1);
-    if (e.src === 'yt') yt++;
-  }
   const watches = evs.filter((e) => e.k === 'watch') as Extract<LogEvent, { k: 'watch' }>[];
   const byWord = new Map(words.map((w) => [w.w, w]));
 
@@ -52,13 +45,11 @@ export function buildClaudeExport(words: WordRecord[], logs: LogEvent[], since =
   const rows: Row[] = [];
   if (!since) {
     for (const w of words) rows.push({ w: w.w, now: w.s, was: null, date: w.updated, rec: w });
-    for (const w of looks.keys()) if (!byWord.has(w)) rows.push({ w, now: null, was: null, date: now });
   } else {
-    for (const w of new Set([...before.keys(), ...looks.keys()])) {
+    for (const [w, was] of before) {
       const rec = byWord.get(w);
       const cur = rec?.s ?? null;
-      const was = before.has(w) ? before.get(w)! : cur;
-      if (was === cur && !looks.has(w)) continue; // changed and changed back: nothing to report
+      if (was === cur) continue; // changed and changed back: nothing to report
       rows.push({ w, now: cur, was, date: rec?.updated ?? now, rec });
     }
   }
@@ -66,18 +57,17 @@ export function buildClaudeExport(words: WordRecord[], logs: LogEvent[], since =
   const order = { K: 0, L: 1, F: 2, '-': 3 } as Record<string, number>;
   rows.sort((a, b) => order[code(a.now)] - order[code(b.now)] || a.date - b.date);
 
-  const changedCount = rows.filter((r) => r.now !== r.was).length;
   const lines = [
     `# Chinese Brain export · ${stamp(now)} · ${since ? `since ${stamp(since)}` : 'everything so far'}`,
     '# Codes as in known-words.txt: K known, L learning, F fresh (met, not studied yet), - not in the list.',
-    '# was = status before this period (- = new). looks = deliberate lookups in this period (a K word looked up = forgotten).',
-    `# ${changedCount} status changes · ${[...looks.values()].reduce((a, b) => a + b, 0)} lookups (YouTube ${yt}) · ${watches.length} videos with subtitles (${duration(watches.reduce((n, e) => n + e.secs, 0))})`,
-    ['word', 'now', 'was', 'date', 'looks', 'pinyin', 'meaning', 'sentence', 'source'].join('\t'),
+    '# was = status before this period (- = new). Only status changes I made are listed.',
+    `# ${rows.length} words · ${watches.length} videos with subtitles (${duration(watches.reduce((n, e) => n + e.secs, 0))})`,
+    ['word', 'now', 'was', 'date', 'pinyin', 'meaning', 'sentence', 'source'].join('\t'),
   ];
   for (const r of rows) {
     const c = r.rec?.ctx[0];
     lines.push(
-      [r.w, code(r.now), code(r.was), dayKeyLocal(r.date), String(looks.get(r.w) ?? 0), r.rec?.p?.toLowerCase(), r.rec?.g, c?.text, c ? shortSource(c.url, c.t) : '']
+      [r.w, code(r.now), code(r.was), dayKeyLocal(r.date), r.rec?.p?.toLowerCase(), r.rec?.g, c?.text, c ? shortSource(c.url, c.t) : '']
         .map((x) => clean(x))
         .join('\t'),
     );

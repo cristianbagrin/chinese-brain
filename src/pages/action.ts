@@ -15,7 +15,9 @@ async function init() {
       ['fresh', '新 Fresh'],
       ['learning', '學 Learning'],
       ['known', '熟 Known'],
-    ] as const).map(([k, label]) => h('div', { class: `count ${k}` }, h('b', null, String(vals.filter((v) => v === k).length)), h('span', null, label))),
+    ] as const).map(([k, label]) =>
+      h('a', { class: `count ${k}`, href: `vocab.html#${k}`, target: '_blank', title: `Open the ${label.split(' ')[1]} words` }, h('b', null, String(vals.filter((v) => v === k).length)), h('span', null, label)),
+    ),
   );
 
   // Switches and segmented choices, each bound to one setting.

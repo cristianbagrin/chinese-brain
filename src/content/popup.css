@@ -25,7 +25,9 @@
   min-width: 17em;
   max-width: min(30em, calc(100vw - 16px));
   max-height: min(72vh, 40em);
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
   overscroll-behavior: contain;
   background: var(--bg);
   color: var(--text);
@@ -68,12 +70,11 @@
 .cl { margin-top: 0.3em; font-size: 0.93em; color: var(--text2); }
 
 .sect { border-top: 1px solid var(--line); padding: 0.57em 1.15em; }
-.chars { display: grid; grid-template-columns: auto auto 1fr; gap: 0.2em 0.7em; align-items: baseline; }
+.chars { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 0.2em 0.7em; align-items: baseline; }
 .chars .cw { white-space: nowrap; }
-.chars .cw.d1 { padding-left: 1.1em; }
-.chars .cw.d2 { padding-left: 2.2em; }
-.chars .cw.d3 { padding-left: 3.3em; }
-.chars .cw.d1::before, .chars .cw.d2::before, .chars .cw.d3::before { content: '└'; color: var(--line); margin-right: 0.3em; font-size: 0.9em; }
+.chars .cw.d2 { padding-left: 0.85em; }
+.chars .cw.d3 { padding-left: 1.7em; }
+.chars .cw.d1::before, .chars .cw.d2::before, .chars .cw.d3::before { content: '└'; color: var(--text3); opacity: 0.5; margin-right: 0.15em; font-size: 0.85em; }
 .chars .cpy { color: var(--text3); font-size: 0.86em; white-space: nowrap; }
 .chars .cg { color: var(--text2); font-size: 0.93em; line-height: 1.4; }
 
@@ -84,16 +85,19 @@
 .say:hover { color: var(--link); background: var(--bg2); }
 .say svg { width: 0.95em; height: 0.95em; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
 .say svg path { fill: none; }
+.del { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.2em; height: 1.2em; margin-left: 0.1em; vertical-align: -0.15em; border-radius: 50%; color: var(--text3); font-size: 0.95em; line-height: 1; opacity: 0; transition: opacity 0.12s; }
+.ex li:hover .del { opacity: 1; }
+.del:hover { color: var(--fresh); background: var(--bg2); }
+.ex li.gone { opacity: 0.35; pointer-events: none; }
 .ex .en { display: block; font-size: 0.89em; color: var(--text2); }
 .label { font-size: 0.79em; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 0.3em; }
-.seen .src { all: unset; cursor: pointer; font-size: 0.86em; color: var(--link); margin-left: 0.43em; text-decoration: none; }
-.seen .src:hover { text-decoration: underline; }
 .gem { all: unset; cursor: pointer; font-size: 0.89em; color: var(--link); }
 .gem:hover { text-decoration: underline; }
 .gem[disabled] { cursor: default; color: var(--text3); text-decoration: none; }
 .gemrow .err { font-size: 0.86em; color: var(--fresh); margin-top: 0.2em; }
 
-.foot { display: flex; align-items: center; gap: 0.7em; padding: 0.57em 0.85em 0.7em 1em; border-top: 1px solid var(--line); background: var(--bg2); }
+/* The footer keeps one compact size, also on the large card. */
+.foot { font-size: 12px; display: flex; align-items: center; gap: 0.7em; padding: 0.5em 0.85em 0.6em 1em; border-top: 1px solid var(--line); background: var(--bg2); }
 .stamps { display: flex; gap: 0.57em; }
 .stamp {
   all: unset;
@@ -111,7 +115,7 @@
   color: var(--text2);
   transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.12s, border-color 0.12s, color 0.12s;
 }
-.stamp small { position: absolute; right: -3px; bottom: -3px; font: 600 0.56em/1 var(--sans); color: var(--text3); background: var(--bg2); padding: 1px 2px; border-radius: 3px; }
+.stamp small { position: absolute; right: -3px; bottom: -3px; font: 600 8.5px/1 var(--sans); color: var(--text3); background: var(--bg2); padding: 1px 2px; border-radius: 3px; }
 .stamp:hover { border-color: var(--text3); color: var(--text); }
 .stamp:active { transform: scale(0.88); }
 .stamp.fresh { border-color: color-mix(in srgb, var(--fresh) 45%, var(--line)); }
@@ -127,7 +131,7 @@
   60% { transform: rotate(-14deg) scale(1.08); }
   100% { transform: rotate(-10deg) scale(1); }
 }
-.tools { margin-left: auto; display: flex; gap: 0.85em; font-size: 0.89em; }
+.tools { margin-left: auto; display: flex; gap: 0.85em; font-size: 12.5px; }
 .tools button { all: unset; cursor: pointer; color: var(--link); }
 .tools kbd { font: inherit; color: var(--text3); margin-left: 3px; }
 
@@ -137,11 +141,12 @@
 .w.st-fresh { background: var(--fresh-mark); }
 .w.st-learning { background: var(--learning-mark); }
 .w.st-known { background: var(--known-mark); }
-.ex .w.hw { box-shadow: inset 0 -2px 0 var(--learning); }
+.ex .w.hw, .ex .w .hwp { box-shadow: inset 0 -2px 0 var(--learning); }
 .chars .w.c { font-size: 1.36em; padding: 0 2px; }
-.back { all: unset; cursor: pointer; position: absolute; left: 0.43em; top: 0.43em; font-size: 0.93em; color: var(--text3); padding: 2px 5px; border-radius: 4px; }
-.back:hover { color: var(--text); background: var(--bg2); }
-.top:has(.back) .headrow { padding-left: 1.15em; }
+.nav { display: flex; gap: 2px; margin: -0.3em 0 0.2em -0.4em; }
+.nav button { all: unset; cursor: pointer; font-size: 0.93em; line-height: 1; color: var(--text2); padding: 3px 6px; border-radius: 4px; }
+.nav button:hover { color: var(--text); background: var(--bg2); }
+.nav button[disabled] { color: var(--line); cursor: default; background: none; }
 
 /* The word hint: read-only, never in the way (the pointer passes straight through it). */
 .hint {
@@ -161,5 +166,8 @@
 }
 .hint.large { font-size: 15px; }
 .hint[hidden] { display: none; }
-.hint .hg, .hint .hpy { overflow: hidden; text-overflow: ellipsis; }
+.hint .hg, .hint.st-fresh { box-shadow: inset 3px 0 0 var(--fresh), 0 3px 10px rgba(27, 29, 58, 0.25); }
+.hint.st-learning { box-shadow: inset 3px 0 0 var(--learning), 0 3px 10px rgba(27, 29, 58, 0.25); }
+.hint.st-known { box-shadow: inset 3px 0 0 var(--known), 0 3px 10px rgba(27, 29, 58, 0.25); }
+.hint .hpy { overflow: hidden; text-overflow: ellipsis; }
 .hint .hpy { color: #c9cdf0; font-size: 0.92em; }

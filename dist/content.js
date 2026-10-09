@@ -41,7 +41,6 @@
     translation: "blur",
     pauseOnHover: !0,
     autoFreshOnClick: !0,
-    markUntracked: !0,
     subFontSize: 30,
     subStyle: "light",
     shadowFactor: 1.5,
@@ -59,7 +58,7 @@
   };
   function normalizeSettings(raw) {
     let r = { ...raw ?? {} };
-    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), delete r.subPinyin, delete r.cardPinyin, { ...DEFAULT_SETTINGS, ...r };
+    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, { ...DEFAULT_SETTINGS, ...r };
   }
   var TRANS_LANG = "en";
 
@@ -472,7 +471,7 @@
           chip("Pause on hover", "", s.pauseOnHover, () => save({ pauseOnHover: !s.pauseOnHover })),
           chip("Transcript", "E", this.subs.transcript.open, () => this.subs.transcript.toggle())
         ),
-        el("div", "keys", "A \u25C0 line \xB7 S replay \xB7 D line \u25B6 \xB7 E transcript \xB7 click a word = \u65B0 (again = undo) \xB7 1 2 3 in the card")
+        el("div", "keys", "A \u25C0 previous line \xB7 S replay \xB7 D next line \u25B6")
       );
     }
     /** No Chinese track: offer the opt-in Gemini transcript. */
@@ -771,7 +770,6 @@
   --known: #c3ecd0;
   --hover: rgba(27, 29, 58, 0.1);
   --rt: #565a7e;
-  --dots: rgba(27, 29, 58, 0.4);
   --serif: 'Songti TC', 'Noto Serif TC', 'Noto Serif CJK TC', 'PMingLiU', serif;
   --sans: -apple-system, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, monospace;
@@ -784,7 +782,6 @@
   --text2: #d4d8ff;
   --hover: rgba(255, 255, 255, 0.18);
   --rt: #c9cdf0;
-  --dots: rgba(255, 255, 255, 0.45);
 }
 :host([hidden]) { display: none; }
 
@@ -815,7 +812,6 @@
 :host(.dark) .tok.st-fresh { background: none; color: #ff6b7a; }
 :host(.dark) .tok.st-learning { background: none; color: #ffd84a; }
 :host(.dark) .tok.st-known { background: none; color: #5fe08a; }
-.tok.untracked { text-decoration: underline dotted var(--dots); text-underline-offset: 0.22em; text-decoration-thickness: 1.5px; }
 ruby { ruby-position: over; }
 rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spacing: 0; }
 
@@ -895,26 +891,35 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       box.addEventListener("mouseenter", () => this.hoverArmed = !0), box.addEventListener("mousemove", () => {
         this.hoverArmed && (this.hoverArmed = !1, this.hoverPause(!0));
       }), box.addEventListener("mouseleave", () => this.hoverPause(!1)), this.zh.addEventListener("mouseover", (e) => this.onTokenHover(e)), this.zh.addEventListener("mouseout", () => this.popup.hideSoon()), this.zh.addEventListener("click", (e) => this.onTokenClick(e)), this.popup.onHide(() => {
-        this.clickStamped = "", this.maybeResume();
+        this.clickStamped = "", this.shownAt = "", this.maybeResume();
       }), browser.runtime.onMessage.addListener((msg) => {
         msg.type === "ytCaptions" && msg.url && msg.body && this.onBody(msg.url, msg.body), msg.type === "geminiProgress" && this.onGeminiProgress(msg);
       }), this.controls = new Controls(this), this.transcript = new Transcript(this), state.onChange(() => {
         this.applyEnabled(), this.renderLine(!0);
-      }), window.addEventListener("keydown", (e) => this.onKey(e), !0), document.addEventListener("yt-navigate-finish", () => this.checkVideo()), window.addEventListener("pagehide", () => this.flushWatch()), setInterval(() => this.checkVideo(), 1e3), new ResizeObserver(() => this.resize()).observe(document.documentElement), this.checkVideo(), this.tick = this.tick.bind(this), requestAnimationFrame(this.tick);
+      }), window.addEventListener("keydown", (e) => this.onKey(e), !0), document.addEventListener("yt-navigate-finish", () => this.checkVideo()), window.addEventListener("pagehide", () => this.flushWatch()), setInterval(() => this.checkVideo(), 1e3), new ResizeObserver(() => this.resize()).observe(document.documentElement), this.checkVideo(), this.tick = this.tick.bind(this), this.wake();
     }
     player() {
       let el3 = document.getElementById("movie_player");
       return el3?.wrappedJSObject ?? el3 ?? void 0;
     }
+    videoEl = null;
     video() {
-      return document.querySelector("#movie_player video");
+      if (this.videoEl?.isConnected) return this.videoEl;
+      this.videoEl = document.querySelector("#movie_player video");
+      for (let ev of ["play", "playing", "seeked", "loadeddata", "ratechange"]) this.videoEl?.addEventListener(ev, () => this.wake());
+      return this.videoEl;
+    }
+    /** Light on the browser: the per-frame loop runs only while a video with subtitles plays. */
+    ticking = !1;
+    wake() {
+      this.ticking || (this.ticking = !0, this.lastTick = 0, requestAnimationFrame(this.tick));
     }
     currentId() {
       return location.pathname !== "/watch" ? "" : new URLSearchParams(location.search).get("v") ?? "";
     }
     checkVideo() {
       let id = this.currentId();
-      if (id === this.videoId) {
+      if (this.ticking || this.host.classList.toggle("low", !!this.host.parentElement?.classList.contains("ytp-autohide")), id === this.videoId) {
         id && !this.src && this.findTracks(), id && this.controls.mount();
         return;
       }
@@ -1120,7 +1125,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     /** The player switch: our subtitles on or off (YouTube's own come back when off). */
     applyEnabled() {
       let on = state.settings.ytEnabled && this.cues.length > 0;
-      this.host.hidden = !on, this.host.classList.toggle("dark", state.settings.subStyle === "dark"), document.documentElement.classList.toggle("cb-subs-on", on), this.wasOn && !on && this.popup.src === "yt" && this.popup.hide(), this.wasOn = on, this.transcript?.setSuspended(!state.settings.ytEnabled);
+      this.host.hidden = !on, on && this.wake(), this.host.classList.toggle("dark", state.settings.subStyle === "dark"), document.documentElement.classList.toggle("cb-subs-on", on), this.wasOn && !on && this.popup.src === "yt" && this.popup.hide(), this.wasOn = on, this.transcript?.setSuspended(!state.settings.ytEnabled);
     }
     mount() {
       let p = document.getElementById("movie_player");
@@ -1136,13 +1141,16 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       this.host.style.setProperty("--fs", `${fs}px`);
     }
     tick(now) {
-      if (requestAnimationFrame(this.tick), !this.cues.length || this.host.hidden) return;
       let v = this.video();
-      if (this.live && v) {
-        this.idx !== 0 && (this.idx = 0, this.renderLine());
+      if (!this.cues.length || this.host.hidden || !v) {
+        this.ticking = !1;
         return;
       }
-      if (!v) return;
+      if (this.live) {
+        this.idx !== 0 && (this.idx = 0, this.renderLine()), this.ticking = !1;
+        return;
+      }
+      v.paused ? this.ticking = !1 : requestAnimationFrame(this.tick);
       let t = v.currentTime, dt = this.lastTick ? (now - this.lastTick) / 1e3 : 0;
       this.lastTick = now, !v.paused && dt < 1 && (this.watchSecs += dt);
       let p = this.host.parentElement;
@@ -1177,7 +1185,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         let span = document.createElement("span");
         span.className = "tok", span.dataset.k = String(k);
         let st = state.status(t.word);
-        if (st ? span.classList.add("st-" + st) : s.markUntracked && t.word && span.classList.add("untracked"), s.pinyin && t.py) {
+        if (st && span.classList.add("st-" + st), s.pinyin && t.py) {
           let ruby = document.createElement("ruby");
           ruby.append(text);
           let rt = document.createElement("rt");
@@ -1199,6 +1207,8 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       return tok ? { span, tok, line } : void 0;
     }
     showSeq = 0;
+    /** The subtitle or transcript word whose card is open ("sub:line:k"). */
+    shownAt = "";
     /** Word just stamped Fresh by a click (a second click undoes only that). */
     clickStamped = "";
     /** Open the card for a word span (subtitles or transcript). */
@@ -1206,7 +1216,13 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       if (!pinned && e instanceof MouseEvent && this.popup.visible && this.popup.inBridge(e.clientX, e.clientY)) return;
       let seq = ++this.showSeq, hit = this.tokenAt(e);
       if (!hit) return;
-      let { span, tok, line } = hit, rest = this.tokens[line].slice(Number(span.dataset.k)).map((t) => t.text).join(""), matches = await lookupText(rest);
+      let { span, tok, line } = hit, at = `${span.dataset.line ?? "sub"}:${line}:${span.dataset.k}`;
+      if (!pinned && this.popup.visible && !this.popup.pinned && this.popup.src === "yt" && this.shownAt === at) {
+        this.popup.cancelHide();
+        return;
+      }
+      this.shownAt = at;
+      let rest = this.tokens[line].slice(Number(span.dataset.k)).map((t) => t.text).join(""), matches = await lookupText(rest);
       if (seq !== this.showSeq) return;
       let own = matches.findIndex((m) => m.text === tok.text);
       if (own > 0 && (matches = [matches[own], ...matches.filter((_, i) => i !== own)]), !matches.length) return;
@@ -1225,30 +1241,11 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         cursor,
         src: "yt",
         ctx: ctx2,
-        pinned,
-        related: (word) => this.linesWith(word, line),
-        relatedLabel: "Elsewhere in this video",
-        seek: (t) => {
-          let v = this.video();
-          v && (v.currentTime = t);
-        }
+        pinned
       }), pinned && state.settings.autoFreshOnClick) {
         let w2 = matches[0].word, st = state.status(w2);
         st ? st === "fresh" && this.clickStamped === w2 && (this.popup.setStatus(null, !1), this.clickStamped = "") : (this.popup.setStatus("fresh", !1), this.clickStamped = w2);
       }
-    }
-    /** Other lines of this video with the word, nearest to the current one first. */
-    linesWith(word, line) {
-      let hits = [];
-      this.tokens.forEach((toks, i) => {
-        i !== line && toks.some((t) => t.word === word) && hits.push(i);
-      }), hits.sort((a, b) => Math.abs(a - line) - Math.abs(b - line));
-      let out = [];
-      for (let i of hits) {
-        let text = this.cues[i].text;
-        if (text !== this.cues[line]?.text && !out.some((o) => o.text === text) && out.push({ text, t: this.cues[i].start }), out.length >= 3) break;
-      }
-      return out;
     }
     onTokenHover(e) {
       this.popup.pinned || this.showFor(e, !1);
@@ -1328,6 +1325,14 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     return a.length === b.length && a[0]?.text === b[0]?.text && a[a.length - 1]?.text === b[b.length - 1]?.text;
   }
 
+  // src/content/css.ts
+  function addPageCSS(css) {
+    if (location.protocol === "moz-extension:") {
+      let style = document.createElement("style");
+      style.textContent = css, document.head.append(style);
+    } else browser.runtime.sendMessage({ type: "insertCSS", css });
+  }
+
   // src/content/hover.ts
   var HIGHLIGHT = "chinese-brain-hit";
   function textFrom(node, offset, max = 10) {
@@ -1382,18 +1387,6 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     let cs = getComputedStyle(el3), fs = parseFloat(cs.fontSize) || 16, lh = parseFloat(cs.lineHeight);
     return Math.max(2, Number.isFinite(lh) ? (lh - fs) / 2 + 1 : fs * 0.2);
   }
-  var SKIP_TEXT = "script,style,noscript,textarea,code,pre,chinese-brain-popup,[data-cb-own]";
-  function pageSentences(word) {
-    let out = [], walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), scanned = 0;
-    for (let n = walker.nextNode(); n && out.length < 4 && scanned < 4e5; n = walker.nextNode()) {
-      scanned += n.data.length;
-      let i = n.data.indexOf(word);
-      if (i < 0 || n.parentElement?.closest(SKIP_TEXT)) continue;
-      let text = sentenceAround(n, i);
-      text.length >= word.length + 2 && text.length <= 80 && !out.some((r) => r.text === text) && out.push({ text });
-    }
-    return out;
-  }
   var HoverLookup = class {
     popup;
     raf = 0;
@@ -1445,8 +1438,6 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         cursor: e ? { x: e.clientX, y: e.clientY } : void 0,
         src: "web",
         pinned: !0,
-        related: pageSentences,
-        relatedLabel: "Also on this page",
         ctx: { text: ctxText || (field ? active.value.slice(0, 200) : text), url: location.href, title: document.title, at: Date.now(), src: "web" }
       });
     }
@@ -1459,7 +1450,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       let seq = ++this.seq;
       if (this.popup.pinned) return;
       if (this.popup.contains(target)) {
-        if (this.popup.age() > 300) return;
+        if (this.popup.src !== "web" || this.popup.age() > 300) return;
         this.popup.hide();
       }
       if (this.popup.visible && this.popup.inBridge(this.lastX, this.lastY) || target?.closest?.("[data-cb-own]")) return;
@@ -1498,9 +1489,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         rect: range.getBoundingClientRect(),
         cursor: { x: this.lastX, y: this.lastY },
         src: "web",
-        ctx: { text: sentenceAround(text, offset), url: location.href, title: document.title, at: Date.now(), src: "web" },
-        related: pageSentences,
-        relatedLabel: "Also on this page"
+        ctx: { text: sentenceAround(text, offset), url: location.href, title: document.title, at: Date.now(), src: "web" }
       });
     }
     charRect(node, i) {
@@ -1545,7 +1534,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     }
     highlight(range) {
       if (!CSS.highlights) return;
-      this.cssInjected || (this.cssInjected = !0, browser.runtime.sendMessage({ type: "insertCSS", css: `::highlight(${HIGHLIGHT}){background:#f3d27a;color:#31261a}` }));
+      this.cssInjected || (this.cssInjected = !0, addPageCSS(`::highlight(${HIGHLIGHT}){background:#f3d27a;color:#31261a}`));
       let hl = new Highlight(range);
       hl.priority = 10, CSS.highlights.set(HIGHLIGHT, hl);
     }
@@ -1581,7 +1570,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       this.on = want, want ? this.start() : this.stop();
     }
     async start() {
-      this.cssInjected || (this.cssInjected = !0, browser.runtime.sendMessage({ type: "insertCSS", css: CSS_TEXT })), await state.loadStatuses(), await this.scan(document.body), this.observer = new MutationObserver((muts) => {
+      this.cssInjected || (this.cssInjected = !0, addPageCSS(CSS_TEXT)), await state.loadStatuses(), await this.scan(document.body), this.observer = new MutationObserver((muts) => {
         for (let m of muts)
           if (m.type === "characterData") {
             let t = m.target;
@@ -1643,16 +1632,6 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       return c;
     }
   };
-
-  // src/shared/export.ts
-  function shortSource(url, t) {
-    try {
-      let u = new URL(url);
-      return u.hostname.endsWith("youtube.com") && u.searchParams.get("v") ? `youtu.be/${u.searchParams.get("v")}${t != null ? `?t=${Math.floor(t)}` : ""}` : u.hostname.replace(/^www\./, "");
-    } catch {
-      return "";
-    }
-  }
 
   // src/content/audio.ts
   var ctx;
@@ -1767,7 +1746,9 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
   min-width: 17em;
   max-width: min(30em, calc(100vw - 16px));
   max-height: min(72vh, 40em);
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
   overscroll-behavior: contain;
   background: var(--bg);
   color: var(--text);
@@ -1810,12 +1791,11 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 .cl { margin-top: 0.3em; font-size: 0.93em; color: var(--text2); }
 
 .sect { border-top: 1px solid var(--line); padding: 0.57em 1.15em; }
-.chars { display: grid; grid-template-columns: auto auto 1fr; gap: 0.2em 0.7em; align-items: baseline; }
+.chars { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 0.2em 0.7em; align-items: baseline; }
 .chars .cw { white-space: nowrap; }
-.chars .cw.d1 { padding-left: 1.1em; }
-.chars .cw.d2 { padding-left: 2.2em; }
-.chars .cw.d3 { padding-left: 3.3em; }
-.chars .cw.d1::before, .chars .cw.d2::before, .chars .cw.d3::before { content: '\u2514'; color: var(--line); margin-right: 0.3em; font-size: 0.9em; }
+.chars .cw.d2 { padding-left: 0.85em; }
+.chars .cw.d3 { padding-left: 1.7em; }
+.chars .cw.d1::before, .chars .cw.d2::before, .chars .cw.d3::before { content: '\u2514'; color: var(--text3); opacity: 0.5; margin-right: 0.15em; font-size: 0.85em; }
 .chars .cpy { color: var(--text3); font-size: 0.86em; white-space: nowrap; }
 .chars .cg { color: var(--text2); font-size: 0.93em; line-height: 1.4; }
 
@@ -1826,16 +1806,19 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 .say:hover { color: var(--link); background: var(--bg2); }
 .say svg { width: 0.95em; height: 0.95em; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
 .say svg path { fill: none; }
+.del { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.2em; height: 1.2em; margin-left: 0.1em; vertical-align: -0.15em; border-radius: 50%; color: var(--text3); font-size: 0.95em; line-height: 1; opacity: 0; transition: opacity 0.12s; }
+.ex li:hover .del { opacity: 1; }
+.del:hover { color: var(--fresh); background: var(--bg2); }
+.ex li.gone { opacity: 0.35; pointer-events: none; }
 .ex .en { display: block; font-size: 0.89em; color: var(--text2); }
 .label { font-size: 0.79em; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 0.3em; }
-.seen .src { all: unset; cursor: pointer; font-size: 0.86em; color: var(--link); margin-left: 0.43em; text-decoration: none; }
-.seen .src:hover { text-decoration: underline; }
 .gem { all: unset; cursor: pointer; font-size: 0.89em; color: var(--link); }
 .gem:hover { text-decoration: underline; }
 .gem[disabled] { cursor: default; color: var(--text3); text-decoration: none; }
 .gemrow .err { font-size: 0.86em; color: var(--fresh); margin-top: 0.2em; }
 
-.foot { display: flex; align-items: center; gap: 0.7em; padding: 0.57em 0.85em 0.7em 1em; border-top: 1px solid var(--line); background: var(--bg2); }
+/* The footer keeps one compact size, also on the large card. */
+.foot { font-size: 12px; display: flex; align-items: center; gap: 0.7em; padding: 0.5em 0.85em 0.6em 1em; border-top: 1px solid var(--line); background: var(--bg2); }
 .stamps { display: flex; gap: 0.57em; }
 .stamp {
   all: unset;
@@ -1853,7 +1836,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
   color: var(--text2);
   transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.12s, border-color 0.12s, color 0.12s;
 }
-.stamp small { position: absolute; right: -3px; bottom: -3px; font: 600 0.56em/1 var(--sans); color: var(--text3); background: var(--bg2); padding: 1px 2px; border-radius: 3px; }
+.stamp small { position: absolute; right: -3px; bottom: -3px; font: 600 8.5px/1 var(--sans); color: var(--text3); background: var(--bg2); padding: 1px 2px; border-radius: 3px; }
 .stamp:hover { border-color: var(--text3); color: var(--text); }
 .stamp:active { transform: scale(0.88); }
 .stamp.fresh { border-color: color-mix(in srgb, var(--fresh) 45%, var(--line)); }
@@ -1869,7 +1852,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
   60% { transform: rotate(-14deg) scale(1.08); }
   100% { transform: rotate(-10deg) scale(1); }
 }
-.tools { margin-left: auto; display: flex; gap: 0.85em; font-size: 0.89em; }
+.tools { margin-left: auto; display: flex; gap: 0.85em; font-size: 12.5px; }
 .tools button { all: unset; cursor: pointer; color: var(--link); }
 .tools kbd { font: inherit; color: var(--text3); margin-left: 3px; }
 
@@ -1879,11 +1862,12 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 .w.st-fresh { background: var(--fresh-mark); }
 .w.st-learning { background: var(--learning-mark); }
 .w.st-known { background: var(--known-mark); }
-.ex .w.hw { box-shadow: inset 0 -2px 0 var(--learning); }
+.ex .w.hw, .ex .w .hwp { box-shadow: inset 0 -2px 0 var(--learning); }
 .chars .w.c { font-size: 1.36em; padding: 0 2px; }
-.back { all: unset; cursor: pointer; position: absolute; left: 0.43em; top: 0.43em; font-size: 0.93em; color: var(--text3); padding: 2px 5px; border-radius: 4px; }
-.back:hover { color: var(--text); background: var(--bg2); }
-.top:has(.back) .headrow { padding-left: 1.15em; }
+.nav { display: flex; gap: 2px; margin: -0.3em 0 0.2em -0.4em; }
+.nav button { all: unset; cursor: pointer; font-size: 0.93em; line-height: 1; color: var(--text2); padding: 3px 6px; border-radius: 4px; }
+.nav button:hover { color: var(--text); background: var(--bg2); }
+.nav button[disabled] { color: var(--line); cursor: default; background: none; }
 
 /* The word hint: read-only, never in the way (the pointer passes straight through it). */
 .hint {
@@ -1903,7 +1887,10 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 }
 .hint.large { font-size: 15px; }
 .hint[hidden] { display: none; }
-.hint .hg, .hint .hpy { overflow: hidden; text-overflow: ellipsis; }
+.hint .hg, .hint.st-fresh { box-shadow: inset 3px 0 0 var(--fresh), 0 3px 10px rgba(27, 29, 58, 0.25); }
+.hint.st-learning { box-shadow: inset 3px 0 0 var(--learning), 0 3px 10px rgba(27, 29, 58, 0.25); }
+.hint.st-known { box-shadow: inset 3px 0 0 var(--known), 0 3px 10px rgba(27, 29, 58, 0.25); }
+.hint .hpy { overflow: hidden; text-overflow: ellipsis; }
 .hint .hpy { color: #c9cdf0; font-size: 0.92em; }
 `;
 
@@ -1936,6 +1923,13 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     let d = e.defs.find((x) => !x.startsWith("CL:") && !/^(old )?variant of|^see /i.test(x)) ?? e.defs[0] ?? "", first = prettyDef(d).split(/;\s*/)[0];
     return first.length > 60 ? first.slice(0, 58) + "\u2026" : first;
   }
+  function inTriangle(p, a, b, c, pad) {
+    let side = (u, v, w2, q) => {
+      let len = Math.hypot(v.x - u.x, v.y - u.y) || 1, sq = (v.x - u.x) * (q.y - u.y) - (v.y - u.y) * (q.x - u.x), sw = (v.x - u.x) * (w2.y - u.y) - (v.y - u.y) * (w2.x - u.x);
+      return sq * Math.sign(sw || 1) >= -pad * len;
+    };
+    return side(a, b, c, p) && side(b, c, a, p) && side(c, a, b, p);
+  }
   function inTrapezoid(p, from, to, lo0, hi0, lo1, hi1, q, pad) {
     let len = Math.abs(to - from), t = (p - from) * (to >= from ? 1 : -1);
     if (t <= 0 || t > len + pad) return !1;
@@ -1951,17 +1945,21 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     hintSeq = 0;
     opts;
     info;
-    extra = [];
     gemState;
     /** The word the card belongs to, for the corridor between them (gone after a scroll). */
     anchor;
     px = -1;
     py = -1;
+    /** The last point where the pointer was on the word: the tip of the "safe triangle" to the card. */
+    exit;
     shownAt = 0;
     hovered = !1;
     revealPy = !1;
-    /** Cards visited by clicking words inside the card (for the back arrow). */
-    history = [];
+    /** Cards visited by clicking words inside the card, and where we are in them (← →). */
+    trail = [];
+    pos = 0;
+    /** The word inside the card under the pointer: shortcuts act on it while it is hovered. */
+    hoverWord;
     lookTimer;
     softTimer;
     /** A hide is counting down (moving on doesn't restart it, so leaving is quick). */
@@ -1975,11 +1973,13 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         "mousemove",
         (e) => {
           this.px = e.clientX, this.py = e.clientY;
+          let a = this.anchor;
+          a && e.clientX >= a.left - 2 && e.clientX <= a.right + 2 && e.clientY >= a.top - 2 && e.clientY <= a.bottom + 2 && (this.exit = { x: e.clientX, y: e.clientY });
         },
         { capture: !0, passive: !0 }
       ), this.card.addEventListener("mouseover", (e) => {
         let w2 = e.target.closest(".w");
-        w2 && !w2.classList.contains("c") ? this.showHint(w2) : this.hideHint();
+        this.hoverWord = w2?.dataset.q ? { q: w2.dataset.q, sentence: w2.closest("li")?.querySelector(".zh")?.textContent ?? "" } : void 0, w2 && !w2.classList.contains("c") ? this.showHint(w2) : this.hideHint();
       }), this.card.addEventListener("mouseout", (e) => {
         let w2 = e.target.closest(".w");
         w2 && !w2.contains(e.relatedTarget) && this.hideHint();
@@ -1990,7 +1990,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       }), this.card.addEventListener("mouseenter", () => {
         this.hovered = !0, this.cancelHide();
       }), this.card.addEventListener("mouseleave", () => {
-        this.hovered = !1, this.hideHint(), this.pinned || this.hideSoon();
+        this.hovered = !1, this.hoverWord = void 0, this.hideHint(), this.pinned || this.hideSoon();
       }), state.onChange(() => {
         this.opts && (this.infoCache.clear(), this.render());
       }), document.addEventListener("fullscreenchange", () => this.mount());
@@ -2046,36 +2046,32 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       };
       this.softTimer = setTimeout(check, ms);
     }
-    /** Is (x, y) in the corridor between the word and the card (whichever side the card is on)? */
+    /**
+     * Is (x, y) on the way from the word to the card (whichever side the card is on)? Two
+     * shapes count: the corridor between the word's edge and the card's facing edge, and the
+     * "safe triangle" from the last point on the word to the card's two near corners, so a
+     * diagonal path that leaves the word by another edge still counts.
+     */
     inBridge(x, y) {
       let a = this.anchor;
-      if (!this.opts || !a || this.card.hidden || x < 0) return !1;
-      let c = this.card.getBoundingClientRect(), pad = 8;
-      return c.top >= a.bottom - 2 ? inTrapezoid(y, a.bottom, c.top, a.left, a.right, c.left, c.right, x, pad) : c.bottom <= a.top + 2 ? inTrapezoid(y, a.top, c.bottom, a.left, a.right, c.left, c.right, x, pad) : c.left >= a.right - 2 ? inTrapezoid(x, a.right, c.left, a.top, a.bottom, c.top, c.bottom, y, pad) : c.right <= a.left + 2 ? inTrapezoid(x, a.left, c.right, a.top, a.bottom, c.top, c.bottom, y, pad) : !1;
+      if (!this.opts || !a || this.card.hidden || x < 0 || x >= a.left && x <= a.right && y >= a.top && y <= a.bottom) return !1;
+      let c = this.card.getBoundingClientRect(), pad = 8, p = { x, y }, e = this.exit, near, lane = !1;
+      c.top >= a.bottom - 2 ? (lane = inTrapezoid(y, a.bottom, c.top, a.left, a.right, c.left, c.right, x, pad), near = [{ x: c.left, y: c.top }, { x: c.right, y: c.top }]) : c.bottom <= a.top + 2 ? (lane = inTrapezoid(y, a.top, c.bottom, a.left, a.right, c.left, c.right, x, pad), near = [{ x: c.left, y: c.bottom }, { x: c.right, y: c.bottom }]) : c.left >= a.right - 2 ? (lane = inTrapezoid(x, a.right, c.left, a.top, a.bottom, c.top, c.bottom, y, pad), near = [{ x: c.left, y: c.top }, { x: c.left, y: c.bottom }]) : c.right <= a.left + 2 && (lane = inTrapezoid(x, a.left, c.right, a.top, a.bottom, c.top, c.bottom, y, pad), near = [{ x: c.right, y: c.top }, { x: c.right, y: c.bottom }]);
+      let past = c.top >= a.bottom - 2 ? y > a.bottom : c.bottom <= a.top + 2 ? y < a.top : !0;
+      return lane || past && !!near && !!e && inTriangle(p, e, near[0], near[1], pad);
     }
     /** The page scrolled under a card the pointer rests on: keep it, but the word has moved away. */
     detach() {
-      this.anchor = void 0, this.hideHint();
+      this.anchor = void 0, this.exit = void 0, this.hideHint();
     }
     cancelHide() {
       clearTimeout(this.softTimer), this.hiding = !1;
     }
     async show(opts, keepPlace = !1) {
       let sameWord = this.opts?.matches[0]?.word === opts.matches[0]?.word;
-      this.opts = opts, this.cancelHide(), sameWord || (this.revealPy = !1), keepPlace || (this.history = []), this.mount();
+      this.opts = opts, this.cancelHide(), sameWord || (this.revealPy = !1), keepPlace || (this.trail = [opts], this.pos = 0), this.mount();
       let m = opts.matches[0], e0 = m.entries[0], [, info] = await Promise.all([state.loadStatuses(), this.wordInfo(m.word, e0.tw || e0.py)]);
-      if (this.opts !== opts) return;
-      let extra = await this.relatedFor(opts, m.word, info);
-      this.opts === opts && (this.info = info, this.extra = extra, this.hideHint(), this.render(), keepPlace || (this.anchor = opts.rect, this.position(opts)), this.shownAt = Date.now(), clearTimeout(this.lookTimer), this.lookTimer = setTimeout(() => this.recordLook(), opts.pinned ? 0 : 1200));
-    }
-    /** Sentences from this video or page to fill in when the dictionary has fewer than two examples. */
-    async relatedFor(opts, word, info) {
-      let want = 2 - info.examples.length;
-      if (want <= 0 || !opts.related) return [];
-      let here = opts.ctx?.text.split(" \u2014 ")[0].trim(), seenTexts = new Set(info.seen.map((c) => c.zh)), list = opts.related(word).filter((r) => r.text !== here && !seenTexts.has(r.text)).slice(0, want);
-      if (!list.length) return [];
-      let toks = await browser.runtime.sendMessage({ type: "segment", lines: list.map((r) => r.text) });
-      return list.map((r, i) => ({ ...r, zh: r.text, toks: toks[i] ?? [] }));
+      this.opts === opts && (this.info = info, this.hoverWord = void 0, this.hideHint(), this.render(), keepPlace ? this.keepOnScreen() : (this.anchor = opts.rect, this.exit = this.px >= 0 ? { x: this.px, y: this.py } : void 0, this.position(opts)), this.shownAt = Date.now(), clearTimeout(this.lookTimer), this.lookTimer = setTimeout(() => this.recordLook(), opts.pinned ? 0 : 1200));
     }
     async wordInfo(word, py) {
       let hit = this.infoCache.get(word);
@@ -2084,7 +2080,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       return this.infoCache.size > 200 && this.infoCache.clear(), this.infoCache.set(word, info), info;
     }
     hide() {
-      this.opts && (clearTimeout(this.lookTimer), this.cancelHide(), this.opts = void 0, this.history = [], this.hovered = !1, this.anchor = void 0, this.card.hidden = !0, this.hideHint(), this.hideListeners.forEach((f) => f()));
+      this.opts && (clearTimeout(this.lookTimer), this.cancelHide(), this.opts = void 0, this.trail = [], this.pos = 0, this.hoverWord = void 0, this.hovered = !1, this.anchor = void 0, this.exit = void 0, this.card.hidden = !0, this.hideHint(), this.hideListeners.forEach((f) => f()));
     }
     recordLook() {
       let m = this.current;
@@ -2101,19 +2097,26 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       let m = this.current;
       m && speak(m.word);
     }
-    images() {
-      let m = this.current;
-      m && window.open(`https://duckduckgo.com/?q=${encodeURIComponent(m.word)}&iax=images&ia=images&kl=tw-tzh`, "_blank");
+    images(word = this.current?.word) {
+      word && window.open(`https://duckduckgo.com/?q=${encodeURIComponent(word)}&iax=images&ia=images&kl=tw-tzh`, "_blank");
     }
-    /** Open a word clicked inside the card, in the same place, with a way back. */
+    /** Open a word clicked inside the card, in the same place, with a way back (← and →). */
     async openInside(q) {
       if (!this.opts) return;
       let matches = await lookupText(q);
-      !matches.length || !this.opts || (this.history.push(this.opts), await this.show({ ...this.opts, matches, ctx: this.opts.ctx, pinned: !0 }, !0));
+      if (!matches.length || !this.opts) return;
+      let exact = matches.findIndex((m) => m.text === q), ordered = exact > 0 ? [matches[exact], ...matches.filter((_, i) => i !== exact)] : matches;
+      if (ordered[0].word === this.current?.word) return;
+      let next = { ...this.opts, matches: ordered, pinned: !0 };
+      this.trail = [...this.trail.slice(0, this.pos + 1).map((o) => ({ ...o, pinned: !0 })), next], this.pos = this.trail.length - 1, await this.show(next, !0);
     }
+    /** ← the word before (true when there was one). */
     back() {
-      let prev = this.history.pop();
-      prev && this.show({ ...prev, pinned: !0 }, !0);
+      return this.pos <= 0 ? !1 : (this.pos--, this.show(this.trail[this.pos], !0), !0);
+    }
+    /** → the word you came back from. */
+    forward() {
+      return this.pos >= this.trail.length - 1 ? !1 : (this.pos++, this.show(this.trail[this.pos], !0), !0);
     }
     onCardClick(e) {
       let t = e.target.closest("[data-q]");
@@ -2122,6 +2125,8 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     /** Keyboard shortcuts while the card is open. Returns true when handled. */
     handleKey(e) {
       if (!this.opts || e.ctrlKey || e.metaKey || e.altKey) return !1;
+      if (this.hoverWord && this.hovered && /^[1230vi]$/.test(e.key))
+        return this.actOnHovered(e.key, this.hoverWord), !0;
       switch (e.key) {
         case "1":
           return this.setStatus("fresh"), !0;
@@ -2140,10 +2145,26 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
           let pinyin = !state.settings.pinyin;
           return state.settings = { ...state.settings, pinyin }, this.revealPy = !1, this.render(), browser.runtime.sendMessage({ type: "saveSettings", settings: { pinyin } }), !0;
         }
+        case "ArrowLeft":
+          return this.back();
+        case "ArrowRight":
+          return this.forward();
         case "Escape":
-          return this.history.length ? this.back() : this.hide(), !0;
+          return this.hide(), !0;
       }
       return !1;
+    }
+    /** A shortcut for the word under the pointer inside the card. */
+    async actOnHovered(key, target) {
+      let matches = await lookupText(target.q), m = matches.find((x) => x.text === target.q) ?? matches[0];
+      if (!m || !this.opts) return;
+      if (key === "v") return void speak(m.word);
+      if (key === "i") return this.images(m.word);
+      let want = key === "1" ? "fresh" : key === "2" ? "learning" : key === "3" ? "known" : null, cur = state.status(m.word), next = want && cur === want ? null : want;
+      if (next === cur) return;
+      next ? state.statuses.set(m.word, next) : state.statuses.delete(m.word), stampSound(next), this.hint.classList.remove("st-fresh", "st-learning", "st-known"), next && this.hint.classList.add("st-" + next);
+      let ctx2 = target.sentence ? { text: target.sentence, url: location.href, title: document.title, at: Date.now(), src: this.opts.src } : void 0;
+      browser.runtime.sendMessage({ type: "setStatus", word: m.word, status: next, entry: m.entries[0], ctx: ctx2 });
     }
     async showHint(el3) {
       let q = el3.dataset.q;
@@ -2153,7 +2174,9 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       let m = matches.find((x) => x.text === q) ?? matches[0];
       if (!m) return this.hideHint();
       let e = m.entries[0], hint = this.hint;
-      hint.classList.toggle("large", state.settings.cardSize === "large"), hint.replaceChildren(
+      hint.classList.toggle("large", state.settings.cardSize === "large"), hint.classList.remove("st-fresh", "st-learning", "st-known");
+      let st = state.status(m.word);
+      st && hint.classList.add("st-" + st), hint.replaceChildren(
         h("div", { class: "hg" }, mainSense(e)),
         state.settings.pinyin ? h("div", { class: "hpy" }, numberedToMarked(e.tw || e.py, !1)) : ""
       ), hint.hidden = !1;
@@ -2163,23 +2186,53 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     hideHint() {
       this.hintSeq++, this.hint.hidden = !0;
     }
-    /** Ask Gemini for two sentences when the bundled list has none for this word. */
-    async writeExamples(word) {
+    /** Ask Gemini for sentences when this word has fewer than two. */
+    async writeExamples(word, want) {
       this.gemState = { word, busy: !0 }, this.render();
-      let res = await browser.runtime.sendMessage({ type: "geminiExamples", word });
+      let res = await browser.runtime.sendMessage({ type: "geminiExamples", word, want });
       if (this.current?.word === word) {
         if (res.ok) {
           this.gemState = void 0, this.infoCache.delete(word);
           let e0 = this.current.entries[0];
-          this.info = await this.wordInfo(word, e0.tw || e0.py), this.extra = [];
+          this.info = await this.wordInfo(word, e0.tw || e0.py);
         } else this.gemState = { word, busy: !1, error: res.error };
         this.render();
       }
     }
-    /** Just below the pointer (or the word), never on top of the line being read. */
+    /**
+     * Never over the word or the pointer: below the word if the card fits there, else above;
+     * if it fits in neither, beside the word (right, then left); failing that, in the taller
+     * of the two gaps, scrolling inside.
+     */
     position(o) {
-      let c = this.card, r = o.rect, vw = window.innerWidth, vh = window.innerHeight, w2 = c.offsetWidth, ht = c.offsetHeight, x0 = o.cursor ? o.cursor.x - 28 : r.left, x = Math.min(Math.max(8, x0), vw - w2 - 8), y = Math.max(r.bottom, o.cursor?.y ?? 0) + 12;
-      y + ht > vh - 8 && (y = Math.max(8, r.top - ht - 10)), c.style.left = `${x}px`, c.style.top = `${y}px`;
+      let c = this.card;
+      c.style.maxHeight = "";
+      let r = o.rect, vw = window.innerWidth, vh = window.innerHeight, m = 8, gap = 10, w2 = c.offsetWidth, ht = c.offsetHeight, clamp = (v, lo, hi) => Math.max(lo, Math.min(v, hi)), near = clamp((o.cursor?.x ?? r.left) - 28, m, vw - w2 - m), belowTop = Math.max(r.bottom, o.cursor?.y ?? 0) + gap, spaceBelow = vh - m - belowTop, spaceAbove = r.top - gap - m, x, y;
+      if (ht <= spaceBelow) [x, y] = [near, belowTop];
+      else if (ht <= spaceAbove) [x, y] = [near, r.top - gap - ht];
+      else if (vw - m - (r.right + gap) >= w2 || r.left - gap - m >= w2)
+        x = vw - m - (r.right + gap) >= w2 ? r.right + gap : r.left - gap - w2, ht > vh - 2 * m && (ht = vh - 2 * m, c.style.maxHeight = `${ht}px`), y = clamp(r.top - 40, m, vh - m - ht);
+      else {
+        let roomy = spaceBelow >= spaceAbove;
+        ht = Math.max(120, roomy ? spaceBelow : spaceAbove), c.style.maxHeight = `${ht}px`, [x, y] = [near, roomy ? belowTop : r.top - gap - ht];
+      }
+      c.style.left = `${x}px`, c.style.top = `${y}px`;
+    }
+    /** After the content changed in place (← →, a clicked word), keep the card inside the window. */
+    keepOnScreen() {
+      let c = this.card, b = c.getBoundingClientRect(), vh = window.innerHeight;
+      b.bottom > vh - 8 && (c.style.top = `${Math.max(8, vh - 8 - b.height)}px`);
+    }
+    /** A small × that deletes a sentence from this word's card for good. */
+    deleteButton(word, msg) {
+      let b = h("button", { class: "del", title: "Delete this sentence", "aria-label": "Delete this sentence" }, "\xD7");
+      return b.addEventListener("click", async (e) => {
+        e.stopPropagation(), b.closest("li")?.classList.add("gone"), await browser.runtime.sendMessage({ ...msg, word }), this.infoCache.delete(word);
+        let cur = this.current;
+        if (cur?.word !== word) return;
+        let e0 = cur.entries[0];
+        this.info = await this.wordInfo(word, e0.tw || e0.py), this.render();
+      }), b;
     }
     /** A small speaker button that reads a sentence aloud. */
     sayButton(text) {
@@ -2201,7 +2254,12 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         let text = t.trad ?? t.text;
         if (!t.word && !CJK.test(t.text)) return text;
         let el3 = this.word(text, t.text, t.word);
-        return (t.word === head || text === head) && el3.classList.add("hw"), el3;
+        if (t.word === head || text === head) el3.classList.add("hw");
+        else if (head && text.includes(head)) {
+          let i = text.indexOf(head);
+          el3.replaceChildren(text.slice(0, i), h("span", { class: "hwp" }, head), text.slice(i + head.length));
+        }
+        return el3;
       });
     }
     /** Plain text with its Chinese runs made clickable (definitions, measure words). */
@@ -2245,9 +2303,9 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         ), readings.push(block), first = !1;
       }
       let head = h("span", { class: `head${status ? " st-" + status : ""}` }, m.word), top = h("div", { class: "top" });
-      if (this.history.length) {
-        let backBtn = h("button", { class: "back", title: "Back (Esc)" }, "\u2190");
-        backBtn.addEventListener("click", () => this.back()), top.append(backBtn);
+      if (this.trail.length > 1) {
+        let nav = h("div", { class: "nav" }), backBtn = h("button", { title: "Back (\u2190)" }, "\u2190"), fwdBtn = h("button", { title: "Forward (\u2192)" }, "\u2192");
+        this.pos <= 0 && backBtn.setAttribute("disabled", ""), this.pos >= this.trail.length - 1 && fwdBtn.setAttribute("disabled", ""), backBtn.addEventListener("click", () => this.back()), fwdBtn.addEventListener("click", () => this.forward()), nav.append(backBtn, fwdBtn), top.append(nav);
       }
       top.append(
         h(
@@ -2275,50 +2333,42 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         }
         card.append(h("div", { class: "sect" }, grid));
       }
-      let seen = (info?.seen ?? []).filter((c) => c.text !== o.ctx?.text).slice(0, 3), extra = this.extra, canWrite = !info?.examples.length && !!s.geminiKey;
-      if (info?.examples.length || seen.length || extra.length || canWrite) {
+      let here = o.ctx?.text.split(" \u2014 ")[0].trim(), seen = (info?.seen ?? []).filter((c) => c.zh !== here && c.text !== o.ctx?.text).slice(0, 2), examples = info?.examples ?? [], canWrite = examples.length < 2 && !!s.geminiKey;
+      if (examples.length || seen.length || canWrite) {
         let sect = h("div", { class: "sect" });
-        if (info?.examples.length && sect.append(
+        if (examples.length && sect.append(
           h(
             "ul",
             { class: "ex" },
-            ...info.examples.map(
-              (x) => h("li", null, h("span", { class: "zh" }, ...this.sentence(x.toks, m.word)), this.sayButton(x.zh), h("span", { class: "en" }, x.en))
+            ...examples.map(
+              (x) => h(
+                "li",
+                null,
+                h("span", { class: "zh" }, ...this.sentence(x.toks, m.word)),
+                this.sayButton(x.zh),
+                this.deleteButton(m.word, { type: "hideExample", zh: x.zh }),
+                h("span", { class: "en" }, x.en)
+              )
             )
           )
-        ), extra.length && sect.append(
-          h("div", { class: "label", style: info?.examples.length ? "margin-top:8px" : "" }, o.relatedLabel ?? "Also here"),
-          h(
-            "ul",
-            { class: "ex seen" },
-            ...extra.map((x) => {
-              let link = null;
-              if (x.t != null && o.seek) {
-                let t = x.t;
-                link = h("button", { class: "src", title: "Play from here" }, `\u25B6 ${clock(t)}`), link.addEventListener("click", () => o.seek(t));
-              }
-              return h("li", null, h("span", { class: "zh" }, ...this.sentence(x.toks, m.word)), this.sayButton(x.zh), link);
-            })
-          )
         ), canWrite) {
-          let g = this.gemState?.word === m.word ? this.gemState : void 0, b = h("button", { class: "gem" }, g?.busy ? "Writing example sentences\u2026" : "\u2726 Write example sentences with Gemini");
-          g?.busy && b.setAttribute("disabled", ""), b.addEventListener("click", () => void this.writeExamples(m.word)), sect.append(h("div", { class: "gemrow", style: info?.examples.length || extra.length ? "margin-top:8px" : "" }, b, g?.error ? h("div", { class: "err" }, g.error) : null));
+          let g = this.gemState?.word === m.word ? this.gemState : void 0, label = g?.busy ? "Writing\u2026" : examples.length ? "\u2726 Write another example with Gemini" : "\u2726 Write example sentences with Gemini", b = h("button", { class: "gem" }, label);
+          g?.busy && b.setAttribute("disabled", ""), b.addEventListener("click", () => void this.writeExamples(m.word, 2 - examples.length)), sect.append(h("div", { class: "gemrow", style: examples.length ? "margin-top:6px" : "" }, b, g?.error ? h("div", { class: "err" }, g.error) : null));
         }
         seen.length && sect.append(
-          h("div", { class: "label", style: info?.examples.length || extra.length || canWrite ? "margin-top:8px" : "" }, "You met it in"),
+          h("div", { class: "label", style: examples.length || canWrite ? "margin-top:8px" : "" }, "You met it in"),
           h(
             "ul",
             { class: "ex seen" },
-            ...seen.map((c) => {
-              let href = c.src === "yt" && c.t != null ? `${c.url}&t=${c.t}s` : c.url;
-              return h(
+            ...seen.map(
+              (c) => h(
                 "li",
                 null,
                 h("span", { class: "zh" }, ...this.sentence(c.toks, m.word)),
                 this.sayButton(c.zh),
-                h("a", { class: "src", href, target: "_blank" }, c.src === "yt" && c.t != null ? `\u25B6 ${clock(c.t)}` : shortSource(c.url))
-              );
-            })
+                this.deleteButton(m.word, { type: "forgetContext", text: c.text })
+              )
+            )
           )
         ), card.append(sect);
       }

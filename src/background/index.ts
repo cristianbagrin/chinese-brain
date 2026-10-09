@@ -1,3 +1,4 @@
+import { cleanSentence, usefulSentence } from '../shared/context.ts';
 import { Dictionary } from '../shared/dict.ts';
 import type { Entry } from '../shared/types.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
@@ -163,13 +164,24 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
         (models) => ({ models }),
         (e) => ({ error: String(e instanceof Error ? e.message : e) }),
       );
+    case 'hideExample':
+      // Delete an example sentence for good (a Gemini one is dropped, so a new one can be written).
+      return browser.storage.local.get(['exh:' + any.word, 'gex:' + any.word]).then((got) => {
+        const word = String(any.word);
+        const zh = String(any.zh);
+        const hidden = [...new Set([...((got['exh:' + word] as string[] | undefined) ?? []), zh])];
+        const gex = ((got['gex:' + word] as [string, string][] | undefined) ?? []).filter(([x]) => x !== zh);
+        return browser.storage.local.set({ ['exh:' + word]: hidden, ['gex:' + word]: gex }).then(() => true);
+      });
+    case 'forgetContext':
+      return storeReady.then(() => store.removeContext(String(any.word), String(any.text))).then(() => true);
     case 'geminiExamples':
       return Promise.all([getSettings(), dictReady]).then(async ([st, d]) => {
         if (!st.geminiKey) return { error: 'Add a Gemini API key in Settings first.' };
         const word = String(any.word);
         const e = d.get(word)[0];
         try {
-          await geminiExamples(word, e ? shortGloss(e) : '', st.geminiKey, st.geminiModel);
+          await geminiExamples(word, e ? shortGloss(e) : '', st.geminiKey, st.geminiModel, Math.max(1, Number(any.want) || 2));
           return { ok: true };
         } catch (err) {
           return { error: String(err instanceof Error ? err.message : err) };
@@ -184,13 +196,20 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
         const chars = breakdown(d, word, py.split(/\s+/));
         const record = store.words.get(word) ?? null;
         // Sentences come pre-split into words so every word in the card is clickable and colored.
-        // Bundled sentences first; for words the list lacks, ones Gemini wrote on request.
-        const gex = ((await browser.storage.local.get('gex:' + word))['gex:' + word] as [string, string][] | undefined) ?? [];
-        const ex = (examples.get(word)?.length ? examples.get(word)! : gex).slice(0, 2).map(([zh, en]) => ({ zh, en, toks: d.segment(zh) }));
-        const seen = (record?.ctx ?? []).slice(0, 4).map((c) => {
-          const zh = c.text.split(' — ')[0];
-          return { ...c, zh, toks: d.segment(zh) };
-        });
+        // Bundled sentences first, then ones Gemini wrote on request; minus any you deleted.
+        const got = await browser.storage.local.get(['gex:' + word, 'exh:' + word]);
+        const hidden = new Set((got['exh:' + word] as string[] | undefined) ?? []);
+        const gex = (got['gex:' + word] as [string, string][] | undefined) ?? [];
+        const ex = [...(examples.get(word) ?? []), ...gex]
+          .filter(([zh]) => !hidden.has(zh))
+          .slice(0, 2)
+          .map(([zh, en]) => ({ zh, en, toks: d.segment(zh) }));
+        // Where you met it: the last two real sentences, without page-title clutter.
+        const seen = (record?.ctx ?? [])
+          .map((c) => ({ c, zh: cleanSentence(c.text.split(' — ')[0], word) }))
+          .filter(({ zh }) => usefulSentence(zh, word))
+          .slice(0, 3)
+          .map(({ c, zh }) => ({ ...c, zh, toks: d.segment(zh) }));
         return { chars, examples: ex, seen, record };
       });
     case 'glosses':

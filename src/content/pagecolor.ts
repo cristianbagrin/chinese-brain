@@ -1,5 +1,6 @@
 import { CJK } from '../shared/dict.ts';
 import type { Status, Token } from '../shared/types.ts';
+import { addPageCSS } from './css.ts';
 import { state } from './state.ts';
 
 const NAMES: Record<Status, string> = { fresh: 'cb-fresh', learning: 'cb-learning', known: 'cb-known' };
@@ -47,7 +48,7 @@ export class PageColors {
   private async start() {
     if (!this.cssInjected) {
       this.cssInjected = true;
-      browser.runtime.sendMessage({ type: 'insertCSS', css: CSS_TEXT });
+      addPageCSS(CSS_TEXT);
     }
     await state.loadStatuses();
     await this.scan(document.body);

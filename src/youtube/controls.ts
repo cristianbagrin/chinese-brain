@@ -166,7 +166,7 @@ export class Controls {
         chip('Pause on hover', '', s.pauseOnHover, () => save({ pauseOnHover: !s.pauseOnHover })),
         chip('Transcript', 'E', this.subs.transcript.open, () => this.subs.transcript.toggle()),
       ),
-      el('div', 'keys', 'A ◀ line · S replay · D line ▶ · E transcript · click a word = 新 (again = undo) · 1 2 3 in the card'),
+      el('div', 'keys', 'A ◀ previous line · S replay · D next line ▶'),
     );
   }
 

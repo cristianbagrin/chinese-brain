@@ -79,6 +79,19 @@ async function renderExportInfo() {
 
 $('q').addEventListener('input', render);
 $('sort').addEventListener('change', render);
+/** Open on a status straight from the toolbar menu (vocab.html#fresh, #learning, #known). */
+function filterFromHash() {
+  const f = location.hash.slice(1);
+  if (!['all', 'fresh', 'learning', 'known'].includes(f)) return;
+  filter = f as Status | 'all';
+  $('filter').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.f === f)));
+}
+filterFromHash();
+window.addEventListener('hashchange', () => {
+  filterFromHash();
+  render();
+});
+
 $('filter').addEventListener('click', (e) => {
   const b = (e.target as HTMLElement).closest('button');
   if (!b) return;
