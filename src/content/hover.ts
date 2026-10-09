@@ -85,6 +85,14 @@ function lineSlack(node: Text): number {
 }
 
 /** Hover lookup on any page. Elements marked data-cb-own are left to their owners. */
+/** A single-line field used for searching: type=search, or a text input that says so. */
+function isSearchBox(el: Element): el is HTMLInputElement {
+  if (!(el instanceof HTMLInputElement) || !/^(text|search|)$/.test(el.type)) return false;
+  if (el.type === 'search') return true;
+  const hint = `${el.name} ${el.id} ${el.placeholder} ${el.getAttribute('aria-label') ?? ''} ${el.getAttribute('role') ?? ''} ${el.getAttribute('enterkeyhint') ?? ''}`;
+  return /search|query|\bq\b|搜尋|搜索|查詢|查询/i.test(hint) || !!el.closest('[role="search"],form[action*="search" i]');
+}
+
 export class HoverLookup {
   private popup: Popup;
   private raf = 0;
@@ -118,7 +126,7 @@ export class HoverLookup {
       this.currentRange = undefined;
       CSS.highlights?.delete(HIGHLIGHT);
     });
-    // Selecting Chinese text (also inside search boxes and text fields) opens the card for it.
+    // Selecting Chinese text inside a search box opens the card for it.
     document.addEventListener('mouseup', (e) => {
       if (!this.popup.contains(e.target)) setTimeout(() => this.onSelect(e), 0);
     });
@@ -130,22 +138,15 @@ export class HoverLookup {
   /** Card for the selected text: the longest dictionary word it starts with. */
   private async onSelect(e?: MouseEvent) {
     if (!state.siteEnabled()) return;
-    const active = document.activeElement as HTMLInputElement | HTMLTextAreaElement | null;
-    let text = '';
-    let rect: DOMRect | undefined;
-    let ctxText = '';
-    const field = active && (active instanceof HTMLTextAreaElement || (active instanceof HTMLInputElement && /^(text|search|url|email|)$/.test(active.type)));
-    if (field && active.selectionStart != null && active.selectionEnd != null && active.selectionEnd > active.selectionStart) {
-      text = active.value.slice(active.selectionStart, active.selectionEnd);
-      const r = active.getBoundingClientRect();
-      rect = new DOMRect(e?.clientX ?? r.left, r.top, 1, r.height);
-    } else {
-      const sel = document.getSelection();
-      if (!sel || sel.isCollapsed || !sel.rangeCount) return;
-      text = sel.toString();
-      rect = sel.getRangeAt(0).getBoundingClientRect();
-      if (sel.anchorNode?.nodeType === Node.TEXT_NODE) ctxText = sentenceAround(sel.anchorNode as Text, sel.anchorOffset);
-    }
+    const active = document.activeElement;
+    let text: string;
+
+    // Selections only open the card in search boxes, where page popups can't be seen otherwise.
+    // Selecting text on a page, or while writing in a text area or editor, stays quiet.
+    if (!active || !isSearchBox(active) || active.selectionStart == null || active.selectionEnd == null || active.selectionEnd <= active.selectionStart) return;
+    text = active.value.slice(active.selectionStart, active.selectionEnd);
+    const r = active.getBoundingClientRect();
+    const rect = new DOMRect(e?.clientX ?? r.left, r.top, 1, r.height);
     text = text.trim();
     if (!text || text.length > 16 || !CJK.test(text[0])) return;
     const matches = await lookupText(text);
@@ -158,11 +159,11 @@ export class HoverLookup {
     this.currentRange = undefined;
     this.popup.show({
       matches: ordered,
-      rect: rect!,
+      rect,
       cursor: e ? { x: e.clientX, y: e.clientY } : undefined,
       src: 'web',
       pinned: true,
-      ctx: { text: ctxText || (field ? active!.value.slice(0, 200) : text), url: location.href, title: document.title, at: Date.now(), src: 'web' },
+      ctx: { text: active.value.slice(0, 200), url: location.href, title: document.title, at: Date.now(), src: 'web' },
     });
   }
 

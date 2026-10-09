@@ -1435,6 +1435,12 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     let cs = getComputedStyle(el3), fs = parseFloat(cs.fontSize) || 16, lh = parseFloat(cs.lineHeight);
     return Math.max(2, Number.isFinite(lh) ? (lh - fs) / 2 + 1 : fs * 0.2);
   }
+  function isSearchBox(el3) {
+    if (!(el3 instanceof HTMLInputElement) || !/^(text|search|)$/.test(el3.type)) return !1;
+    if (el3.type === "search") return !0;
+    let hint = `${el3.name} ${el3.id} ${el3.placeholder} ${el3.getAttribute("aria-label") ?? ""} ${el3.getAttribute("role") ?? ""} ${el3.getAttribute("enterkeyhint") ?? ""}`;
+    return /search|query|\bq\b|搜尋|搜索|查詢|查询/i.test(hint) || !!el3.closest('[role="search"],form[action*="search" i]');
+  }
   var HoverLookup = class {
     popup;
     raf = 0;
@@ -1466,16 +1472,10 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     /** Card for the selected text: the longest dictionary word it starts with. */
     async onSelect(e) {
       if (!state.siteEnabled()) return;
-      let active = document.activeElement, text = "", rect, ctxText = "", field = active && (active instanceof HTMLTextAreaElement || active instanceof HTMLInputElement && /^(text|search|url|email|)$/.test(active.type));
-      if (field && active.selectionStart != null && active.selectionEnd != null && active.selectionEnd > active.selectionStart) {
-        text = active.value.slice(active.selectionStart, active.selectionEnd);
-        let r = active.getBoundingClientRect();
-        rect = new DOMRect(e?.clientX ?? r.left, r.top, 1, r.height);
-      } else {
-        let sel = document.getSelection();
-        if (!sel || sel.isCollapsed || !sel.rangeCount) return;
-        text = sel.toString(), rect = sel.getRangeAt(0).getBoundingClientRect(), sel.anchorNode?.nodeType === Node.TEXT_NODE && (ctxText = sentenceAround(sel.anchorNode, sel.anchorOffset));
-      }
+      let active = document.activeElement, text;
+      if (!active || !isSearchBox(active) || active.selectionStart == null || active.selectionEnd == null || active.selectionEnd <= active.selectionStart) return;
+      text = active.value.slice(active.selectionStart, active.selectionEnd);
+      let r = active.getBoundingClientRect(), rect = new DOMRect(e?.clientX ?? r.left, r.top, 1, r.height);
       if (text = text.trim(), !text || text.length > 16 || !CJK.test(text[0])) return;
       let matches = await lookupText(text);
       if (!matches.length) return;
@@ -1486,7 +1486,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         cursor: e ? { x: e.clientX, y: e.clientY } : void 0,
         src: "web",
         pinned: !0,
-        ctx: { text: ctxText || (field ? active.value.slice(0, 200) : text), url: location.href, title: document.title, at: Date.now(), src: "web" }
+        ctx: { text: active.value.slice(0, 200), url: location.href, title: document.title, at: Date.now(), src: "web" }
       });
     }
     onMove(e) {
