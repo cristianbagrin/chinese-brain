@@ -186,3 +186,102 @@
 5137	fix	寫作需要每天練習，不能只靠靈感。	Writing takes daily practice; you can't rely only on inspiration.
 5141	fix	新聞標題寫得太誇張，點進去才發現內容根本不是這樣。	The news headline was exaggerated; when I clicked, the content wasn't like that at all.
 5143	fix	社區大樓裝了監控系統，保全二十四小時都在注意畫面。	The apartment building has a monitoring system, and the guards watch the screens twenty-four hours a day.
+5162	dropword	bound morpheme, not a standalone word; only in compounds (承諾, 一諾千金)
+5190	dropword	bound morpheme, not a standalone word; only in compounds (什麼, 什錦)
+5192	fix	他打算加盟一家連鎖手搖飲料店，自己當老闆。	He plans to join a bubble tea chain as a franchisee and be his own boss.
+5193	fix	他在加盟前評估了很久，才決定開這家連鎖早餐店。	He evaluated for a long time before deciding to open this breakfast-chain franchise.
+5194	dropword	Mainland usage; Taiwan says 網域名稱/網址
+5206	fix	各地的工會組成聯合會，一起向政府爭取權益。	Unions from various places formed a federation to fight for their rights together.
+5210	fix	這條路是單行道，你得順著箭頭方向開。	This is a one-way street, so you have to drive following the direction of the arrows.
+5211	fix	風向一轉，船就順著水流慢慢漂向岸邊。	When the wind shifted, the boat drifted slowly toward the shore with the current.
+5236	fix	他迷上賭博，把一個月的薪水都輸光了。	He got hooked on gambling and lost a whole month's pay.
+5239	fix	選手在奧運拿下金牌，回國時受到熱烈的歡迎。	The athlete won gold at the Olympics and received a warm welcome on returning home.
+5242	fix	二次大戰結束後，台灣由國民政府接收。	After World War II ended, Taiwan was taken over by the Nationalist government.
+5244	dropword	Mainland usage; not used in Taiwan military terminology
+5250	dropword	vulgar word
+5276	dropword	bound morpheme, not a standalone word; only in compounds (協助, 協調, 協會)
+5278	dropword	Mainland usage; Taiwan says 單字
+5284	dropword	bound morpheme, not a standalone word; only in compounds (服役, 兵役, 役男)
+5292	fix	這瓶是毒藥，千萬別讓小孩碰到。	This bottle is poison, so never let children touch it.
+5304	dropword	bound morpheme and rude as a standalone word; only in compounds (賤價, 卑賤)
+5308	fix	她的頸上掛著一條細細的項鍊。	A thin necklace hung around her neck.
+5314	fix	我從上個月開始吃素食，覺得身體輕鬆多了。	I started a vegetarian diet last month and feel much lighter.
+5342	dropword	Mainland form; Taiwan standard is 報導
+5145	fix	我們這隊在上半場落後兩分，後來靠最後一球才追平。	Our team trailed by two points in the first half, and only equalized with the last goal.
+5147	fix	公司將逐步調整薪資制度，讓員工的收入更穩定。	The company will gradually adjust the salary system to make employees' income more stable.
+5149	fix	你先坐一會，我去泡茶，等一會兒他們就到了。	Sit down for a while; I'll go make tea, and they'll be here shortly.
+5151	fix	數學課上，老師教我們怎麼畫出一次函數的圖。	In math class, the teacher showed us how to graph a linear function.
+5153	fix	飯店大廳很寬敞，旅客可以在沙發上休息，等朋友來接。	The hotel lobby is spacious, and guests can rest on the sofas while waiting for friends.
+5155	fix	老師請我們輪流念課文，我念得很緊張，聲音都在抖。	The teacher had us read the text aloud in turn, and I was so nervous my voice shook.
+5157	fix	市長將在明天上午會見各界代表，聽取大家的意見。	The mayor will meet representatives from all sectors tomorrow morning to hear their opinions.
+5159	fix	老闆說這次專案成功，每個人都會拿到一筆獎金。	The boss said that because the project succeeded, everyone will receive a bonus.
+5161	fix	活動期間累計消費滿三千元，就可以兌換一份小禮物。	During the event, if your cumulative spending reaches 3,000 dollars, you can redeem a small gift.
+5165	fix	那些在操場上奔跑的青春歲月，是我最難忘的回憶。	Those youthful years of running on the sports field are my most unforgettable memories.
+5167	fix	歷史課本裡提到，許多國家都曾經受到外來的侵略。	History textbooks mention that many countries were once subjected to foreign invasion.
+5169	fix	球隊在下半場強力反擊，最後成功逆轉比分。	The team counterattacked strongly in the second half and ultimately turned the score around.
+5171	fix	過年的時候，大街小巷都掛滿了紅燈籠，氣氛很好。	During New Year, red lanterns hang on every street and alley, creating a great mood.
+5173	fix	爸媽不想干涉我的選擇，只希望我過得開心。	My parents don't want to interfere with my choices and only want me to be happy.
+5175	fix	農夫一大早就到山上採茶，動作又快又準。	The farmer goes up the mountain early to pick tea, quick and precise.
+5177	fix	人體的構造非常複雜，醫學院的學生要念好幾年。	The structure of the human body is very complex, and medical students study it for years.
+5179	fix	公司推出獎金制度來激勵員工，讓大家工作更有動力。	The company introduced a bonus scheme to motivate employees and boost their drive.
+5181	fix	這座新建的發電廠使用太陽能，希望能減少空氣污染。	This new power plant uses solar energy, hoping to reduce air pollution.
+5183	fix	下班時間路上塞車，車流緩慢，走走停停花了一個小時。	It was rush hour with heavy traffic, and the stop-and-go flow took an hour.
+5185	fix	政府補貼購買電動機車的民眾，最多可以拿到一萬元。	The government subsidizes people who buy electric scooters, up to ten thousand dollars.
+5186	fix	你太過分了！	You've gone too far!
+5187	fix	他說話過分直接，常常讓同事覺得不舒服。	He's overly blunt when he talks, and often makes coworkers uncomfortable.
+5189	fix	超商的飲料正在特價，買二送一，我們多拿幾瓶回去吧。	Drinks at the convenience store are on sale, buy two get one free, so let's take a few bottles home.
+5197	fix	雙方必須履行合約上的責任，否則就要賠償。	Both sides must fulfill the duties in the contract or else pay compensation.
+5198	fix	抱歉，我遲到了。	Sorry, I'm late.
+5199	fix	很抱歉讓你等這麼久，路上塞車塞得很嚴重。	Sorry to keep you waiting so long; traffic was terrible on the road.
+5201	fix	老闆暗示今年可能不會發年終獎金，同事們聽了都很失望。	The boss hinted there may be no year-end bonus this year, and the coworkers were disappointed.
+5203	fix	消防隊員花了兩個小時，才把大火完全撲滅。	It took firefighters two hours to fully put out the big fire.
+5205	fix	她把旅行的短片剪好後，放到網路上，收到很多留言。	After editing her travel clips, she put them online and got lots of comments.
+5207	fix	各地的農民聯合會共同發表聲明，要求政府改善收購價格。	Farmers' federations from various places jointly issued a statement asking the government to improve purchase prices.
+5209	fix	貪污案件曝光之後，民眾對政府的信任大幅下降。	After the corruption case was exposed, public trust in the government dropped sharply.
+5213	fix	等了半小時都沒公車，我乾脆叫計程車回家算了。	After half an hour without a bus, I simply took a taxi home instead.
+5215	fix	兩邊的意見都有道理，所以我很難決定要支持哪一邊。	Both sides' opinions make sense, so it's hard for me to decide which to support.
+5217	fix	她宣布參選里長，希望能為社區多做一點事。	She announced she'll run for borough warden, hoping to do more for the neighborhood.
+5219	fix	公司辦員工旅遊，希望能增進同事之間的感情。	The company organizes trips to strengthen relationships among coworkers.
+5221	fix	公司決定以客戶需求為導向，重新設計整個服務流程。	The company decided to be customer-needs oriented and redesign the whole service process.
+5223	fix	兩黨的意識形態不同，所以在很多議題上吵個不停。	The two parties' ideologies differ, so they argue about many issues.
+5225	fix	居民們擁護這個新計畫，因為它能改善社區的環境。	Residents back this new plan because it improves the neighborhood.
+5227	fix	面對未知的未來，他選擇先把眼前的事情做好。	Facing an unknown future, he chose to first do well what lies ahead.
+5229	fix	她在家裡辦了一場生日派對，邀請了十幾位朋友來玩遊戲。	She held a birthday party at home and invited a dozen friends to play games.
+5231	fix	櫥窗裡擺著各種珠寶，在燈光下閃閃發亮。	The window displays all kinds of jewelry that sparkles under the lights.
+5233	fix	兩家公司簽約之後，會正式展開長期合作。	After the two companies sign the contract, they'll formally begin long-term cooperation.
+5235	fix	學生作弊被發現，學校給予記過處分，並通知了家長。	The student was caught cheating, and the school issued a demerit and notified the parents.
+5237	fix	賭博會讓人越陷越深，很多家庭因此欠了一大筆債。	Gambling pulls people deeper, and many families end up with big debts because of it.
+5241	fix	你去超商的話，可以順便幫我拿一下包裹嗎？	If you're going to the convenience store, could you pick up my package while you're at it?
+5243	fix	第二次面試比第一次順利很多，我覺得有機會被錄取。	The second interview went much more smoothly than the first, and I think I have a chance of being hired.
+5247	fix	明明有能力卻不敢嘗試，真是可悲。	It's sad to have the ability but not dare to try.
+5249	fix	你以為你是大爺啊？吃完飯連碗都不收，還要別人伺候你。	Who do you think you are, a lord? You don't even clear your bowl and expect others to wait on you.
+5253	fix	在正式場合穿牛仔褲不太恰當，你還是換一件襯衫吧。	Wearing jeans at a formal occasion isn't appropriate; you'd better change into a shirt.
+5255	fix	舊倉庫被改建成一間咖啡廳，保留了原來的紅磚牆。	The old warehouse was converted into a cafe, keeping its original red-brick walls.
+5257	fix	簡報一開始，他先說明了公司的概況，再介紹新的產品。	At the start of the presentation he outlined the company's overview, then introduced the new product.
+5259	fix	這位歌手用自己的方式演繹這首老歌，聽起來特別有味道。	The singer interpreted this old song in her own way, which sounds especially full of flavor.
+5261	fix	他盧了我一個晚上，我才答應陪他去逛街。	He pestered me all evening before I agreed to go shopping with him.
+5263	fix	春天是許多動物繁殖的季節，森林裡到處都是小動物。	Spring is the breeding season for many animals, and the forest is full of young creatures.
+5265	fix	第一次去歐洲旅行，讓我見識到不同國家的生活方式。	My first trip to Europe showed me different countries' ways of life.
+5267	fix	他很幸運地從火場逃脫，只受了一點輕傷。	He luckily escaped from the fire with only a minor injury.
+5269	fix	看到他一個人坐在那裡哭，我心裡也覺得很難受。	Seeing him sit there crying alone made me feel terrible too.
+5271	fix	最近生意不好，很少有客人上門，老闆只好搞促銷。	Business is slow lately and few customers come in, so the boss has to run promotions.
+5273	fix	搬了新住所之後，別忘了到戶政事務所辦理地址變更。	After moving to a new residence, don't forget to update your address at the household registration office.
+5275	fix	歌手一開口，全場觀眾都安靜下來，專心聽他唱歌。	As the singer began, the whole audience quieted down and listened.
+5281	fix	你不要太天真了，天下沒有白吃的午餐。	Don't be too naive; there's no such thing as a free lunch.
+5283	fix	他做事一向實事求是，從來不隨便誇大或隱瞞。	He's always practical and truth-seeking, never exaggerating or hiding things.
+5287	fix	考試的時候絕對不可以抄別人的答案，被發現會被記過。	You must never copy others' answers in exams, and if caught you get a demerit.
+5289	fix	爸爸一個人擔負全家的生活開銷，所以每天都工作到很晚。	Dad alone bears the family's living costs, so he works late every day.
+5291	fix	這支球隊今年表現亮眼，有望拿下聯賽冠軍。	This team has performed brilliantly this year and is on course for the league title.
+5293	fix	故事裡的壞皇后給公主吃了一顆毒藥蘋果，大家都很害怕。	In the story the wicked queen gave the princess a poisoned apple, and everyone was terrified.
+5295	fix	久旱不雨，水庫的水位下降，灌溉用水變得很緊張。	With a long drought the reservoir level dropped, and irrigation water is in short supply.
+5297	fix	這款遊戲預計下個月發售，很多玩家已經提前預訂了。	This game is scheduled for release next month, and many players have pre-ordered.
+5299	fix	老師傅用竹編了一個籃子，手藝非常細緻，許多人都想買。	The old craftsman wove a basket from bamboo with delicate skill, and many want to buy it.
+5301	fix	外公進入老年之後，每天早上都去公園跟朋友下棋。	After entering old age, Grandpa plays chess with friends at the park every morning.
+5303	fix	年紀大了，他的視力和記憶力都慢慢衰退，但他仍然很樂觀。	With age his eyesight and memory slowly decline, but he stays optimistic.
+5307	fix	醜陋的外表不代表內心也醜陋，故事裡的野獸其實很善良。	An ugly exterior doesn't mean an ugly heart; the beast in the story is actually kind.
+5309	fix	我整天坐在電腦前，頸部和肩膀都很痠，需要去按摩。	I sit at the computer all day and my neck and shoulders ache, so I need a massage.
+5311	fix	假日的公路常常塞車，所以我們決定提早出發。	Highways are often jammed on holidays, so we decided to set off early.
+5313	fix	抱石不需要繩子，但地上要鋪厚墊子，以免摔下來受傷。	Bouldering needs no rope, but thick mats are laid on the ground in case you fall and hurt yourself.
+5315	fix	這家素食餐廳的菜色很豐富，連不吃素的朋友也很喜歡。	This vegetarian restaurant has a rich menu that even non-vegetarian friends love.
+5317	fix	下大雨的時候，雨傘根本擋不住，衣服還是濕了一大半。	In heavy rain an umbrella can't keep you dry, and half my clothes got wet.
+5319	fix	教室裡有的同學在寫作業，有的同學在聊天，很熱鬧。	In the classroom some students are doing homework and some are chatting, so it's lively.

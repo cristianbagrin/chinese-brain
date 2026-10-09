@@ -180,3 +180,68 @@
 9344	dropword	bound morpheme, not used as a standalone word (only in 斯文, 瞬斯)
 9346	fix	路口的燈轉紅了，所有的車都停了下來。	The light at the intersection turned red and all the cars stopped.
 9347	fix	被大家一誇獎，她羞得臉都紅了。	Praised by everyone, she blushed.
+9388	fix	台灣是個四面環海的島嶼，海鮮特別新鮮。	Taiwan is an island surrounded by sea, so the seafood is especially fresh.
+9390	fix	紅十字會援助災區的居民，送去了食物和藥品。	The Red Cross aided residents of the disaster area, sending food and medicine.
+9394	fix	冰箱是空的，今晚只好叫外送了。	The fridge is empty, so we'll have to order delivery tonight.
+9397	fix	颱風離開後，氣象署宣布解除海上警報。	After the typhoon left, the Central Weather Administration announced the lifting of the sea warning.
+9402	fix	他幫忙的動機不單純，大家都有點懷疑。	His motive for helping isn't pure, and everyone is a bit suspicious.
+9404	fix	這家的鹽酥雞又香又脆，真的好吃。	This shop's salt-and-pepper chicken is fragrant and crispy; it's really good.
+9408	fix	他一喝醉就變了個樣，平常的他很安靜。	Once he gets drunk he becomes a different person; normally he's quiet.
+9409	fix	你看你這樣，一看就知道昨晚又熬夜了。	Look at you; it's obvious you stayed up late again last night.
+9410	fix	疫情剛趨緩時，大家最想做的就是出國旅行。	When the epidemic first eased, what everyone wanted most was to travel abroad.
+9412	dropword	bound morpheme, not used as a standalone word (only in 繼續, 繼承, 後繼)
+9414	dropword	bound morpheme, not used as a standalone word (only in 購買, 購物, 採購)
+9416	fix	騎士在紅燈前停下來，後座的小孩也戴著安全帽。	The rider stopped at the red light, and the child on the back seat was wearing a helmet too.
+9418	fix	寵物死掉的時候，孩子傷心地哭了一整晚。	When the pet died, the child cried sadly all night.
+9420	fix	別把口香糖吐在地上，要包起來丟進垃圾桶。	Don't spit gum on the ground; wrap it up and throw it in the bin.
+9422	fix	他跪下來向她求婚，說想娶她一輩子。	He knelt down and proposed, saying he wanted to marry her for life.
+9424	dropword	bound morpheme, not used as a standalone word (only in 長征, 遠征, 征服)
+9426	fix	醫生要我深呼吸，讓全身肌肉放鬆。	The doctor told me to breathe deeply and let all my muscles relax.
+9428	fix	荷蘭人曾經殖民台灣南部，留下了熱蘭遮城。	The Dutch once colonized southern Taiwan and left behind Fort Zeelandia.
+9432	fix	他一說完笑話，眾人都笑得前仰後合。	As soon as he finished the joke, everyone doubled over laughing.
+9434	fix	那個小販很老實，找錢時一塊錢也不少算。	That vendor is honest and never shortchanges you even by a dollar.
+9436	dropword	bound morpheme, not used as a standalone word (only in 認識, 知識, 識字)
+9438	dropword	Mainland term; Taiwan uses 錄影 or 影片
+9440	fix	兩隻公雞在廣場上鬥了起來，圍觀的人越來越多。	Two roosters started fighting in the square, and the crowd kept growing.
+9441	fix	你們兩個別再鬥了，趕快去寫功課。	You two stop squabbling and go do your homework.
+9446	fix	愛因斯坦被公認是二十世紀最有名的天才。	Einstein is widely regarded as the most famous genius of the twentieth century.
+9449	fix	平常我都自己煮晚餐，週末才會跟朋友出去吃。	Usually I cook dinner myself and only eat out with friends on weekends.
+9454	fix	那隻熊站起來伸手討吃的，遊客都笑了。	The bear stood up and reached out for food, and the visitors laughed.
+9456	fix	他小時候家裡很窮，所以長大後常常捐錢幫助窮人。	His family was poor when he was little, so as an adult he often donates to help the poor.
+9458	dropword	bound morpheme, not used as a standalone word (only in 興奮, 興起, 高興)
+9462	fix	他下棋是高手，連老師都下不贏他。	He's a master at chess; even his teacher can't beat him.
+9468	fix	他穿拖鞋去參加婚禮，看起來有點可笑。	He went to the wedding in slippers, which looked a bit ridiculous.
+9472	fix	情人節那天，她送了我一盒手工巧克力。	On Valentine's Day she gave me a box of handmade chocolates.
+9474	fix	我不想當他的手下，天天看他臉色做事。	I don't want to work under him and watch his face every day.
+9476	fix	這位政治家一生致力於推動民主，受到許多人尊敬。	This statesman devoted his life to promoting democracy and is respected by many.
+9478	fix	孩子裝大人的模樣，把大家都逗笑了。	The child acting like a grown-up made everyone laugh.
+9481	fix	牛奶不要煮滾，用小火溫一下就好。	Don't boil the milk; just warm it gently over low heat.
+9482	dropword	bound morpheme, not used as a standalone word (only in 症狀, 病症, 失眠症)
+9488	fix	他在朋友面前跪下來，哭著道歉。	He knelt before his friend and apologized in tears.
+9490	fix	鑽石是自然界最硬的物質，所以常被用來切割玻璃。	Diamond is the hardest natural substance, so it's often used to cut glass.
+9492	fix	水管接上高壓噴頭，一下子就把地沖乾淨了。	With the hose fitted with a high-pressure nozzle, the ground was rinsed clean in no time.
+9498	fix	夜深人靜，隔壁傳來嬰兒的哭泣聲。	In the stillness of night, the sound of a baby crying came from next door.
+9508	fix	撿到錢包的人把它歸還給失主，什麼都沒拿。	The person who found the wallet returned it to its owner without taking anything.
+9514	fix	這款防曬乳很清爽，不會悶住肌膚。	This sunscreen is light and doesn't smother the skin.
+9522	fix	這件事不容再拖，今天一定要做決定。	This can't be put off any longer; a decision must be made today.
+9526	fix	冰淇淋掉在地上，小孩當場哭了出來。	The ice cream fell on the ground and the child burst into tears on the spot.
+9532	fix	殖民者奴役當地人民，強迫他們無償工作。	The colonizers enslaved the local people and forced them to work for nothing.
+9536	dropword	bound morpheme, not used as a standalone word (only in 忠心, 忠誠, 忠孝)
+9538	fix	他氣得想動手，揮了一拳又硬生生收了回來。	Furious, he swung a punch and then forced himself to pull it back.
+9539	fix	拳擊手出拳又快又準，第二回合就擊倒了對手。	The boxer threw fast, accurate punches and knocked out his opponent in the second round.
+9540	fix	國外的政局不穩，很多公司暫停了投資計畫。	With political instability abroad, many companies suspended their investment plans.
+9542	dropword	bound morpheme, not used as a standalone word (only in 桑樹, 桑葉)
+9546	fix	這碗湯很燙，等涼一點再喝。	This soup is scalding; wait until it cools a bit before drinking.
+9550	fix	這盒喜餅包裝得很精緻，送禮很有面子。	This box of wedding cookies is exquisitely packaged and makes a respectable gift.
+9554	fix	法醫要解剖遺體，才能確定死因。	The forensic pathologist must autopsy the body to determine the cause of death.
+9556	fix	從衛星的軌跡可以算出它什麼時候會經過台灣上空。	From the satellite's trajectory you can calculate when it will pass over Taiwan.
+9558	fix	這個小小的誤會，成了兩人爭吵的開端。	This small misunderstanding was the start of the quarrel between the two.
+9562	fix	他每天睡前都會聽一小時古典音樂。	Every night before bed he listens to an hour of classical music.
+9564	fix	綠燈亮了，大家走上斑馬線穿過馬路。	The light turned green and everyone crossed the road on the crosswalk.
+9566	fix	晚上十點，巷口的藥局還亮著燈。	At ten at night, the pharmacy at the end of the alley still had its lights on.
+9582	dropword	bound morpheme, not used as a standalone word (only in 干涉, 相干, 干擾)
+9595	fix	計畫很完美，但實際做起來才發現有很多困難。	The plan was perfect, but in practice we found lots of difficulties.
+9606	dropword	bound morpheme, not used as a standalone word (only in 今天, 今晚, 古今)
+9616	dropword	bound morpheme, not used as a standalone word (only in 力氣, 努力, 盡力)
+9618	fix	羅馬帝國在最強盛的時候，領土涵蓋了整個地中海。	At its peak the Roman Empire's territory covered the whole Mediterranean.
+9635	fix	爸爸每天早上都先看股市行情，再決定要不要買股票。	Every morning my dad checks the stock market before deciding whether to buy shares.
