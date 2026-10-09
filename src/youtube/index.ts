@@ -1,7 +1,7 @@
 import { CJK } from '../shared/dict.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import { TRANS_LANG, type Status, type Token } from '../shared/types.ts';
-import { lookupText } from '../content/hover.ts';
+import { lookupText } from '../content/lookup.ts';
 import { isTyping } from '../content/keys.ts';
 import type { Popup } from '../content/popup.ts';
 import { state } from '../content/state.ts';
@@ -452,6 +452,7 @@ export class YouTubeSubs {
     // Only when the subtitles are switched off: close a card opened from them.
     if (this.wasOn && !on && this.popup.src === 'yt') this.popup.hide();
     this.wasOn = on;
+    this.transcript?.setSuspended(!state.settings.ytEnabled);
   }
 
   private mount() {

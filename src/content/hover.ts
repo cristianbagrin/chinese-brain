@@ -1,20 +1,10 @@
 import { CJK } from '../shared/dict.ts';
-import type { LookupMatch } from '../shared/types.ts';
+import { lookupText } from './lookup.ts';
 import { Popup } from './popup.ts';
 import { state } from './state.ts';
 
 const HIGHLIGHT = 'chinese-brain-hit';
-const cache = new Map<string, LookupMatch[]>();
-
-export async function lookupText(text: string): Promise<LookupMatch[]> {
-  const key = text.slice(0, 8);
-  const hit = cache.get(key);
-  if (hit) return hit;
-  const res: LookupMatch[] = await browser.runtime.sendMessage({ type: 'lookup', text: key });
-  if (cache.size > 300) cache.clear();
-  cache.set(key, res);
-  return res;
-}
+export { lookupText };
 
 /** Text from (node, offset) onward, crossing into following text nodes. */
 function textFrom(node: Text, offset: number, max = 10): { text: string; ranges: [Text, number, number][] } {
@@ -95,6 +85,51 @@ export class HoverLookup {
       this.currentKey = '';
       CSS.highlights?.delete(HIGHLIGHT);
     });
+    // Selecting Chinese text (also inside search boxes and text fields) opens the card for it.
+    document.addEventListener('mouseup', (e) => {
+      if (!this.popup.contains(e.target)) setTimeout(() => this.onSelect(e), 0);
+    });
+    document.addEventListener('keyup', (e) => {
+      if (e.shiftKey && e.key.startsWith('Arrow')) this.onSelect();
+    });
+  }
+
+  /** Card for the selected text: the longest dictionary word it starts with. */
+  private async onSelect(e?: MouseEvent) {
+    if (!state.siteEnabled()) return;
+    const active = document.activeElement as HTMLInputElement | HTMLTextAreaElement | null;
+    let text = '';
+    let rect: DOMRect | undefined;
+    let ctxText = '';
+    const field = active && (active instanceof HTMLTextAreaElement || (active instanceof HTMLInputElement && /^(text|search|url|email|)$/.test(active.type)));
+    if (field && active.selectionStart != null && active.selectionEnd != null && active.selectionEnd > active.selectionStart) {
+      text = active.value.slice(active.selectionStart, active.selectionEnd);
+      const r = active.getBoundingClientRect();
+      rect = new DOMRect(e?.clientX ?? r.left, r.top, 1, r.height);
+    } else {
+      const sel = document.getSelection();
+      if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+      text = sel.toString();
+      rect = sel.getRangeAt(0).getBoundingClientRect();
+      if (sel.anchorNode?.nodeType === Node.TEXT_NODE) ctxText = sentenceAround(sel.anchorNode as Text, sel.anchorOffset);
+    }
+    text = text.trim();
+    if (!text || text.length > 16 || !CJK.test(text[0])) return;
+    const matches = await lookupText(text);
+    if (!matches.length) return;
+    // Prefer exactly what was selected when it is a word.
+    const exact = matches.findIndex((m) => m.text === text);
+    const ordered = exact > 0 ? [matches[exact], ...matches.filter((_, i) => i !== exact)] : matches;
+    CSS.highlights?.delete(HIGHLIGHT);
+    this.currentKey = '';
+    this.popup.show({
+      matches: ordered,
+      rect: rect!,
+      cursor: e ? { x: e.clientX, y: e.clientY } : undefined,
+      src: 'web',
+      pinned: true,
+      ctx: { text: ctxText || (field ? active!.value.slice(0, 200) : text), url: location.href, title: document.title, at: Date.now(), src: 'web' },
+    });
   }
 
   private onMove(e: MouseEvent) {
@@ -110,7 +145,13 @@ export class HoverLookup {
 
   private async check(target: EventTarget | null) {
     const seq = ++this.seq;
-    if (this.popup.contains(target) || this.popup.pinned) return;
+    if (this.popup.pinned) return;
+    if (this.popup.contains(target)) {
+      // Resting on the card keeps it. Landing on a card that only just opened means the
+      // pointer is sweeping past: close it and look at the text underneath instead.
+      if (this.popup.age() > 450) return;
+      this.popup.hide();
+    }
     if ((target as Element | null)?.closest?.('[data-cb-own]')) return;
     const s = state.settings;
     if (!state.siteEnabled() || (s.hoverMode === 'shift' && !this.shift)) return this.scheduleHide();

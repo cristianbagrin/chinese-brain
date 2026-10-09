@@ -1,8 +1,10 @@
+import { CJK } from '../shared/dict.ts';
 import { shortSource } from '../shared/export.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import { clock } from '../shared/time.ts';
-import type { Context, Entry, LookupMatch, Status, WordRecord } from '../shared/types.ts';
+import type { Context, Entry, LookupMatch, Status, Token } from '../shared/types.ts';
 import { speak, stampSound } from './audio.ts';
+import { lookupText } from './lookup.ts';
 import css from './popup.css';
 import { state } from './state.ts';
 
@@ -12,10 +14,14 @@ export const STAMPS: { s: Status; zh: string; key: string; label: string }[] = [
   { s: 'known', zh: '熟', key: '3', label: 'Known' },
 ];
 
+interface Sentence {
+  zh: string;
+  toks: Token[];
+}
 interface WordInfo {
   chars: { ch: string; py: string; gloss: string }[];
-  examples: [string, string][];
-  record: WordRecord | null;
+  examples: (Sentence & { en: string })[];
+  seen: (Sentence & Context)[];
 }
 
 type H = HTMLElement;
@@ -48,11 +54,11 @@ export interface ShowOptions {
   cursor?: { x: number; y: number };
   ctx?: Context;
   src: 'yt' | 'web';
-  /** Keep the card open (and clickable) until closed. */
+  /** Keep the card open until closed. */
   pinned?: boolean;
 }
 
-/** The one lookup card, used by hover lookup and the YouTube subtitles. */
+/** The one lookup card, used by hover lookup, selections and the YouTube subtitles. */
 export class Popup {
   private host: H;
   private root: ShadowRoot;
@@ -60,7 +66,10 @@ export class Popup {
   private opts: ShowOptions | undefined;
   private info: WordInfo | undefined;
   private shownAt = 0;
+  private hovered = false;
   private revealPy = false;
+  /** Cards visited by clicking words inside the card (for the back arrow). */
+  private history: ShowOptions[] = [];
   private lookTimer: ReturnType<typeof setTimeout> | undefined;
   private softTimer: ReturnType<typeof setTimeout> | undefined;
   private hideListeners = new Set<() => void>();
@@ -73,7 +82,19 @@ export class Popup {
     style.textContent = css;
     this.card = h('div', { class: 'card', hidden: '' });
     this.root.append(style, this.card);
-    for (const t of ['mousedown', 'click', 'dblclick', 'pointerdown']) this.card.addEventListener(t, (e) => e.stopPropagation());
+    for (const t of ['mousedown', 'mouseup', 'dblclick', 'pointerdown', 'pointerup']) this.card.addEventListener(t, (e) => e.stopPropagation());
+    this.card.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.onCardClick(e);
+    });
+    this.card.addEventListener('mouseenter', () => {
+      this.hovered = true;
+      clearTimeout(this.softTimer);
+    });
+    this.card.addEventListener('mouseleave', () => {
+      this.hovered = false;
+      if (!this.pinned) this.hideSoon();
+    });
     state.onChange(() => {
       if (this.opts) {
         this.infoCache.clear();
@@ -86,7 +107,7 @@ export class Popup {
   get visible() {
     return !!this.opts;
   }
-  /** Where the open card came from ('yt' subtitles or 'web' hover). */
+  /** Where the open card came from ('yt' subtitles or 'web'). */
   get src() {
     return this.opts?.src;
   }
@@ -99,6 +120,9 @@ export class Popup {
   }
   get current(): LookupMatch | undefined {
     return this.opts?.matches[0];
+  }
+  get isHovered() {
+    return this.hovered;
   }
 
   contains(node: EventTarget | null): boolean {
@@ -114,22 +138,25 @@ export class Popup {
     this.hideListeners.add(fn);
   }
 
-  /** Hide after a short grace period. */
+  /** Hide after a short grace period, unless the pointer is on the card. */
   hideSoon(ms = 300) {
     if (!this.opts || this.pinned) return;
     clearTimeout(this.softTimer);
-    this.softTimer = setTimeout(() => !this.pinned && this.hide(), ms);
+    this.softTimer = setTimeout(() => {
+      if (!this.hovered && !this.pinned) this.hide();
+    }, ms);
   }
 
   cancelHide() {
     clearTimeout(this.softTimer);
   }
 
-  async show(opts: ShowOptions) {
+  async show(opts: ShowOptions, keepPlace = false) {
     const sameWord = this.opts?.matches[0]?.word === opts.matches[0]?.word;
     this.opts = opts;
     clearTimeout(this.softTimer);
     if (!sameWord) this.revealPy = false;
+    if (!keepPlace) this.history = [];
     this.mount();
     const m = opts.matches[0];
     const e0 = m.entries[0];
@@ -137,7 +164,7 @@ export class Popup {
     if (this.opts !== opts) return; // a newer show() won
     this.info = info;
     this.render();
-    this.position(opts);
+    if (!keepPlace) this.position(opts);
     this.shownAt = Date.now();
     clearTimeout(this.lookTimer);
     // A card left open for a moment counts as a deliberate lookup.
@@ -158,6 +185,8 @@ export class Popup {
     clearTimeout(this.lookTimer);
     clearTimeout(this.softTimer);
     this.opts = undefined;
+    this.history = [];
+    this.hovered = false;
     this.card.hidden = true;
     this.hideListeners.forEach((f) => f());
   }
@@ -179,7 +208,7 @@ export class Popup {
     else state.statuses.delete(m.word);
     stampSound(next);
     this.infoCache.delete(m.word);
-    this.render();
+    this.render(next ?? undefined);
     browser.runtime.sendMessage({ type: 'setStatus', word: m.word, status: next, entry: m.entries[0], ctx: this.opts.ctx });
   }
 
@@ -191,6 +220,25 @@ export class Popup {
   images() {
     const m = this.current;
     if (m) window.open(`https://duckduckgo.com/?q=${encodeURIComponent(m.word)}&iax=images&ia=images&kl=tw-tzh`, '_blank');
+  }
+
+  /** Open a word clicked inside the card, in the same place, with a way back. */
+  private async openInside(q: string) {
+    if (!this.opts) return;
+    const matches = await lookupText(q);
+    if (!matches.length || !this.opts) return;
+    this.history.push(this.opts);
+    await this.show({ ...this.opts, matches, ctx: this.opts.ctx, pinned: true }, true);
+  }
+
+  back() {
+    const prev = this.history.pop();
+    if (prev) void this.show({ ...prev, pinned: true }, true);
+  }
+
+  private onCardClick(e: Event) {
+    const t = (e.target as HTMLElement).closest('[data-q]') as HTMLElement | null;
+    if (t?.dataset.q) void this.openInside(t.dataset.q);
   }
 
   /** Keyboard shortcuts while the card is open. Returns true when handled. */
@@ -222,7 +270,8 @@ export class Popup {
         this.render();
         return true;
       case 'Escape':
-        this.hide();
+        if (this.history.length) this.back();
+        else this.hide();
         return true;
     }
     return false;
@@ -244,7 +293,35 @@ export class Popup {
     c.style.top = `${y}px`;
   }
 
-  private render() {
+  /** A clickable, status-coloured word. */
+  private word(text: string, q: string, word?: string): H {
+    const el = h('span', { class: 'w', 'data-q': q }, text);
+    const st = state.settings.cardColors && word ? state.status(word) : undefined;
+    if (st) el.classList.add('st-' + st);
+    return el;
+  }
+
+  /** Sentence tokens as clickable words; the headword is underlined. */
+  private sentence(toks: Token[], head: string): (Node | string)[] {
+    return toks.map((t) => {
+      const text = t.trad ?? t.text;
+      if (!t.word && !CJK.test(t.text)) return text;
+      const el = this.word(text, t.text, t.word);
+      if (t.word === head || text === head) el.classList.add('head');
+      return el;
+    });
+  }
+
+  /** Plain text with its Chinese runs made clickable (definitions, measure words). */
+  private richText(text: string): (Node | string)[] {
+    const out: (Node | string)[] = [];
+    for (const m of text.matchAll(/[㐀-鿿豈-﫿]+|[^㐀-鿿豈-﫿]+/g)) {
+      out.push(CJK.test(m[0][0]) ? this.word(m[0], m[0], m[0]) : m[0]);
+    }
+    return out;
+  }
+
+  private render(stamped?: Status) {
     const o = this.opts;
     const m = o?.matches[0];
     if (!o || !m) return;
@@ -282,7 +359,7 @@ export class Popup {
       if (!first) line.append(h('span', { class: 'rpy' }, numberedToMarked(reading, false)));
       senses.forEach((d, i) => {
         if (i) line.append(h('span', { class: 'sep' }, '·'));
-        line.append(d);
+        line.append(...this.richText(d));
       });
       const block = h('div', { class: 'reading' }, line);
       if (cls.length) {
@@ -293,7 +370,7 @@ export class Popup {
             'measure word ',
             ...cls.flatMap((c, i) => {
               const mm = /^([^|\[]+)(?:\|[^\[]+)?\[([^\]]+)\]/.exec(c);
-              return mm ? [i ? ', ' : '', h('b', null, mm[1]), ' ' + numberedToMarked(mm[2])] : [];
+              return mm ? [i ? ', ' : '', this.word(mm[1], mm[1], mm[1]), ' ' + numberedToMarked(mm[2])] : [];
             }),
           ),
         );
@@ -302,36 +379,44 @@ export class Popup {
       first = false;
     }
 
-    card.append(
+    const head = h('span', { class: `head${status ? ' st-' + status : ''}` }, m.word);
+    const top = h('div', { class: 'top' });
+    if (this.history.length) {
+      const backBtn = h('button', { class: 'back', title: 'Back (Esc)' }, '←');
+      backBtn.addEventListener('click', () => this.back());
+      top.append(backBtn);
+    }
+    top.append(
       h(
         'div',
-        { class: 'top' },
-        h(
-          'div',
-          { class: 'headrow' },
-          h('span', { class: `head${status ? ' st-' + status : ''}` }, m.word),
-          pyEl,
-          bars
-            ? h(
-                'span',
-                { class: 'freq', title: `Frequency rank #${rank.toLocaleString()} of all words` },
-                h('span', { class: 'bars' }, ...[1, 2, 3, 4, 5].map((i) => h('i', { class: i <= bars ? 'on' : '', style: `height:${3 + i * 2}px` }))),
-                rank ? `#${rank.toLocaleString()}` : '',
-              )
-            : null,
-        ),
-        ...readings,
+        { class: 'headrow' },
+        head,
+        pyEl,
+        bars
+          ? h(
+              'span',
+              { class: 'freq', title: `Frequency rank #${rank.toLocaleString()} of all words` },
+              h('span', { class: 'bars' }, ...[1, 2, 3, 4, 5].map((i) => h('i', { class: i <= bars ? 'on' : '', style: `height:${3 + i * 2}px` }))),
+              rank ? `#${rank.toLocaleString()}` : '',
+            )
+          : null,
       ),
+      ...readings,
     );
+    card.append(top);
 
     const info = this.info;
     if (info?.chars.length) {
       const grid = h('div', { class: 'chars' });
-      for (const c of info.chars) grid.append(h('span', { class: 'c' }, c.ch), h('span', { class: 'cpy' }, pyHidden ? '' : numberedToMarked(c.py)), h('span', { class: 'cg' }, c.gloss));
+      for (const c of info.chars) {
+        const ch = this.word(c.ch, c.ch, c.ch);
+        ch.classList.add('c');
+        grid.append(ch, h('span', { class: 'cpy' }, pyHidden ? '' : numberedToMarked(c.py)), h('span', { class: 'cg' }, c.gloss));
+      }
       card.append(h('div', { class: 'sect' }, grid));
     }
 
-    const seen = (info?.record?.ctx ?? []).filter((c) => c.text !== o.ctx?.text).slice(0, 3);
+    const seen = (info?.seen ?? []).filter((c) => c.text !== o.ctx?.text).slice(0, 3);
     if (info?.examples.length || seen.length) {
       const sect = h('div', { class: 'sect' });
       if (info?.examples.length) {
@@ -339,7 +424,7 @@ export class Popup {
           h(
             'ul',
             { class: 'ex' },
-            ...info.examples.slice(0, 2).map(([zh, en]) => h('li', null, h('span', { class: 'zh' }, ...markWord(zh, m.word)), h('span', { class: 'en' }, en))),
+            ...info.examples.map((x) => h('li', null, h('span', { class: 'zh' }, ...this.sentence(x.toks, m.word)), h('span', { class: 'en' }, x.en))),
           ),
         );
       }
@@ -354,7 +439,7 @@ export class Popup {
               return h(
                 'li',
                 null,
-                h('span', { class: 'zh' }, ...markWord(c.text.split(' — ')[0], m.word)),
+                h('span', { class: 'zh' }, ...this.sentence(c.toks, m.word)),
                 h('a', { class: 'src', href, target: '_blank' }, c.src === 'yt' && c.t != null ? `▶ ${clock(c.t)}` : shortSource(c.url)),
               );
             }),
@@ -365,7 +450,12 @@ export class Popup {
     }
 
     const stamps = STAMPS.map((st) => {
-      const b = h('button', { class: `stamp ${st.s}${status === st.s ? ' on' : ''}`, title: `${st.label} (${st.key})` }, `${st.zh} ${st.label}`, h('kbd', null, st.key));
+      const b = h(
+        'button',
+        { class: `stamp ${st.s}${status === st.s ? ' on' : ''}${stamped === st.s ? ' pop' : ''}`, title: `${st.label} (${st.key})` },
+        st.zh,
+        h('small', null, st.key),
+      );
       b.addEventListener('click', () => this.setStatus(st.s));
       return b;
     });
@@ -373,16 +463,7 @@ export class Popup {
     say.addEventListener('click', () => this.speak());
     const img = h('button', null, 'images', h('kbd', null, 'i'));
     img.addEventListener('click', () => this.images());
-    card.append(h('div', { class: 'foot' }, ...stamps, h('div', { class: 'tools' }, say, img)));
+    card.append(h('div', { class: 'foot' }, h('div', { class: 'stamps' }, ...stamps), h('div', { class: 'tools' }, say, img)));
     card.hidden = false;
   }
-}
-
-/** Split a sentence so the headword can be underlined. */
-function markWord(text: string, word: string): (string | Node)[] {
-  const i = text.indexOf(word);
-  if (i < 0) return [text];
-  const mark = document.createElement('mark');
-  mark.textContent = word;
-  return [text.slice(0, i), mark, text.slice(i + word.length)];
 }

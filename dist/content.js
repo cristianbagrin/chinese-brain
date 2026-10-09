@@ -48,6 +48,7 @@
     subStyle: "light",
     shadowFactor: 1.5,
     cardPinyin: "show",
+    cardColors: !0,
     sounds: !0,
     pageColors: !1,
     speechRate: 0.9,
@@ -57,6 +58,22 @@
     geminiKey: "",
     geminiModel: "gemini-3.8-flash"
   }, TRANS_LANG = "en";
+
+  // src/content/lookup.ts
+  var cache = /* @__PURE__ */ new Map();
+  async function lookupText(text) {
+    let key = text.slice(0, 8), hit = cache.get(key);
+    if (hit) return hit;
+    let res = await browser.runtime.sendMessage({ type: "lookup", text: key });
+    return cache.size > 300 && cache.clear(), cache.set(key, res), res;
+  }
+
+  // src/content/keys.ts
+  function isTyping(e) {
+    if (e.isComposing) return !0;
+    let t = e.composedPath?.()[0] ?? e.target;
+    return !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName ?? ""));
+  }
 
   // src/content/state.ts
   var State = class {
@@ -99,141 +116,6 @@
       return this.settings.hoverMode !== "off" && !this.settings.disabledSites.includes(location.hostname);
     }
   }, state = new State();
-
-  // src/content/hover.ts
-  var HIGHLIGHT = "chinese-brain-hit", cache = /* @__PURE__ */ new Map();
-  async function lookupText(text) {
-    let key = text.slice(0, 8), hit = cache.get(key);
-    if (hit) return hit;
-    let res = await browser.runtime.sendMessage({ type: "lookup", text: key });
-    return cache.size > 300 && cache.clear(), cache.set(key, res), res;
-  }
-  function textFrom(node, offset, max = 10) {
-    let text = "", ranges = [], walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    walker.currentNode = node;
-    let cur = node, start = offset;
-    for (; cur && text.length < max; ) {
-      let piece = cur.data.slice(start, start + (max - text.length));
-      piece && (ranges.push([cur, start, start + piece.length]), text += piece);
-      let next = walker.nextNode();
-      if (!next || !sameBlock(cur, next)) break;
-      cur = next, start = 0;
-    }
-    return { text, ranges };
-  }
-  function sameBlock(a, b) {
-    let block = (n) => {
-      let el3 = n.parentElement;
-      for (; el3 && getComputedStyle(el3).display.startsWith("inline"); ) el3 = el3.parentElement;
-      return el3;
-    };
-    return block(a) === block(b);
-  }
-  function sentenceAround(node, offset) {
-    let block = node.parentElement?.closest("p,li,td,h1,h2,h3,h4,div,section,article,blockquote") ?? node.parentElement, full = block?.textContent ?? node.data, pos = offset;
-    if (block) {
-      let w2 = document.createTreeWalker(block, NodeFilter.SHOW_TEXT), acc = 0;
-      for (let n = w2.nextNode(); n; n = w2.nextNode()) {
-        if (n === node) {
-          pos = acc + offset;
-          break;
-        }
-        acc += n.data.length;
-      }
-    }
-    let stops = /[。！？!?；\n]/, a = pos;
-    for (; a > 0 && !stops.test(full[a - 1]) && pos - a < 120; ) a--;
-    let b = pos;
-    for (; b < full.length && !stops.test(full[b]) && b - pos < 160; ) b++;
-    return full.slice(a, Math.min(full.length, b + 1)).trim();
-  }
-  var HoverLookup = class {
-    popup;
-    raf = 0;
-    lastX = 0;
-    lastY = 0;
-    shift = !1;
-    currentKey = "";
-    cssInjected = !1;
-    seq = 0;
-    constructor(popup) {
-      this.popup = popup, document.addEventListener("mousemove", (e) => this.onMove(e), { passive: !0 }), document.addEventListener("mousedown", (e) => {
-        this.popup.contains(e.target) || this.popup.hide();
-      }), window.addEventListener("scroll", () => !this.popup.pinned && this.popup.hide(), { passive: !0 }), this.popup.onHide(() => {
-        this.currentKey = "", CSS.highlights?.delete(HIGHLIGHT);
-      });
-    }
-    onMove(e) {
-      this.lastX = e.clientX, this.lastY = e.clientY, this.shift = e.shiftKey, !this.raf && (this.raf = requestAnimationFrame(() => {
-        this.raf = 0, this.check(e.target);
-      }));
-    }
-    async check(target) {
-      let seq = ++this.seq;
-      if (this.popup.contains(target) || this.popup.pinned || target?.closest?.("[data-cb-own]")) return;
-      let s = state.settings;
-      if (!state.siteEnabled() || s.hoverMode === "shift" && !this.shift) return this.scheduleHide();
-      let pos = document.caretPositionFromPoint?.(this.lastX, this.lastY), node = pos?.offsetNode;
-      if (!node || node.nodeType !== Node.TEXT_NODE) return this.scheduleHide();
-      let text = node, offset = pos.offset;
-      if (offset = this.charUnderPointer(text, offset), offset < 0 || !CJK.test(text.data[offset] ?? "")) return this.scheduleHide();
-      let { text: str, ranges } = textFrom(text, offset), key = `${str}@${Math.round(this.charRect(text, offset)?.left ?? 0)}`;
-      if (key === this.currentKey) {
-        this.popup.cancelHide();
-        return;
-      }
-      let matches = await lookupText(str);
-      if (seq !== this.seq) return;
-      if (!matches.length) return this.scheduleHide();
-      this.currentKey = key;
-      let range = this.rangeFor(ranges, matches[0].text.length);
-      this.highlight(range), this.popup.show({
-        matches,
-        rect: range.getBoundingClientRect(),
-        cursor: { x: this.lastX, y: this.lastY },
-        src: "web",
-        ctx: { text: sentenceAround(text, offset), url: location.href, title: document.title, at: Date.now(), src: "web" }
-      });
-    }
-    charRect(node, i) {
-      if (i < 0 || i >= node.data.length) return;
-      let r = document.createRange();
-      return r.setStart(node, i), r.setEnd(node, i + 1), r.getBoundingClientRect();
-    }
-    charUnderPointer(node, offset) {
-      for (let i of [offset, offset - 1]) {
-        let r = this.charRect(node, i);
-        if (r && this.lastX >= r.left - 1 && this.lastX <= r.right + 1 && this.lastY >= r.top - 2 && this.lastY <= r.bottom + 2) return i;
-      }
-      return -1;
-    }
-    rangeFor(ranges, len) {
-      let r = document.createRange(), [n0, s0] = ranges[0];
-      r.setStart(n0, s0);
-      let left = len;
-      for (let [n, s, e] of ranges) {
-        let take = Math.min(left, e - s);
-        if (r.setEnd(n, s + take), left -= take, left <= 0) break;
-      }
-      return r;
-    }
-    highlight(range) {
-      if (!CSS.highlights) return;
-      this.cssInjected || (this.cssInjected = !0, browser.runtime.sendMessage({ type: "insertCSS", css: `::highlight(${HIGHLIGHT}){background:#f3d27a;color:#31261a}` }));
-      let hl = new Highlight(range);
-      hl.priority = 10, CSS.highlights.set(HIGHLIGHT, hl);
-    }
-    scheduleHide() {
-      this.currentKey && this.popup.hideSoon();
-    }
-  };
-
-  // src/content/keys.ts
-  function isTyping(e) {
-    if (e.isComposing) return !0;
-    let t = e.composedPath?.()[0] ?? e.target;
-    return !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName ?? ""));
-  }
 
   // src/youtube/captions.ts
   function parseTimedText(body) {
@@ -280,8 +162,19 @@
     }
     return tidy(cues);
   }
+  var ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
+  function cleanText(s) {
+    return s.replace(/<\/?[a-zA-Z][^>]*>/g, "").replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) => {
+      if (e[0] === "#") {
+        let n = e[1] === "x" || e[1] === "X" ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+        return Number.isFinite(n) && n > 0 && n < 1114112 ? String.fromCodePoint(n) : "";
+      }
+      return ENTITIES[e.toLowerCase()] ?? m;
+    }).replace(/[\u200b-\u200f\u2028\u2029\ufeff\u00ad]/g, "").replace(/\s+/g, " ").trim();
+  }
+  var SOUND_ONLY = /^[\[(（【♪♫\s]*(音樂|音乐|掌聲|笑聲|music|applause|laughter|♪|♫)[\])）】♪♫\s]*$/i;
   function tidy(cues) {
-    cues.sort((a, b) => a.start - b.start);
+    cues = cues.map((c) => ({ ...c, text: cleanText(c.text) })).filter((c) => c.text && !SOUND_ONLY.test(c.text) && Number.isFinite(c.start) && Number.isFinite(c.end) && c.end >= c.start), cues.sort((a, b) => a.start - b.start);
     let out = [];
     for (let c of cues) {
       let prev = out[out.length - 1];
@@ -698,7 +591,12 @@
       }), this.body.addEventListener("click", (e) => this.onClick(e)), document.addEventListener("fullscreenchange", () => this.place()), state.onChange(() => this.open && this.render());
     }
     toggle(force) {
-      this.open = force ?? !this.open, this.open ? (this.place(), this.render()) : (this.host.remove(), this.subs.setRightInset(0));
+      this.suspended && force !== !1 || (this.open = force ?? !this.open, this.open ? (this.place(), this.render()) : (this.host.remove(), this.subs.setRightInset(0)));
+    }
+    suspended = !1;
+    /** The subtitles switch: when off, the panel goes too (and comes back when switched on). */
+    setSuspended(off) {
+      off !== this.suspended && (this.suspended = off, off ? (this.host.remove(), this.subs.setRightInset(0)) : this.open && (this.place(), this.render()));
     }
     /** Called when the cues, tokens or translation change. */
     refresh() {
@@ -706,7 +604,7 @@
     }
     /** Mount in YouTube's side column when it is visible, otherwise inside the player. */
     place() {
-      if (!this.open) return;
+      if (!this.open || this.suspended) return;
       let flexy = document.querySelector("ytd-watch-flexy"), wide = !!document.fullscreenElement || flexy?.hasAttribute("theater") || flexy?.hasAttribute("fullscreen"), side = document.querySelector("#secondary-inner, #secondary"), player = document.getElementById("movie_player"), inSide = !wide && side && side.offsetWidth > 0, parent = inSide ? side : player;
       parent && (this.host.classList.toggle("side", !!inSide), this.host.classList.toggle("over", !inSide), inSide ? this.host.style.height = `${Math.max(360, player?.clientHeight ?? 480)}px` : this.host.style.height = "", this.host.parentNode !== parent && (inSide ? parent.prepend(this.host) : parent.append(this.host)), this.subs.setRightInset(inSide ? 0 : this.host.offsetWidth + 24));
     }
@@ -882,7 +780,7 @@
 :host(.dark) .tok.st-known { background: none; color: #5fe08a; }
 .tok.untracked { text-decoration: underline dotted var(--dots); text-underline-offset: 0.22em; text-decoration-thickness: 1.5px; }
 ruby { ruby-position: over; }
-rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
+rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spacing: 0; }
 
 .tr {
   background: var(--band);
@@ -1160,7 +1058,7 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
     /** The player switch: our subtitles on or off (YouTube's own come back when off). */
     applyEnabled() {
       let on = state.settings.ytEnabled && this.cues.length > 0;
-      this.host.hidden = !on, this.host.classList.toggle("dark", state.settings.subStyle === "dark"), document.documentElement.classList.toggle("cb-subs-on", on), this.wasOn && !on && this.popup.src === "yt" && this.popup.hide(), this.wasOn = on;
+      this.host.hidden = !on, this.host.classList.toggle("dark", state.settings.subStyle === "dark"), document.documentElement.classList.toggle("cb-subs-on", on), this.wasOn && !on && this.popup.src === "yt" && this.popup.hide(), this.wasOn = on, this.transcript?.setSuspended(!state.settings.ytEnabled);
     }
     mount() {
       let p = document.getElementById("movie_player");
@@ -1335,6 +1233,163 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
   function sameCues(a, b) {
     return a.length === b.length && a[0]?.text === b[0]?.text && a[a.length - 1]?.text === b[b.length - 1]?.text;
   }
+
+  // src/content/hover.ts
+  var HIGHLIGHT = "chinese-brain-hit";
+  function textFrom(node, offset, max = 10) {
+    let text = "", ranges = [], walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    walker.currentNode = node;
+    let cur = node, start = offset;
+    for (; cur && text.length < max; ) {
+      let piece = cur.data.slice(start, start + (max - text.length));
+      piece && (ranges.push([cur, start, start + piece.length]), text += piece);
+      let next = walker.nextNode();
+      if (!next || !sameBlock(cur, next)) break;
+      cur = next, start = 0;
+    }
+    return { text, ranges };
+  }
+  function sameBlock(a, b) {
+    let block = (n) => {
+      let el3 = n.parentElement;
+      for (; el3 && getComputedStyle(el3).display.startsWith("inline"); ) el3 = el3.parentElement;
+      return el3;
+    };
+    return block(a) === block(b);
+  }
+  function sentenceAround(node, offset) {
+    let block = node.parentElement?.closest("p,li,td,h1,h2,h3,h4,div,section,article,blockquote") ?? node.parentElement, full = block?.textContent ?? node.data, pos = offset;
+    if (block) {
+      let w2 = document.createTreeWalker(block, NodeFilter.SHOW_TEXT), acc = 0;
+      for (let n = w2.nextNode(); n; n = w2.nextNode()) {
+        if (n === node) {
+          pos = acc + offset;
+          break;
+        }
+        acc += n.data.length;
+      }
+    }
+    let stops = /[。！？!?；\n]/, a = pos;
+    for (; a > 0 && !stops.test(full[a - 1]) && pos - a < 120; ) a--;
+    let b = pos;
+    for (; b < full.length && !stops.test(full[b]) && b - pos < 160; ) b++;
+    return full.slice(a, Math.min(full.length, b + 1)).trim();
+  }
+  var HoverLookup = class {
+    popup;
+    raf = 0;
+    lastX = 0;
+    lastY = 0;
+    shift = !1;
+    currentKey = "";
+    cssInjected = !1;
+    seq = 0;
+    constructor(popup) {
+      this.popup = popup, document.addEventListener("mousemove", (e) => this.onMove(e), { passive: !0 }), document.addEventListener("mousedown", (e) => {
+        this.popup.contains(e.target) || this.popup.hide();
+      }), window.addEventListener("scroll", () => !this.popup.pinned && this.popup.hide(), { passive: !0 }), this.popup.onHide(() => {
+        this.currentKey = "", CSS.highlights?.delete(HIGHLIGHT);
+      }), document.addEventListener("mouseup", (e) => {
+        this.popup.contains(e.target) || setTimeout(() => this.onSelect(e), 0);
+      }), document.addEventListener("keyup", (e) => {
+        e.shiftKey && e.key.startsWith("Arrow") && this.onSelect();
+      });
+    }
+    /** Card for the selected text: the longest dictionary word it starts with. */
+    async onSelect(e) {
+      if (!state.siteEnabled()) return;
+      let active = document.activeElement, text = "", rect, ctxText = "", field = active && (active instanceof HTMLTextAreaElement || active instanceof HTMLInputElement && /^(text|search|url|email|)$/.test(active.type));
+      if (field && active.selectionStart != null && active.selectionEnd != null && active.selectionEnd > active.selectionStart) {
+        text = active.value.slice(active.selectionStart, active.selectionEnd);
+        let r = active.getBoundingClientRect();
+        rect = new DOMRect(e?.clientX ?? r.left, r.top, 1, r.height);
+      } else {
+        let sel = document.getSelection();
+        if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+        text = sel.toString(), rect = sel.getRangeAt(0).getBoundingClientRect(), sel.anchorNode?.nodeType === Node.TEXT_NODE && (ctxText = sentenceAround(sel.anchorNode, sel.anchorOffset));
+      }
+      if (text = text.trim(), !text || text.length > 16 || !CJK.test(text[0])) return;
+      let matches = await lookupText(text);
+      if (!matches.length) return;
+      let exact = matches.findIndex((m) => m.text === text), ordered = exact > 0 ? [matches[exact], ...matches.filter((_, i) => i !== exact)] : matches;
+      CSS.highlights?.delete(HIGHLIGHT), this.currentKey = "", this.popup.show({
+        matches: ordered,
+        rect,
+        cursor: e ? { x: e.clientX, y: e.clientY } : void 0,
+        src: "web",
+        pinned: !0,
+        ctx: { text: ctxText || (field ? active.value.slice(0, 200) : text), url: location.href, title: document.title, at: Date.now(), src: "web" }
+      });
+    }
+    onMove(e) {
+      this.lastX = e.clientX, this.lastY = e.clientY, this.shift = e.shiftKey, !this.raf && (this.raf = requestAnimationFrame(() => {
+        this.raf = 0, this.check(e.target);
+      }));
+    }
+    async check(target) {
+      let seq = ++this.seq;
+      if (this.popup.pinned) return;
+      if (this.popup.contains(target)) {
+        if (this.popup.age() > 450) return;
+        this.popup.hide();
+      }
+      if (target?.closest?.("[data-cb-own]")) return;
+      let s = state.settings;
+      if (!state.siteEnabled() || s.hoverMode === "shift" && !this.shift) return this.scheduleHide();
+      let pos = document.caretPositionFromPoint?.(this.lastX, this.lastY), node = pos?.offsetNode;
+      if (!node || node.nodeType !== Node.TEXT_NODE) return this.scheduleHide();
+      let text = node, offset = pos.offset;
+      if (offset = this.charUnderPointer(text, offset), offset < 0 || !CJK.test(text.data[offset] ?? "")) return this.scheduleHide();
+      let { text: str, ranges } = textFrom(text, offset), key = `${str}@${Math.round(this.charRect(text, offset)?.left ?? 0)}`;
+      if (key === this.currentKey) {
+        this.popup.cancelHide();
+        return;
+      }
+      let matches = await lookupText(str);
+      if (seq !== this.seq) return;
+      if (!matches.length) return this.scheduleHide();
+      this.currentKey = key;
+      let range = this.rangeFor(ranges, matches[0].text.length);
+      this.highlight(range), this.popup.show({
+        matches,
+        rect: range.getBoundingClientRect(),
+        cursor: { x: this.lastX, y: this.lastY },
+        src: "web",
+        ctx: { text: sentenceAround(text, offset), url: location.href, title: document.title, at: Date.now(), src: "web" }
+      });
+    }
+    charRect(node, i) {
+      if (i < 0 || i >= node.data.length) return;
+      let r = document.createRange();
+      return r.setStart(node, i), r.setEnd(node, i + 1), r.getBoundingClientRect();
+    }
+    charUnderPointer(node, offset) {
+      for (let i of [offset, offset - 1]) {
+        let r = this.charRect(node, i);
+        if (r && this.lastX >= r.left - 1 && this.lastX <= r.right + 1 && this.lastY >= r.top - 2 && this.lastY <= r.bottom + 2) return i;
+      }
+      return -1;
+    }
+    rangeFor(ranges, len) {
+      let r = document.createRange(), [n0, s0] = ranges[0];
+      r.setStart(n0, s0);
+      let left = len;
+      for (let [n, s, e] of ranges) {
+        let take = Math.min(left, e - s);
+        if (r.setEnd(n, s + take), left -= take, left <= 0) break;
+      }
+      return r;
+    }
+    highlight(range) {
+      if (!CSS.highlights) return;
+      this.cssInjected || (this.cssInjected = !0, browser.runtime.sendMessage({ type: "insertCSS", css: `::highlight(${HIGHLIGHT}){background:#f3d27a;color:#31261a}` }));
+      let hl = new Highlight(range);
+      hl.priority = 10, CSS.highlights.set(HIGHLIGHT, hl);
+    }
+    scheduleHide() {
+      this.currentKey && this.popup.hideSoon();
+    }
+  };
 
   // src/content/pagecolor.ts
   var NAMES = { fresh: "cb-fresh", learning: "cb-learning", known: "cb-known" }, CSS_TEXT = `
@@ -1536,10 +1591,9 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
   font: 14px/1.45 var(--sans);
   box-shadow: 0 8px 28px rgba(27, 29, 58, 0.16), 0 1px 3px rgba(27, 29, 58, 0.08);
   text-align: left;
-  pointer-events: none; /* a hover card never blocks the page */
+  pointer-events: auto;
   scrollbar-width: thin;
 }
-.card.pinned { pointer-events: auto; }
 .card[hidden] { display: none; }
 
 .top { padding: 12px 16px 10px; }
@@ -1549,7 +1603,7 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
 .head.st-fresh { background: var(--fresh-mark); }
 .head.st-learning { background: var(--learning-mark); }
 .head.st-known { background: var(--known-mark); }
-.py { font-size: 17px; color: var(--text2); letter-spacing: 0.01em; }
+.py { font-size: 15px; color: var(--text3); letter-spacing: 0.01em; }
 .py.hidden { color: transparent; text-shadow: 0 0 9px var(--text2); }
 .freq { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text3); white-space: nowrap; }
 .bars { display: inline-flex; gap: 2px; align-items: flex-end; height: 11px; }
@@ -1564,46 +1618,69 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
 .cl b { font-weight: 500; color: var(--text); }
 
 .sect { border-top: 1px solid var(--line); padding: 8px 16px; }
-.chars { display: grid; grid-template-columns: auto auto 1fr; gap: 2px 10px; align-items: baseline; }
+.chars { display: grid; grid-template-columns: auto auto 1fr; gap: 3px 10px; align-items: baseline; }
 .chars .c { font-size: 19px; }
-.chars .cpy { color: var(--text2); font-size: 13px; }
-.chars .cg { color: var(--text2); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; }
+.chars .cpy { color: var(--text3); font-size: 12px; white-space: nowrap; }
+.chars .cg { color: var(--text2); font-size: 13px; line-height: 1.4; }
 
 .ex { margin: 0; padding: 0; list-style: none; }
 .ex li + li { margin-top: 5px; }
 .ex .zh { font-size: 15px; }
-.ex .zh mark { background: none; color: inherit; border-bottom: 2px solid var(--learning); }
+
 .ex .en { display: block; font-size: 12.5px; color: var(--text2); }
 .label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 4px; }
 .seen .src { font-size: 12px; color: var(--link); margin-left: 6px; text-decoration: none; }
 
-.foot { display: flex; align-items: center; gap: 8px; padding: 8px 12px 10px 16px; border-top: 1px solid var(--line); background: var(--bg2); }
+.foot { display: flex; align-items: center; gap: 10px; padding: 8px 12px 10px 14px; border-top: 1px solid var(--line); background: var(--bg2); }
+.stamps { display: flex; gap: 8px; }
 .stamp {
   all: unset;
   cursor: pointer;
   box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 9px 3px 7px;
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
   border: 1.5px solid var(--line);
-  border-radius: 999px;
-  font: 500 13px/1.2 var(--sans);
+  background: var(--bg);
+  font: 600 16px/1 var(--sans);
   color: var(--text2);
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.12s, border-color 0.12s, color 0.12s;
 }
-.stamp kbd { font: 600 10px/1 var(--sans); color: var(--text3); }
-.stamp.fresh { border-color: color-mix(in srgb, var(--fresh) 45%, transparent); }
-.stamp.learning { border-color: color-mix(in srgb, var(--learning) 80%, transparent); }
-.stamp.known { border-color: color-mix(in srgb, var(--known) 45%, transparent); }
-.stamp.on { color: #fff; }
-.stamp.on kbd { color: #fff; opacity: 0.75; }
-.stamp.learning.on, .stamp.learning.on kbd { color: var(--text); }
+.stamp small { position: absolute; right: -3px; bottom: -3px; font: 600 9px/1 var(--sans); color: var(--text3); background: var(--bg2); padding: 1px 2px; border-radius: 3px; }
+.stamp:hover { border-color: var(--text3); color: var(--text); }
+.stamp:active { transform: scale(0.88); }
+.stamp.fresh { border-color: color-mix(in srgb, var(--fresh) 45%, var(--line)); }
+.stamp.learning { border-color: color-mix(in srgb, var(--learning) 75%, var(--line)); }
+.stamp.known { border-color: color-mix(in srgb, var(--known) 45%, var(--line)); }
+.stamp.on { transform: rotate(-10deg); color: #fff; }
 .stamp.fresh.on { background: var(--fresh); border-color: var(--fresh); }
-.stamp.learning.on { background: var(--learning); border-color: var(--learning); }
+.stamp.learning.on { background: var(--learning); border-color: var(--learning); color: var(--text); }
 .stamp.known.on { background: var(--known); border-color: var(--known); }
+.stamp.pop { animation: pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes pop {
+  0% { transform: rotate(0) scale(0.85); }
+  60% { transform: rotate(-14deg) scale(1.08); }
+  100% { transform: rotate(-10deg) scale(1); }
+}
 .tools { margin-left: auto; display: flex; gap: 12px; font-size: 12.5px; }
 .tools button { all: unset; cursor: pointer; color: var(--link); }
 .tools kbd { font: inherit; color: var(--text3); margin-left: 3px; }
+
+/* Every Chinese word in the card is clickable; a quiet underline on hover, nothing popping up. */
+.w { cursor: pointer; border-radius: 3px; }
+.w:hover { text-decoration: underline; text-decoration-color: var(--text3); text-underline-offset: 3px; }
+.w.st-fresh { background: var(--fresh-mark); }
+.w.st-learning { background: var(--learning-mark); }
+.w.st-known { background: var(--known-mark); }
+.ex .w.head { box-shadow: inset 0 -2px 0 var(--learning); }
+.chars .w.c { font-size: 19px; padding: 0 2px; }
+.top { position: relative; }
+.back { all: unset; cursor: pointer; position: absolute; left: 6px; top: 6px; font-size: 13px; color: var(--text3); padding: 2px 5px; border-radius: 4px; }
+.back:hover { color: var(--text); background: var(--bg2); }
+.top:has(.back) .headrow { padding-left: 16px; }
 `;
 
   // src/content/popup.ts
@@ -1631,7 +1708,10 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
     opts;
     info;
     shownAt = 0;
+    hovered = !1;
     revealPy = !1;
+    /** Cards visited by clicking words inside the card (for the back arrow). */
+    history = [];
     lookTimer;
     softTimer;
     hideListeners = /* @__PURE__ */ new Set();
@@ -1640,15 +1720,21 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
       this.host = document.createElement("chinese-brain-popup"), this.root = this.host.attachShadow({ mode: "closed" });
       let style = document.createElement("style");
       style.textContent = popup_default, this.card = h("div", { class: "card", hidden: "" }), this.root.append(style, this.card);
-      for (let t of ["mousedown", "click", "dblclick", "pointerdown"]) this.card.addEventListener(t, (e) => e.stopPropagation());
-      state.onChange(() => {
+      for (let t of ["mousedown", "mouseup", "dblclick", "pointerdown", "pointerup"]) this.card.addEventListener(t, (e) => e.stopPropagation());
+      this.card.addEventListener("click", (e) => {
+        e.stopPropagation(), this.onCardClick(e);
+      }), this.card.addEventListener("mouseenter", () => {
+        this.hovered = !0, clearTimeout(this.softTimer);
+      }), this.card.addEventListener("mouseleave", () => {
+        this.hovered = !1, this.pinned || this.hideSoon();
+      }), state.onChange(() => {
         this.opts && (this.infoCache.clear(), this.render());
       }), document.addEventListener("fullscreenchange", () => this.mount());
     }
     get visible() {
       return !!this.opts;
     }
-    /** Where the open card came from ('yt' subtitles or 'web' hover). */
+    /** Where the open card came from ('yt' subtitles or 'web'). */
     get src() {
       return this.opts?.src;
     }
@@ -1662,6 +1748,9 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
     get current() {
       return this.opts?.matches[0];
     }
+    get isHovered() {
+      return this.hovered;
+    }
     contains(node) {
       return node === this.host;
     }
@@ -1672,18 +1761,20 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
     onHide(fn) {
       this.hideListeners.add(fn);
     }
-    /** Hide after a short grace period. */
+    /** Hide after a short grace period, unless the pointer is on the card. */
     hideSoon(ms = 300) {
-      !this.opts || this.pinned || (clearTimeout(this.softTimer), this.softTimer = setTimeout(() => !this.pinned && this.hide(), ms));
+      !this.opts || this.pinned || (clearTimeout(this.softTimer), this.softTimer = setTimeout(() => {
+        !this.hovered && !this.pinned && this.hide();
+      }, ms));
     }
     cancelHide() {
       clearTimeout(this.softTimer);
     }
-    async show(opts) {
+    async show(opts, keepPlace = !1) {
       let sameWord = this.opts?.matches[0]?.word === opts.matches[0]?.word;
-      this.opts = opts, clearTimeout(this.softTimer), sameWord || (this.revealPy = !1), this.mount();
+      this.opts = opts, clearTimeout(this.softTimer), sameWord || (this.revealPy = !1), keepPlace || (this.history = []), this.mount();
       let m = opts.matches[0], e0 = m.entries[0], [, info] = await Promise.all([state.loadStatuses(), this.wordInfo(m.word, e0.tw || e0.py)]);
-      this.opts === opts && (this.info = info, this.render(), this.position(opts), this.shownAt = Date.now(), clearTimeout(this.lookTimer), this.lookTimer = setTimeout(() => this.recordLook(), opts.pinned ? 0 : 1200));
+      this.opts === opts && (this.info = info, this.render(), keepPlace || this.position(opts), this.shownAt = Date.now(), clearTimeout(this.lookTimer), this.lookTimer = setTimeout(() => this.recordLook(), opts.pinned ? 0 : 1200));
     }
     async wordInfo(word, py) {
       let hit = this.infoCache.get(word);
@@ -1692,7 +1783,7 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
       return this.infoCache.size > 200 && this.infoCache.clear(), this.infoCache.set(word, info), info;
     }
     hide() {
-      this.opts && (clearTimeout(this.lookTimer), clearTimeout(this.softTimer), this.opts = void 0, this.card.hidden = !0, this.hideListeners.forEach((f) => f()));
+      this.opts && (clearTimeout(this.lookTimer), clearTimeout(this.softTimer), this.opts = void 0, this.history = [], this.hovered = !1, this.card.hidden = !0, this.hideListeners.forEach((f) => f()));
     }
     recordLook() {
       let m = this.current;
@@ -1703,7 +1794,7 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
       let m = this.current;
       if (!m || !this.opts) return;
       let cur = state.status(m.word), next = toggle && cur === status ? null : status;
-      next !== cur && (next ? state.statuses.set(m.word, next) : state.statuses.delete(m.word), stampSound(next), this.infoCache.delete(m.word), this.render(), browser.runtime.sendMessage({ type: "setStatus", word: m.word, status: next, entry: m.entries[0], ctx: this.opts.ctx }));
+      next !== cur && (next ? state.statuses.set(m.word, next) : state.statuses.delete(m.word), stampSound(next), this.infoCache.delete(m.word), this.render(next ?? void 0), browser.runtime.sendMessage({ type: "setStatus", word: m.word, status: next, entry: m.entries[0], ctx: this.opts.ctx }));
     }
     speak() {
       let m = this.current;
@@ -1712,6 +1803,20 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
     images() {
       let m = this.current;
       m && window.open(`https://duckduckgo.com/?q=${encodeURIComponent(m.word)}&iax=images&ia=images&kl=tw-tzh`, "_blank");
+    }
+    /** Open a word clicked inside the card, in the same place, with a way back. */
+    async openInside(q) {
+      if (!this.opts) return;
+      let matches = await lookupText(q);
+      !matches.length || !this.opts || (this.history.push(this.opts), await this.show({ ...this.opts, matches, ctx: this.opts.ctx, pinned: !0 }, !0));
+    }
+    back() {
+      let prev = this.history.pop();
+      prev && this.show({ ...prev, pinned: !0 }, !0);
+    }
+    onCardClick(e) {
+      let t = e.target.closest("[data-q]");
+      t?.dataset.q && this.openInside(t.dataset.q);
     }
     /** Keyboard shortcuts while the card is open. Returns true when handled. */
     handleKey(e) {
@@ -1733,7 +1838,7 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
         case "p":
           return state.settings.cardPinyin !== "hover" ? !1 : (this.revealPy = !this.revealPy, this.render(), !0);
         case "Escape":
-          return this.hide(), !0;
+          return this.history.length ? this.back() : this.hide(), !0;
       }
       return !1;
     }
@@ -1742,7 +1847,28 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
       let c = this.card, r = o.rect, vw = window.innerWidth, vh = window.innerHeight, w2 = c.offsetWidth, ht = c.offsetHeight, x0 = o.cursor ? o.cursor.x - 28 : r.left, x = Math.min(Math.max(8, x0), vw - w2 - 8), y = Math.max(r.bottom, o.cursor?.y ?? 0) + 12;
       y + ht > vh - 8 && (y = Math.max(8, r.top - ht - 10)), c.style.left = `${x}px`, c.style.top = `${y}px`;
     }
-    render() {
+    /** A clickable, status-coloured word. */
+    word(text, q, word) {
+      let el3 = h("span", { class: "w", "data-q": q }, text), st = state.settings.cardColors && word ? state.status(word) : void 0;
+      return st && el3.classList.add("st-" + st), el3;
+    }
+    /** Sentence tokens as clickable words; the headword is underlined. */
+    sentence(toks, head) {
+      return toks.map((t) => {
+        let text = t.trad ?? t.text;
+        if (!t.word && !CJK.test(t.text)) return text;
+        let el3 = this.word(text, t.text, t.word);
+        return (t.word === head || text === head) && el3.classList.add("head"), el3;
+      });
+    }
+    /** Plain text with its Chinese runs made clickable (definitions, measure words). */
+    richText(text) {
+      let out = [];
+      for (let m of text.matchAll(/[㐀-鿿豈-﫿]+|[^㐀-鿿豈-﫿]+/g))
+        out.push(CJK.test(m[0][0]) ? this.word(m[0], m[0], m[0]) : m[0]);
+      return out;
+    }
+    render(stamped) {
       let o = this.opts, m = o?.matches[0];
       if (!o || !m) return;
       let status = state.status(m.word), e0 = m.entries[0], s = state.settings, card = this.card;
@@ -1760,7 +1886,7 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
       for (let [reading, list] of groups) {
         let defs = [...new Set(list.flatMap((e) => e.defs))], senses = defs.filter((d) => !d.startsWith("CL:")).slice(0, 10).map(prettyDef), cls = defs.filter((d) => d.startsWith("CL:")).flatMap((d) => d.slice(3).split(",")), line = h("div", { class: "defs" });
         first || line.append(h("span", { class: "rpy" }, numberedToMarked(reading, !1))), senses.forEach((d, i) => {
-          i && line.append(h("span", { class: "sep" }, "\xB7")), line.append(d);
+          i && line.append(h("span", { class: "sep" }, "\xB7")), line.append(...this.richText(d));
         });
         let block = h("div", { class: "reading" }, line);
         cls.length && block.append(
@@ -1770,44 +1896,48 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
             "measure word ",
             ...cls.flatMap((c, i) => {
               let mm = /^([^|\[]+)(?:\|[^\[]+)?\[([^\]]+)\]/.exec(c);
-              return mm ? [i ? ", " : "", h("b", null, mm[1]), " " + numberedToMarked(mm[2])] : [];
+              return mm ? [i ? ", " : "", this.word(mm[1], mm[1], mm[1]), " " + numberedToMarked(mm[2])] : [];
             })
           )
         ), readings.push(block), first = !1;
       }
-      card.append(
+      let head = h("span", { class: `head${status ? " st-" + status : ""}` }, m.word), top = h("div", { class: "top" });
+      if (this.history.length) {
+        let backBtn = h("button", { class: "back", title: "Back (Esc)" }, "\u2190");
+        backBtn.addEventListener("click", () => this.back()), top.append(backBtn);
+      }
+      top.append(
         h(
           "div",
-          { class: "top" },
-          h(
-            "div",
-            { class: "headrow" },
-            h("span", { class: `head${status ? " st-" + status : ""}` }, m.word),
-            pyEl,
-            bars ? h(
-              "span",
-              { class: "freq", title: `Frequency rank #${rank.toLocaleString()} of all words` },
-              h("span", { class: "bars" }, ...[1, 2, 3, 4, 5].map((i) => h("i", { class: i <= bars ? "on" : "", style: `height:${3 + i * 2}px` }))),
-              rank ? `#${rank.toLocaleString()}` : ""
-            ) : null
-          ),
-          ...readings
-        )
-      );
+          { class: "headrow" },
+          head,
+          pyEl,
+          bars ? h(
+            "span",
+            { class: "freq", title: `Frequency rank #${rank.toLocaleString()} of all words` },
+            h("span", { class: "bars" }, ...[1, 2, 3, 4, 5].map((i) => h("i", { class: i <= bars ? "on" : "", style: `height:${3 + i * 2}px` }))),
+            rank ? `#${rank.toLocaleString()}` : ""
+          ) : null
+        ),
+        ...readings
+      ), card.append(top);
       let info = this.info;
       if (info?.chars.length) {
         let grid = h("div", { class: "chars" });
-        for (let c of info.chars) grid.append(h("span", { class: "c" }, c.ch), h("span", { class: "cpy" }, pyHidden ? "" : numberedToMarked(c.py)), h("span", { class: "cg" }, c.gloss));
+        for (let c of info.chars) {
+          let ch = this.word(c.ch, c.ch, c.ch);
+          ch.classList.add("c"), grid.append(ch, h("span", { class: "cpy" }, pyHidden ? "" : numberedToMarked(c.py)), h("span", { class: "cg" }, c.gloss));
+        }
         card.append(h("div", { class: "sect" }, grid));
       }
-      let seen = (info?.record?.ctx ?? []).filter((c) => c.text !== o.ctx?.text).slice(0, 3);
+      let seen = (info?.seen ?? []).filter((c) => c.text !== o.ctx?.text).slice(0, 3);
       if (info?.examples.length || seen.length) {
         let sect = h("div", { class: "sect" });
         info?.examples.length && sect.append(
           h(
             "ul",
             { class: "ex" },
-            ...info.examples.slice(0, 2).map(([zh, en]) => h("li", null, h("span", { class: "zh" }, ...markWord(zh, m.word)), h("span", { class: "en" }, en)))
+            ...info.examples.map((x) => h("li", null, h("span", { class: "zh" }, ...this.sentence(x.toks, m.word)), h("span", { class: "en" }, x.en)))
           )
         ), seen.length && sect.append(
           h("div", { class: "label", style: info?.examples.length ? "margin-top:8px" : "" }, "You met it in"),
@@ -1819,7 +1949,7 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
               return h(
                 "li",
                 null,
-                h("span", { class: "zh" }, ...markWord(c.text.split(" \u2014 ")[0], m.word)),
+                h("span", { class: "zh" }, ...this.sentence(c.toks, m.word)),
                 h("a", { class: "src", href, target: "_blank" }, c.src === "yt" && c.t != null ? `\u25B6 ${clock(c.t)}` : shortSource(c.url))
               );
             })
@@ -1827,20 +1957,19 @@ rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
         ), card.append(sect);
       }
       let stamps = STAMPS.map((st) => {
-        let b = h("button", { class: `stamp ${st.s}${status === st.s ? " on" : ""}`, title: `${st.label} (${st.key})` }, `${st.zh} ${st.label}`, h("kbd", null, st.key));
+        let b = h(
+          "button",
+          { class: `stamp ${st.s}${status === st.s ? " on" : ""}${stamped === st.s ? " pop" : ""}`, title: `${st.label} (${st.key})` },
+          st.zh,
+          h("small", null, st.key)
+        );
         return b.addEventListener("click", () => this.setStatus(st.s)), b;
       }), say = h("button", null, "say", h("kbd", null, "v"));
       say.addEventListener("click", () => this.speak());
       let img = h("button", null, "images", h("kbd", null, "i"));
-      img.addEventListener("click", () => this.images()), card.append(h("div", { class: "foot" }, ...stamps, h("div", { class: "tools" }, say, img))), card.hidden = !1;
+      img.addEventListener("click", () => this.images()), card.append(h("div", { class: "foot" }, h("div", { class: "stamps" }, ...stamps), h("div", { class: "tools" }, say, img))), card.hidden = !1;
     }
   };
-  function markWord(text, word) {
-    let i = text.indexOf(word);
-    if (i < 0) return [text];
-    let mark = document.createElement("mark");
-    return mark.textContent = word, [text.slice(0, i), mark, text.slice(i + word.length)];
-  }
 
   // src/content/index.ts
   var w = window;

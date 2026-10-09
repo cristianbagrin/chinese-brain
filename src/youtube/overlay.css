@@ -65,7 +65,7 @@
 :host(.dark) .tok.st-known { background: none; color: #5fe08a; }
 .tok.untracked { text-decoration: underline dotted var(--dots); text-underline-offset: 0.22em; text-decoration-thickness: 1.5px; }
 ruby { ruby-position: over; }
-rt { font: 400 0.42em/1 var(--sans); color: var(--rt); letter-spacing: 0; }
+rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spacing: 0; }
 
 .tr {
   background: var(--band);

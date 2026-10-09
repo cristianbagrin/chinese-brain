@@ -166,6 +166,7 @@
     subStyle: "light",
     shadowFactor: 1.5,
     cardPinyin: "show",
+    cardColors: !0,
     sounds: !0,
     pageColors: !1,
     speechRate: 0.9,
@@ -484,11 +485,14 @@ Do not summarise, do not skip lines, do not add commentary.`, SCHEMA = {
         });
       case "wordInfo":
         return Promise.all([dictReady, storeReady, examplesReady]).then(([d]) => {
-          let word = any.word, sylls = String(any.py ?? "").split(/\s+/);
-          return { chars: [...word].length > 1 ? [...word].map((ch, i) => {
+          let word = any.word, sylls = String(any.py ?? "").split(/\s+/), chars = [...word].length > 1 ? [...word].map((ch, i) => {
             let e = d.charEntry(ch, sylls[i]);
             return { ch, py: sylls[i] ?? e?.tw ?? e?.py ?? "", gloss: e ? shortGloss(e) : "" };
-          }) : [], examples: examples.get(word) ?? [], record: store.words.get(word) ?? null };
+          }) : [], record = store.words.get(word) ?? null, ex = (examples.get(word) ?? []).slice(0, 2).map(([zh, en]) => ({ zh, en, toks: d.segment(zh) })), seen = (record?.ctx ?? []).slice(0, 4).map((c) => {
+            let zh = c.text.split(" \u2014 ")[0];
+            return { ...c, zh, toks: d.segment(zh) };
+          });
+          return { chars, examples: ex, seen, record };
         });
       case "glosses":
         return dictReady.then((d) => {

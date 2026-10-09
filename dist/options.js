@@ -14,6 +14,7 @@
     subStyle: "light",
     shadowFactor: 1.5,
     cardPinyin: "show",
+    cardColors: !0,
     sounds: !0,
     pageColors: !1,
     speechRate: 0.9,

@@ -81,7 +81,34 @@ function parseVtt(body: string): Cue[] {
 }
 
 /** Sort, drop exact repeats (auto-captions roll), and clip overlaps. */
+const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+
+/**
+ * Caption text as shown: no markup (uploaders put <font>, <i>, <b> in captions),
+ * entities decoded, invisible characters removed, whitespace collapsed.
+ */
+export function cleanText(s: string): string {
+  return s
+    .replace(/<\/?[a-zA-Z][^>]*>/g, '')
+    .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e: string) => {
+      if (e[0] === '#') {
+        const n = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+        return Number.isFinite(n) && n > 0 && n < 0x110000 ? String.fromCodePoint(n) : '';
+      }
+      return ENTITIES[e.toLowerCase()] ?? m;
+    })
+    .replace(/[\u200b-\u200f\u2028\u2029\ufeff\u00ad]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Lines that are only a sound label, like [音樂] or (Music). */
+const SOUND_ONLY = /^[\[(（【♪♫\s]*(音樂|音乐|掌聲|笑聲|music|applause|laughter|♪|♫)[\])）】♪♫\s]*$/i;
+
 function tidy(cues: Cue[]): Cue[] {
+  cues = cues
+    .map((c) => ({ ...c, text: cleanText(c.text) }))
+    .filter((c) => c.text && !SOUND_ONLY.test(c.text) && Number.isFinite(c.start) && Number.isFinite(c.end) && c.end >= c.start);
   cues.sort((a, b) => a.start - b.start);
   const out: Cue[] = [];
   for (const c of cues) {

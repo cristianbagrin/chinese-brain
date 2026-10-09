@@ -75,6 +75,7 @@ export class Transcript {
   }
 
   toggle(force?: boolean) {
+    if (this.suspended && force !== false) return;
     this.open = force ?? !this.open;
     if (this.open) {
       this.place();
@@ -85,6 +86,21 @@ export class Transcript {
     }
   }
 
+  private suspended = false;
+
+  /** The subtitles switch: when off, the panel goes too (and comes back when switched on). */
+  setSuspended(off: boolean) {
+    if (off === this.suspended) return;
+    this.suspended = off;
+    if (off) {
+      this.host.remove();
+      this.subs.setRightInset(0);
+    } else if (this.open) {
+      this.place();
+      this.render();
+    }
+  }
+
   /** Called when the cues, tokens or translation change. */
   refresh() {
     if (this.open) this.render();
@@ -92,7 +108,7 @@ export class Transcript {
 
   /** Mount in YouTube's side column when it is visible, otherwise inside the player. */
   place() {
-    if (!this.open) return;
+    if (!this.open || this.suspended) return;
     const flexy = document.querySelector('ytd-watch-flexy');
     const wide = !!document.fullscreenElement || flexy?.hasAttribute('theater') || flexy?.hasAttribute('fullscreen');
     const side = document.querySelector('#secondary-inner, #secondary') as HTMLElement | null;

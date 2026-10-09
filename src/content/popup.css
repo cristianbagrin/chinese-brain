@@ -32,10 +32,9 @@
   font: 14px/1.45 var(--sans);
   box-shadow: 0 8px 28px rgba(27, 29, 58, 0.16), 0 1px 3px rgba(27, 29, 58, 0.08);
   text-align: left;
-  pointer-events: none; /* a hover card never blocks the page */
+  pointer-events: auto;
   scrollbar-width: thin;
 }
-.card.pinned { pointer-events: auto; }
 .card[hidden] { display: none; }
 
 .top { padding: 12px 16px 10px; }
@@ -45,7 +44,7 @@
 .head.st-fresh { background: var(--fresh-mark); }
 .head.st-learning { background: var(--learning-mark); }
 .head.st-known { background: var(--known-mark); }
-.py { font-size: 17px; color: var(--text2); letter-spacing: 0.01em; }
+.py { font-size: 15px; color: var(--text3); letter-spacing: 0.01em; }
 .py.hidden { color: transparent; text-shadow: 0 0 9px var(--text2); }
 .freq { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text3); white-space: nowrap; }
 .bars { display: inline-flex; gap: 2px; align-items: flex-end; height: 11px; }
@@ -60,43 +59,66 @@
 .cl b { font-weight: 500; color: var(--text); }
 
 .sect { border-top: 1px solid var(--line); padding: 8px 16px; }
-.chars { display: grid; grid-template-columns: auto auto 1fr; gap: 2px 10px; align-items: baseline; }
+.chars { display: grid; grid-template-columns: auto auto 1fr; gap: 3px 10px; align-items: baseline; }
 .chars .c { font-size: 19px; }
-.chars .cpy { color: var(--text2); font-size: 13px; }
-.chars .cg { color: var(--text2); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; }
+.chars .cpy { color: var(--text3); font-size: 12px; white-space: nowrap; }
+.chars .cg { color: var(--text2); font-size: 13px; line-height: 1.4; }
 
 .ex { margin: 0; padding: 0; list-style: none; }
 .ex li + li { margin-top: 5px; }
 .ex .zh { font-size: 15px; }
-.ex .zh mark { background: none; color: inherit; border-bottom: 2px solid var(--learning); }
+
 .ex .en { display: block; font-size: 12.5px; color: var(--text2); }
 .label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 4px; }
 .seen .src { font-size: 12px; color: var(--link); margin-left: 6px; text-decoration: none; }
 
-.foot { display: flex; align-items: center; gap: 8px; padding: 8px 12px 10px 16px; border-top: 1px solid var(--line); background: var(--bg2); }
+.foot { display: flex; align-items: center; gap: 10px; padding: 8px 12px 10px 14px; border-top: 1px solid var(--line); background: var(--bg2); }
+.stamps { display: flex; gap: 8px; }
 .stamp {
   all: unset;
   cursor: pointer;
   box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 9px 3px 7px;
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
   border: 1.5px solid var(--line);
-  border-radius: 999px;
-  font: 500 13px/1.2 var(--sans);
+  background: var(--bg);
+  font: 600 16px/1 var(--sans);
   color: var(--text2);
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.12s, border-color 0.12s, color 0.12s;
 }
-.stamp kbd { font: 600 10px/1 var(--sans); color: var(--text3); }
-.stamp.fresh { border-color: color-mix(in srgb, var(--fresh) 45%, transparent); }
-.stamp.learning { border-color: color-mix(in srgb, var(--learning) 80%, transparent); }
-.stamp.known { border-color: color-mix(in srgb, var(--known) 45%, transparent); }
-.stamp.on { color: #fff; }
-.stamp.on kbd { color: #fff; opacity: 0.75; }
-.stamp.learning.on, .stamp.learning.on kbd { color: var(--text); }
+.stamp small { position: absolute; right: -3px; bottom: -3px; font: 600 9px/1 var(--sans); color: var(--text3); background: var(--bg2); padding: 1px 2px; border-radius: 3px; }
+.stamp:hover { border-color: var(--text3); color: var(--text); }
+.stamp:active { transform: scale(0.88); }
+.stamp.fresh { border-color: color-mix(in srgb, var(--fresh) 45%, var(--line)); }
+.stamp.learning { border-color: color-mix(in srgb, var(--learning) 75%, var(--line)); }
+.stamp.known { border-color: color-mix(in srgb, var(--known) 45%, var(--line)); }
+.stamp.on { transform: rotate(-10deg); color: #fff; }
 .stamp.fresh.on { background: var(--fresh); border-color: var(--fresh); }
-.stamp.learning.on { background: var(--learning); border-color: var(--learning); }
+.stamp.learning.on { background: var(--learning); border-color: var(--learning); color: var(--text); }
 .stamp.known.on { background: var(--known); border-color: var(--known); }
+.stamp.pop { animation: pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes pop {
+  0% { transform: rotate(0) scale(0.85); }
+  60% { transform: rotate(-14deg) scale(1.08); }
+  100% { transform: rotate(-10deg) scale(1); }
+}
 .tools { margin-left: auto; display: flex; gap: 12px; font-size: 12.5px; }
 .tools button { all: unset; cursor: pointer; color: var(--link); }
 .tools kbd { font: inherit; color: var(--text3); margin-left: 3px; }
+
+/* Every Chinese word in the card is clickable; a quiet underline on hover, nothing popping up. */
+.w { cursor: pointer; border-radius: 3px; }
+.w:hover { text-decoration: underline; text-decoration-color: var(--text3); text-underline-offset: 3px; }
+.w.st-fresh { background: var(--fresh-mark); }
+.w.st-learning { background: var(--learning-mark); }
+.w.st-known { background: var(--known-mark); }
+.ex .w.head { box-shadow: inset 0 -2px 0 var(--learning); }
+.chars .w.c { font-size: 19px; padding: 0 2px; }
+.top { position: relative; }
+.back { all: unset; cursor: pointer; position: absolute; left: 6px; top: 6px; font-size: 13px; color: var(--text3); padding: 2px 5px; border-radius: 4px; }
+.back:hover { color: var(--text); background: var(--bg2); }
+.top:has(.back) .headrow { padding-left: 16px; }

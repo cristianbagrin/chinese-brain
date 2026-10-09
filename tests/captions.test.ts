@@ -57,3 +57,39 @@ test('track choice prefers manual Traditional', () => {
   ]);
   assert.equal(t?.languageCode, 'zh-TW');
 });
+
+test('stress: markup, entities, invisible chars, sound labels, bad timings', () => {
+  const body = JSON.stringify({
+    events: [
+      { tStartMs: 0, dDurationMs: 1000, segs: [{ utf8: '一個(胡椒餅) (<font color=#FFF900FF>Note:</font> locals omit it)' }] },
+      { tStartMs: 1000, dDurationMs: 1000, segs: [{ utf8: '<i>你好</i> &amp; 再見&#33; &#x4E2D;' }] },
+      { tStartMs: 2000, dDurationMs: 1000, segs: [{ utf8: '​好​吃﻿' }] },
+      { tStartMs: 3000, dDurationMs: 1000, segs: [{ utf8: '[音樂]' }] },
+      { tStartMs: 4000, dDurationMs: 1000, segs: [{ utf8: '♪♪' }] },
+      { tStartMs: 5000, dDurationMs: 1000, segs: [{ utf8: '   ' }] },
+      { tStartMs: 6000, dDurationMs: 1000, segs: [{ utf8: 'a < b > c' }] },
+      { dDurationMs: 1000, segs: [{ utf8: '沒有開始時間' }] },
+      { tStartMs: 7000, segs: [{ utf8: '沒有長度' }] },
+    ],
+  });
+  const texts = parseTimedText(body).map((c) => c.text);
+  assert.ok(texts.includes('一個(胡椒餅) (Note: locals omit it)'));
+  assert.ok(texts.includes('你好 & 再見! 中'));
+  assert.ok(texts.includes('好吃'));
+  assert.ok(!texts.some((t) => t.includes('<') && t.includes('font')));
+  assert.ok(!texts.includes('[音樂]') && !texts.includes('♪♪'));
+  assert.ok(texts.includes('a < b > c'));
+  assert.ok(texts.includes('沒有長度'));
+  for (const c of parseTimedText(body)) assert.ok(c.end >= c.start);
+});
+
+test('stress: garbage bodies never throw', () => {
+  for (const b of ['', '{', '{"events":null}', '<html><p>Sorry</p></html>', 'WEBVTT', 'null', '[]', '{"events":[{"segs":[{}]}]}']) {
+    try {
+      assert.ok(Array.isArray(parseTimedText(b)));
+    } catch (e) {
+      // JSON.parse errors are caught by the caller; anything else is a bug.
+      assert.ok(e instanceof SyntaxError, `${b}: ${e}`);
+    }
+  }
+});

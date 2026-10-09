@@ -150,7 +150,14 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
               return { ch, py: sylls[i] ?? e?.tw ?? e?.py ?? '', gloss: e ? shortGloss(e) : '' };
             })
           : [];
-        return { chars, examples: examples.get(word) ?? [], record: store.words.get(word) ?? null };
+        const record = store.words.get(word) ?? null;
+        // Sentences come pre-split into words so every word in the card is clickable and coloured.
+        const ex = (examples.get(word) ?? []).slice(0, 2).map(([zh, en]) => ({ zh, en, toks: d.segment(zh) }));
+        const seen = (record?.ctx ?? []).slice(0, 4).map((c) => {
+          const zh = c.text.split(' — ')[0];
+          return { ...c, zh, toks: d.segment(zh) };
+        });
+        return { chars, examples: ex, seen, record };
       });
     case 'glosses':
       return dictReady.then((d) => {

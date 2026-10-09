@@ -94,6 +94,8 @@ export interface Settings {
   shadowFactor: number;
   /** Pinyin in the lookup card: always shown, or hidden until hovered (self-test). */
   cardPinyin: 'show' | 'hover';
+  /** Colour the Chinese words inside the card by status. */
+  cardColors: boolean;
   /** Short sound when stamping a status. */
   sounds: boolean;
   /** Colour words by status on every page (highlighter style). */
@@ -121,6 +123,7 @@ export const DEFAULT_SETTINGS: Settings = {
   subStyle: 'light',
   shadowFactor: 1.5,
   cardPinyin: 'show',
+  cardColors: true,
   sounds: true,
   pageColors: false,
   speechRate: 0.9,
