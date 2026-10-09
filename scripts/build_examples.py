@@ -67,6 +67,8 @@ def main():
                     if len(base[n][0]) > 1 or re.search(r"vulgar|obsolete|offensive|slur|curse", reason, re.I):
                         drop_words.add(base[n][0])
     print(f"applied {fixed} fixes, {dropped} drops, {len(drop_words)} headwords removed", file=sys.stderr)
+    # Mainland written forms that slipped through (Taiwan writes 網路, 週).
+    drop_words |= {"網絡", "一周", "上周", "下周", "本周", "周末", "每周", "職工"}
     rows = [v for _, v in sorted(base.items()) if v and v[0] not in drop_words]
     for w, zh, en in rows:
         w, zh, en = w.strip(), zh.strip(), en.strip()
@@ -95,7 +97,8 @@ def main():
         lst.append((zh, en))
     with gzip.open(OUT, "wt", encoding="utf-8", compresslevel=9) as f:
         for w, lst in seen.items():
-            for zh, en in lst:
+            # The richer (longer) sentence first: it shows real usage; the short one follows.
+            for zh, en in sorted(lst, key=lambda x: -len(x[0])):
                 f.write(f"{w}\t{zh}\t{en}\n")
     with open(REJECTS, "w", encoding="utf-8") as f:
         for why, line in rejects:
