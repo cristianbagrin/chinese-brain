@@ -36,9 +36,19 @@ test('segmentation', () => {
 });
 
 test('everyday reading of common heteronyms', () => {
-  for (const [w, py] of [['要', 'yao4'], ['著', 'zhe5'], ['看', 'kan4'], ['行', 'xing2'], ['了', 'le5'], ['還', 'hai2']]) {
+  for (const [w, py] of [
+    ['要', 'yao4'], ['著', 'zhe5'], ['看', 'kan4'], ['行', 'xing2'], ['了', 'le5'], ['還', 'hai2'], ['說', 'shuo1'],
+    ['教', 'jiao1'], ['重', 'zhong4'], ['覺', 'jue2'], ['得', 'de5'], ['的', 'de5'], ['好', 'hao3'], ['長', 'chang2'],
+  ]) {
     assert.equal(dict.segment(w)[0].py, py, w);
   }
+});
+
+test('words split into smaller words before characters', () => {
+  assert.deepEqual(dict.split('臺北市'), ['臺北', '市']);
+  assert.deepEqual(dict.split('維基百科'), ['維基', '百科']);
+  assert.deepEqual(dict.split('電腦'), ['電', '腦']);
+  assert.deepEqual(dict.split('好'), []);
 });
 
 test('lookup longest first', () => {

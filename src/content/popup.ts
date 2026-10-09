@@ -19,7 +19,8 @@ interface Sentence {
   toks: Token[];
 }
 interface WordInfo {
-  chars: { ch: string; py: string; gloss: string }[];
+  /** The breakdown: smaller words (depth 0) with their characters indented under them. */
+  chars: { ch: string; py: string; gloss: string; depth: number }[];
   examples: (Sentence & { en: string })[];
   seen: (Sentence & Context)[];
 }
@@ -56,11 +57,18 @@ function mainSense(e: Entry): string {
   return first.length > 60 ? first.slice(0, 58) + '…' : first;
 }
 
-/** Same point-in-shape test for both axes: is q inside the trapezoid between two parallel edges? */
-function inTrapezoid(p: number, p0: number, p1: number, lo0: number, hi0: number, lo1: number, hi1: number, q: number, pad: number): boolean {
-  if (p < Math.min(p0, p1) - pad || p > Math.max(p0, p1) + pad) return false;
-  const t = p1 === p0 ? 0 : Math.min(1, Math.max(0, (p - p0) / (p1 - p0)));
-  return q >= lo0 + (lo1 - lo0) * t - pad && q <= hi0 + (hi1 - hi0) * t + pad;
+/**
+ * Is the point inside the trapezoid that runs from the word's edge (at `from`, spanning
+ * lo0..hi0) to the card's edge (at `to`, spanning lo1..hi1)? p is the position along that
+ * direction, q across it. It starts exactly at the word, so the word's own line (and the
+ * words next to it) never counts as "on the way".
+ */
+function inTrapezoid(p: number, from: number, to: number, lo0: number, hi0: number, lo1: number, hi1: number, q: number, pad: number): boolean {
+  const len = Math.abs(to - from);
+  const t = (p - from) * (to >= from ? 1 : -1);
+  if (t <= 0 || t > len + pad) return false;
+  const f = len ? Math.min(1, t / len) : 0;
+  return q >= lo0 + (lo1 - lo0) * f - pad && q <= hi0 + (hi1 - hi0) * f + pad;
 }
 
 /** Another sentence with the word, from the same video or page (used when the dictionary has few examples). */
@@ -110,6 +118,8 @@ export class Popup {
   private history: ShowOptions[] = [];
   private lookTimer: ReturnType<typeof setTimeout> | undefined;
   private softTimer: ReturnType<typeof setTimeout> | undefined;
+  /** A hide is counting down (moving on doesn't restart it, so leaving is quick). */
+  private hiding = false;
   private hideListeners = new Set<() => void>();
   private infoCache = new Map<string, WordInfo>();
 
@@ -147,7 +157,7 @@ export class Popup {
     });
     this.card.addEventListener('mouseenter', () => {
       this.hovered = true;
-      clearTimeout(this.softTimer);
+      this.cancelHide();
     });
     this.card.addEventListener('mouseleave', () => {
       this.hovered = false;
@@ -202,13 +212,16 @@ export class Popup {
    * way there: while it is in the corridor between the word and the card, however
    * slowly it moves, the card waits.
    */
-  hideSoon(ms = 300) {
-    if (!this.opts || this.pinned) return;
-    clearTimeout(this.softTimer);
+  hideSoon(ms = 140) {
+    if (!this.opts || this.pinned || this.hiding) return;
+    this.hiding = true;
     const check = () => {
-      if (!this.opts || this.pinned || this.hovered) return;
+      if (!this.opts || this.pinned || this.hovered) {
+        this.hiding = false;
+        return;
+      }
       if (this.inBridge(this.px, this.py)) {
-        this.softTimer = setTimeout(check, 100);
+        this.softTimer = setTimeout(check, 50);
         return;
       }
       this.hide();
@@ -237,12 +250,13 @@ export class Popup {
 
   cancelHide() {
     clearTimeout(this.softTimer);
+    this.hiding = false;
   }
 
   async show(opts: ShowOptions, keepPlace = false) {
     const sameWord = this.opts?.matches[0]?.word === opts.matches[0]?.word;
     this.opts = opts;
-    clearTimeout(this.softTimer);
+    this.cancelHide();
     if (!sameWord) this.revealPy = false;
     if (!keepPlace) this.history = [];
     this.mount();
@@ -293,7 +307,7 @@ export class Popup {
   hide() {
     if (!this.opts) return;
     clearTimeout(this.lookTimer);
-    clearTimeout(this.softTimer);
+    this.cancelHide();
     this.opts = undefined;
     this.history = [];
     this.hovered = false;
@@ -405,8 +419,8 @@ export class Popup {
     const hint = this.hint;
     hint.classList.toggle('large', state.settings.cardSize === 'large');
     hint.replaceChildren(
-      state.settings.pinyin ? h('span', { class: 'hpy' }, numberedToMarked(e.tw || e.py)) : '',
-      h('span', { class: 'hg' }, mainSense(e)),
+      h('div', { class: 'hg' }, mainSense(e)),
+      state.settings.pinyin ? h('div', { class: 'hpy' }, numberedToMarked(e.tw || e.py, false)) : '',
     );
     hint.hidden = false;
     const r = el.getBoundingClientRect();
@@ -453,6 +467,23 @@ export class Popup {
     if (y + ht > vh - 8) y = Math.max(8, r.top - ht - 10);
     c.style.left = `${x}px`;
     c.style.top = `${y}px`;
+  }
+
+  /** A small speaker button that reads a sentence aloud. */
+  private sayButton(text: string): H {
+    const b = h('button', { class: 'say', title: 'Play the sentence', 'aria-label': 'Play the sentence' });
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16');
+    const path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', 'M2 6h3l4-3v10l-4-3H2zM11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.5a6 6 0 0 1 0 9');
+    svg.append(path);
+    b.append(svg);
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      void speak(text);
+    });
+    return b;
   }
 
   /** A clickable, status-colored word. */
@@ -572,7 +603,8 @@ export class Popup {
       for (const c of info.chars) {
         const ch = this.word(c.ch, c.ch, c.ch);
         ch.classList.add('c');
-        grid.append(ch, h('span', { class: 'cpy' }, pyHidden ? '' : numberedToMarked(c.py)), h('span', { class: 'cg' }, c.gloss));
+        const cell = h('span', { class: `cw d${Math.min(c.depth, 3)}` }, ch);
+        grid.append(cell, h('span', { class: 'cpy' }, pyHidden ? '' : numberedToMarked(c.py, false)), h('span', { class: 'cg' }, c.gloss));
       }
       card.append(h('div', { class: 'sect' }, grid));
     }
@@ -587,7 +619,9 @@ export class Popup {
           h(
             'ul',
             { class: 'ex' },
-            ...info.examples.map((x) => h('li', null, h('span', { class: 'zh' }, ...this.sentence(x.toks, m.word)), h('span', { class: 'en' }, x.en))),
+            ...info.examples.map((x) =>
+              h('li', null, h('span', { class: 'zh' }, ...this.sentence(x.toks, m.word)), this.sayButton(x.zh), h('span', { class: 'en' }, x.en)),
+            ),
           ),
         );
       }
@@ -604,7 +638,7 @@ export class Popup {
                 link = h('button', { class: 'src', title: 'Play from here' }, `▶ ${clock(t)}`);
                 link.addEventListener('click', () => o.seek!(t));
               }
-              return h('li', null, h('span', { class: 'zh' }, ...this.sentence(x.toks, m.word)), link);
+              return h('li', null, h('span', { class: 'zh' }, ...this.sentence(x.toks, m.word)), this.sayButton(x.zh), link);
             }),
           ),
         );
@@ -628,6 +662,7 @@ export class Popup {
                 'li',
                 null,
                 h('span', { class: 'zh' }, ...this.sentence(c.toks, m.word)),
+                this.sayButton(c.zh),
                 h('a', { class: 'src', href, target: '_blank' }, c.src === 'yt' && c.t != null ? `▶ ${clock(c.t)}` : shortSource(c.url)),
               );
             }),

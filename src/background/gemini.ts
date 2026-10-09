@@ -1,8 +1,12 @@
 /**
  * Optional Gemini features, with the user's own key:
- * - transcribing YouTube videos that have no Chinese captions (opt-in per video,
- *   cached so a video is never sent twice);
+ * - subtitling YouTube videos that have no Chinese captions (opt-in per video, cached so
+ *   a video is never sent twice). Mandarin is transcribed; any other language is
+ *   translated into Taiwan Mandarin;
  * - writing example sentences for words the bundled list doesn't cover (on request, cached).
+ *
+ * Google's servers answer 503 ("high demand") now and then. Every call retries once
+ * after a short wait and then falls back to another model the key can use.
  */
 export interface GeminiLine {
   start: number;
@@ -11,24 +15,43 @@ export interface GeminiLine {
   en: string;
 }
 
-const API = 'https://generativelanguage.googleapis.com/v1beta';
+export interface TranscribeProgress {
+  done: number;
+  total: number;
+  lines: GeminiLine[];
+  model: string;
+}
 
-const TRANSCRIBE = `Transcribe all spoken Mandarin Chinese in this video, verbatim, in Traditional Chinese characters as used in Taiwan (台灣正體字).
-Split it into subtitle lines at natural pauses, about 1 to 4 seconds and at most about 20 characters each.
-For each line give start and end times in seconds from the start of the video (numbers, e.g. 83.5), the Chinese text, and a natural American English translation.
-If someone speaks Taiwanese Hokkien or another language, transcribe what you can and translate it.
-Do not summarize, do not skip lines, do not add commentary. If nobody speaks Chinese, return an empty list.`;
+const API = 'https://generativelanguage.googleapis.com/v1beta';
+/** Long videos go in parts of this many seconds: better timing, smaller replies, fewer timeouts. */
+const CHUNK = 300;
+
+const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+
+function subtitlePrompt(clip?: { start: number; end: number }) {
+  return `You are subtitling a YouTube video for someone learning Taiwan Mandarin.
+${clip ? `Only handle the part of the video from ${mmss(clip.start)} to ${mmss(clip.end)}.\n` : ''}Listen to everything that is said and write subtitle lines:
+- Split at natural pauses: one phrase per line, about 1 to 5 seconds, at most about 18 Chinese characters.
+- "start" and "end": when the line is spoken, as MM:SS.s (for example 01:23.4), counted from the start of the full video. Follow the audio closely.
+- "zh": the line in Traditional Chinese characters as used in Taiwan.
+  - If the speaker speaks Mandarin, write exactly what they say, verbatim, including particles (啊, 欸, 啦, 喔, 嗯).
+  - If they speak another language (English or anything else), translate the line into the natural spoken Mandarin a Taiwanese subtitler would write: Taiwan vocabulary and phrasing (影片, 軟體, 網路, 資訊, 品質, 計程車, 捷運, 機車, 便當, 超商, 好喔, 真的假的), never Mainland terms (視頻, 軟件, 質量, 信息, 出租車, 打車, 牛逼), no 兒化.
+- "en": natural American English: the translation of the Mandarin, or the original words if they were English.
+- "spoken": the language actually spoken in this part (for example "zh", "en", "nan").
+Do not summarize, skip or merge lines, and add no commentary. Skip music without words. If nothing is said, return an empty list.`;
+}
 
 const LINES_SCHEMA = {
   type: 'OBJECT',
   properties: {
+    spoken: { type: 'STRING' },
     lines: {
       type: 'ARRAY',
       items: {
         type: 'OBJECT',
         properties: {
-          start: { type: 'NUMBER' },
-          end: { type: 'NUMBER' },
+          start: { type: 'STRING', description: 'MM:SS.s' },
+          end: { type: 'STRING', description: 'MM:SS.s' },
           zh: { type: 'STRING' },
           en: { type: 'STRING' },
         },
@@ -42,10 +65,17 @@ const LINES_SCHEMA = {
 interface GenerateResponse {
   candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] }; finishReason?: string }[];
   promptFeedback?: { blockReason?: string };
-  error?: { message?: string };
 }
 
-async function errorMessage(res: Response): Promise<string> {
+class GeminiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
+async function errorFor(res: Response): Promise<GeminiError> {
   const raw = await res.text();
   let msg = raw.slice(0, 200);
   try {
@@ -54,23 +84,32 @@ async function errorMessage(res: Response): Promise<string> {
   } catch {
     /* not JSON */
   }
-  if (res.status === 400 && /API key/i.test(msg)) return 'Gemini rejected the API key. Copy it again from aistudio.google.com/apikey.';
-  if (res.status === 403) return `Gemini refused the request (403): ${msg}`;
-  if (res.status === 404) return 'This Gemini model is not available for your key. Pick another one in Settings.';
-  if (res.status === 429) return 'Gemini rate limit or free quota reached (429). Try again later or pick a lighter model.';
-  return `Gemini (HTTP ${res.status}): ${msg}`;
+  const s = res.status;
+  if (s === 400 && /API key/i.test(msg)) return new GeminiError('Gemini rejected the API key. Copy it again from aistudio.google.com/apikey.', 401);
+  if (s === 403) return new GeminiError(`Gemini refused the request (403): ${msg}`, s);
+  if (s === 404) return new GeminiError('This Gemini model is not available for your key. Pick another one in Settings.', s);
+  if (s === 429) return new GeminiError('Gemini rate limit or free quota reached (429). Wait a minute, or pick another model in Settings.', s);
+  if (s === 503 || s === 500 || s === 504) return new GeminiError(`Gemini's servers are busy right now (${s}). This is on Google's side and passes; try again in a few minutes.`, s);
+  return new GeminiError(`Gemini (HTTP ${s}): ${msg}`, s);
 }
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** One generateContent call; returns the model's text (thoughts left out). */
 async function generate(key: string, model: string, parts: unknown[], generationConfig: Record<string, unknown>): Promise<{ text: string; finish: string }> {
-  const res = await fetch(`${API}/models/${encodeURIComponent(model.replace(/^models\//, ''))}:generateContent`, {
-    method: 'POST',
-    headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ role: 'user', parts }], generationConfig }),
-  });
-  if (!res.ok) throw new Error(await errorMessage(res));
+  let res: Response;
+  try {
+    res = await fetch(`${API}/models/${encodeURIComponent(model.replace(/^models\//, ''))}:generateContent`, {
+      method: 'POST',
+      headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ role: 'user', parts }], generationConfig }),
+    });
+  } catch {
+    throw new GeminiError('Could not reach Gemini. Check your connection.', 0);
+  }
+  if (!res.ok) throw await errorFor(res);
   const data = (await res.json()) as GenerateResponse;
-  if (data.promptFeedback?.blockReason) throw new Error(`Gemini blocked the request (${data.promptFeedback.blockReason}).`);
+  if (data.promptFeedback?.blockReason) throw new GeminiError(`Gemini blocked the request (${data.promptFeedback.blockReason}).`, 400);
   const cand = data.candidates?.[0];
   const text = (cand?.content?.parts ?? [])
     .filter((p) => !p.thought)
@@ -79,21 +118,90 @@ async function generate(key: string, model: string, parts: unknown[], generation
   return { text, finish: cand?.finishReason ?? '' };
 }
 
-/** "1:23.5" or "83.5" -> seconds. */
+/** Other models this key can use, cached for a day, best fallbacks first (stable flash, then lite). */
+async function fallbackModels(key: string, chosen: string): Promise<string[]> {
+  const tag = key.slice(-6);
+  const { gemModels } = (await browser.storage.local.get('gemModels')) as { gemModels?: { at: number; tag: string; ids: string[] } };
+  let ids = gemModels && gemModels.tag === tag && Date.now() - gemModels.at < 86_400_000 ? gemModels.ids : undefined;
+  if (!ids) {
+    try {
+      ids = (await geminiModels(key)).map((m) => m.id);
+      await browser.storage.local.set({ gemModels: { at: Date.now(), tag, ids } });
+    } catch {
+      ids = [];
+    }
+  }
+  const rank = (id: string) => (/preview|exp/.test(id) ? 2 : 0) + (/lite/.test(id) ? 1 : 0) + (/flash/.test(id) ? 0 : 4);
+  return ids
+    .filter((id) => id !== chosen && /flash/.test(id))
+    .sort((a, b) => rank(a) - rank(b))
+    .slice(0, 2);
+}
+
+/**
+ * generate(), made sturdy: a busy server (500/503/504) is retried once after 2.5 s;
+ * then, as for a quota error or a missing model, the next model in line takes over.
+ * Options a model rejects (400) are dropped once before giving up on it.
+ */
+async function generateSturdy(
+  key: string,
+  model: string,
+  parts: unknown[],
+  config: Record<string, unknown>,
+): Promise<{ text: string; finish: string; model: string }> {
+  const models = [model, ...(await fallbackModels(key, model))];
+  let last: unknown;
+  for (const m of models) {
+    let cfg = config;
+    let retried = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        return { ...(await generate(key, m, parts, cfg)), model: m };
+      } catch (e) {
+        last = e;
+        const st = e instanceof GeminiError ? e.status : 0;
+        if (st === 401 || st === 403) throw e; // the key itself: no model will help
+        if (st === 400 && cfg !== BARE) {
+          cfg = BARE;
+          continue;
+        }
+        if ((st === 500 || st === 503 || st === 504 || st === 0) && !retried) {
+          retried = true;
+          await sleep(2500);
+          continue;
+        }
+        break; // 429, 404, still busy: try the next model
+      }
+    }
+  }
+  throw last;
+}
+const BARE = { responseMimeType: 'application/json' };
+
+/** "01:23.4", "1:02:03" or 83.4 -> seconds. */
 function seconds(v: unknown): number {
   if (typeof v === 'number') return v;
   const parts = String(v ?? '').trim().split(':').map(Number);
-  if (parts.some((n) => !Number.isFinite(n))) return NaN;
+  if (!parts.length || parts.some((n) => !Number.isFinite(n))) return NaN;
   return parts.reduce((acc, n) => acc * 60 + n, 0);
 }
 
 /** Lines from the model's JSON; a reply cut off at the token limit still yields its complete lines. */
 export function parseLines(text: string): GeminiLine[] {
+  return parseReply(text).lines;
+}
+
+function parseReply(text: string): { lines: GeminiLine[]; spoken: string } {
   const body = text.trim().replace(/^```(?:json)?\s*|\s*```$/g, '');
   let raw: unknown[] = [];
+  let spoken = '';
   try {
-    const json = JSON.parse(body) as { lines?: unknown[] } | unknown[];
-    raw = Array.isArray(json) ? json : (json.lines ?? []);
+    const json = JSON.parse(body) as { lines?: unknown[]; spoken?: string } | unknown[];
+    if (Array.isArray(json)) raw = json;
+    else {
+      raw = json.lines ?? [];
+      spoken = String(json.spoken ?? '');
+    }
   } catch {
     for (const m of body.matchAll(/\{[^{}]*\}/g)) {
       try {
@@ -102,8 +210,9 @@ export function parseLines(text: string): GeminiLine[] {
         /* a cut-off object */
       }
     }
+    spoken = /"spoken"\s*:\s*"([^"]*)"/.exec(body)?.[1] ?? '';
   }
-  return (raw as Partial<Record<keyof GeminiLine, unknown>>[])
+  const lines = (raw as Partial<Record<keyof GeminiLine, unknown>>[])
     .filter((l) => l && typeof l.zh === 'string' && l.zh.trim())
     .map((l) => {
       const start = seconds(l.start);
@@ -112,38 +221,95 @@ export function parseLines(text: string): GeminiLine[] {
     })
     .filter((l) => Number.isFinite(l.start))
     .sort((a, b) => a.start - b.start);
+  return { lines, spoken };
 }
 
-export async function geminiTranscribe(videoId: string, key: string, model: string): Promise<GeminiLine[]> {
-  const cacheKey = 'gem:' + videoId;
-  const cached = (await browser.storage.local.get(cacheKey))[cacheKey] as GeminiLine[] | undefined;
-  if (cached?.length) return cached;
+/**
+ * A part's lines on the video's clock. Models sometimes count from the start of the
+ * clip instead of the video; if every line sits before the clip, shift them into it.
+ */
+export function placeChunk(lines: GeminiLine[], clip: { start: number; end: number }): GeminiLine[] {
+  if (!lines.length) return lines;
+  const median = lines[Math.floor(lines.length / 2)].start;
+  const shift = clip.start > 0 && median < clip.start - 5 ? clip.start : 0;
+  return lines
+    .map((l) => ({ ...l, start: l.start + shift, end: l.end + shift }))
+    .filter((l) => l.start >= clip.start - 3 && l.start <= clip.end + 3);
+}
 
-  const parts = [{ file_data: { file_uri: `https://www.youtube.com/watch?v=${videoId}` } }, { text: TRANSCRIBE }];
-  const config = {
-    responseMimeType: 'application/json',
-    responseSchema: LINES_SCHEMA,
-    maxOutputTokens: 65536,
-    temperature: 0.2,
-    // Fewer tokens per second of video, so long videos fit the free tier.
-    mediaResolution: 'MEDIA_RESOLUTION_LOW',
+export interface TranscribeResult {
+  lines: GeminiLine[];
+  /** Mandarin was transcribed; anything else was translated into it. */
+  translated: boolean;
+  /** Some parts failed (the rest is shown; pressing again retries only those). */
+  error?: string;
+  model: string;
+}
+
+export async function geminiTranscribe(
+  videoId: string,
+  key: string,
+  model: string,
+  duration: number,
+  progress: (p: TranscribeProgress) => void,
+): Promise<TranscribeResult> {
+  const cacheKey = 'gem:' + videoId;
+  const cached = (await browser.storage.local.get(cacheKey))[cacheKey] as GeminiLine[] | { lines: GeminiLine[]; translated: boolean } | undefined;
+  if (cached && (Array.isArray(cached) ? cached.length : cached.lines.length)) {
+    return Array.isArray(cached) ? { lines: cached, translated: false, model } : { ...cached, model };
+  }
+
+  const n = Number.isFinite(duration) && duration > CHUNK * 1.25 ? Math.ceil(duration / CHUNK) : 1;
+  const clips = Array.from({ length: n }, (_, i) => ({ start: i * CHUNK, end: Math.min(duration, (i + 1) * CHUNK) }));
+  const partKey = (i: number) => `gemc:${videoId}:${i}/${n}`;
+  const stored = await browser.storage.local.get(clips.map((_, i) => partKey(i)));
+  const parts: ({ lines: GeminiLine[]; spoken: string } | undefined)[] = clips.map((_, i) => stored[partKey(i)] as { lines: GeminiLine[]; spoken: string } | undefined);
+  const errors: string[] = [];
+  let used = model;
+  const report = () =>
+    progress({ done: parts.filter(Boolean).length, total: n, lines: parts.flatMap((p) => p?.lines ?? []).sort((a, b) => a.start - b.start), model: used });
+
+  const config = { responseMimeType: 'application/json', responseSchema: LINES_SCHEMA, maxOutputTokens: 65536, temperature: 0.2, mediaResolution: 'MEDIA_RESOLUTION_LOW' };
+  const work = async (i: number) => {
+    const clip = clips[i];
+    const video: Record<string, unknown> = { file_data: { file_uri: `https://www.youtube.com/watch?v=${videoId}` } };
+    if (n > 1) video.video_metadata = { start_offset: `${clip.start}s`, end_offset: `${Math.ceil(clip.end)}s` };
+    try {
+      const out = await generateSturdy(key, used, [video, { text: subtitlePrompt(n > 1 ? clip : undefined) }], config);
+      used = out.model; // a fallback that worked keeps going for the remaining parts
+      const reply = parseReply(out.text);
+      if (!reply.lines.length && !out.text.trim()) throw new Error(`Gemini sent an empty reply${out.finish ? ` (${out.finish})` : ''}.`);
+      const part = { lines: n > 1 ? placeChunk(reply.lines, clip) : reply.lines, spoken: reply.spoken };
+      parts[i] = part;
+      await browser.storage.local.set({ [partKey(i)]: part });
+      report();
+    } catch (e) {
+      errors.push(String(e instanceof Error ? e.message : e));
+    }
   };
-  let out;
-  try {
-    out = await generate(key, model, parts, config);
-  } catch (e) {
-    // Some models reject an option (schema, media resolution); retry with the bare minimum.
-    if (!/HTTP 400/.test(String(e))) throw e;
-    out = await generate(key, model, parts, { responseMimeType: 'application/json' });
-  }
-  const lines = parseLines(out.text);
+  // Two parts at a time: quick, and gentle on the free tier's per-minute limit.
+  const queue = clips.map((_, i) => i).filter((i) => !parts[i]);
+  report();
+  await Promise.all(
+    [0, 1].map(async () => {
+      for (let i = queue.shift(); i !== undefined; i = queue.shift()) await work(i);
+    }),
+  );
+
+  const lines = parts.flatMap((p) => p?.lines ?? []).sort((a, b) => a.start - b.start);
+  const spoken = parts.map((p) => p?.spoken ?? '').filter(Boolean);
+  const translated = spoken.length > 0 && spoken.every((s) => !/^(zh|cmn|mandarin|chinese)/i.test(s));
+  const failed = parts.filter((p) => !p).length;
   if (!lines.length) {
-    if (out.finish === 'SAFETY' || out.finish === 'RECITATION' || out.finish === 'PROHIBITED_CONTENT') throw new Error(`Gemini stopped (${out.finish}).`);
-    if (!out.text.trim()) throw new Error(`Gemini sent an empty reply${out.finish ? ` (${out.finish})` : ''}. Try again, or pick another model in Settings.`);
-    throw new Error('Gemini heard no Mandarin in this video.');
+    if (errors.length) throw new Error(errors[0]);
+    throw new Error('Gemini heard no speech in this video.');
   }
-  await browser.storage.local.set({ [cacheKey]: lines });
-  return lines;
+  if (!failed) {
+    await browser.storage.local.set({ [cacheKey]: { lines, translated } });
+    await browser.storage.local.remove(clips.map((_, i) => partKey(i)));
+    return { lines, translated, model: used };
+  }
+  return { lines, translated, model: used, error: `${failed} of ${n} parts failed: ${errors[0]} Press the button again to retry just those.` };
 }
 
 /** Models this key can use for generateContent, newest first (for the Settings picker). */
@@ -152,7 +318,7 @@ export async function geminiModels(key: string): Promise<{ id: string; name: str
   let page = '';
   do {
     const res = await fetch(`${API}/models?pageSize=200${page ? `&pageToken=${page}` : ''}`, { headers: { 'x-goog-api-key': key.trim() } });
-    if (!res.ok) throw new Error(await errorMessage(res));
+    if (!res.ok) throw await errorFor(res);
     const data = (await res.json()) as {
       models?: { name: string; displayName?: string; supportedGenerationMethods?: string[] }[];
       nextPageToken?: string;
@@ -186,7 +352,7 @@ Give each with a natural American English translation.`;
     properties: { examples: { type: 'ARRAY', items: { type: 'OBJECT', properties: { zh: { type: 'STRING' }, en: { type: 'STRING' } }, required: ['zh', 'en'] } } },
     required: ['examples'],
   };
-  const { text } = await generate(key, model, [{ text: prompt }], { responseMimeType: 'application/json', responseSchema: schema, temperature: 0.7 });
+  const { text } = await generateSturdy(key, model, [{ text: prompt }], { responseMimeType: 'application/json', responseSchema: schema, temperature: 0.7 });
   const json = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, '')) as { examples?: { zh?: string; en?: string }[] };
   const list = (json.examples ?? [])
     .filter((x) => x.zh?.includes(word))

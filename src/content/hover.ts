@@ -1,4 +1,5 @@
 import { CJK } from '../shared/dict.ts';
+import type { Token } from '../shared/types.ts';
 import { lookupText } from './lookup.ts';
 import { Popup, type Related } from './popup.ts';
 import { state } from './state.ts';
@@ -63,6 +64,25 @@ export function sentenceAround(node: Text, offset: number): string {
   return full.slice(a, Math.min(full.length, b + 1)).trim();
 }
 
+/** Is the character at (node, offset) inside the range? */
+function covers(r: Range, node: Text, offset: number): boolean {
+  try {
+    return r.comparePoint(node, offset) === 0 && r.comparePoint(node, offset + 1) === 0;
+  } catch {
+    return false; // the page replaced the text
+  }
+}
+
+/** Half the gap between a line's glyphs and the next line, in px. */
+function lineSlack(node: Text): number {
+  const el = node.parentElement;
+  if (!el) return 2;
+  const cs = getComputedStyle(el);
+  const fs = parseFloat(cs.fontSize) || 16;
+  const lh = parseFloat(cs.lineHeight);
+  return Math.max(2, Number.isFinite(lh) ? (lh - fs) / 2 + 1 : fs * 0.2);
+}
+
 const SKIP_TEXT = 'script,style,noscript,textarea,code,pre,chinese-brain-popup,[data-cb-own]';
 
 /** Other sentences on this page that use the word (a few, nearest the top). */
@@ -88,6 +108,8 @@ export class HoverLookup {
   private lastY = 0;
   private shift = false;
   private currentKey = '';
+  /** The highlighted word: moving across its characters keeps its card. */
+  private currentRange: Range | undefined;
   private cssInjected = false;
   private seq = 0;
 
@@ -109,6 +131,7 @@ export class HoverLookup {
     );
     this.popup.onHide(() => {
       this.currentKey = '';
+      this.currentRange = undefined;
       CSS.highlights?.delete(HIGHLIGHT);
     });
     // Selecting Chinese text (also inside search boxes and text fields) opens the card for it.
@@ -148,6 +171,7 @@ export class HoverLookup {
     const ordered = exact > 0 ? [matches[exact], ...matches.filter((_, i) => i !== exact)] : matches;
     CSS.highlights?.delete(HIGHLIGHT);
     this.currentKey = '';
+    this.currentRange = undefined;
     this.popup.show({
       matches: ordered,
       rect: rect!,
@@ -195,17 +219,42 @@ export class HoverLookup {
     offset = this.charUnderPointer(text, offset);
     if (offset < 0 || !CJK.test(text.data[offset] ?? '')) return this.scheduleHide();
 
-    const { text: str, ranges } = textFrom(text, offset);
-    const key = `${str}@${Math.round(this.charRect(text, offset)?.left ?? 0)}`;
-    if (key === this.currentKey) {
+    // Still on the word that is showing (any of its characters): keep it, no new lookup.
+    if (this.currentRange && this.popup.visible && covers(this.currentRange, text, offset)) {
       this.popup.cancelHide();
       return;
     }
-    const matches = await lookupText(str);
-    if (seq !== this.seq) return; // the pointer moved on while we were looking up
+    // The word under the pointer is the one the segmenter sees there (as in the subtitles),
+    // so 基 in 維基百科 opens 維基百科, not whatever starts at 基.
+    const back = Math.min(offset, 7);
+    const { text: str, ranges } = textFrom(text, offset - back, back + 10);
+    const at = this.charRect(text, offset - back);
+    const key = `${str}@${Math.round(at?.left ?? 0)},${Math.round(at?.top ?? 0)}`;
+    const toks = await this.segment(str);
+    if (seq !== this.seq) return; // the pointer moved on while we were working
+    let start = back;
+    let tok: Token | undefined;
+    for (let pos = 0, i = 0; i < toks.length; pos += toks[i].text.length, i++) {
+      if (back < pos + toks[i].text.length) {
+        tok = toks[i];
+        start = pos;
+        break;
+      }
+    }
+    if (!tok?.word) start = back; // not a dictionary word: look up from the character itself
+    const wordKey = `${key}:${start}`;
+    if (wordKey === this.currentKey) {
+      this.popup.cancelHide();
+      return;
+    }
+    let matches = await lookupText(str.slice(start));
+    if (seq !== this.seq) return;
     if (!matches.length) return this.scheduleHide();
-    this.currentKey = key;
-    const range = this.rangeFor(ranges, matches[0].text.length);
+    const own = tok?.word ? matches.findIndex((m) => m.text === tok.text) : -1;
+    if (own > 0) matches = [matches[own], ...matches.filter((_, i) => i !== own)];
+    this.currentKey = wordKey;
+    const range = this.rangeFor(ranges, matches[0].text.length, start);
+    this.currentRange = range;
     this.highlight(range);
     this.popup.show({
       matches,
@@ -227,25 +276,49 @@ export class HoverLookup {
   }
 
   private charUnderPointer(node: Text, offset: number): number {
+    // A character's box is shorter than its line; the space between lines belongs to the line.
+    const slack = lineSlack(node);
     for (const i of [offset, offset - 1]) {
       const r = this.charRect(node, i);
-      if (r && this.lastX >= r.left - 1 && this.lastX <= r.right + 1 && this.lastY >= r.top - 2 && this.lastY <= r.bottom + 2) return i;
+      if (r && this.lastX >= r.left - 1 && this.lastX <= r.right + 1 && this.lastY >= r.top - slack && this.lastY <= r.bottom + slack) return i;
     }
     return -1;
   }
 
-  private rangeFor(ranges: [Text, number, number][], len: number): Range {
+  /** A DOM range for `len` characters starting `skip` characters into the collected text. */
+  private rangeFor(ranges: [Text, number, number][], len: number, skip = 0): Range {
     const r = document.createRange();
-    const [n0, s0] = ranges[0];
-    r.setStart(n0, s0);
+    let started = false;
     let left = len;
     for (const [n, s, e] of ranges) {
-      const take = Math.min(left, e - s);
-      r.setEnd(n, s + take);
-      left -= take;
+      if (!started) {
+        if (skip >= e - s) {
+          skip -= e - s;
+          continue;
+        }
+        r.setStart(n, s + skip);
+        started = true;
+        const take = Math.min(left, e - s - skip);
+        r.setEnd(n, s + skip + take);
+        left -= take;
+      } else {
+        const take = Math.min(left, e - s);
+        r.setEnd(n, s + take);
+        left -= take;
+      }
       if (left <= 0) break;
     }
     return r;
+  }
+
+  private segCache = new Map<string, Token[]>();
+  private async segment(str: string): Promise<Token[]> {
+    const hit = this.segCache.get(str);
+    if (hit) return hit;
+    const [toks]: Token[][] = await browser.runtime.sendMessage({ type: 'segment', lines: [str] });
+    if (this.segCache.size > 300) this.segCache.clear();
+    this.segCache.set(str, toks ?? []);
+    return toks ?? [];
   }
 
   private highlight(range: Range) {

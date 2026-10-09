@@ -6,8 +6,9 @@ shared by everything:
 - **Hover lookup on any page.** Point at Chinese text and a card opens just
   under the pointer. It shows Traditional characters, **Taiwan standard
   pinyin**, how common the word is (essential → rare, with what that means for
-  you), the meanings on one line, a breakdown of each character, and two
-  natural Taiwan-Mandarin example sentences. Words the list doesn't cover get
+  you), the meanings on one line, a top-down breakdown (臺北市 → 臺北 → 臺, 北;
+  then 市), and two natural Taiwan-Mandarin example sentences, each with a play
+  button. Words the list doesn't cover get
   other lines from the same video or page instead (or two sentences written by
   Gemini, on request). It also shows the sentences you met the word in before.
   The card waits while the pointer travels from the word to it, and stays put
@@ -21,7 +22,10 @@ shared by everything:
   A 中 switch in the player turns them on or off. Hover the switch to see how
   much of the video you know, toggles, keys, and the **transcript** with a
   **learn-first list**. English notes that uploaders put inside the Chinese
-  captions ("(Note: …)") get their own line.
+  captions ("(Note: …)") get their own line. Videos without Chinese captions
+  can get subtitles from Gemini: Mandarin is transcribed, any other language is
+  translated into Taiwan Mandarin. Long videos go in 5-minute parts that appear
+  as they finish; busy Google servers are retried, then another model is used.
 - **Weekly export for Claude** in the same K / L format as `known-words.txt`,
   with only what changed since the last export.
 

@@ -1,4 +1,5 @@
 import { Dictionary } from '../shared/dict.ts';
+import type { Entry } from '../shared/types.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import { DEFAULT_SETTINGS, normalizeSettings, type Msg, type Settings, type Status, type WordRecord } from '../shared/types.ts';
 import { shortGloss, Store } from './store.ts';
@@ -45,6 +46,30 @@ async function loadDictionary(): Promise<Dictionary> {
   dict = Dictionary.fromTsv(text);
   console.log(`[chinese-brain] dictionary: ${dict.entries.length} entries in ${Math.round(performance.now() - t0)} ms`);
   return dict;
+}
+
+/**
+ * A word broken down top to bottom: smaller words first, then their characters
+ * (臺北市 -> 臺北 -> 臺, 北; then 市). Readings come from the whole word, so a
+ * part is read the way it is read here.
+ */
+function breakdown(d: Dictionary, word: string, sylls: string[], depth = 0, out: { ch: string; py: string; gloss: string; depth: number }[] = []) {
+  const aligned = sylls.length === [...word].length;
+  let i = 0;
+  for (const part of d.split(word)) {
+    const n = [...part].length;
+    const py = aligned ? sylls.slice(i, i + n).join(' ') : '';
+    let e: Entry | undefined;
+    if (n === 1) e = d.charEntry(part, aligned ? sylls[i] : undefined);
+    else {
+      const list = d.get(part);
+      e = list.find((x) => (x.tw || x.py).toLowerCase() === py.toLowerCase()) ?? list[0];
+    }
+    out.push({ ch: part, py: py || (e ? e.tw || e.py : ''), gloss: e ? shortGloss(e) : '', depth });
+    if (n > 1) breakdown(d, part, aligned ? sylls.slice(i, i + n) : [], depth + 1, out);
+    i += n;
+  }
+  return out;
 }
 
 async function getSettings(): Promise<Settings> {
@@ -156,13 +181,7 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
       return Promise.all([dictReady, storeReady, examplesReady]).then(async ([d]) => {
         const word = any.word as string;
         const py = String(any.py ?? '');
-        const sylls = py.split(/\s+/);
-        const chars = [...word].length > 1
-          ? [...word].map((ch, i) => {
-              const e = d.charEntry(ch, sylls[i]);
-              return { ch, py: sylls[i] ?? e?.tw ?? e?.py ?? '', gloss: e ? shortGloss(e) : '' };
-            })
-          : [];
+        const chars = breakdown(d, word, py.split(/\s+/));
         const record = store.words.get(word) ?? null;
         // Sentences come pre-split into words so every word in the card is clickable and colored.
         // Bundled sentences first; for words the list lacks, ones Gemini wrote on request.
@@ -186,8 +205,12 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
     case 'gemini':
       return getSettings().then(async (st) => {
         if (!st.geminiKey) return { error: 'Add your Gemini API key in Settings first.' };
+        const videoId = String(any.videoId);
+        const tab = sender.tab?.id;
         try {
-          return { lines: await geminiTranscribe(String(any.videoId), st.geminiKey, st.geminiModel || DEFAULT_SETTINGS.geminiModel) };
+          return await geminiTranscribe(videoId, st.geminiKey, st.geminiModel || DEFAULT_SETTINGS.geminiModel, Number(any.duration), (p) => {
+            if (tab != null) browser.tabs.sendMessage(tab, { type: 'geminiProgress', videoId, ...p }).catch(() => {});
+          });
         } catch (e) {
           return { error: String(e instanceof Error ? e.message : e) };
         }

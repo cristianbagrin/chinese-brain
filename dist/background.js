@@ -106,6 +106,25 @@
       }
       return tokens;
     }
+    /**
+     * The best way to split a word into smaller dictionary words (never the word
+     * itself): 臺北市 -> 臺北 + 市, 維基百科 -> 維基 + 百科, 電腦 -> 電 + 腦.
+     */
+    split(word) {
+      let chars = [...word], n = chars.length;
+      if (n < 2) return [];
+      let best = new Array(n + 1).fill(-1 / 0), back = new Array(n + 1).fill(0);
+      best[0] = 0;
+      for (let i = 0; i < n; i++)
+        if (best[i] !== -1 / 0)
+          for (let len = 1; len < n && i + len <= n; len++) {
+            let s = chars.slice(i, i + len).join(""), sc = len === 1 || this.index.has(s) ? this.score(s) : -1 / 0;
+            sc !== -1 / 0 && best[i] + sc > best[i + len] && (best[i + len] = best[i] + sc, back[i + len] = i);
+          }
+      let parts = [];
+      for (let j = n; j > 0; j = back[j]) parts.push(chars.slice(back[j], j).join(""));
+      return parts.reverse();
+    }
     token(text) {
       let entries = this.get(text);
       if (!entries.length) return { text, trad: text };
@@ -113,22 +132,23 @@
       return { text, word: e.trad, py: e.tw || e.py, trad: e.trad };
     }
   }, LOW_VALUE = /^(old )?variant of|^see |^surname |^used in |^\(old\)|^archaic /i, PREFERRED = {
-    \u8981: "yao4",
     \u8457: "zhe5",
     \u7740: "zhe5",
-    \u770B: "kan4",
-    \u884C: "xing2",
+    \u4E86: "le5",
+    \u5F97: "de5",
+    \u5730: "de5",
     \u91CD: "zhong4",
-    \u80CC: "bei4",
-    \u6559: "jiao4",
-    \u7A7A: "kong1"
+    \u6559: "jiao1",
+    \u7A7A: "kong1",
+    \u9577: "chang2",
+    \u8981: "yao4"
   };
   function rankEntries(entries, query) {
     let rank = (e) => {
       let r = 0;
       return e.trad !== query && (r += 1), PREFERRED[query] === (e.tw || e.py) && (r -= 1), /^[A-Z]/.test(e.py) && (r += 4), LOW_VALUE.test(e.defs[0] ?? "") && (r += 8), e.defs.every((d) => /^(old )?variant of|^see /i.test(d)) && (r += 8), r;
-    };
-    return entries.map((e, i) => ({ e, i, r: rank(e) })).sort((a, b) => a.r - b.r || b.e.zipf - a.e.zipf || a.i - b.i).map((x) => x.e);
+    }, single = [...query].length === 1;
+    return entries.map((e, i) => ({ e, i, r: rank(e) })).sort((a, b) => a.r - b.r || b.e.zipf - a.e.zipf || (single ? b.e.defs.length - a.e.defs.length : 0) || a.i - b.i).map((x) => x.e);
   }
 
   // src/shared/pinyin.ts
@@ -272,20 +292,32 @@
   }
 
   // src/background/gemini.ts
-  var API = "https://generativelanguage.googleapis.com/v1beta", TRANSCRIBE = `Transcribe all spoken Mandarin Chinese in this video, verbatim, in Traditional Chinese characters as used in Taiwan (\u53F0\u7063\u6B63\u9AD4\u5B57).
-Split it into subtitle lines at natural pauses, about 1 to 4 seconds and at most about 20 characters each.
-For each line give start and end times in seconds from the start of the video (numbers, e.g. 83.5), the Chinese text, and a natural American English translation.
-If someone speaks Taiwanese Hokkien or another language, transcribe what you can and translate it.
-Do not summarize, do not skip lines, do not add commentary. If nobody speaks Chinese, return an empty list.`, LINES_SCHEMA = {
+  var API = "https://generativelanguage.googleapis.com/v1beta";
+  var mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+  function subtitlePrompt(clip) {
+    return `You are subtitling a YouTube video for someone learning Taiwan Mandarin.
+${clip ? `Only handle the part of the video from ${mmss(clip.start)} to ${mmss(clip.end)}.
+` : ""}Listen to everything that is said and write subtitle lines:
+- Split at natural pauses: one phrase per line, about 1 to 5 seconds, at most about 18 Chinese characters.
+- "start" and "end": when the line is spoken, as MM:SS.s (for example 01:23.4), counted from the start of the full video. Follow the audio closely.
+- "zh": the line in Traditional Chinese characters as used in Taiwan.
+  - If the speaker speaks Mandarin, write exactly what they say, verbatim, including particles (\u554A, \u6B38, \u5566, \u5594, \u55EF).
+  - If they speak another language (English or anything else), translate the line into the natural spoken Mandarin a Taiwanese subtitler would write: Taiwan vocabulary and phrasing (\u5F71\u7247, \u8EDF\u9AD4, \u7DB2\u8DEF, \u8CC7\u8A0A, \u54C1\u8CEA, \u8A08\u7A0B\u8ECA, \u6377\u904B, \u6A5F\u8ECA, \u4FBF\u7576, \u8D85\u5546, \u597D\u5594, \u771F\u7684\u5047\u7684), never Mainland terms (\u8996\u983B, \u8EDF\u4EF6, \u8CEA\u91CF, \u4FE1\u606F, \u51FA\u79DF\u8ECA, \u6253\u8ECA, \u725B\u903C), no \u5152\u5316.
+- "en": natural American English: the translation of the Mandarin, or the original words if they were English.
+- "spoken": the language actually spoken in this part (for example "zh", "en", "nan").
+Do not summarize, skip or merge lines, and add no commentary. Skip music without words. If nothing is said, return an empty list.`;
+  }
+  var LINES_SCHEMA = {
     type: "OBJECT",
     properties: {
+      spoken: { type: "STRING" },
       lines: {
         type: "ARRAY",
         items: {
           type: "OBJECT",
           properties: {
-            start: { type: "NUMBER" },
-            end: { type: "NUMBER" },
+            start: { type: "STRING", description: "MM:SS.s" },
+            end: { type: "STRING", description: "MM:SS.s" },
             zh: { type: "STRING" },
             en: { type: "STRING" }
           },
@@ -294,77 +326,137 @@ Do not summarize, do not skip lines, do not add commentary. If nobody speaks Chi
       }
     },
     required: ["lines"]
+  }, GeminiError = class extends Error {
+    status;
+    constructor(message, status) {
+      super(message), this.status = status;
+    }
   };
-  async function errorMessage(res) {
+  async function errorFor(res) {
     let raw = await res.text(), msg = raw.slice(0, 200);
     try {
       let j = JSON.parse(raw);
       msg = (Array.isArray(j) ? j[0] : j)?.error?.message ?? msg;
     } catch {
     }
-    return res.status === 400 && /API key/i.test(msg) ? "Gemini rejected the API key. Copy it again from aistudio.google.com/apikey." : res.status === 403 ? `Gemini refused the request (403): ${msg}` : res.status === 404 ? "This Gemini model is not available for your key. Pick another one in Settings." : res.status === 429 ? "Gemini rate limit or free quota reached (429). Try again later or pick a lighter model." : `Gemini (HTTP ${res.status}): ${msg}`;
+    let s = res.status;
+    return s === 400 && /API key/i.test(msg) ? new GeminiError("Gemini rejected the API key. Copy it again from aistudio.google.com/apikey.", 401) : s === 403 ? new GeminiError(`Gemini refused the request (403): ${msg}`, s) : s === 404 ? new GeminiError("This Gemini model is not available for your key. Pick another one in Settings.", s) : s === 429 ? new GeminiError("Gemini rate limit or free quota reached (429). Wait a minute, or pick another model in Settings.", s) : s === 503 || s === 500 || s === 504 ? new GeminiError(`Gemini's servers are busy right now (${s}). This is on Google's side and passes; try again in a few minutes.`, s) : new GeminiError(`Gemini (HTTP ${s}): ${msg}`, s);
   }
+  var sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   async function generate(key, model, parts, generationConfig) {
-    let res = await fetch(`${API}/models/${encodeURIComponent(model.replace(/^models\//, ""))}:generateContent`, {
-      method: "POST",
-      headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig })
-    });
-    if (!res.ok) throw new Error(await errorMessage(res));
+    let res;
+    try {
+      res = await fetch(`${API}/models/${encodeURIComponent(model.replace(/^models\//, ""))}:generateContent`, {
+        method: "POST",
+        headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig })
+      });
+    } catch {
+      throw new GeminiError("Could not reach Gemini. Check your connection.", 0);
+    }
+    if (!res.ok) throw await errorFor(res);
     let data = await res.json();
-    if (data.promptFeedback?.blockReason) throw new Error(`Gemini blocked the request (${data.promptFeedback.blockReason}).`);
+    if (data.promptFeedback?.blockReason) throw new GeminiError(`Gemini blocked the request (${data.promptFeedback.blockReason}).`, 400);
     let cand = data.candidates?.[0];
     return { text: (cand?.content?.parts ?? []).filter((p) => !p.thought).map((p) => p.text ?? "").join(""), finish: cand?.finishReason ?? "" };
   }
+  async function fallbackModels(key, chosen) {
+    let tag = key.slice(-6), { gemModels } = await browser.storage.local.get("gemModels"), ids = gemModels && gemModels.tag === tag && Date.now() - gemModels.at < 864e5 ? gemModels.ids : void 0;
+    if (!ids)
+      try {
+        ids = (await geminiModels(key)).map((m) => m.id), await browser.storage.local.set({ gemModels: { at: Date.now(), tag, ids } });
+      } catch {
+        ids = [];
+      }
+    let rank = (id) => (/preview|exp/.test(id) ? 2 : 0) + (/lite/.test(id) ? 1 : 0) + (/flash/.test(id) ? 0 : 4);
+    return ids.filter((id) => id !== chosen && /flash/.test(id)).sort((a, b) => rank(a) - rank(b)).slice(0, 2);
+  }
+  async function generateSturdy(key, model, parts, config) {
+    let models = [model, ...await fallbackModels(key, model)], last;
+    for (let m of models) {
+      let cfg = config, retried = !1;
+      for (let attempt = 0; attempt < 3; attempt++)
+        try {
+          return { ...await generate(key, m, parts, cfg), model: m };
+        } catch (e) {
+          last = e;
+          let st = e instanceof GeminiError ? e.status : 0;
+          if (st === 401 || st === 403) throw e;
+          if (st === 400 && cfg !== BARE) {
+            cfg = BARE;
+            continue;
+          }
+          if ((st === 500 || st === 503 || st === 504 || st === 0) && !retried) {
+            retried = !0, await sleep(2500);
+            continue;
+          }
+          break;
+        }
+    }
+    throw last;
+  }
+  var BARE = { responseMimeType: "application/json" };
   function seconds(v) {
     if (typeof v == "number") return v;
     let parts = String(v ?? "").trim().split(":").map(Number);
-    return parts.some((n) => !Number.isFinite(n)) ? NaN : parts.reduce((acc, n) => acc * 60 + n, 0);
+    return !parts.length || parts.some((n) => !Number.isFinite(n)) ? NaN : parts.reduce((acc, n) => acc * 60 + n, 0);
   }
-  function parseLines(text) {
-    let body = text.trim().replace(/^```(?:json)?\s*|\s*```$/g, ""), raw = [];
+  function parseReply(text) {
+    let body = text.trim().replace(/^```(?:json)?\s*|\s*```$/g, ""), raw = [], spoken = "";
     try {
       let json = JSON.parse(body);
-      raw = Array.isArray(json) ? json : json.lines ?? [];
+      Array.isArray(json) ? raw = json : (raw = json.lines ?? [], spoken = String(json.spoken ?? ""));
     } catch {
       for (let m of body.matchAll(/\{[^{}]*\}/g))
         try {
           raw.push(JSON.parse(m[0]));
         } catch {
         }
+      spoken = /"spoken"\s*:\s*"([^"]*)"/.exec(body)?.[1] ?? "";
     }
-    return raw.filter((l) => l && typeof l.zh == "string" && l.zh.trim()).map((l) => {
+    return { lines: raw.filter((l) => l && typeof l.zh == "string" && l.zh.trim()).map((l) => {
       let start = seconds(l.start), end = seconds(l.end);
       return { start, end: Number.isFinite(end) && end > start ? end : start + 2, zh: String(l.zh).trim(), en: String(l.en ?? "").trim() };
-    }).filter((l) => Number.isFinite(l.start)).sort((a, b) => a.start - b.start);
+    }).filter((l) => Number.isFinite(l.start)).sort((a, b) => a.start - b.start), spoken };
   }
-  async function geminiTranscribe(videoId, key, model) {
+  function placeChunk(lines, clip) {
+    if (!lines.length) return lines;
+    let median = lines[Math.floor(lines.length / 2)].start, shift = clip.start > 0 && median < clip.start - 5 ? clip.start : 0;
+    return lines.map((l) => ({ ...l, start: l.start + shift, end: l.end + shift })).filter((l) => l.start >= clip.start - 3 && l.start <= clip.end + 3);
+  }
+  async function geminiTranscribe(videoId, key, model, duration, progress) {
     let cacheKey = "gem:" + videoId, cached = (await browser.storage.local.get(cacheKey))[cacheKey];
-    if (cached?.length) return cached;
-    let parts = [{ file_data: { file_uri: `https://www.youtube.com/watch?v=${videoId}` } }, { text: TRANSCRIBE }], config = {
-      responseMimeType: "application/json",
-      responseSchema: LINES_SCHEMA,
-      maxOutputTokens: 65536,
-      temperature: 0.2,
-      // Fewer tokens per second of video, so long videos fit the free tier.
-      mediaResolution: "MEDIA_RESOLUTION_LOW"
-    }, out;
-    try {
-      out = await generate(key, model, parts, config);
-    } catch (e) {
-      if (!/HTTP 400/.test(String(e))) throw e;
-      out = await generate(key, model, parts, { responseMimeType: "application/json" });
-    }
-    let lines = parseLines(out.text);
+    if (cached && (Array.isArray(cached) ? cached.length : cached.lines.length))
+      return Array.isArray(cached) ? { lines: cached, translated: !1, model } : { ...cached, model };
+    let n = Number.isFinite(duration) && duration > 300 * 1.25 ? Math.ceil(duration / 300) : 1, clips = Array.from({ length: n }, (_, i) => ({ start: i * 300, end: Math.min(duration, (i + 1) * 300) })), partKey = (i) => `gemc:${videoId}:${i}/${n}`, stored = await browser.storage.local.get(clips.map((_, i) => partKey(i))), parts = clips.map((_, i) => stored[partKey(i)]), errors = [], used = model, report = () => progress({ done: parts.filter(Boolean).length, total: n, lines: parts.flatMap((p) => p?.lines ?? []).sort((a, b) => a.start - b.start), model: used }), config = { responseMimeType: "application/json", responseSchema: LINES_SCHEMA, maxOutputTokens: 65536, temperature: 0.2, mediaResolution: "MEDIA_RESOLUTION_LOW" }, work = async (i) => {
+      let clip = clips[i], video = { file_data: { file_uri: `https://www.youtube.com/watch?v=${videoId}` } };
+      n > 1 && (video.video_metadata = { start_offset: `${clip.start}s`, end_offset: `${Math.ceil(clip.end)}s` });
+      try {
+        let out = await generateSturdy(key, used, [video, { text: subtitlePrompt(n > 1 ? clip : void 0) }], config);
+        used = out.model;
+        let reply = parseReply(out.text);
+        if (!reply.lines.length && !out.text.trim()) throw new Error(`Gemini sent an empty reply${out.finish ? ` (${out.finish})` : ""}.`);
+        let part = { lines: n > 1 ? placeChunk(reply.lines, clip) : reply.lines, spoken: reply.spoken };
+        parts[i] = part, await browser.storage.local.set({ [partKey(i)]: part }), report();
+      } catch (e) {
+        errors.push(String(e instanceof Error ? e.message : e));
+      }
+    }, queue = clips.map((_, i) => i).filter((i) => !parts[i]);
+    report(), await Promise.all(
+      [0, 1].map(async () => {
+        for (let i = queue.shift(); i !== void 0; i = queue.shift()) await work(i);
+      })
+    );
+    let lines = parts.flatMap((p) => p?.lines ?? []).sort((a, b) => a.start - b.start), spoken = parts.map((p) => p?.spoken ?? "").filter(Boolean), translated = spoken.length > 0 && spoken.every((s) => !/^(zh|cmn|mandarin|chinese)/i.test(s)), failed = parts.filter((p) => !p).length;
     if (!lines.length)
-      throw out.finish === "SAFETY" || out.finish === "RECITATION" || out.finish === "PROHIBITED_CONTENT" ? new Error(`Gemini stopped (${out.finish}).`) : out.text.trim() ? new Error("Gemini heard no Mandarin in this video.") : new Error(`Gemini sent an empty reply${out.finish ? ` (${out.finish})` : ""}. Try again, or pick another model in Settings.`);
-    return await browser.storage.local.set({ [cacheKey]: lines }), lines;
+      throw errors.length ? new Error(errors[0]) : new Error("Gemini heard no speech in this video.");
+    return failed ? { lines, translated, model: used, error: `${failed} of ${n} parts failed: ${errors[0]} Press the button again to retry just those.` } : (await browser.storage.local.set({ [cacheKey]: { lines, translated } }), await browser.storage.local.remove(clips.map((_, i) => partKey(i))), { lines, translated, model: used });
   }
   async function geminiModels(key) {
     let out = [], page = "";
     do {
       let res = await fetch(`${API}/models?pageSize=200${page ? `&pageToken=${page}` : ""}`, { headers: { "x-goog-api-key": key.trim() } });
-      if (!res.ok) throw new Error(await errorMessage(res));
+      if (!res.ok) throw await errorFor(res);
       let data = await res.json();
       for (let m of data.models ?? []) {
         let id = m.name.replace(/^models\//, "");
@@ -385,7 +477,7 @@ Give each with a natural American English translation.`, schema = {
       type: "OBJECT",
       properties: { examples: { type: "ARRAY", items: { type: "OBJECT", properties: { zh: { type: "STRING" }, en: { type: "STRING" } }, required: ["zh", "en"] } } },
       required: ["examples"]
-    }, { text } = await generate(key, model, [{ text: prompt }], { responseMimeType: "application/json", responseSchema: schema, temperature: 0.7 }), list = (JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, "")).examples ?? []).filter((x) => x.zh?.includes(word)).slice(0, 2).map((x) => [x.zh.trim(), (x.en ?? "").trim()]);
+    }, { text } = await generateSturdy(key, model, [{ text: prompt }], { responseMimeType: "application/json", responseSchema: schema, temperature: 0.7 }), list = (JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, "")).examples ?? []).filter((x) => x.zh?.includes(word)).slice(0, 2).map((x) => [x.zh.trim(), (x.en ?? "").trim()]);
     if (!list.length) throw new Error("Gemini wrote no usable sentences.");
     return await browser.storage.local.set({ [cacheKey]: list }), list;
   }
@@ -548,6 +640,19 @@ Give each with a natural American English translation.`, schema = {
     let t0 = performance.now(), stream = (await fetch(browser.runtime.getURL("data/dict.tsv.gz"))).body.pipeThrough(new DecompressionStream("gzip")), text = await new Response(stream).text();
     return dict = Dictionary.fromTsv(text), console.log(`[chinese-brain] dictionary: ${dict.entries.length} entries in ${Math.round(performance.now() - t0)} ms`), dict;
   }
+  function breakdown(d, word, sylls, depth = 0, out = []) {
+    let aligned = sylls.length === [...word].length, i = 0;
+    for (let part of d.split(word)) {
+      let n = [...part].length, py = aligned ? sylls.slice(i, i + n).join(" ") : "", e;
+      if (n === 1) e = d.charEntry(part, aligned ? sylls[i] : void 0);
+      else {
+        let list = d.get(part);
+        e = list.find((x) => (x.tw || x.py).toLowerCase() === py.toLowerCase()) ?? list[0];
+      }
+      out.push({ ch: part, py: py || (e ? e.tw || e.py : ""), gloss: e ? shortGloss(e) : "", depth }), n > 1 && breakdown(d, part, aligned ? sylls.slice(i, i + n) : [], depth + 1, out), i += n;
+    }
+    return out;
+  }
   async function getSettings() {
     let { settings } = await browser.storage.local.get("settings");
     return normalizeSettings(settings);
@@ -638,10 +743,7 @@ Give each with a natural American English translation.`, schema = {
         });
       case "wordInfo":
         return Promise.all([dictReady, storeReady, examplesReady]).then(async ([d]) => {
-          let word = any.word, sylls = String(any.py ?? "").split(/\s+/), chars = [...word].length > 1 ? [...word].map((ch, i) => {
-            let e = d.charEntry(ch, sylls[i]);
-            return { ch, py: sylls[i] ?? e?.tw ?? e?.py ?? "", gloss: e ? shortGloss(e) : "" };
-          }) : [], record = store.words.get(word) ?? null, gex = (await browser.storage.local.get("gex:" + word))["gex:" + word] ?? [], ex = (examples.get(word)?.length ? examples.get(word) : gex).slice(0, 2).map(([zh, en]) => ({ zh, en, toks: d.segment(zh) })), seen = (record?.ctx ?? []).slice(0, 4).map((c) => {
+          let word = any.word, py = String(any.py ?? ""), chars = breakdown(d, word, py.split(/\s+/)), record = store.words.get(word) ?? null, gex = (await browser.storage.local.get("gex:" + word))["gex:" + word] ?? [], ex = (examples.get(word)?.length ? examples.get(word) : gex).slice(0, 2).map(([zh, en]) => ({ zh, en, toks: d.segment(zh) })), seen = (record?.ctx ?? []).slice(0, 4).map((c) => {
             let zh = c.text.split(" \u2014 ")[0];
             return { ...c, zh, toks: d.segment(zh) };
           });
@@ -659,8 +761,12 @@ Give each with a natural American English translation.`, schema = {
       case "gemini":
         return getSettings().then(async (st) => {
           if (!st.geminiKey) return { error: "Add your Gemini API key in Settings first." };
+          let videoId = String(any.videoId), tab = sender.tab?.id;
           try {
-            return { lines: await geminiTranscribe(String(any.videoId), st.geminiKey, st.geminiModel || DEFAULT_SETTINGS.geminiModel) };
+            return await geminiTranscribe(videoId, st.geminiKey, st.geminiModel || DEFAULT_SETTINGS.geminiModel, Number(any.duration), (p) => {
+              tab != null && browser.tabs.sendMessage(tab, { type: "geminiProgress", videoId, ...p }).catch(() => {
+              });
+            });
           } catch (e) {
             return { error: String(e instanceof Error ? e.message : e) };
           }

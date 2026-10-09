@@ -143,6 +143,34 @@ export class Dictionary {
     return tokens;
   }
 
+  /**
+   * The best way to split a word into smaller dictionary words (never the word
+   * itself): 臺北市 -> 臺北 + 市, 維基百科 -> 維基 + 百科, 電腦 -> 電 + 腦.
+   */
+  split(word: string): string[] {
+    const chars = [...word];
+    const n = chars.length;
+    if (n < 2) return [];
+    const best = new Array<number>(n + 1).fill(-Infinity);
+    const back = new Array<number>(n + 1).fill(0);
+    best[0] = 0;
+    for (let i = 0; i < n; i++) {
+      if (best[i] === -Infinity) continue;
+      for (let len = 1; len < n && i + len <= n; len++) {
+        const s = chars.slice(i, i + len).join('');
+        const sc = len === 1 || this.index.has(s) ? this.score(s) : -Infinity;
+        if (sc === -Infinity) continue;
+        if (best[i] + sc > best[i + len]) {
+          best[i + len] = best[i] + sc;
+          back[i + len] = i;
+        }
+      }
+    }
+    const parts: string[] = [];
+    for (let j = n; j > 0; j = back[j]) parts.push(chars.slice(back[j], j).join(''));
+    return parts.reverse();
+  }
+
   private token(text: string): Token {
     const entries = this.get(text);
     if (!entries.length) return { text, trad: text };
@@ -154,11 +182,11 @@ export class Dictionary {
 const LOW_VALUE = /^(old )?variant of|^see |^surname |^used in |^\(old\)|^archaic /i;
 
 /**
- * The everyday reading of characters CC-CEDICT lists with a rarer one first
- * (要 is far more often yào "want" than yāo "demand").
+ * The everyday reading of single characters where "the reading with the most senses"
+ * (the general rule below) picks the wrong one. Readings when the character stands alone.
  */
 const PREFERRED: Record<string, string> = {
-  要: 'yao4', 著: 'zhe5', 着: 'zhe5', 看: 'kan4', 行: 'xing2', 重: 'zhong4', 背: 'bei4', 教: 'jiao4', 空: 'kong1',
+  著: 'zhe5', 着: 'zhe5', 了: 'le5', 得: 'de5', 地: 'de5', 重: 'zhong4', 教: 'jiao1', 空: 'kong1', 長: 'chang2', 要: 'yao4',
 };
 
 /** Order entries: matching script first, common senses before proper nouns and variants. */
@@ -172,8 +200,10 @@ export function rankEntries(entries: Entry[], query: string): Entry[] {
     if (e.defs.every((d) => /^(old )?variant of|^see /i.test(d))) r += 8;
     return r;
   };
+  const single = [...query].length === 1;
   return entries
     .map((e, i) => ({ e, i, r: rank(e) }))
-    .sort((a, b) => a.r - b.r || b.e.zipf - a.e.zipf || a.i - b.i)
+    // For a single character, the reading with the most senses is usually the everyday one (說 shuō, not shuì).
+    .sort((a, b) => a.r - b.r || b.e.zipf - a.e.zipf || (single ? b.e.defs.length - a.e.defs.length : 0) || a.i - b.i)
     .map((x) => x.e);
 }

@@ -6,7 +6,7 @@ import { isTyping } from '../content/keys.ts';
 import type { Popup } from '../content/popup.ts';
 import { state } from '../content/state.ts';
 import { alignTranslation, cueAt, cueBefore, parseTimedText, pickChinese, pickTranslation, splitNote, stripNote, urlInfo, type Cue, type TrackInfo } from './captions.ts';
-import type { GeminiLine } from '../background/gemini.ts';
+import type { GeminiLine, TranscribeResult } from '../background/gemini.ts';
 import { Controls } from './controls.ts';
 import { Transcript } from './transcript.ts';
 import css from './overlay.css';
@@ -58,7 +58,7 @@ export class YouTubeSubs {
   private shadowTimer: ReturnType<typeof setTimeout> | undefined;
   private videoTitle = '';
   /** Gemini fallback for videos with no Chinese captions. */
-  gemini: { state: 'idle' | 'working' | 'error'; error?: string } = { state: 'idle' };
+  gemini: { state: 'idle' | 'working' | 'error'; error?: string; done?: number; total?: number } = { state: 'idle' };
   private checkedGemini = false;
 
   constructor(popup: Popup) {
@@ -103,6 +103,7 @@ export class YouTubeSubs {
 
     browser.runtime.onMessage.addListener((msg: { type: string; url?: string; body?: string }) => {
       if (msg.type === 'ytCaptions' && msg.url && msg.body) this.onBody(msg.url, msg.body);
+      if (msg.type === 'geminiProgress') this.onGeminiProgress(msg as unknown as Parameters<YouTubeSubs['onGeminiProgress']>[0]);
     });
     this.controls = new Controls(this);
     this.transcript = new Transcript(this);
@@ -138,7 +139,8 @@ export class YouTubeSubs {
     const id = this.currentId();
     if (id === this.videoId) {
       if (id && !this.src) this.findTracks();
-      if (id && this.cues.length) this.controls.mount();
+      // YouTube builds (and rebuilds) its control bar on its own schedule: keep the switch in it.
+      if (id) this.controls.mount();
       return;
     }
     this.flushWatch();
@@ -206,8 +208,10 @@ export class YouTubeSubs {
       if (!this.checkedGemini) {
         this.checkedGemini = true;
         const id = this.videoId;
-        browser.runtime.sendMessage({ type: 'geminiCached', videoId: id }).then((lines: GeminiLine[] | null) => {
-          if (lines && this.videoId === id && !this.cues.length) this.applyGemini(lines);
+        browser.runtime.sendMessage({ type: 'geminiCached', videoId: id }).then((c: GeminiLine[] | { lines: GeminiLine[]; translated: boolean } | null) => {
+          if (!c || this.videoId !== id || this.cues.length) return;
+          if (Array.isArray(c)) this.applyGemini(c, false);
+          else this.applyGemini(c.lines, c.translated);
         });
       }
       return;
@@ -382,22 +386,32 @@ export class YouTubeSubs {
     return !!this.videoId;
   }
 
-  /** Opt-in, per video: transcribe with the user's Gemini key. */
+  /** Opt-in, per video: subtitles from Gemini with the user's key (translated into Mandarin if the video isn't). */
   async transcribeWithGemini() {
     const id = this.videoId;
-    this.gemini = { state: 'working' };
+    this.gemini = { state: 'working', done: 0, total: 0 };
     this.controls.render();
-    const res: { lines?: GeminiLine[]; error?: string } = await browser.runtime.sendMessage({ type: 'gemini', videoId: id });
+    const res: TranscribeResult & { error?: string } = await browser.runtime.sendMessage({
+      type: 'gemini',
+      videoId: id,
+      duration: this.video()?.duration,
+    });
     if (this.videoId !== id) return;
-    if (res.lines) {
-      this.gemini = { state: 'idle' };
-      this.applyGemini(res.lines);
-    } else this.gemini = { state: 'error', error: res.error };
+    if (res.lines?.length) this.applyGemini(res.lines, res.translated);
+    this.gemini = res.error ? { state: 'error', error: res.error } : { state: 'idle' };
     this.controls.render();
   }
 
-  private applyGemini(lines: GeminiLine[]) {
-    this.src = { languageCode: 'zh-TW', name: 'Gemini transcript' };
+  /** Parts of a long video arrive one by one: show them as they come. */
+  private onGeminiProgress(p: { videoId: string; done: number; total: number; lines: GeminiLine[] }) {
+    if (p.videoId !== this.videoId || this.gemini.state !== 'working') return;
+    this.gemini = { state: 'working', done: p.done, total: p.total };
+    if (p.lines.length && p.lines.length !== this.cues.length) this.applyGemini(p.lines, false);
+    this.controls.render();
+  }
+
+  private applyGemini(lines: GeminiLine[], translated: boolean) {
+    this.src = { languageCode: 'zh-TW', name: translated ? 'Gemini (translated into Mandarin)' : 'Gemini transcript' };
     this.requestedTr = true;
     this.trCues = lines.map((l) => ({ start: l.start, end: l.end, text: l.en }));
     this.trans = lines.map((l) => l.en);

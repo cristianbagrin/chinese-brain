@@ -95,7 +95,8 @@ export class Controls {
   /** (Re)insert into the player; YouTube sometimes rebuilds its control bar. */
   mount() {
     const player = document.getElementById('movie_player');
-    const right = player?.querySelector('.ytp-right-controls');
+    // Newer player layouts split the right-hand controls in two; older ones have one group.
+    const right = player?.querySelector('.ytp-right-controls-left') ?? player?.querySelector('.ytp-right-controls');
     if (right && this.switchHost.parentNode !== right) right.prepend(this.switchHost);
     if (player && this.panelHost.parentNode !== player) player.append(this.panelHost);
     this.render();
@@ -153,7 +154,8 @@ export class Controls {
             ),
           )
         : this.noCaptions(),
-      el('div', 'track', this.subs.trackName, this.subs.hasTranslation ? ' + English' : ''),
+      (total && this.geminiStatus()) || "",
+      this.subs.trackName ? el('div', 'track', this.subs.trackName, this.subs.hasTranslation ? ' + English' : '') : '',
       el(
         'div',
         'chips',
@@ -173,21 +175,42 @@ export class Controls {
     const g = this.subs.gemini;
     const box = el('div', 'cov', el('div', '', 'No Chinese captions for this video.'));
     if (!state.settings.geminiKey) {
-      box.append(el('div', 'note', 'Add a Gemini API key in Settings to transcribe videos like this one.'));
+      box.append(el('div', 'note', 'Add a Gemini API key in Settings to get subtitles for videos like this one.'));
       return box;
     }
     if (g.state === 'working') {
-      box.append(el('div', 'note', 'Transcribing with Gemini… this can take a minute for long videos.'));
+      box.append(el('div', 'note', this.progressText()));
       return box;
     }
-    const b = el('button', 'chip on', 'Transcribe with Gemini');
+    const b = el('button', 'chip on', 'Subtitles with Gemini');
     b.addEventListener('click', () => void this.subs.transcribeWithGemini());
     box.append(
       el('div', 'gem', b),
-      el('div', 'note', 'Sends this video\'s link to Google. On the free tier Google may use the request to improve its models.'),
+      el(
+        'div',
+        'note',
+        "Mandarin is transcribed; any other language is translated into Taiwan Mandarin. Sends this video's link to Google. On the free tier Google may use the request to improve its models.",
+      ),
     );
     if (g.state === 'error') box.append(el('div', 'note err', g.error ?? 'Something went wrong.'));
     return box;
+  }
+
+  private progressText() {
+    const g = this.subs.gemini;
+    return g.total && g.total > 1
+      ? `Making subtitles with Gemini… ${g.done ?? 0} of ${g.total} parts done (lines appear as parts finish).`
+      : 'Making subtitles with Gemini… this takes about a minute.';
+  }
+
+  /** Gemini still working on, or stuck on, some parts of a video that already shows lines. */
+  private geminiStatus() {
+    const g = this.subs.gemini;
+    if (g.state === 'working') return el('div', 'note', this.progressText());
+    if (g.state !== 'error') return null;
+    const b = el('button', 'chip', 'Try the missing parts again');
+    b.addEventListener('click', () => void this.subs.transcribeWithGemini());
+    return el('div', '', el('div', 'note err', g.error ?? 'Something went wrong.'), el('div', 'gem', b));
   }
 
   flash(key: string) {

@@ -421,7 +421,7 @@
     }
     /** (Re)insert into the player; YouTube sometimes rebuilds its control bar. */
     mount() {
-      let player = document.getElementById("movie_player"), right = player?.querySelector(".ytp-right-controls");
+      let player = document.getElementById("movie_player"), right = player?.querySelector(".ytp-right-controls-left") ?? player?.querySelector(".ytp-right-controls");
       right && this.switchHost.parentNode !== right && right.prepend(this.switchHost), player && this.panelHost.parentNode !== player && player.append(this.panelHost), this.render();
     }
     render() {
@@ -460,7 +460,8 @@
             el("span", "n", `new ${pct(c.new)}%`)
           )
         ) : this.noCaptions(),
-        el("div", "track", this.subs.trackName, this.subs.hasTranslation ? " + English" : ""),
+        total && this.geminiStatus() || "",
+        this.subs.trackName ? el("div", "track", this.subs.trackName, this.subs.hasTranslation ? " + English" : "") : "",
         el(
           "div",
           "chips",
@@ -478,14 +479,30 @@
     noCaptions() {
       let g = this.subs.gemini, box = el("div", "cov", el("div", "", "No Chinese captions for this video."));
       if (!state.settings.geminiKey)
-        return box.append(el("div", "note", "Add a Gemini API key in Settings to transcribe videos like this one.")), box;
+        return box.append(el("div", "note", "Add a Gemini API key in Settings to get subtitles for videos like this one.")), box;
       if (g.state === "working")
-        return box.append(el("div", "note", "Transcribing with Gemini\u2026 this can take a minute for long videos.")), box;
-      let b = el("button", "chip on", "Transcribe with Gemini");
+        return box.append(el("div", "note", this.progressText())), box;
+      let b = el("button", "chip on", "Subtitles with Gemini");
       return b.addEventListener("click", () => void this.subs.transcribeWithGemini()), box.append(
         el("div", "gem", b),
-        el("div", "note", "Sends this video's link to Google. On the free tier Google may use the request to improve its models.")
+        el(
+          "div",
+          "note",
+          "Mandarin is transcribed; any other language is translated into Taiwan Mandarin. Sends this video's link to Google. On the free tier Google may use the request to improve its models."
+        )
       ), g.state === "error" && box.append(el("div", "note err", g.error ?? "Something went wrong.")), box;
+    }
+    progressText() {
+      let g = this.subs.gemini;
+      return g.total && g.total > 1 ? `Making subtitles with Gemini\u2026 ${g.done ?? 0} of ${g.total} parts done (lines appear as parts finish).` : "Making subtitles with Gemini\u2026 this takes about a minute.";
+    }
+    /** Gemini still working on, or stuck on, some parts of a video that already shows lines. */
+    geminiStatus() {
+      let g = this.subs.gemini;
+      if (g.state === "working") return el("div", "note", this.progressText());
+      if (g.state !== "error") return null;
+      let b = el("button", "chip", "Try the missing parts again");
+      return b.addEventListener("click", () => void this.subs.transcribeWithGemini()), el("div", "", el("div", "note err", g.error ?? "Something went wrong."), el("div", "gem", b));
     }
     flash(key) {
       TOAST[key]?.(this.subs) && setTimeout(() => {
@@ -876,7 +893,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       }), box.addEventListener("mouseleave", () => this.hoverPause(!1)), this.zh.addEventListener("mouseover", (e) => this.onTokenHover(e)), this.zh.addEventListener("mouseout", () => this.popup.hideSoon()), this.zh.addEventListener("click", (e) => this.onTokenClick(e)), this.popup.onHide(() => {
         this.clickStamped = "", this.maybeResume();
       }), browser.runtime.onMessage.addListener((msg) => {
-        msg.type === "ytCaptions" && msg.url && msg.body && this.onBody(msg.url, msg.body);
+        msg.type === "ytCaptions" && msg.url && msg.body && this.onBody(msg.url, msg.body), msg.type === "geminiProgress" && this.onGeminiProgress(msg);
       }), this.controls = new Controls(this), this.transcript = new Transcript(this), state.onChange(() => {
         this.applyEnabled(), this.renderLine(!0);
       }), window.addEventListener("keydown", (e) => this.onKey(e), !0), document.addEventListener("yt-navigate-finish", () => this.checkVideo()), window.addEventListener("pagehide", () => this.flushWatch()), setInterval(() => this.checkVideo(), 1e3), new ResizeObserver(() => this.resize()).observe(document.documentElement), this.checkVideo(), this.tick = this.tick.bind(this), requestAnimationFrame(this.tick);
@@ -894,7 +911,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     checkVideo() {
       let id = this.currentId();
       if (id === this.videoId) {
-        id && !this.src && this.findTracks(), id && this.cues.length && this.controls.mount();
+        id && !this.src && this.findTracks(), id && this.controls.mount();
         return;
       }
       this.flushWatch(), this.videoId = id, this.reset(), id && (state.loadStatuses(), this.findTracks(), browser.runtime.sendMessage({ type: "ytCached" }).then((list) => {
@@ -927,8 +944,8 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         if (this.controls.mount(), !this.checkedGemini) {
           this.checkedGemini = !0;
           let id2 = this.videoId;
-          browser.runtime.sendMessage({ type: "geminiCached", videoId: id2 }).then((lines) => {
-            lines && this.videoId === id2 && !this.cues.length && this.applyGemini(lines);
+          browser.runtime.sendMessage({ type: "geminiCached", videoId: id2 }).then((c) => {
+            !c || this.videoId !== id2 || this.cues.length || (Array.isArray(c) ? this.applyGemini(c, !1) : this.applyGemini(c.lines, c.translated));
           });
         }
         return;
@@ -1034,15 +1051,23 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     get videoActive() {
       return !!this.videoId;
     }
-    /** Opt-in, per video: transcribe with the user's Gemini key. */
+    /** Opt-in, per video: subtitles from Gemini with the user's key (translated into Mandarin if the video isn't). */
     async transcribeWithGemini() {
       let id = this.videoId;
-      this.gemini = { state: "working" }, this.controls.render();
-      let res = await browser.runtime.sendMessage({ type: "gemini", videoId: id });
-      this.videoId === id && (res.lines ? (this.gemini = { state: "idle" }, this.applyGemini(res.lines)) : this.gemini = { state: "error", error: res.error }, this.controls.render());
+      this.gemini = { state: "working", done: 0, total: 0 }, this.controls.render();
+      let res = await browser.runtime.sendMessage({
+        type: "gemini",
+        videoId: id,
+        duration: this.video()?.duration
+      });
+      this.videoId === id && (res.lines?.length && this.applyGemini(res.lines, res.translated), this.gemini = res.error ? { state: "error", error: res.error } : { state: "idle" }, this.controls.render());
     }
-    applyGemini(lines) {
-      this.src = { languageCode: "zh-TW", name: "Gemini transcript" }, this.requestedTr = !0, this.trCues = lines.map((l) => ({ start: l.start, end: l.end, text: l.en })), this.trans = lines.map((l) => l.en), this.setSource(lines.map((l) => ({ start: l.start, end: l.end, text: l.zh })));
+    /** Parts of a long video arrive one by one: show them as they come. */
+    onGeminiProgress(p) {
+      p.videoId !== this.videoId || this.gemini.state !== "working" || (this.gemini = { state: "working", done: p.done, total: p.total }, p.lines.length && p.lines.length !== this.cues.length && this.applyGemini(p.lines, !1), this.controls.render());
+    }
+    applyGemini(lines, translated) {
+      this.src = { languageCode: "zh-TW", name: translated ? "Gemini (translated into Mandarin)" : "Gemini transcript" }, this.requestedTr = !0, this.trCues = lines.map((l) => ({ start: l.start, end: l.end, text: l.en })), this.trans = lines.map((l) => l.en), this.setSource(lines.map((l) => ({ start: l.start, end: l.end, text: l.zh })));
     }
     get hasSubs() {
       return this.cues.length > 0;
@@ -1336,6 +1361,19 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     for (; b < full.length && !stops.test(full[b]) && b - pos < 160; ) b++;
     return full.slice(a, Math.min(full.length, b + 1)).trim();
   }
+  function covers(r, node, offset) {
+    try {
+      return r.comparePoint(node, offset) === 0 && r.comparePoint(node, offset + 1) === 0;
+    } catch {
+      return !1;
+    }
+  }
+  function lineSlack(node) {
+    let el3 = node.parentElement;
+    if (!el3) return 2;
+    let cs = getComputedStyle(el3), fs = parseFloat(cs.fontSize) || 16, lh = parseFloat(cs.lineHeight);
+    return Math.max(2, Number.isFinite(lh) ? (lh - fs) / 2 + 1 : fs * 0.2);
+  }
   var SKIP_TEXT = "script,style,noscript,textarea,code,pre,chinese-brain-popup,[data-cb-own]";
   function pageSentences(word) {
     let out = [], walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), scanned = 0;
@@ -1355,6 +1393,8 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     lastY = 0;
     shift = !1;
     currentKey = "";
+    /** The highlighted word: moving across its characters keeps its card. */
+    currentRange;
     cssInjected = !1;
     seq = 0;
     constructor(popup) {
@@ -1367,7 +1407,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         },
         { capture: !0, passive: !0 }
       ), this.popup.onHide(() => {
-        this.currentKey = "", CSS.highlights?.delete(HIGHLIGHT);
+        this.currentKey = "", this.currentRange = void 0, CSS.highlights?.delete(HIGHLIGHT);
       }), document.addEventListener("mouseup", (e) => {
         this.popup.contains(e.target) || setTimeout(() => this.onSelect(e), 0);
       }), document.addEventListener("keyup", (e) => {
@@ -1391,7 +1431,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       let matches = await lookupText(text);
       if (!matches.length) return;
       let exact = matches.findIndex((m) => m.text === text), ordered = exact > 0 ? [matches[exact], ...matches.filter((_, i) => i !== exact)] : matches;
-      CSS.highlights?.delete(HIGHLIGHT), this.currentKey = "", this.popup.show({
+      CSS.highlights?.delete(HIGHLIGHT), this.currentKey = "", this.currentRange = void 0, this.popup.show({
         matches: ordered,
         rect,
         cursor: e ? { x: e.clientX, y: e.clientY } : void 0,
@@ -1421,17 +1461,31 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       if (!node || node.nodeType !== Node.TEXT_NODE) return this.scheduleHide();
       let text = node, offset = pos.offset;
       if (offset = this.charUnderPointer(text, offset), offset < 0 || !CJK.test(text.data[offset] ?? "")) return this.scheduleHide();
-      let { text: str, ranges } = textFrom(text, offset), key = `${str}@${Math.round(this.charRect(text, offset)?.left ?? 0)}`;
-      if (key === this.currentKey) {
+      if (this.currentRange && this.popup.visible && covers(this.currentRange, text, offset)) {
         this.popup.cancelHide();
         return;
       }
-      let matches = await lookupText(str);
+      let back = Math.min(offset, 7), { text: str, ranges } = textFrom(text, offset - back, back + 10), at = this.charRect(text, offset - back), key = `${str}@${Math.round(at?.left ?? 0)},${Math.round(at?.top ?? 0)}`, toks = await this.segment(str);
+      if (seq !== this.seq) return;
+      let start = back, tok;
+      for (let pos2 = 0, i = 0; i < toks.length; pos2 += toks[i].text.length, i++)
+        if (back < pos2 + toks[i].text.length) {
+          tok = toks[i], start = pos2;
+          break;
+        }
+      tok?.word || (start = back);
+      let wordKey = `${key}:${start}`;
+      if (wordKey === this.currentKey) {
+        this.popup.cancelHide();
+        return;
+      }
+      let matches = await lookupText(str.slice(start));
       if (seq !== this.seq) return;
       if (!matches.length) return this.scheduleHide();
-      this.currentKey = key;
-      let range = this.rangeFor(ranges, matches[0].text.length);
-      this.highlight(range), this.popup.show({
+      let own = tok?.word ? matches.findIndex((m) => m.text === tok.text) : -1;
+      own > 0 && (matches = [matches[own], ...matches.filter((_, i) => i !== own)]), this.currentKey = wordKey;
+      let range = this.rangeFor(ranges, matches[0].text.length, start);
+      this.currentRange = range, this.highlight(range), this.popup.show({
         matches,
         rect: range.getBoundingClientRect(),
         cursor: { x: this.lastX, y: this.lastY },
@@ -1447,21 +1501,39 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       return r.setStart(node, i), r.setEnd(node, i + 1), r.getBoundingClientRect();
     }
     charUnderPointer(node, offset) {
+      let slack = lineSlack(node);
       for (let i of [offset, offset - 1]) {
         let r = this.charRect(node, i);
-        if (r && this.lastX >= r.left - 1 && this.lastX <= r.right + 1 && this.lastY >= r.top - 2 && this.lastY <= r.bottom + 2) return i;
+        if (r && this.lastX >= r.left - 1 && this.lastX <= r.right + 1 && this.lastY >= r.top - slack && this.lastY <= r.bottom + slack) return i;
       }
       return -1;
     }
-    rangeFor(ranges, len) {
-      let r = document.createRange(), [n0, s0] = ranges[0];
-      r.setStart(n0, s0);
-      let left = len;
+    /** A DOM range for `len` characters starting `skip` characters into the collected text. */
+    rangeFor(ranges, len, skip = 0) {
+      let r = document.createRange(), started = !1, left = len;
       for (let [n, s, e] of ranges) {
-        let take = Math.min(left, e - s);
-        if (r.setEnd(n, s + take), left -= take, left <= 0) break;
+        if (started) {
+          let take = Math.min(left, e - s);
+          r.setEnd(n, s + take), left -= take;
+        } else {
+          if (skip >= e - s) {
+            skip -= e - s;
+            continue;
+          }
+          r.setStart(n, s + skip), started = !0;
+          let take = Math.min(left, e - s - skip);
+          r.setEnd(n, s + skip + take), left -= take;
+        }
+        if (left <= 0) break;
       }
       return r;
+    }
+    segCache = /* @__PURE__ */ new Map();
+    async segment(str) {
+      let hit = this.segCache.get(str);
+      if (hit) return hit;
+      let [toks] = await browser.runtime.sendMessage({ type: "segment", lines: [str] });
+      return this.segCache.size > 300 && this.segCache.clear(), this.segCache.set(str, toks ?? []), toks ?? [];
     }
     highlight(range) {
       if (!CSS.highlights) return;
@@ -1731,12 +1803,21 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 
 .sect { border-top: 1px solid var(--line); padding: 0.57em 1.15em; }
 .chars { display: grid; grid-template-columns: auto auto 1fr; gap: 0.2em 0.7em; align-items: baseline; }
+.chars .cw { white-space: nowrap; }
+.chars .cw.d1 { padding-left: 1.1em; }
+.chars .cw.d2 { padding-left: 2.2em; }
+.chars .cw.d3 { padding-left: 3.3em; }
+.chars .cw.d1::before, .chars .cw.d2::before, .chars .cw.d3::before { content: '\u2514'; color: var(--line); margin-right: 0.3em; font-size: 0.9em; }
 .chars .cpy { color: var(--text3); font-size: 0.86em; white-space: nowrap; }
 .chars .cg { color: var(--text2); font-size: 0.93em; line-height: 1.4; }
 
 .ex { margin: 0; padding: 0; list-style: none; }
 .ex li + li { margin-top: 0.36em; }
 .ex .zh { font-size: 1.07em; }
+.say { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; margin-left: 0.25em; vertical-align: -0.2em; border-radius: 50%; color: var(--text3); }
+.say:hover { color: var(--link); background: var(--bg2); }
+.say svg { width: 0.95em; height: 0.95em; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
+.say svg path { fill: none; }
 .ex .en { display: block; font-size: 0.89em; color: var(--text2); }
 .label { font-size: 0.79em; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 0.3em; }
 .seen .src { all: unset; cursor: pointer; font-size: 0.86em; color: var(--link); margin-left: 0.43em; text-decoration: none; }
@@ -1814,7 +1895,8 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 }
 .hint.large { font-size: 15px; }
 .hint[hidden] { display: none; }
-.hint .hpy { color: #c9cdf0; margin-right: 0.5em; }
+.hint .hg, .hint .hpy { overflow: hidden; text-overflow: ellipsis; }
+.hint .hpy { color: #c9cdf0; font-size: 0.92em; }
 `;
 
   // src/content/popup.ts
@@ -1846,10 +1928,11 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     let d = e.defs.find((x) => !x.startsWith("CL:") && !/^(old )?variant of|^see /i.test(x)) ?? e.defs[0] ?? "", first = prettyDef(d).split(/;\s*/)[0];
     return first.length > 60 ? first.slice(0, 58) + "\u2026" : first;
   }
-  function inTrapezoid(p, p0, p1, lo0, hi0, lo1, hi1, q, pad) {
-    if (p < Math.min(p0, p1) - pad || p > Math.max(p0, p1) + pad) return !1;
-    let t = p1 === p0 ? 0 : Math.min(1, Math.max(0, (p - p0) / (p1 - p0)));
-    return q >= lo0 + (lo1 - lo0) * t - pad && q <= hi0 + (hi1 - hi0) * t + pad;
+  function inTrapezoid(p, from, to, lo0, hi0, lo1, hi1, q, pad) {
+    let len = Math.abs(to - from), t = (p - from) * (to >= from ? 1 : -1);
+    if (t <= 0 || t > len + pad) return !1;
+    let f = len ? Math.min(1, t / len) : 0;
+    return q >= lo0 + (lo1 - lo0) * f - pad && q <= hi0 + (hi1 - hi0) * f + pad;
   }
   var Popup = class {
     host;
@@ -1873,6 +1956,8 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     history = [];
     lookTimer;
     softTimer;
+    /** A hide is counting down (moving on doesn't restart it, so leaving is quick). */
+    hiding = !1;
     hideListeners = /* @__PURE__ */ new Set();
     infoCache = /* @__PURE__ */ new Map();
     constructor() {
@@ -1895,7 +1980,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       this.card.addEventListener("click", (e) => {
         e.stopPropagation(), this.onCardClick(e);
       }), this.card.addEventListener("mouseenter", () => {
-        this.hovered = !0, clearTimeout(this.softTimer);
+        this.hovered = !0, this.cancelHide();
       }), this.card.addEventListener("mouseleave", () => {
         this.hovered = !1, this.hideHint(), this.pinned || this.hideSoon();
       }), state.onChange(() => {
@@ -1937,17 +2022,19 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
      * way there: while it is in the corridor between the word and the card, however
      * slowly it moves, the card waits.
      */
-    hideSoon(ms = 300) {
-      if (!this.opts || this.pinned) return;
-      clearTimeout(this.softTimer);
+    hideSoon(ms = 140) {
+      if (!this.opts || this.pinned || this.hiding) return;
+      this.hiding = !0;
       let check = () => {
-        if (!(!this.opts || this.pinned || this.hovered)) {
-          if (this.inBridge(this.px, this.py)) {
-            this.softTimer = setTimeout(check, 100);
-            return;
-          }
-          this.hide();
+        if (!this.opts || this.pinned || this.hovered) {
+          this.hiding = !1;
+          return;
         }
+        if (this.inBridge(this.px, this.py)) {
+          this.softTimer = setTimeout(check, 50);
+          return;
+        }
+        this.hide();
       };
       this.softTimer = setTimeout(check, ms);
     }
@@ -1963,11 +2050,11 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       this.anchor = void 0, this.hideHint();
     }
     cancelHide() {
-      clearTimeout(this.softTimer);
+      clearTimeout(this.softTimer), this.hiding = !1;
     }
     async show(opts, keepPlace = !1) {
       let sameWord = this.opts?.matches[0]?.word === opts.matches[0]?.word;
-      this.opts = opts, clearTimeout(this.softTimer), sameWord || (this.revealPy = !1), keepPlace || (this.history = []), this.mount();
+      this.opts = opts, this.cancelHide(), sameWord || (this.revealPy = !1), keepPlace || (this.history = []), this.mount();
       let m = opts.matches[0], e0 = m.entries[0], [, info] = await Promise.all([state.loadStatuses(), this.wordInfo(m.word, e0.tw || e0.py)]);
       if (this.opts !== opts) return;
       let extra = await this.relatedFor(opts, m.word, info);
@@ -1989,7 +2076,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       return this.infoCache.size > 200 && this.infoCache.clear(), this.infoCache.set(word, info), info;
     }
     hide() {
-      this.opts && (clearTimeout(this.lookTimer), clearTimeout(this.softTimer), this.opts = void 0, this.history = [], this.hovered = !1, this.anchor = void 0, this.card.hidden = !0, this.hideHint(), this.hideListeners.forEach((f) => f()));
+      this.opts && (clearTimeout(this.lookTimer), this.cancelHide(), this.opts = void 0, this.history = [], this.hovered = !1, this.anchor = void 0, this.card.hidden = !0, this.hideHint(), this.hideListeners.forEach((f) => f()));
     }
     recordLook() {
       let m = this.current;
@@ -2059,8 +2146,8 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       if (!m) return this.hideHint();
       let e = m.entries[0], hint = this.hint;
       hint.classList.toggle("large", state.settings.cardSize === "large"), hint.replaceChildren(
-        state.settings.pinyin ? h("span", { class: "hpy" }, numberedToMarked(e.tw || e.py)) : "",
-        h("span", { class: "hg" }, mainSense(e))
+        h("div", { class: "hg" }, mainSense(e)),
+        state.settings.pinyin ? h("div", { class: "hpy" }, numberedToMarked(e.tw || e.py, !1)) : ""
       ), hint.hidden = !1;
       let r = el3.getBoundingClientRect(), w2 = hint.offsetWidth, ht = hint.offsetHeight, y = r.top - ht - 6;
       y < 4 && (y = r.bottom + 6), hint.style.left = `${Math.min(Math.max(4, r.left + r.width / 2 - w2 / 2), window.innerWidth - w2 - 4)}px`, hint.style.top = `${y}px`;
@@ -2085,6 +2172,15 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     position(o) {
       let c = this.card, r = o.rect, vw = window.innerWidth, vh = window.innerHeight, w2 = c.offsetWidth, ht = c.offsetHeight, x0 = o.cursor ? o.cursor.x - 28 : r.left, x = Math.min(Math.max(8, x0), vw - w2 - 8), y = Math.max(r.bottom, o.cursor?.y ?? 0) + 12;
       y + ht > vh - 8 && (y = Math.max(8, r.top - ht - 10)), c.style.left = `${x}px`, c.style.top = `${y}px`;
+    }
+    /** A small speaker button that reads a sentence aloud. */
+    sayButton(text) {
+      let b = h("button", { class: "say", title: "Play the sentence", "aria-label": "Play the sentence" }), NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
+      svg.setAttribute("viewBox", "0 0 16 16");
+      let path = document.createElementNS(NS, "path");
+      return path.setAttribute("d", "M2 6h3l4-3v10l-4-3H2zM11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.5a6 6 0 0 1 0 9"), svg.append(path), b.append(svg), b.addEventListener("click", (e) => {
+        e.stopPropagation(), speak(text);
+      }), b;
     }
     /** A clickable, status-colored word. */
     word(text, q, word) {
@@ -2165,7 +2261,9 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         let grid = h("div", { class: "chars" });
         for (let c of info.chars) {
           let ch = this.word(c.ch, c.ch, c.ch);
-          ch.classList.add("c"), grid.append(ch, h("span", { class: "cpy" }, pyHidden ? "" : numberedToMarked(c.py)), h("span", { class: "cg" }, c.gloss));
+          ch.classList.add("c");
+          let cell = h("span", { class: `cw d${Math.min(c.depth, 3)}` }, ch);
+          grid.append(cell, h("span", { class: "cpy" }, pyHidden ? "" : numberedToMarked(c.py, !1)), h("span", { class: "cg" }, c.gloss));
         }
         card.append(h("div", { class: "sect" }, grid));
       }
@@ -2176,7 +2274,9 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
           h(
             "ul",
             { class: "ex" },
-            ...info.examples.map((x) => h("li", null, h("span", { class: "zh" }, ...this.sentence(x.toks, m.word)), h("span", { class: "en" }, x.en)))
+            ...info.examples.map(
+              (x) => h("li", null, h("span", { class: "zh" }, ...this.sentence(x.toks, m.word)), this.sayButton(x.zh), h("span", { class: "en" }, x.en))
+            )
           )
         ), extra.length && sect.append(
           h("div", { class: "label", style: info?.examples.length ? "margin-top:8px" : "" }, o.relatedLabel ?? "Also here"),
@@ -2189,7 +2289,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
                 let t = x.t;
                 link = h("button", { class: "src", title: "Play from here" }, `\u25B6 ${clock(t)}`), link.addEventListener("click", () => o.seek(t));
               }
-              return h("li", null, h("span", { class: "zh" }, ...this.sentence(x.toks, m.word)), link);
+              return h("li", null, h("span", { class: "zh" }, ...this.sentence(x.toks, m.word)), this.sayButton(x.zh), link);
             })
           )
         ), canWrite) {
@@ -2207,6 +2307,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
                 "li",
                 null,
                 h("span", { class: "zh" }, ...this.sentence(c.toks, m.word)),
+                this.sayButton(c.zh),
                 h("a", { class: "src", href, target: "_blank" }, c.src === "yt" && c.t != null ? `\u25B6 ${clock(c.t)}` : shortSource(c.url))
               );
             })
