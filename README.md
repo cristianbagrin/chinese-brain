@@ -7,10 +7,13 @@ shared by everything:
   under the pointer. It shows Traditional characters, **Taiwan standard
   pinyin**, how common the word is (essential → rare, with what that means for
   you), the meanings on one line, a top-down breakdown (臺北市 → 臺北 → 臺, 北;
-  then 市), two natural Taiwan-Mandarin example sentences, and the last two
-  sentences you met the word in (page-title clutter trimmed). Every sentence has
-  a play button, a copy button and a × to delete it, and examples a ★ to save
-  them for your export; Gemini can write new examples on request.
+  then 市), two natural Taiwan-Mandarin example sentences, the sentence you are
+  reading now, and the last two sentences you met the word in (page-title clutter
+  trimmed). Every sentence has a play button and a copy button; examples and met
+  sentences have a × to delete them. The bookmark saves a sentence for your
+  export, and the pencil lets you trim it first (Enter saves, Esc cancels): the
+  trimmed version shows under **Saved** in place of the original. Gemini can
+  write new examples on request.
   The card never covers the word or the pointer (below, above, or beside it),
   waits while the pointer travels to it, and stays put while you scroll. Hover
   any word inside it for a small hint with its meaning; the card's shortcuts
@@ -80,17 +83,18 @@ for this one, voice, YouTube subtitles). **All settings** has the rest:
 - **Voice.** Google's Taiwan voice (online, free; the default), the system
   voice, or an Azure neural voice with your own key. Google and Azure audio is
   faded in and out, so words end cleanly. **Test** plays a sample and says which
-  voice answered; **Check key** tests an Azure key and finds its region.
+  voice answered; **Check** tests an Azure key and finds its region.
 - **Gemini.** Paste a free key from aistudio.google.com/apikey and press
-  **Check key** to pick a model from the ones the key can use.
+  **Check** to pick a model from the ones the key can use.
 
 ## Your word list
 
 Toolbar button → **Word list & export**.
 
+- The counts at the top are the filter: click one to show only those words.
 - **Import** your `known-words.txt` (`word⇥K|L⇥date`). K → Known, L → Learning,
   and the dates are kept.
-- **Export what's new** (or **Copy what's new**) gives one small TSV: words
+- **Download new** (or **Copy**) gives one small TSV: words
   whose status you changed since the last export, plus example sentences you
   saved (`saved` column). Only your own stamps count; lookups don't.
 - **Backup / restore** saves everything as JSON, for moving to another

@@ -1,3 +1,4 @@
+import { cleanSentence, usefulSentence } from '../shared/context.ts';
 import { CJK } from '../shared/dict.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import type { Context, Entry, LookupMatch, Status, Token } from '../shared/types.ts';
@@ -23,6 +24,21 @@ interface WordInfo {
   seen: (Sentence & Context)[];
   /** Example sentences you saved (for the export). */
   saved: string[];
+  /** Saved sentences that aren't among the examples (met ones, often trimmed), with the one each was cut from. */
+  mine?: (Sentence & { en: string; from?: string })[];
+}
+
+/** A sentence being edited in the card before it is saved. */
+interface Editing {
+  word: string;
+  /** The sentence as shown (the row being edited). */
+  orig: string;
+  draft: string;
+  en: string;
+  /** The saved sentence the edit replaces. */
+  replace?: string;
+  /** The met sentence it was cut from. */
+  from?: string;
 }
 
 type H = HTMLElement;
@@ -129,6 +145,7 @@ export class Popup {
   private opts: ShowOptions | undefined;
   private info: WordInfo | undefined;
   private gemState: { word: string; busy: boolean; error?: string } | undefined;
+  private editing: Editing | undefined;
   /** The word the card belongs to, for the corridor between them (gone after a scroll). */
   private anchor: DOMRect | undefined;
   private px = -1;
@@ -309,6 +326,7 @@ export class Popup {
 
   async show(opts: ShowOptions, keepPlace = false) {
     const sameWord = this.opts?.matches[0]?.word === opts.matches[0]?.word;
+    if (this.editing?.word !== opts.matches[0]?.word) this.endEdit();
     this.opts = opts;
     this.cancelHide();
     if (!keepPlace) {
@@ -349,6 +367,7 @@ export class Popup {
     clearTimeout(this.lookTimer);
     this.cancelHide();
     this.opts = undefined;
+    this.endEdit();
     this.trail = [];
     this.pos = 0;
     this.hoverWord = undefined;
@@ -596,14 +615,128 @@ export class Popup {
     b.addEventListener('click', (e) => {
       e.stopPropagation();
       e.preventDefault();
-      const next = !this.info?.saved?.includes(zh);
-      if (this.info) this.info = { ...this.info, saved: next ? [...(this.info.saved ?? []), zh] : (this.info.saved ?? []).filter((x) => x !== zh) };
-      if (next) stampSound('known');
-      this.infoCache.delete(word);
-      this.render();
-      void browser.runtime.sendMessage({ type: 'saveSentence', word, zh, en, on: next });
+      this.saveSentence(word, { zh, en, on: !this.info?.saved?.includes(zh) });
     });
     return b;
+  }
+
+  /** Save or unsave a sentence: the card changes at once, the stored list follows (and the card refills from it). */
+  private saveSentence(word: string, o: { zh: string; en: string; on: boolean; replace?: string; from?: string }) {
+    if (this.info) {
+      const drop = (x: string) => x === o.zh || x === o.replace;
+      const mine = (this.info.mine ?? []).filter((x) => !drop(x.zh));
+      const old = this.info.mine?.find((x) => x.zh === o.replace);
+      if (o.on && !this.info.examples.some((x) => x.zh === o.zh)) mine.push({ zh: o.zh, en: o.en, from: o.from ?? old?.from, toks: [] });
+      this.info = { ...this.info, saved: [...this.info.saved.filter((x) => !drop(x)), ...(o.on ? [o.zh] : [])], mine };
+    }
+    if (o.on) stampSound('known');
+    this.infoCache.delete(word);
+    this.render();
+    void browser.runtime.sendMessage({ type: 'saveSentence', word, ...o }).then(async () => {
+      this.infoCache.delete(word);
+      const cur = this.current;
+      if (cur?.word !== word) return;
+      const e0 = cur.entries[0];
+      this.info = await this.wordInfo(word, e0.tw || e0.py);
+      if (this.current?.word === word) this.render();
+    });
+  }
+
+  /** A small pencil that opens a sentence for trimming before it is saved. */
+  private editButton(word: string, zh: string, en: string, from?: string): H {
+    const b = h('button', { class: 'edit', title: 'Edit, then save', 'aria-label': 'Edit this sentence' });
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16');
+    const path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', 'M3 13l.8-3.2 7-7 2.4 2.4-7 7zM9.6 4l2.4 2.4');
+    svg.append(path);
+    b.append(svg);
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const replace = this.info?.saved.includes(zh) ? zh : undefined;
+      this.editing = { word, orig: zh, draft: zh, en, replace, from: from ?? zh };
+      // Editing keeps the card open, like a clicked word.
+      if (this.opts) this.opts.pinned = true;
+      this.render();
+    });
+    return b;
+  }
+
+  /** The row being edited: a text box (Enter saves, Esc cancels). */
+  private editRow(ed: Editing): H {
+    const box = h('textarea', { class: 'editbox', rows: '2', spellcheck: 'false', 'aria-label': 'Edit the sentence' }) as HTMLTextAreaElement;
+    box.value = ed.draft;
+    box.addEventListener('input', () => (ed.draft = box.value));
+    // Typing here is typing: no card shortcuts, no YouTube keys.
+    box.addEventListener('focus', () => this.host.setAttribute('data-typing', ''));
+    box.addEventListener('blur', () => this.host.removeAttribute('data-typing'));
+    for (const t of ['keyup', 'keypress']) box.addEventListener(t, (e) => e.stopPropagation());
+    box.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.isComposing) return;
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.commitEdit();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        this.endEdit();
+        this.render();
+      }
+    });
+    const save = h('button', { class: 'editsave' }, 'Save');
+    save.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.commitEdit();
+    });
+    const cancel = h('button', { class: 'editcancel' }, 'Cancel');
+    cancel.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.endEdit();
+      this.render();
+    });
+    return h('li', { class: 'editing' }, box, h('div', { class: 'editbar' }, save, cancel, this.copyButton(() => box.value), h('span', { class: 'edithint' }, 'Enter saves · Esc cancels')));
+  }
+
+  private commitEdit() {
+    const ed = this.editing;
+    if (!ed) return;
+    const zh = ed.draft.replace(/\s+/g, ' ').trim();
+    this.endEdit();
+    if (!zh || (zh === ed.orig && ed.replace)) return this.render();
+    this.saveSentence(ed.word, { zh, en: ed.en, on: true, replace: ed.replace, from: ed.from });
+  }
+
+  private endEdit() {
+    this.editing = undefined;
+    this.host.removeAttribute('data-typing');
+  }
+
+  /** A sentence you met or saved, with its buttons (or its text box while being edited). */
+  private sentenceRow(word: string, r: { zh: string; en: string; toks?: Token[]; from?: string; met?: string }): H {
+    const ed = this.editing;
+    if (ed?.word === word && ed.orig === r.zh) return this.editRow(ed);
+    return h(
+      'li',
+      null,
+      h('span', { class: 'zh' }, ...(r.toks?.length ? this.sentence(r.toks, word) : this.plainSentence(r.zh, word))),
+      this.sayButton(r.zh),
+      this.copyButton(r.zh),
+      this.editButton(word, r.zh, r.en, r.from),
+      this.saveButton(word, r.zh, r.en),
+      r.met ? this.deleteButton(word, { type: 'forgetContext', text: r.met }) : null,
+    );
+  }
+
+  /** A sentence not split into words yet: the headword underlined, the rest plain. */
+  private plainSentence(zh: string, head: string): (Node | string)[] {
+    const out: (Node | string)[] = [];
+    zh.split(head).forEach((part, i) => {
+      if (i) out.push(h('span', { class: 'w hw', 'data-q': head }, head));
+      if (part) out.push(part);
+    });
+    return out;
   }
 
   /** A small × that deletes a sentence from this word's card for good. */
@@ -635,7 +768,7 @@ export class Popup {
   }
 
   /** A small button that copies a sentence. */
-  private copyButton(text: string, what = 'sentence'): H {
+  private copyButton(text: string | (() => string), what = 'sentence'): H {
     const b = h('button', { class: 'copy', title: `Copy the ${what}`, 'aria-label': `Copy the ${what}` });
     const NS = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(NS, 'svg');
@@ -647,7 +780,7 @@ export class Popup {
     b.addEventListener('click', async (e) => {
       e.stopPropagation();
       e.preventDefault();
-      if (!(await copyText(text))) return;
+      if (!(await copyText(typeof text === 'string' ? text : text()))) return;
       b.classList.add('done');
       b.title = 'Copied';
       setTimeout(() => {
@@ -809,12 +942,18 @@ export class Popup {
       card.append(h('div', { class: 'sect' }, grid));
     }
 
-    // The sentence you're reading now isn't repeated; two at most, like the examples.
-    const here = o.ctx?.text.split(' — ')[0].trim();
-    const seen = (info?.seen ?? []).filter((c) => c.zh !== here && c.text !== o.ctx?.text).slice(0, 2);
+    // The sentence you're reading now, ready to save (or trim first); then up to two you met before.
+    // A met sentence you saved a trimmed version of gives way to it.
+    const mine = info?.mine ?? [];
+    const cutFrom = new Set(mine.map((x) => x.from).filter((x): x is string => !!x));
+    const [hereZh = '', ...hereEn] = o.ctx?.text.split(' — ') ?? [];
+    const here = cleanSentence(hereZh.trim(), m.word);
+    const showHere = !!o.ctx && !m.phrase && usefulSentence(here, m.word) && !cutFrom.has(here);
+    const seen = (info?.seen ?? []).filter((c) => c.zh !== here && c.text !== o.ctx?.text && !cutFrom.has(c.zh)).slice(0, 2);
+    const savedRows = mine.filter((x) => x.zh !== here && !seen.some((c) => c.zh === x.zh));
     const examples = info?.examples ?? [];
     const canWrite = examples.length < 2 && !!s.geminiKey && !m.phrase;
-    if (examples.length || seen.length || canWrite) {
+    if (examples.length || seen.length || canWrite || showHere || savedRows.length) {
       const sect = h('div', { class: 'sect' });
       if (examples.length) {
         sect.append(
@@ -844,24 +983,16 @@ export class Popup {
         b.addEventListener('click', () => void this.writeExamples(m.word, 2 - examples.length));
         sect.append(h('div', { class: 'gemrow', style: examples.length ? 'margin-top:6px' : '' }, b, g?.error ? h('div', { class: 'err' }, g.error) : null));
       }
-      if (seen.length) {
-        sect.append(
-          h('div', { class: 'label', style: examples.length || canWrite ? 'margin-top:8px' : '' }, 'You met it in'),
-          h(
-            'ul',
-            { class: 'ex seen' },
-            ...seen.map((c) =>
-              h(
-                'li',
-                null,
-                h('span', { class: 'zh' }, ...this.sentence(c.toks, m.word)),
-                this.sayButton(c.zh),
-                this.copyButton(c.zh),
-                this.deleteButton(m.word, { type: 'forgetContext', text: c.text }),
-              ),
-            ),
-          ),
-        );
+      const lists: [string, H[]][] = [
+        ['This sentence', showHere ? [this.sentenceRow(m.word, { zh: here, en: hereEn.join(' — ').trim() })] : []],
+        ['You met it in', seen.map((c) => this.sentenceRow(m.word, { zh: c.zh, en: c.text.split(' — ').slice(1).join(' — ').trim(), toks: c.toks, met: c.text }))],
+        ['Saved', savedRows.map((x) => this.sentenceRow(m.word, x))],
+      ];
+      let above = examples.length > 0 || canWrite;
+      for (const [label, rows] of lists) {
+        if (!rows.length) continue;
+        sect.append(h('div', { class: 'label', style: above ? 'margin-top:8px' : '' }, label), h('ul', { class: 'ex seen' }, ...rows));
+        above = true;
       }
       card.append(sect);
     }
@@ -882,5 +1013,10 @@ export class Popup {
     img.addEventListener('click', () => this.images());
     card.append(h('div', { class: 'foot' }, stampable(m) ? h('div', { class: 'stamps' }, ...stamps) : null, h('div', { class: 'tools' }, say, long ? null : img)));
     card.hidden = false;
+    const box = card.querySelector<HTMLTextAreaElement>('.editbox');
+    if (box && this.root.activeElement !== box) {
+      box.focus();
+      box.setSelectionRange(box.value.length, box.value.length);
+    }
   }
 }

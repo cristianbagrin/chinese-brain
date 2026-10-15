@@ -109,7 +109,7 @@
   }
   function ago(t) {
     let s = (Date.now() - t) / 1e3;
-    return s < 90 ? "just now" : s < 3600 ? `${Math.round(s / 60)} min ago` : s < 86400 * 2 ? `${Math.round(s / 3600)} h ago` : new Date(t).toLocaleDateString();
+    return s < 90 ? "just now" : s < 3600 ? `${Math.round(s / 60)} min ago` : s < 86400 * 2 ? `${Math.round(s / 3600)} h ago` : s < 86400 * 30 ? `${Math.round(s / 86400)} days ago` : new Date(t).toLocaleDateString();
   }
 
   // src/pages/vocab.ts
@@ -123,11 +123,8 @@
     words = data.words, logs = data.logs, render(), renderExportInfo();
   }
   function render() {
-    let n = (s) => words.filter((w) => w.s === s).length;
-    $("counts").replaceChildren(
-      ...STAMPS.map(([s, zh, label]) => h("div", { class: `count ${s}` }, h("b", null, String(n(s))), h("span", null, `${zh} ${label}`))),
-      h("div", { class: "count" }, h("b", null, String(words.length)), h("span", null, "in your list"))
-    );
+    let n = (s) => words.filter((w) => w.s === s).length, tab = (f, count, label) => h("button", { class: f, "data-f": f, "aria-pressed": String(filter === f) }, h("b", null, String(count)), h("span", null, label));
+    $("filter").replaceChildren(tab("all", words.length, "All words"), ...STAMPS.map(([s, zh, label]) => tab(s, n(s), `${zh} ${label}`)));
     let q = $("q").value.trim().toLowerCase(), sort = $("sort").value, list = words.filter((w) => filter === "all" || w.s === filter).filter((w) => !q || w.w.includes(q) || (w.p ?? "").toLowerCase().includes(q) || (w.g ?? "").toLowerCase().includes(q)).sort((a, b) => b[sort] - a[sort]);
     $("rows").replaceChildren(...list.slice(0, PAGE).map(row)), $("more").textContent = list.length > PAGE ? `Showing ${PAGE} of ${list.length}. Search to narrow it down.` : `${list.length} words`;
   }
@@ -158,13 +155,13 @@
   }
   async function renderExportInfo() {
     let { lastExportAt } = await browser.storage.local.get("lastExportAt");
-    $("lastExport").textContent = lastExportAt ? `Last export ${ago(lastExportAt)}. "Export what's new" covers everything since then.` : `Nothing exported yet. "Export what's new" will include everything so far.`;
+    $("lastExport").textContent = lastExportAt ? `Last export ${ago(lastExportAt)}. "What's new" is everything since.` : "Nothing exported yet.";
   }
   $("q").addEventListener("input", render);
   $("sort").addEventListener("change", render);
   function filterFromHash() {
     let f = location.hash.slice(1);
-    ["all", "fresh", "learning", "known"].includes(f) && (filter = f, $("filter").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.f === f))));
+    ["all", "fresh", "learning", "known"].includes(f) && (filter = f);
   }
   filterFromHash();
   window.addEventListener("hashchange", () => {
@@ -172,7 +169,7 @@
   });
   $("filter").addEventListener("click", (e) => {
     let b = e.target.closest("button");
-    b && (filter = b.dataset.f, $("filter").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))), render());
+    b && (filter = b.dataset.f, render());
   });
   async function exportNew() {
     let at = Date.now(), data = await browser.runtime.sendMessage({ type: "allData" });
@@ -184,7 +181,7 @@
     download(`chinese-brain-${today()}.tsv`, await exportNew(), "text/tab-separated-values;charset=utf-8");
   });
   $("copyNew").addEventListener("click", async () => {
-    await navigator.clipboard.writeText(await exportNew()), $("copyOk").textContent = "Copied. Paste it into Claude.";
+    await navigator.clipboard.writeText(await exportNew()), $("copyOk").textContent = "Copied";
   });
   $("exportAll").addEventListener("click", async () => {
     let data = await browser.runtime.sendMessage({ type: "allData" });

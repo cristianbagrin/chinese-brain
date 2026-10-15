@@ -71,6 +71,8 @@ export interface SavedSentence {
   zh: string;
   en: string;
   at: number;
+  /** The sentence it was edited from (a met sentence trimmed before saving). */
+  from?: string;
 }
 
 export type LogEvent =

@@ -12,135 +12,169 @@
   <div class="name">中文腦<small>Chinese Brain</small></div>
   <nav><a href="vocab.html">Words</a><a href="options.html" aria-current="page">Settings</a></nav>
 </div></header>
-<main>
-  <h2 style="margin-top:0">Lookup card</h2>
-  <div class="panel rows">
-    <label for="hoverMode">Show the card</label>
-    <div>
-      <select id="hoverMode">
-        <option value="hover">when hovering Chinese text</option>
-        <option value="alt">only while holding Option (Alt)</option>
-        <option value="off">never</option>
-      </select>
+<main class="settings">
+  <h2>Lookup card</h2>
+  <div class="box">
+    <div class="set">
+      <div class="txt"><label for="hoverMode">Show the card</label></div>
+      <div class="ctl">
+        <select id="hoverMode">
+          <option value="hover">on hover</option>
+          <option value="alt">while holding Option (Alt)</option>
+          <option value="off">never</option>
+        </select>
+      </div>
     </div>
-    <label for="pinyin">Show pinyin</label>
-    <div><input type="checkbox" id="pinyin"> <span class="help">In the card, the word hints and the subtitles. Press <kbd>P</kbd> anywhere to switch. When off, the card blurs it until you click it (self-test).</span></div>
-    <label for="cardSize">Card size</label>
-    <div>
-      <select id="cardSize">
-        <option value="normal">normal</option>
-        <option value="large">large</option>
-      </select>
+    <div class="set">
+      <div class="txt"><label for="pinyin">Pinyin</label><small>In the card, hints and subtitles. <kbd>P</kbd> switches it.</small></div>
+      <div class="ctl"><input type="checkbox" id="pinyin"></div>
     </div>
-    <label for="cardColors">Color words in the card by status</label>
-    <div><input type="checkbox" id="cardColors"></div>
-    <label for="pageColors">Color words on every page</label>
-    <div><input type="checkbox" id="pageColors"> <span class="help">Highlights words in your list by status, like the subtitles. Also in the toolbar menu.</span></div>
-    <label for="sounds">Sound when stamping</label>
-    <div><input type="checkbox" id="sounds"></div>
-    <label for="disabledSites">Sites where lookup stays off</label>
-    <div><textarea id="disabledSites" rows="3" placeholder="one domain per line, e.g. mail.google.com"></textarea></div>
+    <div class="set">
+      <div class="txt"><label for="cardSize">Card size</label></div>
+      <div class="ctl">
+        <select id="cardSize">
+          <option value="normal">normal</option>
+          <option value="large">large</option>
+        </select>
+      </div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="cardColors">Color words in the card</label></div>
+      <div class="ctl"><input type="checkbox" id="cardColors"></div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="pageColors">Color words on every page</label><small>Per site from the toolbar menu.</small></div>
+      <div class="ctl"><input type="checkbox" id="pageColors"></div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="sounds">Stamp sounds</label></div>
+      <div class="ctl"><input type="checkbox" id="sounds"></div>
+    </div>
+    <div class="set block">
+      <div class="txt"><label for="disabledSites">Sites where lookup stays off</label></div>
+      <div class="ctl"><textarea id="disabledSites" rows="2" placeholder="one domain per line, e.g. mail.google.com"></textarea></div>
+    </div>
   </div>
 
   <h2>Voice</h2>
-  <div class="panel rows">
-    <label for="voice">Voice</label>
-    <div>
-      <select id="voice">
-        <option value="google">Google Taiwan voice (online, free)</option>
-        <option value="system">System voice (offline, e.g. Meijia on a Mac)</option>
-        <option value="azure">Azure neural voice (your own key)</option>
-      </select>
-      <button type="button" id="testVoice">▶ Test</button>
-      <span class="status" id="voiceStatus"></span>
-      <div class="help">Google and Azure play through a smooth fade, so words end cleanly. The system voice can end with a click; that comes from the operating system and can't be changed.</div>
+  <div class="box">
+    <div class="set">
+      <div class="txt"><label for="voice">Voice</label></div>
+      <div class="ctl">
+        <select id="voice">
+          <option value="google">Google Taiwan (online, free)</option>
+          <option value="system">System voice (offline)</option>
+          <option value="azure">Azure neural (your own key)</option>
+        </select>
+        <button type="button" id="testVoice">▶ Test</button>
+        <span class="status" id="voiceStatus"></span>
+      </div>
     </div>
-    <label for="speechRate">Speed</label>
-    <div>
-      <select id="speechRate">
-        <option value="0.6">slow</option>
-        <option value="0.8">a little slow</option>
-        <option value="0.9">natural, slightly slow</option>
-        <option value="1">natural</option>
-      </select>
-      <span class="help">Google's voice has two speeds: normal, and slow (for "slow").</span>
+    <div class="set">
+      <div class="txt"><label for="speechRate">Speed</label><small>Google has two: normal and slow.</small></div>
+      <div class="ctl">
+        <select id="speechRate">
+          <option value="0.6">slow</option>
+          <option value="0.8">a little slow</option>
+          <option value="0.9">natural, slightly slow</option>
+          <option value="1">natural</option>
+        </select>
+      </div>
     </div>
-    <label for="azureKey" class="azure">Azure key</label>
-    <div class="azure">
-      <input type="password" id="azureKey" size="36" autocomplete="off" spellcheck="false">
-      <button type="button" id="checkAzure">Check key</button>
-      <span class="status" id="azureStatus"></span>
-      <div class="help">A free Azure Speech resource (F0) reads 500,000 characters a month. Paste "KEY 1" from the resource's "Keys and Endpoint" page; "Check key" finds its region for you.</div>
+    <div class="set azure">
+      <div class="txt"><label for="azureKey">Azure key</label><small>"KEY 1" of a free Speech resource (F0).</small></div>
+      <div class="ctl">
+        <input type="password" id="azureKey" autocomplete="off" spellcheck="false">
+        <button type="button" id="checkAzure">Check</button>
+        <span class="status" id="azureStatus"></span>
+      </div>
     </div>
-    <label for="azureRegion" class="azure">Azure region</label>
-    <div class="azure"><select id="azureRegion"></select></div>
-    <label for="azureVoice" class="azure">Azure voice</label>
-    <div class="azure">
-      <select id="azureVoice">
-        <option value="zh-TW-HsiaoChenNeural">HsiaoChen (female)</option>
-        <option value="zh-TW-HsiaoYuNeural">HsiaoYu (female)</option>
-        <option value="zh-TW-YunJheNeural">YunJhe (male)</option>
-      </select>
+    <div class="set azure">
+      <div class="txt"><label for="azureRegion">Azure region</label><small>"Check" finds it for you.</small></div>
+      <div class="ctl"><select id="azureRegion"></select></div>
+    </div>
+    <div class="set azure">
+      <div class="txt"><label for="azureVoice">Azure voice</label></div>
+      <div class="ctl">
+        <select id="azureVoice">
+          <option value="zh-TW-HsiaoChenNeural">HsiaoChen (female)</option>
+          <option value="zh-TW-HsiaoYuNeural">HsiaoYu (female)</option>
+          <option value="zh-TW-YunJheNeural">YunJhe (male)</option>
+        </select>
+      </div>
     </div>
   </div>
 
   <h2>YouTube</h2>
-  <div class="panel rows">
-    <label for="ytEnabled">Chinese Brain subtitles</label>
-    <div><input type="checkbox" id="ytEnabled"> <span class="help">Same as the 中 switch in the player.</span></div>
-    <label for="translation">English line</label>
-    <div>
-      <select id="translation">
-        <option value="show">always visible</option>
-        <option value="blur">blurred until hovered</option>
-        <option value="hide">hidden</option>
-      </select>
+  <div class="box">
+    <div class="set">
+      <div class="txt"><label for="ytEnabled">Chinese Brain subtitles</label><small>Same as the 中 switch in the player.</small></div>
+      <div class="ctl"><input type="checkbox" id="ytEnabled"></div>
     </div>
-    <label for="subStyle">Subtitle background</label>
-    <div>
-      <select id="subStyle">
-        <option value="light">light band</option>
-        <option value="dark">dark band</option>
-      </select>
+    <div class="set">
+      <div class="txt"><label for="translation">English line</label></div>
+      <div class="ctl">
+        <select id="translation">
+          <option value="show">visible</option>
+          <option value="blur">blurred until hovered</option>
+          <option value="hide">hidden</option>
+        </select>
+      </div>
     </div>
-    <label for="pauseOnHover">Pause while the mouse is on the subtitles</label>
-    <div><input type="checkbox" id="pauseOnHover"></div>
-    <label for="autoFreshOnClick">Clicking a new word stamps it 新 Fresh</label>
-    <div><input type="checkbox" id="autoFreshOnClick"> <span class="help">Clicking it again undoes it.</span></div>
-    <label for="subFontSize">Subtitle size</label>
-    <div><input type="number" id="subFontSize" min="16" max="60" step="1"> <span class="help">at 720p; scales with the player</span></div>
-    <label for="shadowFactor">Shadowing pause</label>
-    <div><input type="number" id="shadowFactor" min="0.5" max="4" step="0.25"> <span class="help">× the length of the line</span></div>
+    <div class="set">
+      <div class="txt"><label for="subStyle">Subtitle band</label></div>
+      <div class="ctl">
+        <select id="subStyle">
+          <option value="light">light</option>
+          <option value="dark">dark</option>
+        </select>
+      </div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="pauseOnHover">Pause while hovering the subtitles</label></div>
+      <div class="ctl"><input type="checkbox" id="pauseOnHover"></div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="autoFreshOnClick">Clicking a new word stamps it 新 Fresh</label><small>Click again to undo.</small></div>
+      <div class="ctl"><input type="checkbox" id="autoFreshOnClick"></div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="subFontSize">Subtitle size</label><small>At 720p; scales with the player.</small></div>
+      <div class="ctl"><input type="number" id="subFontSize" min="16" max="60" step="1"></div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="shadowFactor">Shadowing pause</label><small>× the length of the line.</small></div>
+      <div class="ctl"><input type="number" id="shadowFactor" min="0.5" max="4" step="0.25"></div>
+    </div>
   </div>
 
   <h2>Gemini (optional)</h2>
-  <div class="panel rows">
-    <label for="geminiKey">Gemini API key</label>
-    <div>
-      <input type="password" id="geminiKey" size="36" autocomplete="off" spellcheck="false">
-      <button type="button" id="checkGemini">Check key</button>
-      <span class="status" id="geminiStatus"></span>
-      <div class="help">Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>. Used only when you ask: "Transcribe with Gemini" in the 中 panel for videos without Chinese captions (once per video; the result is kept), and "Write example sentences" in the card for words without any. On the free tier Google may use requests to improve its models.</div>
+  <div class="box">
+    <div class="set">
+      <div class="txt"><label for="geminiKey">API key</label><small>Free at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>. Used only when you ask (transcripts, example sentences). Free-tier requests may help train Google's models.</small></div>
+      <div class="ctl">
+        <input type="password" id="geminiKey" autocomplete="off" spellcheck="false">
+        <button type="button" id="checkGemini">Check</button>
+        <span class="status" id="geminiStatus"></span>
+      </div>
     </div>
-    <label for="geminiModel">Model</label>
-    <div>
-      <select id="geminiModel"></select>
-      <div class="help">Check the key to list the models it can use. A "flash" model is fast and has the most free quota.</div>
+    <div class="set">
+      <div class="txt"><label for="geminiModel">Model</label><small>"Check" lists the ones your key can use.</small></div>
+      <div class="ctl"><select id="geminiModel"></select></div>
     </div>
   </div>
 
   <h2>Keys</h2>
-  <div class="panel keys">
-    <span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span><span>新 Fresh · 學 Learning · 熟 Known (press again to clear)</span>
+  <div class="keys">
+    <span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span><span>新 · 學 · 熟 (again to clear)</span>
+    <span><kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></span><span>previous · replay · next line</span>
     <span><kbd>0</kbd></span><span>remove from the list</span>
-    <span><kbd>V</kbd> <kbd>I</kbd></span><span>say it · image search</span>
-    <span><kbd>P</kbd></span><span>pinyin on / off (card, hints and subtitles)</span>
-    <span><kbd>←</kbd> <kbd>→</kbd></span><span>back / forward through words opened inside the card</span>
+    <span><kbd>R</kbd> <kbd>Q</kbd> <kbd>E</kbd></span><span>loop · shadowing · transcript</span>
+    <span><kbd>V</kbd> <kbd>I</kbd></span><span>say it · images</span>
+    <span><kbd>X</kbd></span><span>English line</span>
+    <span><kbd>P</kbd></span><span>pinyin on / off</span>
     <span><kbd>Esc</kbd></span><span>close the card</span>
-    <span>hover + key</span><span>pointing at a word inside the card, 1 2 3 0 V I act on that word</span>
-    <span><kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></span><span>YouTube: previous line · replay line · next line</span>
-    <span><kbd>R</kbd> <kbd>Q</kbd> <kbd>E</kbd></span><span>YouTube: loop line · shadowing · transcript</span>
-    <span><kbd>X</kbd></span><span>YouTube: English line (show / blur / hide)</span>
+    <span><kbd>←</kbd> <kbd>→</kbd></span><span class="wide">back / forward through words opened in the card · pointing at a word in the card, the keys act on that word</span>
   </div>
 </main>
 <div class="saved" id="saved" hidden>Saved</div>

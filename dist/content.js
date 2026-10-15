@@ -79,7 +79,7 @@
   function isTyping(e) {
     if (e.isComposing) return !0;
     let t = e.composedPath?.()[0] ?? e.target;
-    return !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName ?? ""));
+    return !!t && (t.isContentEditable || !!t.hasAttribute?.("data-typing") || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName ?? ""));
   }
 
   // src/content/state.ts
@@ -1743,6 +1743,16 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     }
   };
 
+  // src/shared/context.ts
+  var HAN2 = /[㐀-䶿一-鿿豈-﫿]/g;
+  function cleanSentence(text, word) {
+    let withWord = text.split(/\s*(?:[|｜]|\s[-–—]\s|(?<=[^\s\x00-\x7f])[-–—_](?=[^\s\x00-\x7f]))\s*/).map((p) => p.replace(/\[\d+\]|【\d+】/g, "").trim()).filter((p) => p && !/^(pdf|docx?|pptx?|xlsx?|html?|…|\.\.\.)$/i.test(p)).filter((p) => p.includes(word));
+    return withWord.length ? withWord.sort((a, b) => b.length - a.length)[0] : text.trim();
+  }
+  function usefulSentence(text, word) {
+    return (text.match(HAN2)?.length ?? 0) >= [...word].length + 2;
+  }
+
   // src/content/audio.ts
   var ctx;
   function audio() {
@@ -1927,6 +1937,16 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 .save svg { width: 0.9em; height: 0.9em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; }
 .save.on { color: var(--link); }
 .save.on svg { fill: currentColor; }
+.edit { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; vertical-align: -0.2em; border-radius: 50%; color: var(--text3); }
+.edit:hover { color: var(--link); background: var(--bg2); }
+.edit svg { width: 0.85em; height: 0.85em; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
+.editbox { all: unset; box-sizing: border-box; display: block; width: 100%; min-width: 15em; padding: 0.3em 0.45em; border: 1px solid var(--link); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; font-size: 1.07em; line-height: 1.5; white-space: pre-wrap; resize: vertical; }
+.editbar { display: flex; align-items: center; gap: 0.6em; margin-top: 0.3em; }
+.editsave, .editcancel { all: unset; cursor: pointer; font-size: 0.89em; padding: 0.1em 0.6em; border-radius: 5px; }
+.editsave { background: var(--link); color: #fff; }
+.editcancel { color: var(--text2); }
+.editcancel:hover { background: var(--bg2); }
+.edithint { margin-left: auto; font-size: 0.79em; color: var(--text3); }
 .del { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.2em; height: 1.2em; margin-left: 0.1em; vertical-align: -0.15em; border-radius: 50%; color: var(--text3); font-size: 0.95em; line-height: 1; opacity: 0; transition: opacity 0.12s; }
 .ex li:hover .del { opacity: 1; }
 .del:hover { color: var(--fresh); background: var(--bg2); }
@@ -2078,6 +2098,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     opts;
     info;
     gemState;
+    editing;
     /** The word the card belongs to, for the corridor between them (gone after a scroll). */
     anchor;
     px = -1;
@@ -2200,7 +2221,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     }
     async show(opts, keepPlace = !1) {
       let sameWord = this.opts?.matches[0]?.word === opts.matches[0]?.word;
-      this.opts = opts, this.cancelHide(), keepPlace || (this.trail = [opts], this.pos = 0), this.mount();
+      this.editing?.word !== opts.matches[0]?.word && this.endEdit(), this.opts = opts, this.cancelHide(), keepPlace || (this.trail = [opts], this.pos = 0), this.mount();
       let m = opts.matches[0], e0 = m.entries[0], [, info] = await Promise.all([state.loadStatuses(), this.wordInfo(m.word, e0.tw || e0.py)]);
       this.opts === opts && (this.info = info, this.hoverWord = void 0, this.hideHint(), this.render(), keepPlace ? this.keepOnScreen() : (this.anchor = opts.rect, this.exit = this.px >= 0 ? { x: this.px, y: this.py } : void 0, this.position(opts)), this.shownAt = Date.now(), clearTimeout(this.lookTimer), this.lookTimer = setTimeout(() => this.recordLook(), opts.pinned ? 0 : 1200));
     }
@@ -2211,7 +2232,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       return this.infoCache.size > 200 && this.infoCache.clear(), this.infoCache.set(word, info), info;
     }
     hide() {
-      this.opts && (clearTimeout(this.lookTimer), this.cancelHide(), this.opts = void 0, this.trail = [], this.pos = 0, this.hoverWord = void 0, this.hovered = !1, this.anchor = void 0, this.exit = void 0, this.card.hidden = !0, this.hideHint(), this.hideListeners.forEach((f) => f()));
+      this.opts && (clearTimeout(this.lookTimer), this.cancelHide(), this.opts = void 0, this.endEdit(), this.trail = [], this.pos = 0, this.hoverWord = void 0, this.hovered = !1, this.anchor = void 0, this.exit = void 0, this.card.hidden = !0, this.hideHint(), this.hideListeners.forEach((f) => f()));
     }
     recordLook() {
       let m = this.current;
@@ -2355,10 +2376,81 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       svg.setAttribute("viewBox", "0 0 16 16");
       let path = document.createElementNS(NS, "path");
       return path.setAttribute("d", "M4 2.5h8v11l-4-3-4 3z"), svg.append(path), b.append(svg), b.addEventListener("click", (e) => {
-        e.stopPropagation(), e.preventDefault();
-        let next = !this.info?.saved?.includes(zh);
-        this.info && (this.info = { ...this.info, saved: next ? [...this.info.saved ?? [], zh] : (this.info.saved ?? []).filter((x) => x !== zh) }), next && stampSound("known"), this.infoCache.delete(word), this.render(), browser.runtime.sendMessage({ type: "saveSentence", word, zh, en, on: next });
+        e.stopPropagation(), e.preventDefault(), this.saveSentence(word, { zh, en, on: !this.info?.saved?.includes(zh) });
       }), b;
+    }
+    /** Save or unsave a sentence: the card changes at once, the stored list follows (and the card refills from it). */
+    saveSentence(word, o) {
+      if (this.info) {
+        let drop = (x) => x === o.zh || x === o.replace, mine = (this.info.mine ?? []).filter((x) => !drop(x.zh)), old = this.info.mine?.find((x) => x.zh === o.replace);
+        o.on && !this.info.examples.some((x) => x.zh === o.zh) && mine.push({ zh: o.zh, en: o.en, from: o.from ?? old?.from, toks: [] }), this.info = { ...this.info, saved: [...this.info.saved.filter((x) => !drop(x)), ...o.on ? [o.zh] : []], mine };
+      }
+      o.on && stampSound("known"), this.infoCache.delete(word), this.render(), browser.runtime.sendMessage({ type: "saveSentence", word, ...o }).then(async () => {
+        this.infoCache.delete(word);
+        let cur = this.current;
+        if (cur?.word !== word) return;
+        let e0 = cur.entries[0];
+        this.info = await this.wordInfo(word, e0.tw || e0.py), this.current?.word === word && this.render();
+      });
+    }
+    /** A small pencil that opens a sentence for trimming before it is saved. */
+    editButton(word, zh, en, from) {
+      let b = h("button", { class: "edit", title: "Edit, then save", "aria-label": "Edit this sentence" }), NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
+      svg.setAttribute("viewBox", "0 0 16 16");
+      let path = document.createElementNS(NS, "path");
+      return path.setAttribute("d", "M3 13l.8-3.2 7-7 2.4 2.4-7 7zM9.6 4l2.4 2.4"), svg.append(path), b.append(svg), b.addEventListener("click", (e) => {
+        e.stopPropagation(), e.preventDefault();
+        let replace = this.info?.saved.includes(zh) ? zh : void 0;
+        this.editing = { word, orig: zh, draft: zh, en, replace, from: from ?? zh }, this.opts && (this.opts.pinned = !0), this.render();
+      }), b;
+    }
+    /** The row being edited: a text box (Enter saves, Esc cancels). */
+    editRow(ed) {
+      let box2 = h("textarea", { class: "editbox", rows: "2", spellcheck: "false", "aria-label": "Edit the sentence" });
+      box2.value = ed.draft, box2.addEventListener("input", () => ed.draft = box2.value), box2.addEventListener("focus", () => this.host.setAttribute("data-typing", "")), box2.addEventListener("blur", () => this.host.removeAttribute("data-typing"));
+      for (let t of ["keyup", "keypress"]) box2.addEventListener(t, (e) => e.stopPropagation());
+      box2.addEventListener("keydown", (e) => {
+        e.stopPropagation(), !e.isComposing && (e.key === "Enter" && !e.shiftKey ? (e.preventDefault(), this.commitEdit()) : e.key === "Escape" && (e.preventDefault(), this.endEdit(), this.render()));
+      });
+      let save = h("button", { class: "editsave" }, "Save");
+      save.addEventListener("click", (e) => {
+        e.stopPropagation(), this.commitEdit();
+      });
+      let cancel = h("button", { class: "editcancel" }, "Cancel");
+      return cancel.addEventListener("click", (e) => {
+        e.stopPropagation(), this.endEdit(), this.render();
+      }), h("li", { class: "editing" }, box2, h("div", { class: "editbar" }, save, cancel, this.copyButton(() => box2.value), h("span", { class: "edithint" }, "Enter saves \xB7 Esc cancels")));
+    }
+    commitEdit() {
+      let ed = this.editing;
+      if (!ed) return;
+      let zh = ed.draft.replace(/\s+/g, " ").trim();
+      if (this.endEdit(), !zh || zh === ed.orig && ed.replace) return this.render();
+      this.saveSentence(ed.word, { zh, en: ed.en, on: !0, replace: ed.replace, from: ed.from });
+    }
+    endEdit() {
+      this.editing = void 0, this.host.removeAttribute("data-typing");
+    }
+    /** A sentence you met or saved, with its buttons (or its text box while being edited). */
+    sentenceRow(word, r) {
+      let ed = this.editing;
+      return ed?.word === word && ed.orig === r.zh ? this.editRow(ed) : h(
+        "li",
+        null,
+        h("span", { class: "zh" }, ...r.toks?.length ? this.sentence(r.toks, word) : this.plainSentence(r.zh, word)),
+        this.sayButton(r.zh),
+        this.copyButton(r.zh),
+        this.editButton(word, r.zh, r.en, r.from),
+        this.saveButton(word, r.zh, r.en),
+        r.met ? this.deleteButton(word, { type: "forgetContext", text: r.met }) : null
+      );
+    }
+    /** A sentence not split into words yet: the headword underlined, the rest plain. */
+    plainSentence(zh, head) {
+      let out = [];
+      return zh.split(head).forEach((part, i) => {
+        i && out.push(h("span", { class: "w hw", "data-q": head }, head)), part && out.push(part);
+      }), out;
     }
     /** A small × that deletes a sentence from this word's card for good. */
     deleteButton(word, msg) {
@@ -2383,7 +2475,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       svg.setAttribute("viewBox", "0 0 16 16");
       let path = document.createElementNS(NS, "path");
       return path.setAttribute("d", "M5.5 5.5h7.5v8h-7.5zM3 10.5V2.5h7.5"), svg.append(path), b.append(svg), b.addEventListener("click", async (e) => {
-        e.stopPropagation(), e.preventDefault(), await copyText(text) && (b.classList.add("done"), b.title = "Copied", setTimeout(() => {
+        e.stopPropagation(), e.preventDefault(), await copyText(typeof text == "string" ? text : text()) && (b.classList.add("done"), b.title = "Copied", setTimeout(() => {
           b.classList.remove("done"), b.title = `Copy the ${what}`;
         }, 1200));
       }), b;
@@ -2486,8 +2578,8 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         }
         card.append(h("div", { class: "sect" }, grid));
       }
-      let here = o.ctx?.text.split(" \u2014 ")[0].trim(), seen = (info?.seen ?? []).filter((c) => c.zh !== here && c.text !== o.ctx?.text).slice(0, 2), examples = info?.examples ?? [], canWrite = examples.length < 2 && !!s.geminiKey && !m.phrase;
-      if (examples.length || seen.length || canWrite) {
+      let mine = info?.mine ?? [], cutFrom = new Set(mine.map((x) => x.from).filter((x) => !!x)), [hereZh = "", ...hereEn] = o.ctx?.text.split(" \u2014 ") ?? [], here = cleanSentence(hereZh.trim(), m.word), showHere = !!o.ctx && !m.phrase && usefulSentence(here, m.word) && !cutFrom.has(here), seen = (info?.seen ?? []).filter((c) => c.zh !== here && c.text !== o.ctx?.text && !cutFrom.has(c.zh)).slice(0, 2), savedRows = mine.filter((x) => x.zh !== here && !seen.some((c) => c.zh === x.zh)), examples = info?.examples ?? [], canWrite = examples.length < 2 && !!s.geminiKey && !m.phrase;
+      if (examples.length || seen.length || canWrite || showHere || savedRows.length) {
         let sect = h("div", { class: "sect" });
         if (examples.length && sect.append(
           h(
@@ -2510,23 +2602,14 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
           let g = this.gemState?.word === m.word ? this.gemState : void 0, label = g?.busy ? "Writing\u2026" : examples.length ? "\u2726 Write another example with Gemini" : "\u2726 Write example sentences with Gemini", b = h("button", { class: "gem" }, label);
           g?.busy && b.setAttribute("disabled", ""), b.addEventListener("click", () => void this.writeExamples(m.word, 2 - examples.length)), sect.append(h("div", { class: "gemrow", style: examples.length ? "margin-top:6px" : "" }, b, g?.error ? h("div", { class: "err" }, g.error) : null));
         }
-        seen.length && sect.append(
-          h("div", { class: "label", style: examples.length || canWrite ? "margin-top:8px" : "" }, "You met it in"),
-          h(
-            "ul",
-            { class: "ex seen" },
-            ...seen.map(
-              (c) => h(
-                "li",
-                null,
-                h("span", { class: "zh" }, ...this.sentence(c.toks, m.word)),
-                this.sayButton(c.zh),
-                this.copyButton(c.zh),
-                this.deleteButton(m.word, { type: "forgetContext", text: c.text })
-              )
-            )
-          )
-        ), card.append(sect);
+        let lists = [
+          ["This sentence", showHere ? [this.sentenceRow(m.word, { zh: here, en: hereEn.join(" \u2014 ").trim() })] : []],
+          ["You met it in", seen.map((c) => this.sentenceRow(m.word, { zh: c.zh, en: c.text.split(" \u2014 ").slice(1).join(" \u2014 ").trim(), toks: c.toks, met: c.text }))],
+          ["Saved", savedRows.map((x) => this.sentenceRow(m.word, x))]
+        ], above = examples.length > 0 || canWrite;
+        for (let [label, rows] of lists)
+          rows.length && (sect.append(h("div", { class: "label", style: above ? "margin-top:8px" : "" }, label), h("ul", { class: "ex seen" }, ...rows)), above = !0);
+        card.append(sect);
       }
       let stamps = STAMPS.map((st) => {
         let b = h(
@@ -2540,6 +2623,8 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       say.addEventListener("click", () => this.speak());
       let img = h("button", null, "images", h("kbd", null, "i"));
       img.addEventListener("click", () => this.images()), card.append(h("div", { class: "foot" }, stampable(m) ? h("div", { class: "stamps" }, ...stamps) : null, h("div", { class: "tools" }, say, long ? null : img))), card.hidden = !1;
+      let box2 = card.querySelector(".editbox");
+      box2 && this.root.activeElement !== box2 && (box2.focus(), box2.setSelectionRange(box2.value.length, box2.value.length));
     }
   };
 

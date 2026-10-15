@@ -32,8 +32,43 @@ input[type='search'], input[type='text'], input[type='password'], input[type='nu
   background: var(--paper);
   padding: 6px 10px;
 }
-input[type='checkbox'] { accent-color: var(--ink); width: 17px; height: 17px; }
-textarea { width: 100%; font-size: 14px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, .filebtn:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+select {
+  appearance: none;
+  -moz-appearance: none;
+  padding-right: 30px;
+  cursor: pointer;
+  background: var(--paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%238a8eb0' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 9px center / 12px;
+}
+select:hover, input[type='text']:hover, input[type='password']:hover, input[type='number']:hover, input[type='search']:hover { border-color: var(--ink3); }
+input[type='number'] { width: 76px; -moz-appearance: textfield; text-align: center; }
+input[type='number']::-webkit-inner-spin-button { display: none; }
+/* Checkboxes are switches, like the toolbar menu. */
+input[type='checkbox'] {
+  appearance: none;
+  -moz-appearance: none;
+  position: relative;
+  flex: none;
+  width: 36px;
+  height: 20px;
+  margin: 0;
+  border-radius: 10px;
+  background: #c9cbe0;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: background 0.15s;
+}
+input[type='checkbox']::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); transition: transform 0.15s; }
+input[type='checkbox']:checked { background: var(--known); }
+input[type='checkbox']:checked::after { transform: translateX(16px); }
+textarea { width: 100%; font-size: 14px; resize: vertical; }
+/* A file picker that looks like a button (the input itself stays hidden). */
+.filebtn { display: inline-block; cursor: pointer; background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; padding: 6px 14px; }
+.filebtn:hover { border-color: var(--ink3); }
+.filebtn input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+button.link { border: 0; background: none; padding: 6px 4px; color: var(--accent); }
+button.link:hover { text-decoration: underline; }
+[hidden] { display: none !important; }
 
 /* The sign: an indigo plate with the name, like a shop sign over a night-market stall. */
 .sign { background: var(--ink); color: #fff; }
@@ -118,3 +153,44 @@ kbd { font: 600 12px var(--sans); background: var(--ground); border: 1px solid v
   box-shadow: 0 4px 14px rgba(27, 29, 58, 0.2);
 }
 .saved[hidden] { display: none; }
+
+/* Word list: the counts are the filter. */
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.tabs button { display: flex; flex-direction: column; align-items: flex-start; min-width: 112px; padding: 9px 16px 8px; border-radius: 10px; border: 1px solid var(--rule); border-bottom: 3px solid var(--rule); text-align: left; }
+.tabs button b { font: 700 22px/1.1 var(--sans); }
+.tabs button span { font-size: 13px; color: var(--ink2); }
+.tabs button.fresh { border-bottom-color: var(--fresh); }
+.tabs button.learning { border-bottom-color: var(--learning); }
+.tabs button.known { border-bottom-color: var(--known); }
+.tabs button.all { border-bottom-color: var(--ink3); }
+.tabs button[aria-pressed='true'] { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+.tabs button:not([aria-pressed='true']) { opacity: 0.85; }
+.toolbar .grow { flex: 1; }
+
+/* Export, import, backup: three small cards. */
+.tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.tool { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.tool h3 { margin: 0; font-size: 15px; }
+.tool p { margin: -6px 0 0; font-size: 13px; color: var(--ink2); }
+.tool .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: auto; }
+.tool textarea { font-size: 13px; }
+
+/* Settings: one row per setting, label left, control right. */
+.settings { max-width: 760px; }
+.settings h2 { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink3); margin: 30px 0 8px 4px; }
+.settings h2:first-child { margin-top: 0; }
+.box { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 0 18px; }
+.set { display: flex; align-items: center; justify-content: space-between; gap: 8px 24px; padding: 12px 0; border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
+/* The last visible row (hidden Azure rows may follow it). */
+.set:not(:has(~ .set:not([hidden]))) { border-bottom: 0; }
+.set .txt { flex: 1 1 260px; min-width: 0; }
+.set .txt label { font-weight: 500; }
+.set .txt small { display: block; font-size: 13px; color: var(--ink2); margin-top: 1px; }
+.set .ctl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.set .ctl .status { margin-left: 0; flex-basis: 100%; text-align: right; }
+.set .ctl .status:empty { display: none; }
+.set.block .ctl { flex-basis: 100%; }
+.set input[type='password'] { width: 280px; max-width: 100%; }
+.keys { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 14px 18px; grid-template-columns: max-content 1fr max-content 1fr; gap: 8px 14px; align-items: center; }
+.keys .wide { grid-column: span 3; }
+@media (max-width: 760px) { .keys { grid-template-columns: max-content 1fr; } .keys .wide { grid-column: auto; } }

@@ -96,6 +96,16 @@
 .save svg { width: 0.9em; height: 0.9em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; }
 .save.on { color: var(--link); }
 .save.on svg { fill: currentColor; }
+.edit { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; vertical-align: -0.2em; border-radius: 50%; color: var(--text3); }
+.edit:hover { color: var(--link); background: var(--bg2); }
+.edit svg { width: 0.85em; height: 0.85em; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
+.editbox { all: unset; box-sizing: border-box; display: block; width: 100%; min-width: 15em; padding: 0.3em 0.45em; border: 1px solid var(--link); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; font-size: 1.07em; line-height: 1.5; white-space: pre-wrap; resize: vertical; }
+.editbar { display: flex; align-items: center; gap: 0.6em; margin-top: 0.3em; }
+.editsave, .editcancel { all: unset; cursor: pointer; font-size: 0.89em; padding: 0.1em 0.6em; border-radius: 5px; }
+.editsave { background: var(--link); color: #fff; }
+.editcancel { color: var(--text2); }
+.editcancel:hover { background: var(--bg2); }
+.edithint { margin-left: auto; font-size: 0.79em; color: var(--text3); }
 .del { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.2em; height: 1.2em; margin-left: 0.1em; vertical-align: -0.15em; border-radius: 50%; color: var(--text3); font-size: 0.95em; line-height: 1; opacity: 0; transition: opacity 0.12s; }
 .ex li:hover .del { opacity: 1; }
 .del:hover { color: var(--fresh); background: var(--bg2); }

@@ -13,15 +13,10 @@
   <nav><a href="vocab.html" aria-current="page">Words</a><a href="options.html">Settings</a></nav>
 </div></header>
 <main>
-  <div class="counts" id="counts"></div>
+  <div class="tabs" id="filter"></div>
   <div class="toolbar">
     <input type="search" id="q" placeholder="Search word, pinyin, meaning">
-    <div class="seg" id="filter">
-      <button data-f="all" aria-pressed="true">All</button>
-      <button data-f="fresh">新 Fresh</button>
-      <button data-f="learning">學 Learning</button>
-      <button data-f="known">熟 Known</button>
-    </div>
+    <span class="grow"></span>
     <select id="sort">
       <option value="updated">Recently changed</option>
       <option value="added">Recently added</option>
@@ -31,35 +26,35 @@
   <div class="list" id="rows"></div>
   <p class="muted small" id="more"></p>
 
-  <h2 id="export">Export for Claude</h2>
-  <div class="panel">
-    <p class="muted" id="lastExport"></p>
-    <div class="actions">
-      <button class="primary" id="exportNew">Export what's new</button>
-      <button id="copyNew">Copy what's new</button>
-      <button id="exportAll">Export everything</button>
-      <span class="ok" id="copyOk"></span>
+  <h2 id="export">Export &amp; backup</h2>
+  <div class="tools">
+    <div class="tool">
+      <h3>Export for Claude</h3>
+      <p id="lastExport"></p>
+      <div class="actions">
+        <button class="primary" id="exportNew" title="Words whose status you changed, plus saved sentences (TSV)">Download new</button>
+        <button id="copyNew">Copy</button>
+        <button class="link" id="exportAll">Everything</button>
+        <span class="ok" id="copyOk"></span>
+      </div>
     </div>
-    <p class="help">A small TSV for your weekly update: the words whose status you changed (only your own stamps count, not lookups), plus example sentences you saved. Uses the K / L codes of known-words.txt, with F for Fresh.</p>
-  </div>
-
-  <h2 id="import">Import</h2>
-  <div class="panel">
-    <h3>Your word list</h3>
-    <p class="muted small">known-words.txt format: <code>word⇥K|L⇥date</code>. K → 熟 Known, L → 學 Learning, F → 新 Fresh. A line with only a word counts as Known.</p>
-    <textarea id="knownText" rows="5" placeholder="Paste the list here, or choose the file"></textarea>
-    <div class="actions" style="margin-top:8px">
-      <input type="file" id="knownFile" accept=".txt,.tsv,.csv">
-      <button class="primary" id="knownGo">Import</button>
-      <span class="ok" id="knownOk"></span>
+    <div class="tool">
+      <h3 id="import">Import word list</h3>
+      <p>known-words.txt: <code>word⇥K|L|F</code></p>
+      <textarea id="knownText" rows="3" placeholder="Paste the list, or choose the file"></textarea>
+      <div class="actions">
+        <label class="filebtn">Choose file<input type="file" id="knownFile" accept=".txt,.tsv,.csv"></label>
+        <button class="primary" id="knownGo">Import</button>
+        <span class="ok" id="knownOk"></span>
+      </div>
     </div>
-  </div>
-  <div class="panel">
-    <h3>Backup</h3>
-    <p class="muted small">Everything the extension knows, in one file. Use it to move to another browser or computer, or before reinstalling.</p>
-    <div class="actions">
-      <button id="backup">Download backup</button>
-      <label class="small muted">Restore: <input type="file" id="restore" accept=".json"></label>
+    <div class="tool">
+      <h3>Backup</h3>
+      <p>Everything, in one file. For moving or reinstalling.</p>
+      <div class="actions">
+        <button id="backup">Download</button>
+        <label class="filebtn">Restore…<input type="file" id="restore" accept=".json"></label>
+      </div>
     </div>
   </div>
 </main>

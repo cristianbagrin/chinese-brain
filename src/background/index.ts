@@ -1,4 +1,4 @@
-import { cleanSentence, usefulSentence } from '../shared/context.ts';
+import { cleanSentence, saveInList, usefulSentence } from '../shared/context.ts';
 import { CJK, Dictionary } from '../shared/dict.ts';
 import type { Entry, LookupMatch, SavedSentence } from '../shared/types.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
@@ -276,8 +276,13 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
       // Save (or unsave) an example sentence; saved ones go into the export for Claude.
       return browser.storage.local.get('sav:' + any.word).then((got) => {
         const key = 'sav:' + any.word;
-        const list = ((got[key] as SavedSentence[] | undefined) ?? []).filter((x) => x.zh !== any.zh);
-        if (any.on) list.push({ zh: String(any.zh), en: String(any.en ?? ''), at: Date.now() });
+        const list = saveInList((got[key] as SavedSentence[] | undefined) ?? [], {
+          zh: String(any.zh),
+          en: String(any.en ?? ''),
+          on: !!any.on,
+          replace: any.replace ? String(any.replace) : undefined,
+          from: any.from ? String(any.from) : undefined,
+        });
         return (list.length ? browser.storage.local.set({ [key]: list }) : browser.storage.local.remove(key)).then(() => true);
       });
     case 'forgetContext':
@@ -306,7 +311,8 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
         // Sentences come pre-split into words so every word in the card is clickable and colored.
         // Bundled sentences first, then ones Gemini wrote on request; minus any you deleted.
         const got = await browser.storage.local.get(['gex:' + word, 'exh:' + word, 'sav:' + word]);
-        const saved = ((got['sav:' + word] as SavedSentence[] | undefined) ?? []).map((x) => x.zh);
+        const savedList = (got['sav:' + word] as SavedSentence[] | undefined) ?? [];
+        const saved = savedList.map((x) => x.zh);
         const hidden = new Set((got['exh:' + word] as string[] | undefined) ?? []);
         const gex = (got['gex:' + word] as [string, string][] | undefined) ?? [];
         const ex = examples.pick(word, d, (w) => store.words.get(w)?.s, gex, hidden, new Set(saved));
@@ -318,7 +324,10 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
           .filter(({ zh }, i, all) => all.findIndex((x) => x.zh === zh) === i)
           .slice(0, 3)
           .map(({ c, zh }) => ({ ...c, zh, toks: d.segment(zh) }));
-        return { chars, examples: ex, seen, record, saved };
+        // Your saved sentences that aren't among the examples (met ones, often trimmed).
+        const shown = new Set(ex.map((x) => x.zh));
+        const mine = savedList.filter((x) => !shown.has(x.zh)).map((x) => ({ zh: x.zh, en: x.en, from: x.from, toks: d.segment(x.zh) }));
+        return { chars, examples: ex, seen, record, saved, mine };
       });
     case 'glosses':
       return dictReady.then((d) => {

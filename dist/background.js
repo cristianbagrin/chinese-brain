@@ -9,6 +9,14 @@
   function usefulSentence(text, word) {
     return (text.match(HAN)?.length ?? 0) >= [...word].length + 2;
   }
+  function saveInList(list, o, now = Date.now()) {
+    let zh = o.zh.trim(), old = o.replace ? list.find((x) => x.zh === o.replace) : void 0, out = list.filter((x) => x.zh !== zh && (!o.replace || x.zh !== o.replace));
+    if (o.on && zh) {
+      let from = o.from ?? old?.from;
+      out.push({ zh, en: o.en ?? "", at: now, ...from && from !== zh ? { from } : {} });
+    }
+    return out;
+  }
 
   // src/shared/dict.ts
   var CJK = /[㐀-䶿一-鿿豈-﫿]/;
@@ -963,8 +971,14 @@ Give each with a natural American English translation.`, schema = {
         });
       case "saveSentence":
         return browser.storage.local.get("sav:" + any.word).then((got) => {
-          let key = "sav:" + any.word, list = (got[key] ?? []).filter((x) => x.zh !== any.zh);
-          return any.on && list.push({ zh: String(any.zh), en: String(any.en ?? ""), at: Date.now() }), (list.length ? browser.storage.local.set({ [key]: list }) : browser.storage.local.remove(key)).then(() => !0);
+          let key = "sav:" + any.word, list = saveInList(got[key] ?? [], {
+            zh: String(any.zh),
+            en: String(any.en ?? ""),
+            on: !!any.on,
+            replace: any.replace ? String(any.replace) : void 0,
+            from: any.from ? String(any.from) : void 0
+          });
+          return (list.length ? browser.storage.local.set({ [key]: list }) : browser.storage.local.remove(key)).then(() => !0);
         });
       case "forgetContext":
         return storeReady.then(() => store.removeContext(String(any.word), String(any.text))).then(() => !0);
@@ -980,8 +994,8 @@ Give each with a natural American English translation.`, schema = {
         });
       case "wordInfo":
         return Promise.all([dictReady, storeReady, examplesReady]).then(async ([d]) => {
-          let word = any.word, py = String(any.py ?? ""), chars = breakdown(d, word, py.split(/\s+/)).filter((c) => CJK.test(c.ch) && ([...word].length <= 8 || c.depth === 0)), record = store.words.get(word) ?? null, got = await browser.storage.local.get(["gex:" + word, "exh:" + word, "sav:" + word]), saved = (got["sav:" + word] ?? []).map((x) => x.zh), hidden = new Set(got["exh:" + word] ?? []), gex = got["gex:" + word] ?? [], ex = examples.pick(word, d, (w) => store.words.get(w)?.s, gex, hidden, new Set(saved)), seen = (record?.ctx ?? []).map((c) => ({ c, zh: cleanSentence(c.text.split(" \u2014 ")[0], word) })).filter(({ zh }) => usefulSentence(zh, word)).filter(({ zh }, i, all) => all.findIndex((x) => x.zh === zh) === i).slice(0, 3).map(({ c, zh }) => ({ ...c, zh, toks: d.segment(zh) }));
-          return { chars, examples: ex, seen, record, saved };
+          let word = any.word, py = String(any.py ?? ""), chars = breakdown(d, word, py.split(/\s+/)).filter((c) => CJK.test(c.ch) && ([...word].length <= 8 || c.depth === 0)), record = store.words.get(word) ?? null, got = await browser.storage.local.get(["gex:" + word, "exh:" + word, "sav:" + word]), savedList = got["sav:" + word] ?? [], saved = savedList.map((x) => x.zh), hidden = new Set(got["exh:" + word] ?? []), gex = got["gex:" + word] ?? [], ex = examples.pick(word, d, (w) => store.words.get(w)?.s, gex, hidden, new Set(saved)), seen = (record?.ctx ?? []).map((c) => ({ c, zh: cleanSentence(c.text.split(" \u2014 ")[0], word) })).filter(({ zh }) => usefulSentence(zh, word)).filter(({ zh }, i, all) => all.findIndex((x) => x.zh === zh) === i).slice(0, 3).map(({ c, zh }) => ({ ...c, zh, toks: d.segment(zh) })), shown = new Set(ex.map((x) => x.zh)), mine = savedList.filter((x) => !shown.has(x.zh)).map((x) => ({ zh: x.zh, en: x.en, from: x.from, toks: d.segment(x.zh) }));
+          return { chars, examples: ex, seen, record, saved, mine };
         });
       case "glosses":
         return dictReady.then((d) => {

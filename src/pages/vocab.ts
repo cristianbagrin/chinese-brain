@@ -22,11 +22,11 @@ async function load() {
 }
 
 function render() {
+  // The counts are the filter.
   const n = (s: Status) => words.filter((w) => w.s === s).length;
-  $('counts').replaceChildren(
-    ...STAMPS.map(([s, zh, label]) => h('div', { class: `count ${s}` }, h('b', null, String(n(s))), h('span', null, `${zh} ${label}`))),
-    h('div', { class: 'count' }, h('b', null, String(words.length)), h('span', null, 'in your list')),
-  );
+  const tab = (f: Status | 'all', count: number, label: string) =>
+    h('button', { class: f, 'data-f': f, 'aria-pressed': String(filter === f) }, h('b', null, String(count)), h('span', null, label));
+  $('filter').replaceChildren(tab('all', words.length, 'All words'), ...STAMPS.map(([s, zh, label]) => tab(s, n(s), `${zh} ${label}`)));
   const q = $<HTMLInputElement>('q').value.trim().toLowerCase();
   const sort = $<HTMLSelectElement>('sort').value as 'updated' | 'added' | 'looks';
   const list = words
@@ -73,8 +73,8 @@ async function setStatus(w: WordRecord, s: Status | null) {
 async function renderExportInfo() {
   const { lastExportAt } = await browser.storage.local.get('lastExportAt');
   $('lastExport').textContent = lastExportAt
-    ? `Last export ${ago(lastExportAt as number)}. "Export what's new" covers everything since then.`
-    : `Nothing exported yet. "Export what's new" will include everything so far.`;
+    ? `Last export ${ago(lastExportAt as number)}. "What's new" is everything since.`
+    : 'Nothing exported yet.';
 }
 
 $('q').addEventListener('input', render);
@@ -84,7 +84,6 @@ function filterFromHash() {
   const f = location.hash.slice(1);
   if (!['all', 'fresh', 'learning', 'known'].includes(f)) return;
   filter = f as Status | 'all';
-  $('filter').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.f === f)));
 }
 filterFromHash();
 window.addEventListener('hashchange', () => {
@@ -96,7 +95,6 @@ $('filter').addEventListener('click', (e) => {
   const b = (e.target as HTMLElement).closest('button');
   if (!b) return;
   filter = b.dataset.f as Status | 'all';
-  $('filter').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
   render();
 });
 
@@ -119,7 +117,7 @@ $('exportNew').addEventListener('click', async () => {
 });
 $('copyNew').addEventListener('click', async () => {
   await navigator.clipboard.writeText(await exportNew());
-  $('copyOk').textContent = 'Copied. Paste it into Claude.';
+  $('copyOk').textContent = 'Copied';
 });
 $('exportAll').addEventListener('click', async () => {
   const data = await browser.runtime.sendMessage({ type: 'allData' });
