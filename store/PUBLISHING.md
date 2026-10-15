@@ -2,15 +2,31 @@
 
 Copy each block into the matching field of the AMO Developer Hub.
 
+## Updating the published add-on (new version)
+
+Users get a new version automatically once Mozilla approves it.
+
+1. Build the zip (step 1 below). The version comes from `package.json`, so it is
+   always higher than the last upload.
+2. On the [Developer Hub](https://addons.mozilla.org/developers/addons), open
+   Chinese Brain → **Upload New Version** → choose the zip from `release/`.
+3. "Do you need to submit source code?" → **No**.
+4. Paste the version notes (section 4) and, if permissions or remote requests
+   changed, the notes to reviewer (section 5). Update the description and
+   privacy policy on the listing if they changed (sections 2 and 3).
+5. After approval (usually minutes to a day), Firefox updates on its own within
+   a day, or right away from `about:addons` → ⚙ → **Check for Updates**.
+
 ## 1. Build the file to upload
 
 ```bash
 git pull
 npm ci
-npm run zip      # -> release/chinese_brain-1.0.1.zip      (the add-on)
+npm run zip      # -> release/chinese_brain-<version>.zip      (the add-on)
 ```
 
-Upload `chinese_brain-1.0.1.zip` under **Submit a New Add-on → On this site**.
+First release: upload it under **Submit a New Add-on → On this site**. Later
+versions: see "Updating" above.
 When asked "Do you need to submit source code?", answer **No**.
 
 ## 2. Listing
@@ -45,10 +61,16 @@ HOVER ANY CHINESE WORD
 • Two natural Taiwan-Mandarin example sentences, picked so the other words are ones you know. Play them aloud, save the ones you want to learn, delete the ones you don't
 • The last sentences you met the word in
 • Click any word inside the card to look it up; ← → to go back and forth
+• Copy any example sentence with one click
+
+SELECT ANYTHING
+• Select Chinese text anywhere (pages, search boxes, Google Translate's box) and tap Option (Alt), or right-click → Look up
+• Words get their card; names, phrases and whole sentences get pinyin, a translation and the words inside them
+• Taiwan place names, sights and dishes (野柳, 清境, 滷肉飯, 薑母鴨…) are in the dictionary
 
 ONE WORD LIST, THREE STATUSES
 • 新 Fresh · 學 Learning · 熟 Known: press 1, 2 or 3
-• The same colors in the card, the subtitles, the transcript, your word list, and (optional) on every page
+• The same colors in the card, the subtitles, the transcript, your word list, and (optional) on every page; Option+Shift+C (Alt+Shift+C) turns them on or off for one website
 • Import your known-words list; export what changed each week as a small TSV
 
 YOUTUBE DUAL SUBTITLES
@@ -64,7 +86,7 @@ OPTIONAL, WITH YOUR OWN KEYS
 
 Copyright © Cristian Bagrin. All rights reserved. No account and no server of ours; your word list stays in your browser.
 
-Data: CC-CEDICT (CC BY-SA 4.0); Taiwan readings from the MOE Revised Mandarin Dictionary via g0v/moedict-data (CC BY-ND 3.0 TW, pinyin only); word frequencies from wordfreq (CC BY-SA 4.0).
+Data: CC-CEDICT (CC BY-SA 4.0); Taiwan readings from the MOE Revised Mandarin Dictionary via g0v/moedict-data (CC BY-ND 3.0 TW, pinyin only); word frequencies from wordfreq (CC BY-SA 4.0); names and foods from Wikidata (CC0).
 ```
 
 **Categories**: Language Support · Photos, Music & Videos
@@ -100,6 +122,7 @@ Some features send data to third-party services, only to perform the feature:
 
 • Reading words and sentences aloud (default voice): the text is sent to Google's text-to-speech service (translate.google.com) when you press V or a play button.
 • English subtitle line on YouTube: when YouTube does not provide an English translation, the video's Chinese caption lines are sent to Google Translate (translate.googleapis.com).
+• Looking up a selection: when you select Chinese text and ask for its card (Option key or right-click menu) and it is not a single dictionary word, the selected text is sent to Google Translate (translate.googleapis.com) for its English translation.
 • Azure voice (optional, your own key): the text you play is sent to Microsoft Azure Speech in the region you choose.
 • Gemini (optional, your own key): when you press "Subtitles with Gemini", the YouTube video's link is sent to the Google Gemini API; when you press "Write example sentences", the word and its short meaning are sent. On Google's free tier, Google may use these requests to improve its models.
 • Image search: pressing I opens a DuckDuckGo image search for the word in a new tab.
@@ -107,11 +130,20 @@ Some features send data to third-party services, only to perform the feature:
 Nothing else leaves your browser. Uninstalling the add-on deletes its data.
 ```
 
-## 4. Version notes (1.0.1)
+## 4. Version notes
+
+1.1.0:
 
 ```
-First public release.
+• Look up anything you select: tap Option (Alt) or right-click → Look up. Names, phrases and sentences get pinyin and a translation; short ones can be saved as words.
+• Taiwan place names, sights and dishes added to the dictionary (from Wikidata); 台 and 臺 spellings both work.
+• Option+Shift+C (Alt+Shift+C) turns word colors on or off for a website; also in the toolbar menu.
+• Page colors now work in editors like Notion and on pages that re-render text (image search, lightboxes).
+• Copy button on example sentences.
+• "Hold to look up" uses Option (Alt) instead of Shift.
 ```
+
+1.0.1: First public release.
 
 ## 5. Notes to reviewer
 
@@ -121,8 +153,9 @@ Build (Node 22, npm 10):
   npm run build     # esbuild bundles src/ + static/ into dist/ (scripts/build.mjs); output is not minified
 The uploaded add-on is the dist/ folder zipped by web-ext (npm run zip).
 
-The bundled data files (static/data/dict.tsv.gz, static/data/examples.tsv.gz) are prebuilt:
+The bundled data files (static/data/dict.tsv.gz, names.tsv.gz, examples.tsv.gz) are prebuilt:
   dict: python3 scripts/build_data.py (downloads CC-CEDICT and MOE readings, uses the wordfreq package)
+  names: python3 scripts/build_names.py (Wikidata SPARQL queries, CC0 data)
   examples: python3 scripts/build_examples.py (from data-src/examples/)
 
 Permissions:
@@ -131,9 +164,12 @@ Permissions:
     filterResponseData passes the caption response through unchanged and keeps a read-only copy for
     the subtitle overlay. The add-on never requests timedtext itself.
   storage + unlimitedStorage: the word list, logs and caches stay local.
+  menus: one context-menu item, "Look up" on selected text. If the selection is in a frame the content
+    script was not already running in, tabs.executeScript injects the add-on's own content.js there.
+  commands: one keyboard shortcut (Alt+Shift+C) that toggles page colors for the current site.
 
 Remote requests (all user-facing features, listed in the privacy policy): translate.google.com (TTS),
-translate.googleapis.com (caption translation fallback), *.tts.speech.microsoft.com (optional, user key),
+translate.googleapis.com (caption translation fallback; translation of a selection the user looks up), *.tts.speech.microsoft.com (optional, user key),
 generativelanguage.googleapis.com (optional, user key). No remote code is loaded; no eval, no innerHTML.
 
 Data collection permissions: websiteContent (words and caption lines sent for speech and translation)
