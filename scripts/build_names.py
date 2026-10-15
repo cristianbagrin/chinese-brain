@@ -146,6 +146,8 @@ def main():
         if not CJK_ONLY.match(trad) or trad in known or trad.replace("臺", "台") in known:
             continue
         en = clean(rec.get("l:en"))
+        if re.search(r"[^\x00-\u024f\u2010-\u2019]", en):
+            en = ""  # a Taiwanese (Pe̍h-ōe-jī) spelling, not English: the description says it better
         desc = rec.get("desc", "")
         if not en and not desc:
             continue
@@ -163,6 +165,12 @@ def main():
         if prev and prev[5] >= zipf and len(prev[4]) >= len(defs):
             continue
         out[trad] = [trad, simp, "", "", defs, zipf, 0]
+        # 三芝區 is mostly just 三芝: districts and townships also go under their short name.
+        short = trad[:-1]
+        if kind == "place" and trad[-1] in "區鄉鎮縣市" and len(short) >= 2 and short not in known and short.replace("臺", "台") not in known:
+            alt = [short, simp[:-1], "", "", defs, zipf, 0]
+            if short not in out or out[short][4] == defs:
+                out[short] = alt
 
     buf = io.StringIO()
     buf.write("# Names and foods from Wikidata (CC0); frequency: wordfreq (CC BY-SA 4.0)\n")
