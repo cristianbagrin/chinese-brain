@@ -12,9 +12,10 @@
   a.count:hover { background: var(--rule); }
   .count b { font-size: 18px; }
   .count span { font-size: 11.5px; }
-  .group { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--rule); }
+  .group { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--rule); }
   .group h3 { margin: 0 0 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink3); }
-  .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 30px; }
+  /* Compact rows: everything fits in the popup without scrolling (Firefox caps it near 600px). */
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 30px; padding: 2px 0; border: 0; }
   .row > span { flex: 1; }
   .row .sub { display: block; font-size: 12px; color: var(--ink2); }
   .row[hidden] { display: none; }
@@ -35,7 +36,7 @@
   .seg button:hover { border-color: transparent; color: var(--ink); }
 
   .stats { font-size: 12px; color: var(--ink2); margin: -2px 0 2px; }
-  .links { display: flex; gap: 8px; margin-top: 12px; }
+  .links { display: flex; gap: 8px; margin-top: 10px; }
   .links a { flex: 1; text-align: center; text-decoration: none; padding: 6px 0; border-radius: 8px; background: var(--ground); color: var(--ink); font-size: 13px; }
   .links a:hover { background: var(--rule); }
 </style>
@@ -46,7 +47,7 @@
 
   <div class="group">
     <h3>Lookup</h3>
-    <div class="row"><span>Show the card</span>
+    <div class="row"><span>Show card</span>
       <div class="seg" data-setting="hoverMode"><button data-v="hover">hover</button><button data-v="alt" title="Only while holding Option (Alt)">⌥ Option</button><button data-v="off">off</button></div>
     </div>
     <div class="row" id="siteLine" hidden><span>Lookup on <b class="hostname"></b></span><label class="sw"><input type="checkbox" id="siteOn"><i></i></label></div>
@@ -58,13 +59,6 @@
     <div class="row" id="colorLine" hidden><span>Colors on <b class="hostname"></b><span class="sub" id="colorKey"></span></span><label class="sw"><input type="checkbox" id="colorsOn"><i></i></label></div>
     <div class="stats" id="pageStats"></div>
     <div class="row"><span>Stamp sounds</span><label class="sw"><input type="checkbox" data-setting="sounds"><i></i></label></div>
-  </div>
-
-  <div class="group">
-    <h3>Voice</h3>
-    <div class="row"><span>Voice</span>
-      <div class="seg" data-setting="voice"><button data-v="google">Google</button><button data-v="system">system</button><button data-v="azure">Azure</button></div>
-    </div>
   </div>
 
   <div class="group">

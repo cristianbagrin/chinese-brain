@@ -59,7 +59,7 @@ HOVER ANY CHINESE WORD
 • How common the word is, in plain words: essential, very common, common, less common, rare
 • The meaning, and a top-down breakdown: 臺北市 → 臺北 → 臺 · 北, then 市
 • Two natural Taiwan-Mandarin example sentences, picked so the other words are ones you know. Play them aloud, save the ones you want to learn, delete the ones you don't
-• The last sentences you met the word in
+• The sentence you're reading and the last ones you met the word in: save them for your export, trimmed if you like
 • Click any word inside the card to look it up; ← → to go back and forth
 • Copy any example sentence with one click
 
@@ -131,6 +131,14 @@ Nothing else leaves your browser. Uninstalling the add-on deletes its data.
 ```
 
 ## 4. Version notes
+
+1.2.0:
+
+```
+• Save the sentence you met a word in: the card shows the sentence you're reading, with a bookmark to save it and a pencil to trim it first (Enter saves, Esc cancels). Saved sentences go into your export.
+• Cleaner word list (the counts are the filter; export, import and backup in three small cards) and settings page.
+• The toolbar menu fits without scrolling; the voice choice moved to All settings.
+```
 
 1.1.0:
 

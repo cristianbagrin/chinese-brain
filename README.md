@@ -78,7 +78,7 @@ pinyin, since opening one means you are learning that word.
 
 The toolbar button opens quick settings (lookup mode: on hover, only while
 holding `⌥ Option`, or off; pinyin, card size, page colors for all sites and
-for this one, voice, YouTube subtitles). **All settings** has the rest:
+for this one, YouTube subtitles); it fits without scrolling. **All settings** has the rest:
 
 - **Voice.** Google's Taiwan voice (online, free; the default), the system
   voice, or an Azure neural voice with your own key. Google and Azure audio is
