@@ -45,6 +45,9 @@
 .top { position: relative; padding: 0.86em 1.15em 0.7em; }
 .headrow { display: flex; align-items: baseline; gap: 0.85em; flex-wrap: wrap; }
 .head { font: 600 2.15em/1.15 var(--sans); letter-spacing: 0.02em; padding: 0 3px; margin: 0 -3px; border-radius: 4px; }
+.head.long { font-size: 1.35em; line-height: 1.35; letter-spacing: 0.01em; }
+.headrow .copy, .headrow .say { align-self: center; }
+.mt { color: var(--text3); font-size: 0.8em; margin-left: 0.5em; }
 .head.st-fresh { background: var(--fresh-mark); }
 .head.st-learning { background: var(--learning-mark); }
 .head.st-known { background: var(--known-mark); }
@@ -84,6 +87,10 @@
 .say:hover { color: var(--link); background: var(--bg2); }
 .say svg { width: 0.95em; height: 0.95em; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
 .say svg path { fill: none; }
+.copy { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; vertical-align: -0.2em; border-radius: 50%; color: var(--text3); }
+.copy:hover { color: var(--link); background: var(--bg2); }
+.copy svg { width: 0.85em; height: 0.85em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+.copy.done { color: var(--known); }
 .save { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; vertical-align: -0.2em; border-radius: 50%; color: var(--text3); }
 .save:hover { color: var(--link); background: var(--bg2); }
 .save svg { width: 0.9em; height: 0.9em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; }

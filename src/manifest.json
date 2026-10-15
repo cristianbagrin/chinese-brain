@@ -25,6 +25,7 @@
   "permissions": [
     "storage",
     "unlimitedStorage",
+    "menus",
     "webRequest",
     "webRequestBlocking",
     "<all_urls>"
@@ -54,5 +55,13 @@
   "options_ui": {
     "page": "options.html",
     "open_in_tab": true
+  },
+  "commands": {
+    "toggle-colors": {
+      "suggested_key": {
+        "default": "Alt+Shift+C"
+      },
+      "description": "Turn word colors on or off for this website"
+    }
   }
 }

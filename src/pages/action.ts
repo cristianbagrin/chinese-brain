@@ -1,4 +1,4 @@
-import type { Settings, Status } from '../shared/types.ts';
+import { colorsOn, type Settings, type Status } from '../shared/types.ts';
 import { $, h } from './common.ts';
 
 const save = (settings: Partial<Settings>) => browser.runtime.sendMessage({ type: 'saveSettings', settings });
@@ -26,8 +26,12 @@ async function init() {
     if (el instanceof HTMLInputElement) {
       el.checked = !!s[key];
       el.addEventListener('change', () => {
+        (s as unknown as Record<string, unknown>)[key] = el.checked;
         void save({ [key]: el.checked });
-        if (key === 'pageColors') setTimeout(showStats, 1500);
+        if (key === 'pageColors') {
+          syncColors();
+          setTimeout(showStats, 1500);
+        }
       });
       continue;
     }
@@ -42,6 +46,7 @@ async function init() {
     }
   }
 
+  let syncColors = () => {};
   const tab = tabs[0];
   const showStats = async () => {
     try {
@@ -65,7 +70,29 @@ async function init() {
   }
   if (!host) return;
   $('siteLine').hidden = false;
-  $('host').textContent = host.replace(/^www\./, '');
+  for (const el of document.querySelectorAll('.hostname')) el.textContent = host.replace(/^www\./, '');
+
+  // Colors on this site: its own exception to the switch above (also the shortcut).
+  $('colorLine').hidden = false;
+  const colors = $<HTMLInputElement>('colorsOn');
+  syncColors = () => (colors.checked = colorsOn(s, host));
+  syncColors();
+  colors.addEventListener('change', () => {
+    const siteColors = { ...s.siteColors };
+    if (colors.checked === s.pageColors) delete siteColors[host];
+    else siteColors[host] = colors.checked;
+    s.siteColors = siteColors;
+    void save({ siteColors });
+    setTimeout(showStats, 1500);
+  });
+  browser.commands
+    .getAll()
+    .then((cmds) => {
+      const key = cmds.find((c) => c.name === 'toggle-colors')?.shortcut;
+      const mac = navigator.platform.startsWith('Mac');
+      if (key) $('colorKey').textContent = `Shortcut ${mac ? key.replace('Alt', 'Option') : key}`;
+    })
+    .catch(() => {});
   const box = $<HTMLInputElement>('siteOn');
   box.checked = !s.disabledSites.includes(host);
   box.addEventListener('change', () => {

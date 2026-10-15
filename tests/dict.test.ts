@@ -62,3 +62,24 @@ test('simplified token gets traditional form', () => {
   assert.equal(t[0].trad, '我們');
   assert.equal(t[1].trad, '吃飯');
 });
+
+test('words written with 台 are found under 臺', () => {
+  const d = Dictionary.fromTsv('臺東\t台东\tTai2 dong1\t\tTaitung\t30\t0\n');
+  assert.equal(d.get('台東')[0]?.trad, '臺東');
+  assert.equal(d.get('台东')[0]?.trad, '臺東');
+});
+
+test('names without a reading get one from their parts', () => {
+  const names = '# names\n野柳\t野柳\t\t\tYehliu/cape in New Taipei\t0\t0\n';
+  const d = Dictionary.fromTsv(gunzipSync(readFileSync('static/data/dict.tsv.gz')).toString('utf8') + '\n' + names);
+  assert.equal(d.get('野柳')[0].py, 'ye3 liu3');
+  assert.equal(d.lookup('野柳地質公園')[0].text, '野柳');
+});
+
+test('your own words join the dictionary', () => {
+  const d = Dictionary.fromTsv('滷肉\t卤肉\tlu3 rou4\t\tbraised meat\t30\t0\n飯\t饭\tfan4\t\trice\t60\t0\n');
+  assert.equal(d.addWord({ trad: '滷肉飯', simp: '滷肉飯', py: '', tw: '', defs: ['braised pork rice'], zipf: 0, tocfl: 0 }), true);
+  assert.equal(d.addWord({ trad: '飯', simp: '飯', py: '', tw: '', defs: ['x'], zipf: 0, tocfl: 0 }), false);
+  assert.equal(d.get('滷肉飯')[0].py, 'lu3 rou4 fan4');
+  assert.deepEqual(d.segment('滷肉飯').map((t) => t.text), ['滷肉飯']);
+});

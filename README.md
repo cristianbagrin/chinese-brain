@@ -9,16 +9,28 @@ shared by everything:
   you), the meanings on one line, a top-down breakdown (臺北市 → 臺北 → 臺, 北;
   then 市), two natural Taiwan-Mandarin example sentences, and the last two
   sentences you met the word in (page-title clutter trimmed). Every sentence has
-  a play button and a × to delete it, and examples a ★ to save them for your
-  export; Gemini can write new examples on request.
+  a play button, a copy button and a × to delete it, and examples a ★ to save
+  them for your export; Gemini can write new examples on request.
   The card never covers the word or the pointer (below, above, or beside it),
   waits while the pointer travels to it, and stays put while you scroll. Hover
   any word inside it for a small hint with its meaning; the card's shortcuts
   then act on that word.
-- **Three statuses everywhere:** 新 Fresh (red), 學 Learning (yellow),
+- **Lookup for anything you select.** Select Chinese text anywhere (on a page,
+  in a search box, in a text field like Google Translate's) and tap `⌥ Option`
+  (`Alt`), or right-click it and pick **Look up “…”**. A word gets its usual
+  card. A name, phrase or whole sentence gets a card of its own: the text, its
+  pinyin, a machine translation and the words inside it. Short ones (names,
+  dishes, up to 8 characters) can be stamped like words, and from then on pages
+  color them and hover finds them.
+- **Names and foods.** Besides CC-CEDICT, the dictionary knows places, sights
+  and dishes from Wikidata: things in Taiwan with a Chinese Wikipedia article
+  (野柳, 清境, 綠島…) and foods and drinks (滷肉飯, 薑母鴨…). Words written
+  with 台 are found under 臺 too (台東, 台中).- **Three statuses everywhere:** 新 Fresh (red), 學 Learning (yellow),
   熟 Known (green). Press `1` `2` `3` in the card. The same colors appear in
   the card, the YouTube subtitles, the transcript, the word list, and
-  optionally on every page you read.
+  optionally on every page you read (editors like Notion included). Turn them
+  on or off for one website with `Alt`+`Shift`+`C` (`⌥ Option`+`Shift`+`C` on
+  a Mac) or the switch in the toolbar menu.
 - **YouTube dual subtitles.** Our own Chinese + English lines over the video.
   Every word is hoverable and clickable, and the video pauses while you read.
   A 中 switch in the player turns them on or off. Hover the switch to see how
@@ -50,6 +62,8 @@ pick `dist/manifest.json`. A temporary add-on stays until the browser restarts.
 | --- | --- |
 | Card open | `1` 新 Fresh · `2` 學 Learning · `3` 熟 Known (again = clear) · `0` remove · `V` say it · `I` images · `←` `→` back / forward through words opened in the card · `Esc` close |
 | Pointing at a word inside the card | `1` `2` `3` `0` `V` `I` act on that word (the card stays on its own word) |
+| Text selected | Tap `⌥ Option` (`Alt`): the card for exactly that text. Or right-click → **Look up “…”** |
+| Any website | `Alt`+`Shift`+`C` (`⌥ Option`+`Shift`+`C` on a Mac): word colors on / off for this site. Change it in `about:addons` → ⚙ → **Manage Extension Shortcuts** |
 | YouTube | `A` previous line · `S` replay line · `D` next line · `R` loop line · `Q` shadowing · `P` pinyin · `X` English line (show / blur / hide) · `E` transcript |
 
 On YouTube, click a new word to stamp it Fresh. Click it again to undo.
@@ -59,8 +73,9 @@ pinyin, since opening one means you are learning that word.
 
 ## Settings
 
-The toolbar button opens quick settings (lookup mode, pinyin, card size, page
-colors, voice, YouTube subtitles). **All settings** has the rest:
+The toolbar button opens quick settings (lookup mode: on hover, only while
+holding `⌥ Option`, or off; pinyin, card size, page colors for all sites and
+for this one, voice, YouTube subtitles). **All settings** has the rest:
 
 - **Voice.** Google's Taiwan voice (online, free; the default), the system
   voice, or an Azure neural voice with your own key. Google and Azure audio is
@@ -98,6 +113,7 @@ Data (only needed to refresh it):
 pip install wordfreq
 npm run data                      # CC-CEDICT + MOE readings + frequencies -> static/data/dict.tsv.gz
 python3 scripts/build_examples.py # data-src/examples/out-*.tsv -> static/data/examples.tsv.gz
+python3 scripts/build_names.py    # Wikidata names + foods -> static/data/names.tsv.gz (slow when Wikidata rate-limits)
 ```
 
 `tests/youtube-mock/` is a small stand-in for the YouTube player, used to test
@@ -112,7 +128,7 @@ src/youtube/      caption parsing, subtitle overlay, player switch + panel, tran
 src/pages/        word list, settings, toolbar menu
 src/shared/       types, dictionary + segmenter, pinyin, export/import formats
 static/           HTML/CSS, icon, data/
-scripts/          build.mjs (esbuild), build_data.py, build_examples.py
+scripts/          build.mjs (esbuild), build_data.py, build_names.py, build_examples.py
 docs/             Step 0 assessment, Explore verdicts
 ```
 
@@ -136,6 +152,7 @@ Gemini, on request.
 - Taiwan readings: 教育部《重編國語辭典修訂本》 via
   [g0v/moedict-data](https://github.com/g0v/moedict-data), CC BY-ND 3.0 TW.
   Only the pinyin field is used, unchanged.
+- Names and foods: [Wikidata](https://www.wikidata.org/), CC0.
 - Word frequencies: [wordfreq](https://github.com/rspeer/wordfreq), CC BY-SA 4.0.
 - Example sentences: written for this project by language models from a
   Taiwan-usage brief (`data-src/examples/PROMPT.md`), then machine-checked

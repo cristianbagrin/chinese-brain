@@ -3,7 +3,10 @@ import type { Entry, LookupMatch, Token } from './types.ts';
 export const CJK = /[㐀-䶿一-鿿豈-﫿]/;
 const MAX_WORD = 8;
 
-/** In-memory CC-CEDICT with Taiwan readings. Built from static/data/dict.tsv.gz. */
+/**
+ * In-memory CC-CEDICT with Taiwan readings, built from static/data/dict.tsv.gz, plus
+ * names and foods (static/data/names.tsv.gz) and phrases you stamped yourself.
+ */
 export class Dictionary {
   entries: Entry[] = [];
   private index = new Map<string, number[]>();
@@ -32,7 +35,40 @@ export class Dictionary {
       start = end + 1;
     }
     d.computeRanks();
+    d.addTaiAliases();
     return d;
+  }
+
+  /** People write 台 for 臺 (台東, 台中): every 臺 word can be found that way too. */
+  private addTaiAliases() {
+    this.entries.forEach((e, i) => {
+      if (!e.trad.includes('臺')) return;
+      const alias = e.trad.replaceAll('臺', '台');
+      // A word already written with 台 (CC-CEDICT has some) keeps its own entries.
+      if (alias !== e.simp && !this.index.has(alias)) this.add(alias, i);
+    });
+  }
+
+  /**
+   * A word that is not in the dictionary (a name you stamped from a selection). The
+   * reading comes from the words inside it when `py` is empty. False when it was already known.
+   */
+  addWord(e: Entry): boolean {
+    if (this.index.has(e.trad)) return false;
+    const i = this.entries.push(e) - 1;
+    this.add(e.trad, i);
+    if (e.simp && e.simp !== e.trad) this.add(e.simp, i);
+    return true;
+  }
+
+  /** Reading of a word from its parts (names come without one): 野柳 -> ye3 liu3. */
+  private fillReading(e: Entry) {
+    e.py = '-'; // guards against coming back here while splitting
+    const sylls = this.split(e.trad).map((part) => {
+      const x = [...part].length === 1 ? this.charEntry(part) : this.get(part)[0];
+      return x ? x.tw || x.py : '';
+    });
+    e.py = sylls.map((x) => x || '?').join(' ');
   }
 
   /** Frequency rank per headword (1 = most common), from the Zipf scores. */
@@ -77,6 +113,7 @@ export class Dictionary {
   get(word: string): Entry[] {
     const ids = this.index.get(word);
     if (!ids) return [];
+    for (const i of ids) if (!this.entries[i].py) this.fillReading(this.entries[i]);
     return rankEntries(
       ids.map((i) => this.entries[i]),
       word,

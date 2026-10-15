@@ -47,14 +47,15 @@
   <div class="group">
     <h3>Lookup</h3>
     <div class="row"><span>Show the card</span>
-      <div class="seg" data-setting="hoverMode"><button data-v="hover">hover</button><button data-v="shift">Shift</button><button data-v="off">off</button></div>
+      <div class="seg" data-setting="hoverMode"><button data-v="hover">hover</button><button data-v="alt" title="Only while holding Option (Alt)">⌥ Option</button><button data-v="off">off</button></div>
     </div>
-    <div class="row" id="siteLine" hidden><span>Lookup on <b id="host"></b></span><label class="sw"><input type="checkbox" id="siteOn"><i></i></label></div>
+    <div class="row" id="siteLine" hidden><span>Lookup on <b class="hostname"></b></span><label class="sw"><input type="checkbox" id="siteOn"><i></i></label></div>
     <div class="row"><span>Pinyin <kbd>P</kbd></span><label class="sw"><input type="checkbox" data-setting="pinyin"><i></i></label></div>
     <div class="row"><span>Card size</span>
       <div class="seg" data-setting="cardSize"><button data-v="normal">normal</button><button data-v="large">large</button></div>
     </div>
     <div class="row"><span>Color words on pages</span><label class="sw"><input type="checkbox" data-setting="pageColors"><i></i></label></div>
+    <div class="row" id="colorLine" hidden><span>Colors on <b class="hostname"></b><span class="sub" id="colorKey"></span></span><label class="sw"><input type="checkbox" id="colorsOn"><i></i></label></div>
     <div class="stats" id="pageStats"></div>
     <div class="row"><span>Stamp sounds</span><label class="sw"><input type="checkbox" data-setting="sounds"><i></i></label></div>
   </div>

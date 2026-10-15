@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, normalizeSettings, type Settings, type Status, type WordRecord } from '../shared/types.ts';
+import { colorsOn, DEFAULT_SETTINGS, normalizeSettings, type Settings, type Status, type WordRecord } from '../shared/types.ts';
 
 type Listener = () => void;
 
@@ -51,6 +51,11 @@ class State {
   onChange(l: Listener) {
     this.listeners.add(l);
     return () => this.listeners.delete(l);
+  }
+
+  /** Color the words on this page? */
+  colorsEnabled(): boolean {
+    return this.siteEnabled() && colorsOn(this.settings, location.hostname);
   }
 
   siteEnabled(): boolean {

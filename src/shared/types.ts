@@ -26,6 +26,8 @@ export interface LookupMatch {
   /** Canonical headword (traditional) used as the word-list key. */
   word: string;
   entries: Entry[];
+  /** A selection that is not a dictionary word (a name, a phrase, a sentence), translated. */
+  phrase?: boolean;
 }
 
 export interface Token {
@@ -77,7 +79,8 @@ export type LogEvent =
   | { at: number; k: 'watch'; url: string; title?: string; secs: number; coverage?: number; lang?: string };
 
 export type TranslationMode = 'show' | 'blur' | 'hide';
-export type HoverMode = 'hover' | 'shift' | 'off';
+/** 'alt' = only while holding Option (Alt). */
+export type HoverMode = 'hover' | 'alt' | 'off';
 export type VoiceEngine = 'google' | 'system' | 'azure';
 
 export interface Settings {
@@ -106,6 +109,8 @@ export interface Settings {
   sounds: boolean;
   /** Color words by status on every page (highlighter style). */
   pageColors: boolean;
+  /** Per-site exceptions to pageColors (hostname -> on/off), set with the shortcut or the toolbar menu. */
+  siteColors: Record<string, boolean>;
   speechRate: number;
   /** Who reads words aloud: Google's online voice, the system voice, or Azure (own key). */
   voice: VoiceEngine;
@@ -133,6 +138,7 @@ export const DEFAULT_SETTINGS: Settings = {
   cardColors: true,
   sounds: true,
   pageColors: false,
+  siteColors: {},
   speechRate: 0.9,
   voice: 'google',
   azureKey: '',
@@ -151,10 +157,17 @@ export function normalizeSettings(raw: Record<string, unknown> | undefined): Set
   }
   // Before the voice choice existed, an Azure key meant "use Azure".
   if (r.voice === undefined && typeof r.azureKey === 'string' && r.azureKey) r.voice = 'azure';
+  // Holding Option replaced holding Shift.
+  if (r.hoverMode === 'shift') r.hoverMode = 'alt';
   delete r.subPinyin;
   delete r.cardPinyin;
   delete r.markUntracked; // the dotted underline on new subtitle words was dropped
   return { ...DEFAULT_SETTINGS, ...(r as Partial<Settings>) };
+}
+
+/** Are page colors on for this host (its own exception, else the global switch)? */
+export function colorsOn(s: Settings, host: string): boolean {
+  return s.siteColors[host] ?? s.pageColors;
 }
 
 /** Language of the second subtitle line. */
@@ -162,6 +175,7 @@ export const TRANS_LANG = 'en';
 
 export type Msg =
   | { type: 'lookup'; text: string }
+  | { type: 'lookupPhrase'; text: string }
   | { type: 'segment'; lines: string[] }
   | { type: 'statuses' }
   | { type: 'setStatus'; word: string; status: Status | null; entry?: Entry; ctx?: Context }

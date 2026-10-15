@@ -16,6 +16,7 @@
     cardColors: !0,
     sounds: !0,
     pageColors: !1,
+    siteColors: {},
     speechRate: 0.9,
     voice: "google",
     azureKey: "",
@@ -26,7 +27,10 @@
   };
   function normalizeSettings(raw) {
     let r = { ...raw ?? {} };
-    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, { ...DEFAULT_SETTINGS, ...r };
+    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), r.hoverMode === "shift" && (r.hoverMode = "alt"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, { ...DEFAULT_SETTINGS, ...r };
+  }
+  function colorsOn(s, host) {
+    return s.siteColors[host] ?? s.pageColors;
   }
 
   // src/content/state.ts
@@ -65,6 +69,10 @@
     }
     onChange(l) {
       return this.listeners.add(l), () => this.listeners.delete(l);
+    }
+    /** Color the words on this page? */
+    colorsEnabled() {
+      return this.siteEnabled() && colorsOn(this.settings, location.hostname);
     }
     siteEnabled() {
       return this.settings.hoverMode !== "off" && !this.settings.disabledSites.includes(location.hostname);

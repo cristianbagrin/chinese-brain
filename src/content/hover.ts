@@ -1,5 +1,5 @@
 import { CJK } from '../shared/dict.ts';
-import type { Token } from '../shared/types.ts';
+import type { LookupMatch, Token } from '../shared/types.ts';
 import { addPageCSS } from './css.ts';
 import { lookupText } from './lookup.ts';
 import { Popup } from './popup.ts';
@@ -84,7 +84,6 @@ function lineSlack(node: Text): number {
   return Math.max(2, Number.isFinite(lh) ? (lh - fs) / 2 + 1 : fs * 0.2);
 }
 
-/** Hover lookup on any page. Elements marked data-cb-own are left to their owners. */
 /** A single-line field used for searching: type=search, or a text input that says so. */
 function isSearchBox(el: Element): el is HTMLInputElement {
   if (!(el instanceof HTMLInputElement) || !/^(text|search|)$/.test(el.type)) return false;
@@ -93,12 +92,52 @@ function isSearchBox(el: Element): el is HTMLInputElement {
   return /search|query|\bq\b|搜尋|搜索|查詢|查询/i.test(hint) || !!el.closest('[role="search"],form[action*="search" i]');
 }
 
+/** The focused element, looking inside shadow roots (editors and search boxes often sit in one). */
+function deepActive(): Element | null {
+  let a = document.activeElement;
+  while (a?.shadowRoot?.activeElement) a = a.shadowRoot.activeElement;
+  return a;
+}
+
+interface Selected {
+  text: string;
+  rect: DOMRect;
+  /** The sentence or field the selection came from. */
+  context: string;
+}
+
+/** What is selected: in a text field or search box, or on the page. */
+function currentSelection(): Selected | undefined {
+  const el = deepActive();
+  if ((el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) && el.selectionStart != null && el.selectionEnd != null) {
+    if (el.selectionEnd <= el.selectionStart) return undefined;
+    const r = el.getBoundingClientRect();
+    return { text: el.value.slice(el.selectionStart, el.selectionEnd), rect: new DOMRect(r.left, r.top, Math.min(r.width, 40), Math.min(r.height, 40)), context: el.value.slice(0, 200) };
+  }
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.rangeCount) return undefined;
+  const range = sel.getRangeAt(0);
+  const text = sel.toString();
+  const node = range.startContainer;
+  const context = node.nodeType === Node.TEXT_NODE ? sentenceAround(node as Text, range.startOffset) : text;
+  // A long selection: its last line, where the selection ended.
+  const rects = range.getClientRects();
+  const rect = rects.length ? rects[rects.length - 1] : range.getBoundingClientRect();
+  return { text, rect, context: context.length >= text.length ? context : text };
+}
+
+/** Hover lookup on any page. Elements marked data-cb-own are left to their owners. */
 export class HoverLookup {
   private popup: Popup;
   private raf = 0;
   private lastX = 0;
   private lastY = 0;
-  private shift = false;
+  /** Option (Alt) is held: lookup in "hold Option" mode. */
+  private alt = false;
+  /** Option went down on its own; letting go without another key opens the card for the selection. */
+  private altTap = false;
+  /** Where the context menu was opened, for a card from the menu. */
+  private menuAt: { x: number; y: number } | undefined;
   private currentKey = '';
   /** The highlighted word: moving across its characters keeps its card. */
   private currentRange: Range | undefined;
@@ -133,44 +172,91 @@ export class HoverLookup {
     document.addEventListener('keyup', (e) => {
       if (e.shiftKey && e.key.startsWith('Arrow')) this.onSelect();
     });
+    // Option (Alt): tap it with text selected for that text's card; hold it to look up in "hold Option" mode.
+    window.addEventListener(
+      'keydown',
+      (e) => {
+        if (e.key !== 'Alt') {
+          this.altTap = false;
+          return;
+        }
+        this.altTap = !e.repeat && !e.ctrlKey && !e.metaKey && !e.shiftKey;
+        this.alt = true;
+        if (!e.repeat && state.settings.hoverMode === 'alt' && !currentSelection()?.text.trim()) this.check(document.elementFromPoint(this.lastX, this.lastY));
+      },
+      true,
+    );
+    window.addEventListener(
+      'keyup',
+      (e) => {
+        if (e.key !== 'Alt') return;
+        this.alt = false;
+        if (!this.altTap) return;
+        this.altTap = false;
+        const sel = currentSelection();
+        if (sel && CJK.test(sel.text) && state.siteEnabled()) {
+          e.preventDefault(); // no menu bar (Windows, Linux)
+          void this.showSelection(sel);
+        }
+      },
+      true,
+    );
+    window.addEventListener('blur', () => {
+      this.alt = false;
+      this.altTap = false;
+    });
+    document.addEventListener('mousedown', () => (this.altTap = false), true);
+    document.addEventListener('contextmenu', (e) => (this.menuAt = { x: e.clientX, y: e.clientY }), true);
+    browser.runtime.onMessage.addListener((msg: { type: string; text?: string }) => {
+      if (msg.type !== 'lookupSelection') return undefined;
+      void this.fromMenu(msg.text ?? '');
+      return Promise.resolve(true);
+    });
   }
 
-  /** Card for the selected text: the longest dictionary word it starts with. */
-  private async onSelect(e?: MouseEvent) {
-    if (!state.siteEnabled()) return;
-    const active = document.activeElement;
-    let text: string;
+  /** "Look up" from the context menu: the live selection, or the text the menu saw. */
+  private async fromMenu(text: string) {
+    const sel = currentSelection();
+    const same = (a: string, b: string) => a.replace(/\s+/g, '') === b.replace(/\s+/g, '');
+    if (sel && (!text || same(sel.text, text) || sel.text.length > text.length)) return this.showSelection(sel);
+    const at = this.menuAt ?? { x: window.innerWidth / 2, y: window.innerHeight / 3 };
+    await this.showSelection({ text, rect: new DOMRect(at.x, at.y - 10, 1, 20), context: text });
+  }
 
-    // Selections only open the card in search boxes, where page popups can't be seen otherwise.
-    // Selecting text on a page, or while writing in a text area or editor, stays quiet.
-    if (!active || !isSearchBox(active) || active.selectionStart == null || active.selectionEnd == null || active.selectionEnd <= active.selectionStart) return;
-    text = active.value.slice(active.selectionStart, active.selectionEnd);
-    const r = active.getBoundingClientRect();
-    const rect = new DOMRect(e?.clientX ?? r.left, r.top, 1, r.height);
-    text = text.trim();
-    if (!text || text.length > 16 || !CJK.test(text[0])) return;
-    const matches = await lookupText(text);
-    if (!matches.length) return;
-    // Prefer exactly what was selected when it is a word.
-    const exact = matches.findIndex((m) => m.text === text);
-    const ordered = exact > 0 ? [matches[exact], ...matches.filter((_, i) => i !== exact)] : matches;
+  /** The card for selected text, whatever it is: a word, a name, a whole sentence. */
+  private async showSelection(sel: Selected) {
+    const text = sel.text.trim();
+    if (!CJK.test(text)) return;
+    const matches: LookupMatch[] = await browser.runtime.sendMessage({ type: 'lookupPhrase', text });
+    if (!matches?.length) return;
     CSS.highlights?.delete(HIGHLIGHT);
     this.currentKey = '';
     this.currentRange = undefined;
     this.popup.show({
-      matches: ordered,
-      rect,
-      cursor: e ? { x: e.clientX, y: e.clientY } : undefined,
+      matches,
+      rect: sel.rect,
       src: 'web',
       pinned: true,
-      ctx: { text: active.value.slice(0, 200), url: location.href, title: document.title, at: Date.now(), src: 'web' },
+      ctx: { text: sel.context, url: location.href, title: document.title, at: Date.now(), src: 'web' },
     });
+  }
+
+  /** Selecting Chinese in a search box opens its card (page popups can't be seen there otherwise). */
+  private async onSelect(e?: MouseEvent) {
+    if (!state.siteEnabled()) return;
+    // Selecting text on a page, or while writing in a text area or editor, stays quiet (Option or the menu open it).
+    const active = deepActive();
+    if (!active || !isSearchBox(active)) return;
+    const sel = currentSelection();
+    if (!sel || sel.text.trim().length > 16) return;
+    if (e) sel.rect = new DOMRect(e.clientX, sel.rect.top, 1, sel.rect.height);
+    await this.showSelection(sel);
   }
 
   private onMove(e: MouseEvent) {
     this.lastX = e.clientX;
     this.lastY = e.clientY;
-    this.shift = e.shiftKey;
+    this.alt = e.altKey;
     if (this.raf) return;
     this.raf = requestAnimationFrame(() => {
       this.raf = 0;
@@ -192,7 +278,7 @@ export class HoverLookup {
     if (this.popup.visible && this.popup.inBridge(this.lastX, this.lastY)) return;
     if ((target as Element | null)?.closest?.('[data-cb-own]')) return;
     const s = state.settings;
-    if (!state.siteEnabled() || (s.hoverMode === 'shift' && !this.shift)) return this.scheduleHide();
+    if (!state.siteEnabled() || (s.hoverMode === 'alt' && !this.alt)) return this.scheduleHide();
 
     const pos = document.caretPositionFromPoint?.(this.lastX, this.lastY);
     const node = pos?.offsetNode;

@@ -8,16 +8,26 @@ const CSS_TEXT = `
 ::highlight(cb-fresh){background-color:rgba(239,47,66,.24)}
 ::highlight(cb-learning){background-color:rgba(255,200,31,.42)}
 ::highlight(cb-known){background-color:rgba(31,174,79,.16)}`;
-const SKIP = 'script,style,noscript,textarea,input,select,code,pre,[contenteditable=""],[contenteditable="true"],chinese-brain-popup,[data-cb-own]';
+// Editable text (Notion, Google Docs-style editors) is colored too: highlights never touch the DOM.
+const SKIP = 'script,style,noscript,textarea,input,select,code,pre,chinese-brain-popup,[data-cb-own]';
 const MAX_CHARS = 300_000;
+
+/** A text node's words, as [start, end, word], segmented from `data`. */
+interface Seg {
+  data: string;
+  words: { s: number; e: number; word: string; range?: Range }[];
+}
 
 /**
  * Colors every word on the page by its status, like the subtitles do. Uses
  * the CSS Custom Highlight API, so the page's DOM is never modified.
+ *
+ * Words are kept per text node, not as live ranges: pages that re-render (image
+ * grids, lightboxes, React lists) detach and re-insert text nodes, which collapses
+ * any range inside them. A node that comes back is colored again from its words.
  */
 export class PageColors {
-  private words: { range: Range; word: string }[] = [];
-  private done = new WeakSet<Text>();
+  private segs = new Map<Text, Seg>();
   private chars = 0;
   private observer: MutationObserver | undefined;
   private pending = new Set<Node>();
@@ -35,7 +45,7 @@ export class PageColors {
   }
 
   private sync() {
-    const want = state.settings.pageColors && state.siteEnabled() && !!CSS.highlights;
+    const want = state.colorsEnabled() && !!CSS.highlights;
     if (want === this.on) {
       if (want) this.paint();
       return;
@@ -51,74 +61,65 @@ export class PageColors {
       addPageCSS(CSS_TEXT);
     }
     await state.loadStatuses();
-    await this.scan(document.body);
+    if (!this.on) return;
     this.observer = new MutationObserver((muts) => {
       for (const m of muts) {
-        if (m.type === 'characterData') {
-          // Edited text: forget its old ranges and color it again.
-          const t = m.target as Text;
-          this.done.delete(t);
-          this.words = this.words.filter((w) => w.range.startContainer !== t);
-          this.pending.add(t);
-        } else m.addedNodes.forEach((n) => this.pending.add(n));
+        if (m.type === 'characterData') this.pending.add(m.target);
+        else m.addedNodes.forEach((n) => this.pending.add(n));
       }
       // Throttle (not debounce), so pages that change constantly still get colored.
       this.timer ??= setTimeout(() => {
         this.timer = undefined;
         const nodes = [...this.pending];
         this.pending.clear();
-        nodes.forEach((n) => n.isConnected && this.scan(n));
+        void this.scan(nodes.filter((n) => n.isConnected));
       }, 700);
     });
     this.observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    await this.scan([document.body]);
   }
 
   private stop() {
     this.observer?.disconnect();
+    this.observer = undefined;
     clearTimeout(this.timer);
     this.timer = undefined;
     this.pending.clear();
     for (const name of Object.values(NAMES)) CSS.highlights?.delete(name);
-    this.words = [];
-    this.done = new WeakSet();
+    this.segs.clear();
     this.chars = 0;
   }
 
-  private async scan(root: Node) {
-    if (!this.on || this.chars > MAX_CHARS) return;
+  private async scan(roots: Node[]) {
+    if (!this.on) return;
     const nodes: Text[] = [];
-    const accept = (t: Text) => !this.done.has(t) && CJK.test(t.data) && !t.parentElement?.closest(SKIP);
-    if (root.nodeType === Node.TEXT_NODE) {
+    const seen = new Set<Text>();
+    // New text, or text whose content changed since it was segmented.
+    const visit = (t: Text) => {
+      if (seen.has(t) || !CJK.test(t.data) || t.parentElement?.closest(SKIP)) return;
+      seen.add(t);
+      if (this.segs.get(t)?.data !== t.data) nodes.push(t);
+    };
+    for (const root of roots) {
       // A text node added on its own (a TreeWalker never returns its root).
-      const t = root as Text;
-      if (accept(t)) {
-        nodes.push(t);
-        this.done.add(t);
-        this.chars += t.data.length;
-      }
+      if (root.nodeType === Node.TEXT_NODE) visit(root as Text);
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n && this.chars < MAX_CHARS; n = walker.nextNode()) visit(n as Text);
     }
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-      acceptNode: (n) => (accept(n as Text) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT),
-    });
-    for (let n = walker.nextNode(); n && this.chars < MAX_CHARS; n = walker.nextNode()) {
-      nodes.push(n as Text);
-      this.done.add(n as Text);
-      this.chars += (n as Text).data.length;
-    }
-    for (let i = 0; i < nodes.length; i += 400) {
+    for (let i = 0; i < nodes.length && this.chars < MAX_CHARS; i += 400) {
       const batch = nodes.slice(i, i + 400);
-      const tokens: Token[][] = await browser.runtime.sendMessage({ type: 'segment', lines: batch.map((n) => n.data) });
+      const data = batch.map((n) => n.data);
+      const tokens: Token[][] = await browser.runtime.sendMessage({ type: 'segment', lines: data });
+      if (!this.on) return;
       batch.forEach((node, k) => {
+        const seg: Seg = { data: data[k], words: [] };
         let off = 0;
         for (const t of tokens[k]) {
-          if (t.word && CJK.test(t.text)) {
-            const r = document.createRange();
-            r.setStart(node, off);
-            r.setEnd(node, off + t.text.length);
-            this.words.push({ range: r, word: t.word });
-          }
+          if (t.word && CJK.test(t.text)) seg.words.push({ s: off, e: off + t.text.length, word: t.word });
           off += t.text.length;
         }
+        this.chars += seg.data.length - (this.segs.get(node)?.data.length ?? 0);
+        this.segs.set(node, seg);
       });
     }
     this.paint();
@@ -127,18 +128,39 @@ export class PageColors {
   private paint() {
     if (!this.on || !CSS.highlights) return;
     const sets: Record<Status, Range[]> = { fresh: [], learning: [], known: [] };
-    this.words = this.words.filter((w) => w.range.startContainer.isConnected);
-    for (const w of this.words) {
-      const st = state.status(w.word);
-      if (st) sets[st].push(w.range);
+    for (const [node, seg] of this.segs) {
+      // Gone from the page: forget it (it is segmented again if it comes back).
+      if (!node.isConnected) {
+        this.segs.delete(node);
+        this.chars -= seg.data.length;
+        continue;
+      }
+      if (node.data !== seg.data) continue; // changed: a scan is on its way
+      for (const w of seg.words) {
+        const st = state.status(w.word);
+        if (!st) continue;
+        // A range collapses when its node is taken out of the page; make it again.
+        if (w.range?.startContainer !== node || w.range.endContainer !== node || w.range.collapsed) {
+          w.range = document.createRange();
+          w.range.setStart(node, w.s);
+          w.range.setEnd(node, w.e);
+        }
+        sets[st].push(w.range);
+      }
     }
     for (const st of Object.keys(sets) as Status[]) CSS.highlights.set(NAMES[st], new Highlight(...sets[st]));
   }
 
   /** Share of the words on this page per status, for the toolbar popup. */
   private stats() {
-    const c = { fresh: 0, learning: 0, known: 0, new: 0, total: this.words.length, on: this.on };
-    for (const w of this.words) c[state.status(w.word) ?? 'new']++;
+    const c = { fresh: 0, learning: 0, known: 0, new: 0, total: 0, on: this.on };
+    for (const [node, seg] of this.segs) {
+      if (!node.isConnected) continue;
+      for (const w of seg.words) {
+        c[state.status(w.word) ?? 'new']++;
+        c.total++;
+      }
+    }
     return c;
   }
 }

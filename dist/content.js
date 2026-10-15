@@ -48,6 +48,7 @@
     cardColors: !0,
     sounds: !0,
     pageColors: !1,
+    siteColors: {},
     speechRate: 0.9,
     voice: "google",
     azureKey: "",
@@ -58,7 +59,10 @@
   };
   function normalizeSettings(raw) {
     let r = { ...raw ?? {} };
-    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, { ...DEFAULT_SETTINGS, ...r };
+    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), r.hoverMode === "shift" && (r.hoverMode = "alt"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, { ...DEFAULT_SETTINGS, ...r };
+  }
+  function colorsOn(s, host2) {
+    return s.siteColors[host2] ?? s.pageColors;
   }
   var TRANS_LANG = "en";
 
@@ -114,6 +118,10 @@
     }
     onChange(l) {
       return this.listeners.add(l), () => this.listeners.delete(l);
+    }
+    /** Color the words on this page? */
+    colorsEnabled() {
+      return this.siteEnabled() && colorsOn(this.settings, location.hostname);
     }
     siteEnabled() {
       return this.settings.hoverMode !== "off" && !this.settings.disabledSites.includes(location.hostname);
@@ -488,20 +496,20 @@
       let g = this.subs.gemini, cs = this.subs.captionState;
       if (g.state !== "working" && (cs === "finding" || cs === "loading"))
         return el("div", "cov", el("div", "note", cs === "finding" ? "Looking for captions\u2026" : `Loading the Chinese captions (${this.subs.trackName})\u2026`));
-      let box = el("div", "cov", el("div", "", "No Chinese captions for this video."));
+      let box2 = el("div", "cov", el("div", "", "No Chinese captions for this video."));
       if (!state.settings.geminiKey)
-        return box.append(el("div", "note", "Add a Gemini API key in Settings to get subtitles for videos like this one.")), box;
+        return box2.append(el("div", "note", "Add a Gemini API key in Settings to get subtitles for videos like this one.")), box2;
       if (g.state === "working")
-        return box.append(el("div", "note", this.progressText())), box;
+        return box2.append(el("div", "note", this.progressText())), box2;
       let b = el("button", "chip on", "Subtitles with Gemini");
-      return b.addEventListener("click", () => void this.subs.transcribeWithGemini()), box.append(
+      return b.addEventListener("click", () => void this.subs.transcribeWithGemini()), box2.append(
         el("div", "gem", b),
         el(
           "div",
           "note",
           "Mandarin is transcribed; any other language is translated into Taiwan Mandarin. Sends this video's link to Google. On the free tier Google may use the request to improve its models."
         )
-      ), g.state === "error" && box.append(el("div", "note err", g.error ?? "Something went wrong.")), box;
+      ), g.state === "error" && box2.append(el("div", "note err", g.error ?? "Something went wrong.")), box2;
     }
     /** Gemini's progress, from the timestamps it has written so far (so the percentage is real). */
     progressText() {
@@ -913,13 +921,13 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       this.popup = popup, this.host = document.createElement("div"), this.host.dataset.cbOwn = "", this.host.hidden = !0, this.root = this.host.attachShadow({ mode: "closed" });
       let style = document.createElement("style");
       style.textContent = overlay_default;
-      let box = document.createElement("div");
-      box.className = "box", this.zh = document.createElement("div"), this.zh.className = "zh", this.note = document.createElement("div"), this.note.className = "note", this.tr = document.createElement("div"), this.tr.className = "tr", box.append(this.zh, this.note, this.tr), this.root.append(style, box);
+      let box2 = document.createElement("div");
+      box2.className = "box", this.zh = document.createElement("div"), this.zh.className = "zh", this.note = document.createElement("div"), this.note.className = "note", this.tr = document.createElement("div"), this.tr.className = "tr", box2.append(this.zh, this.note, this.tr), this.root.append(style, box2);
       for (let t of ["click", "mousedown", "mouseup", "dblclick", "pointerdown", "pointerup", "touchstart"])
         this.host.addEventListener(t, (e) => e.stopPropagation());
-      box.addEventListener("mouseenter", () => this.hoverArmed = !0), box.addEventListener("mousemove", () => {
+      box2.addEventListener("mouseenter", () => this.hoverArmed = !0), box2.addEventListener("mousemove", () => {
         this.hoverArmed && (this.hoverArmed = !1, this.hoverPause(!0));
-      }), box.addEventListener("mouseleave", () => this.hoverPause(!1)), this.zh.addEventListener("mouseover", (e) => this.onTokenHover(e)), this.zh.addEventListener("mouseout", () => this.popup.hideSoon()), this.zh.addEventListener("click", (e) => this.onTokenClick(e)), this.popup.onHide(() => {
+      }), box2.addEventListener("mouseleave", () => this.hoverPause(!1)), this.zh.addEventListener("mouseover", (e) => this.onTokenHover(e)), this.zh.addEventListener("mouseout", () => this.popup.hideSoon()), this.zh.addEventListener("click", (e) => this.onTokenClick(e)), this.popup.onHide(() => {
         this.clickStamped = "", this.shownAt = "", this.maybeResume();
       }), browser.runtime.onMessage.addListener((msg) => {
         msg.type === "ytCaptions" && msg.url && msg.body && this.onBody(msg.url, msg.body), msg.type === "geminiProgress" && this.onGeminiProgress(msg);
@@ -1441,12 +1449,34 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     let hint = `${el3.name} ${el3.id} ${el3.placeholder} ${el3.getAttribute("aria-label") ?? ""} ${el3.getAttribute("role") ?? ""} ${el3.getAttribute("enterkeyhint") ?? ""}`;
     return /search|query|\bq\b|搜尋|搜索|查詢|查询/i.test(hint) || !!el3.closest('[role="search"],form[action*="search" i]');
   }
+  function deepActive() {
+    let a = document.activeElement;
+    for (; a?.shadowRoot?.activeElement; ) a = a.shadowRoot.activeElement;
+    return a;
+  }
+  function currentSelection() {
+    let el3 = deepActive();
+    if ((el3 instanceof HTMLInputElement || el3 instanceof HTMLTextAreaElement) && el3.selectionStart != null && el3.selectionEnd != null) {
+      if (el3.selectionEnd <= el3.selectionStart) return;
+      let r = el3.getBoundingClientRect();
+      return { text: el3.value.slice(el3.selectionStart, el3.selectionEnd), rect: new DOMRect(r.left, r.top, Math.min(r.width, 40), Math.min(r.height, 40)), context: el3.value.slice(0, 200) };
+    }
+    let sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+    let range = sel.getRangeAt(0), text = sel.toString(), node = range.startContainer, context = node.nodeType === Node.TEXT_NODE ? sentenceAround(node, range.startOffset) : text, rects = range.getClientRects(), rect = rects.length ? rects[rects.length - 1] : range.getBoundingClientRect();
+    return { text, rect, context: context.length >= text.length ? context : text };
+  }
   var HoverLookup = class {
     popup;
     raf = 0;
     lastX = 0;
     lastY = 0;
-    shift = !1;
+    /** Option (Alt) is held: lookup in "hold Option" mode. */
+    alt = !1;
+    /** Option went down on its own; letting go without another key opens the card for the selection. */
+    altTap = !1;
+    /** Where the context menu was opened, for a card from the menu. */
+    menuAt;
     currentKey = "";
     /** The highlighted word: moving across its characters keeps its card. */
     currentRange;
@@ -1467,30 +1497,62 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         this.popup.contains(e.target) || setTimeout(() => this.onSelect(e), 0);
       }), document.addEventListener("keyup", (e) => {
         e.shiftKey && e.key.startsWith("Arrow") && this.onSelect();
+      }), window.addEventListener(
+        "keydown",
+        (e) => {
+          if (e.key !== "Alt") {
+            this.altTap = !1;
+            return;
+          }
+          this.altTap = !e.repeat && !e.ctrlKey && !e.metaKey && !e.shiftKey, this.alt = !0, !e.repeat && state.settings.hoverMode === "alt" && !currentSelection()?.text.trim() && this.check(document.elementFromPoint(this.lastX, this.lastY));
+        },
+        !0
+      ), window.addEventListener(
+        "keyup",
+        (e) => {
+          if (e.key !== "Alt" || (this.alt = !1, !this.altTap)) return;
+          this.altTap = !1;
+          let sel = currentSelection();
+          sel && CJK.test(sel.text) && state.siteEnabled() && (e.preventDefault(), this.showSelection(sel));
+        },
+        !0
+      ), window.addEventListener("blur", () => {
+        this.alt = !1, this.altTap = !1;
+      }), document.addEventListener("mousedown", () => this.altTap = !1, !0), document.addEventListener("contextmenu", (e) => this.menuAt = { x: e.clientX, y: e.clientY }, !0), browser.runtime.onMessage.addListener((msg) => {
+        if (msg.type === "lookupSelection")
+          return this.fromMenu(msg.text ?? ""), Promise.resolve(!0);
       });
     }
-    /** Card for the selected text: the longest dictionary word it starts with. */
-    async onSelect(e) {
-      if (!state.siteEnabled()) return;
-      let active = document.activeElement, text;
-      if (!active || !isSearchBox(active) || active.selectionStart == null || active.selectionEnd == null || active.selectionEnd <= active.selectionStart) return;
-      text = active.value.slice(active.selectionStart, active.selectionEnd);
-      let r = active.getBoundingClientRect(), rect = new DOMRect(e?.clientX ?? r.left, r.top, 1, r.height);
-      if (text = text.trim(), !text || text.length > 16 || !CJK.test(text[0])) return;
-      let matches = await lookupText(text);
-      if (!matches.length) return;
-      let exact = matches.findIndex((m) => m.text === text), ordered = exact > 0 ? [matches[exact], ...matches.filter((_, i) => i !== exact)] : matches;
-      CSS.highlights?.delete(HIGHLIGHT), this.currentKey = "", this.currentRange = void 0, this.popup.show({
-        matches: ordered,
-        rect,
-        cursor: e ? { x: e.clientX, y: e.clientY } : void 0,
+    /** "Look up" from the context menu: the live selection, or the text the menu saw. */
+    async fromMenu(text) {
+      let sel = currentSelection();
+      if (sel && (!text || ((a, b) => a.replace(/\s+/g, "") === b.replace(/\s+/g, ""))(sel.text, text) || sel.text.length > text.length)) return this.showSelection(sel);
+      let at = this.menuAt ?? { x: window.innerWidth / 2, y: window.innerHeight / 3 };
+      await this.showSelection({ text, rect: new DOMRect(at.x, at.y - 10, 1, 20), context: text });
+    }
+    /** The card for selected text, whatever it is: a word, a name, a whole sentence. */
+    async showSelection(sel) {
+      let text = sel.text.trim();
+      if (!CJK.test(text)) return;
+      let matches = await browser.runtime.sendMessage({ type: "lookupPhrase", text });
+      matches?.length && (CSS.highlights?.delete(HIGHLIGHT), this.currentKey = "", this.currentRange = void 0, this.popup.show({
+        matches,
+        rect: sel.rect,
         src: "web",
         pinned: !0,
-        ctx: { text: active.value.slice(0, 200), url: location.href, title: document.title, at: Date.now(), src: "web" }
-      });
+        ctx: { text: sel.context, url: location.href, title: document.title, at: Date.now(), src: "web" }
+      }));
+    }
+    /** Selecting Chinese in a search box opens its card (page popups can't be seen there otherwise). */
+    async onSelect(e) {
+      if (!state.siteEnabled()) return;
+      let active = deepActive();
+      if (!active || !isSearchBox(active)) return;
+      let sel = currentSelection();
+      !sel || sel.text.trim().length > 16 || (e && (sel.rect = new DOMRect(e.clientX, sel.rect.top, 1, sel.rect.height)), await this.showSelection(sel));
     }
     onMove(e) {
-      this.lastX = e.clientX, this.lastY = e.clientY, this.shift = e.shiftKey, !this.raf && (this.raf = requestAnimationFrame(() => {
+      this.lastX = e.clientX, this.lastY = e.clientY, this.alt = e.altKey, !this.raf && (this.raf = requestAnimationFrame(() => {
         this.raf = 0, this.check(e.target);
       }));
     }
@@ -1503,7 +1565,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       }
       if (this.popup.visible && this.popup.inBridge(this.lastX, this.lastY) || target?.closest?.("[data-cb-own]")) return;
       let s = state.settings;
-      if (!state.siteEnabled() || s.hoverMode === "shift" && !this.shift) return this.scheduleHide();
+      if (!state.siteEnabled() || s.hoverMode === "alt" && !this.alt) return this.scheduleHide();
       let pos = document.caretPositionFromPoint?.(this.lastX, this.lastY), node = pos?.offsetNode;
       if (!node || node.nodeType !== Node.TEXT_NODE) return this.scheduleHide();
       let text = node, offset = pos.offset;
@@ -1595,9 +1657,8 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
   var NAMES = { fresh: "cb-fresh", learning: "cb-learning", known: "cb-known" }, CSS_TEXT = `
 ::highlight(cb-fresh){background-color:rgba(239,47,66,.24)}
 ::highlight(cb-learning){background-color:rgba(255,200,31,.42)}
-::highlight(cb-known){background-color:rgba(31,174,79,.16)}`, SKIP = 'script,style,noscript,textarea,input,select,code,pre,[contenteditable=""],[contenteditable="true"],chinese-brain-popup,[data-cb-own]', MAX_CHARS = 3e5, PageColors = class {
-    words = [];
-    done = /* @__PURE__ */ new WeakSet();
+::highlight(cb-known){background-color:rgba(31,174,79,.16)}`, SKIP = "script,style,noscript,textarea,input,select,code,pre,chinese-brain-popup,[data-cb-own]", MAX_CHARS = 3e5, PageColors = class {
+    segs = /* @__PURE__ */ new Map();
     chars = 0;
     observer;
     pending = /* @__PURE__ */ new Set();
@@ -1610,7 +1671,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       });
     }
     sync() {
-      let want = state.settings.pageColors && state.siteEnabled() && !!CSS.highlights;
+      let want = state.colorsEnabled() && !!CSS.highlights;
       if (want === this.on) {
         want && this.paint();
         return;
@@ -1618,47 +1679,39 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       this.on = want, want ? this.start() : this.stop();
     }
     async start() {
-      this.cssInjected || (this.cssInjected = !0, addPageCSS(CSS_TEXT)), await state.loadStatuses(), await this.scan(document.body), this.observer = new MutationObserver((muts) => {
+      this.cssInjected || (this.cssInjected = !0, addPageCSS(CSS_TEXT)), await state.loadStatuses(), this.on && (this.observer = new MutationObserver((muts) => {
         for (let m of muts)
-          if (m.type === "characterData") {
-            let t = m.target;
-            this.done.delete(t), this.words = this.words.filter((w2) => w2.range.startContainer !== t), this.pending.add(t);
-          } else m.addedNodes.forEach((n) => this.pending.add(n));
+          m.type === "characterData" ? this.pending.add(m.target) : m.addedNodes.forEach((n) => this.pending.add(n));
         this.timer ??= setTimeout(() => {
           this.timer = void 0;
           let nodes = [...this.pending];
-          this.pending.clear(), nodes.forEach((n) => n.isConnected && this.scan(n));
+          this.pending.clear(), this.scan(nodes.filter((n) => n.isConnected));
         }, 700);
-      }), this.observer.observe(document.body, { childList: !0, subtree: !0, characterData: !0 });
+      }), this.observer.observe(document.body, { childList: !0, subtree: !0, characterData: !0 }), await this.scan([document.body]));
     }
     stop() {
-      this.observer?.disconnect(), clearTimeout(this.timer), this.timer = void 0, this.pending.clear();
+      this.observer?.disconnect(), this.observer = void 0, clearTimeout(this.timer), this.timer = void 0, this.pending.clear();
       for (let name of Object.values(NAMES)) CSS.highlights?.delete(name);
-      this.words = [], this.done = /* @__PURE__ */ new WeakSet(), this.chars = 0;
+      this.segs.clear(), this.chars = 0;
     }
-    async scan(root) {
-      if (!this.on || this.chars > MAX_CHARS) return;
-      let nodes = [], accept = (t) => !this.done.has(t) && CJK.test(t.data) && !t.parentElement?.closest(SKIP);
-      if (root.nodeType === Node.TEXT_NODE) {
-        let t = root;
-        accept(t) && (nodes.push(t), this.done.add(t), this.chars += t.data.length);
+    async scan(roots) {
+      if (!this.on) return;
+      let nodes = [], seen = /* @__PURE__ */ new Set(), visit = (t) => {
+        seen.has(t) || !CJK.test(t.data) || t.parentElement?.closest(SKIP) || (seen.add(t), this.segs.get(t)?.data !== t.data && nodes.push(t));
+      };
+      for (let root of roots) {
+        root.nodeType === Node.TEXT_NODE && visit(root);
+        let walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        for (let n = walker.nextNode(); n && this.chars < MAX_CHARS; n = walker.nextNode()) visit(n);
       }
-      let walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-        acceptNode: (n) => accept(n) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
-      });
-      for (let n = walker.nextNode(); n && this.chars < MAX_CHARS; n = walker.nextNode())
-        nodes.push(n), this.done.add(n), this.chars += n.data.length;
-      for (let i = 0; i < nodes.length; i += 400) {
-        let batch = nodes.slice(i, i + 400), tokens = await browser.runtime.sendMessage({ type: "segment", lines: batch.map((n) => n.data) });
+      for (let i = 0; i < nodes.length && this.chars < MAX_CHARS; i += 400) {
+        let batch = nodes.slice(i, i + 400), data = batch.map((n) => n.data), tokens = await browser.runtime.sendMessage({ type: "segment", lines: data });
+        if (!this.on) return;
         batch.forEach((node, k) => {
-          let off = 0;
-          for (let t of tokens[k]) {
-            if (t.word && CJK.test(t.text)) {
-              let r = document.createRange();
-              r.setStart(node, off), r.setEnd(node, off + t.text.length), this.words.push({ range: r, word: t.word });
-            }
-            off += t.text.length;
-          }
+          let seg = { data: data[k], words: [] }, off = 0;
+          for (let t of tokens[k])
+            t.word && CJK.test(t.text) && seg.words.push({ s: off, e: off + t.text.length, word: t.word }), off += t.text.length;
+          this.chars += seg.data.length - (this.segs.get(node)?.data.length ?? 0), this.segs.set(node, seg);
         });
       }
       this.paint();
@@ -1666,17 +1719,26 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     paint() {
       if (!this.on || !CSS.highlights) return;
       let sets = { fresh: [], learning: [], known: [] };
-      this.words = this.words.filter((w2) => w2.range.startContainer.isConnected);
-      for (let w2 of this.words) {
-        let st = state.status(w2.word);
-        st && sets[st].push(w2.range);
+      for (let [node, seg] of this.segs) {
+        if (!node.isConnected) {
+          this.segs.delete(node), this.chars -= seg.data.length;
+          continue;
+        }
+        if (node.data === seg.data)
+          for (let w2 of seg.words) {
+            let st = state.status(w2.word);
+            st && ((w2.range?.startContainer !== node || w2.range.endContainer !== node || w2.range.collapsed) && (w2.range = document.createRange(), w2.range.setStart(node, w2.s), w2.range.setEnd(node, w2.e)), sets[st].push(w2.range));
+          }
       }
       for (let st of Object.keys(sets)) CSS.highlights.set(NAMES[st], new Highlight(...sets[st]));
     }
     /** Share of the words on this page per status, for the toolbar popup. */
     stats() {
-      let c = { fresh: 0, learning: 0, known: 0, new: 0, total: this.words.length, on: this.on };
-      for (let w2 of this.words) c[state.status(w2.word) ?? "new"]++;
+      let c = { fresh: 0, learning: 0, known: 0, new: 0, total: 0, on: this.on };
+      for (let [node, seg] of this.segs)
+        if (node.isConnected)
+          for (let w2 of seg.words)
+            c[state.status(w2.word) ?? "new"]++, c.total++;
       return c;
     }
   };
@@ -1814,6 +1876,9 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 .top { position: relative; padding: 0.86em 1.15em 0.7em; }
 .headrow { display: flex; align-items: baseline; gap: 0.85em; flex-wrap: wrap; }
 .head { font: 600 2.15em/1.15 var(--sans); letter-spacing: 0.02em; padding: 0 3px; margin: 0 -3px; border-radius: 4px; }
+.head.long { font-size: 1.35em; line-height: 1.35; letter-spacing: 0.01em; }
+.headrow .copy, .headrow .say { align-self: center; }
+.mt { color: var(--text3); font-size: 0.8em; margin-left: 0.5em; }
 .head.st-fresh { background: var(--fresh-mark); }
 .head.st-learning { background: var(--learning-mark); }
 .head.st-known { background: var(--known-mark); }
@@ -1853,6 +1918,10 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 .say:hover { color: var(--link); background: var(--bg2); }
 .say svg { width: 0.95em; height: 0.95em; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
 .say svg path { fill: none; }
+.copy { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; vertical-align: -0.2em; border-radius: 50%; color: var(--text3); }
+.copy:hover { color: var(--link); background: var(--bg2); }
+.copy svg { width: 0.85em; height: 0.85em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+.copy.done { color: var(--known); }
 .save { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; vertical-align: -0.2em; border-radius: 50%; color: var(--text3); }
 .save:hover { color: var(--link); background: var(--bg2); }
 .save svg { width: 0.9em; height: 0.9em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; }
@@ -1971,6 +2040,20 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
   function mainSense(e) {
     let d = e.defs.find((x) => !x.startsWith("CL:") && !/^(old )?variant of|^see /i.test(x)) ?? e.defs[0] ?? "", first = prettyDef(d).split(/;\s*/)[0];
     return first.length > 60 ? first.slice(0, 58) + "\u2026" : first;
+  }
+  var OWN_WORD = /^[㐀-䶿一-鿿豈-﫿]{2,8}$/;
+  function stampable(m) {
+    return !m.phrase || OWN_WORD.test(m.word);
+  }
+  async function copyText(text) {
+    try {
+      return await navigator.clipboard.writeText(text), !0;
+    } catch {
+      let ta = document.createElement("textarea");
+      ta.value = text, ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0", document.documentElement.append(ta), ta.select();
+      let ok = document.execCommand("copy");
+      return ta.remove(), ok;
+    }
   }
   function inTriangle(p, a, b, c, pad) {
     let side = (u, v, w2, q) => {
@@ -2132,12 +2215,12 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     }
     recordLook() {
       let m = this.current;
-      !m || !this.opts || browser.runtime.sendMessage({ type: "looked", word: m.word, src: this.opts.src, url: this.opts.ctx?.url, ctx: this.opts.ctx });
+      !m || !this.opts || !stampable(m) || browser.runtime.sendMessage({ type: "looked", word: m.word, src: this.opts.src, url: this.opts.ctx?.url, ctx: this.opts.ctx });
     }
     /** Set a status; pressing the active one again clears it. */
     setStatus(status, toggle = !0) {
       let m = this.current;
-      if (!m || !this.opts) return;
+      if (!m || !this.opts || !stampable(m)) return;
       let cur = state.status(m.word), next = toggle && cur === status ? null : status;
       next !== cur && (next ? state.statuses.set(m.word, next) : state.statuses.delete(m.word), stampSound(next), this.infoCache.delete(m.word), this.render(next ?? void 0), browser.runtime.sendMessage({ type: "setStatus", word: m.word, status: next, entry: m.entries[0], ctx: this.opts.ctx }));
     }
@@ -2294,6 +2377,17 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         });
       }), b;
     }
+    /** A small button that copies a sentence. */
+    copyButton(text, what = "sentence") {
+      let b = h("button", { class: "copy", title: `Copy the ${what}`, "aria-label": `Copy the ${what}` }), NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
+      svg.setAttribute("viewBox", "0 0 16 16");
+      let path = document.createElementNS(NS, "path");
+      return path.setAttribute("d", "M5.5 5.5h7.5v8h-7.5zM3 10.5V2.5h7.5"), svg.append(path), b.append(svg), b.addEventListener("click", async (e) => {
+        e.stopPropagation(), e.preventDefault(), await copyText(text) && (b.classList.add("done"), b.title = "Copied", setTimeout(() => {
+          b.classList.remove("done"), b.title = `Copy the ${what}`;
+        }, 1200));
+      }), b;
+    }
     /** A small speaker button that reads a sentence aloud. */
     sayButton(text) {
       let b = h("button", { class: "say", title: "Play the sentence", "aria-label": "Play the sentence" }), NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
@@ -2358,7 +2452,9 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
           )
         ), readings.push(block), first = !1;
       }
-      let head = h("span", { class: `head${status ? " st-" + status : ""}` }, m.word), top = h("div", { class: "top" });
+      let long = [...m.word].length > 8, head = h("span", { class: `head${status ? " st-" + status : ""}${long ? " long" : ""}` }, m.word);
+      m.phrase && !e0.defs[0]?.startsWith("(") && readings[0]?.querySelector(".defs")?.append(h("span", { class: "mt" }, "machine translation"));
+      let top = h("div", { class: "top" });
       if (this.trail.length > 1) {
         let nav = h("div", { class: "nav" }), backBtn = h("button", { title: "Back (\u2190)" }, "\u2190"), fwdBtn = h("button", { title: "Forward (\u2192)" }, "\u2192");
         this.pos <= 0 && backBtn.setAttribute("disabled", ""), this.pos >= this.trail.length - 1 && fwdBtn.setAttribute("disabled", ""), backBtn.addEventListener("click", () => this.back()), fwdBtn.addEventListener("click", () => this.forward()), nav.append(backBtn, fwdBtn), top.append(nav);
@@ -2368,6 +2464,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
           "div",
           { class: "headrow" },
           head,
+          m.phrase ? this.copyButton(m.word, long ? "sentence" : "text") : null,
           pyEl,
           freq ? h(
             "span",
@@ -2389,7 +2486,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         }
         card.append(h("div", { class: "sect" }, grid));
       }
-      let here = o.ctx?.text.split(" \u2014 ")[0].trim(), seen = (info?.seen ?? []).filter((c) => c.zh !== here && c.text !== o.ctx?.text).slice(0, 2), examples = info?.examples ?? [], canWrite = examples.length < 2 && !!s.geminiKey;
+      let here = o.ctx?.text.split(" \u2014 ")[0].trim(), seen = (info?.seen ?? []).filter((c) => c.zh !== here && c.text !== o.ctx?.text).slice(0, 2), examples = info?.examples ?? [], canWrite = examples.length < 2 && !!s.geminiKey && !m.phrase;
       if (examples.length || seen.length || canWrite) {
         let sect = h("div", { class: "sect" });
         if (examples.length && sect.append(
@@ -2402,6 +2499,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
                 null,
                 h("span", { class: "zh" }, ...this.sentence(x.toks, m.word)),
                 this.sayButton(x.zh),
+                this.copyButton(x.zh),
                 this.saveButton(m.word, x.zh, x.en),
                 this.deleteButton(m.word, { type: "hideExample", zh: x.zh }),
                 h("span", { class: "en" }, x.en)
@@ -2423,6 +2521,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
                 null,
                 h("span", { class: "zh" }, ...this.sentence(c.toks, m.word)),
                 this.sayButton(c.zh),
+                this.copyButton(c.zh),
                 this.deleteButton(m.word, { type: "forgetContext", text: c.text })
               )
             )
@@ -2440,13 +2539,33 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       }), say = h("button", null, "say", h("kbd", null, "v"));
       say.addEventListener("click", () => this.speak());
       let img = h("button", null, "images", h("kbd", null, "i"));
-      img.addEventListener("click", () => this.images()), card.append(h("div", { class: "foot" }, h("div", { class: "stamps" }, ...stamps), h("div", { class: "tools" }, say, img))), card.hidden = !1;
+      img.addEventListener("click", () => this.images()), card.append(h("div", { class: "foot" }, stampable(m) ? h("div", { class: "stamps" }, ...stamps) : null, h("div", { class: "tools" }, say, long ? null : img))), card.hidden = !1;
     }
   };
 
+  // src/content/toast.ts
+  var host, box, timer;
+  function toast(text) {
+    if (!host || !box) {
+      host = document.createElement("chinese-brain-toast"), host.setAttribute("data-cb-own", "");
+      let root = host.attachShadow({ mode: "closed" }), style = document.createElement("style");
+      style.textContent = `
+      div { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 2147483647;
+        font: 500 14px/1.3 system-ui, sans-serif; color: #fff; background: rgba(27, 29, 58, 0.92);
+        padding: 8px 14px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+        pointer-events: none; transition: opacity 0.2s; }
+      div.out { opacity: 0; }`, box = document.createElement("div"), root.append(style, box);
+    }
+    (document.fullscreenElement ?? document.documentElement).append(host), box.textContent = text, box.classList.remove("out"), clearTimeout(timer), timer = setTimeout(() => {
+      box?.classList.add("out"), timer = setTimeout(() => host?.remove(), 250);
+    }, 1800);
+  }
+
   // src/content/index.ts
   var w = window;
-  w.__chineseBrain || (w.__chineseBrain = !0, state.ready().then(() => {
+  w.__chineseBrain || (w.__chineseBrain = !0, browser.runtime.onMessage.addListener((msg) => {
+    msg.type === "toast" && window === window.top && toast(msg.text ?? "");
+  }), state.ready().then(() => {
     let popup = new Popup();
     new HoverLookup(popup), new PageColors(), /(^|\.)youtube\.com$/.test(location.hostname) ? new YouTubeSubs(popup) : window.addEventListener(
       "keydown",

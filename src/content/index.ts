@@ -4,6 +4,7 @@ import { isTyping } from './keys.ts';
 import { PageColors } from './pagecolor.ts';
 import { Popup } from './popup.ts';
 import { state } from './state.ts';
+import { toast } from './toast.ts';
 
 declare const __TEST__: boolean;
 
@@ -16,6 +17,10 @@ if (__TEST__) {
 }
 if (!w.__chineseBrain) {
   w.__chineseBrain = true;
+  browser.runtime.onMessage.addListener((msg: { type: string; text?: string }) => {
+    if (msg.type === 'toast' && window === window.top) toast(msg.text ?? '');
+    return undefined;
+  });
   state.ready().then(() => {
     const popup = new Popup();
     new HoverLookup(popup);

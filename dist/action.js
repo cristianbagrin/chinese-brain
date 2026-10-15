@@ -1,5 +1,10 @@
 "use strict";
 (() => {
+  // src/shared/types.ts
+  function colorsOn(s, host) {
+    return s.siteColors[host] ?? s.pageColors;
+  }
+
   // src/pages/common.ts
   function h(tag, attrs, ...kids) {
     let el = document.createElement(tag);
@@ -30,7 +35,7 @@
       let key = el.dataset.setting;
       if (el instanceof HTMLInputElement) {
         el.checked = !!s[key], el.addEventListener("change", () => {
-          save({ [key]: el.checked }), key === "pageColors" && setTimeout(showStats, 1500);
+          s[key] = el.checked, save({ [key]: el.checked }), key === "pageColors" && (syncColors(), setTimeout(showStats, 1500));
         });
         continue;
       }
@@ -41,7 +46,8 @@
           mark(b.dataset.v), save({ [key]: b.dataset.v });
         });
     }
-    let tab = tabs[0], showStats = async () => {
+    let syncColors = () => {
+    }, tab = tabs[0], showStats = async () => {
       try {
         let st = await browser.tabs.sendMessage(tab.id, { type: "pageStats" });
         if (!st?.on || !st.total) return $("pageStats").textContent = "";
@@ -58,7 +64,18 @@
     } catch {
     }
     if (!host) return;
-    $("siteLine").hidden = !1, $("host").textContent = host.replace(/^www\./, "");
+    $("siteLine").hidden = !1;
+    for (let el of document.querySelectorAll(".hostname")) el.textContent = host.replace(/^www\./, "");
+    $("colorLine").hidden = !1;
+    let colors = $("colorsOn");
+    syncColors = () => colors.checked = colorsOn(s, host), syncColors(), colors.addEventListener("change", () => {
+      let siteColors = { ...s.siteColors };
+      colors.checked === s.pageColors ? delete siteColors[host] : siteColors[host] = colors.checked, s.siteColors = siteColors, save({ siteColors }), setTimeout(showStats, 1500);
+    }), browser.commands.getAll().then((cmds) => {
+      let key = cmds.find((c) => c.name === "toggle-colors")?.shortcut, mac = navigator.platform.startsWith("Mac");
+      key && ($("colorKey").textContent = `Shortcut ${mac ? key.replace("Alt", "Option") : key}`);
+    }).catch(() => {
+    });
     let box = $("siteOn");
     box.checked = !s.disabledSites.includes(host), box.addEventListener("change", () => {
       let list = new Set(s.disabledSites);

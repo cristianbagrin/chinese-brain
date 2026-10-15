@@ -34,7 +34,33 @@
         }
         start = end + 1;
       }
-      return d.computeRanks(), d;
+      return d.computeRanks(), d.addTaiAliases(), d;
+    }
+    /** People write 台 for 臺 (台東, 台中): every 臺 word can be found that way too. */
+    addTaiAliases() {
+      this.entries.forEach((e, i) => {
+        if (!e.trad.includes("\u81FA")) return;
+        let alias = e.trad.replaceAll("\u81FA", "\u53F0");
+        alias !== e.simp && !this.index.has(alias) && this.add(alias, i);
+      });
+    }
+    /**
+     * A word that is not in the dictionary (a name you stamped from a selection). The
+     * reading comes from the words inside it when `py` is empty. False when it was already known.
+     */
+    addWord(e) {
+      if (this.index.has(e.trad)) return !1;
+      let i = this.entries.push(e) - 1;
+      return this.add(e.trad, i), e.simp && e.simp !== e.trad && this.add(e.simp, i), !0;
+    }
+    /** Reading of a word from its parts (names come without one): 野柳 -> ye3 liu3. */
+    fillReading(e) {
+      e.py = "-";
+      let sylls = this.split(e.trad).map((part) => {
+        let x = [...part].length === 1 ? this.charEntry(part) : this.get(part)[0];
+        return x ? x.tw || x.py : "";
+      });
+      e.py = sylls.map((x) => x || "?").join(" ");
     }
     /** Frequency rank per headword (1 = most common), from the Zipf scores. */
     computeRanks() {
@@ -65,10 +91,12 @@
     /** All entries for a headword (either script), best first. */
     get(word) {
       let ids = this.index.get(word);
-      return ids ? rankEntries(
+      if (!ids) return [];
+      for (let i of ids) this.entries[i].py || this.fillReading(this.entries[i]);
+      return rankEntries(
         ids.map((i) => this.entries[i]),
         word
-      ) : [];
+      );
     }
     /** Longest-prefix matches for text starting at the cursor, longest first. */
     lookup(text, max = 4) {
@@ -206,6 +234,7 @@
     cardColors: !0,
     sounds: !0,
     pageColors: !1,
+    siteColors: {},
     speechRate: 0.9,
     voice: "google",
     azureKey: "",
@@ -216,7 +245,10 @@
   };
   function normalizeSettings(raw) {
     let r = { ...raw ?? {} };
-    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, { ...DEFAULT_SETTINGS, ...r };
+    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), r.hoverMode === "shift" && (r.hoverMode = "alt"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, { ...DEFAULT_SETTINGS, ...r };
+  }
+  function colorsOn(s, host) {
+    return s.siteColors[host] ?? s.pageColors;
   }
 
   // src/shared/time.ts
@@ -760,10 +792,73 @@ Give each with a natural American English translation.`, schema = {
     } catch {
     }
   }
-  async function loadDictionary() {
-    let t0 = performance.now(), stream = (await fetch(browser.runtime.getURL("data/dict.tsv.gz"))).body.pipeThrough(new DecompressionStream("gzip")), text = await new Response(stream).text();
-    return dict = Dictionary.fromTsv(text), console.log(`[chinese-brain] dictionary: ${dict.entries.length} entries in ${Math.round(performance.now() - t0)} ms`), dict;
+  async function gunzipText(path) {
+    let res = await fetch(browser.runtime.getURL(path));
+    if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
+    return new Response(res.body.pipeThrough(new DecompressionStream("gzip"))).text();
   }
+  async function loadDictionary() {
+    let t0 = performance.now(), [text, names] = await Promise.all([gunzipText("data/dict.tsv.gz"), gunzipText("data/names.tsv.gz").catch(() => "")]);
+    return dict = Dictionary.fromTsv(text + `
+` + names), console.log(`[chinese-brain] dictionary: ${dict.entries.length} entries in ${Math.round(performance.now() - t0)} ms`), dict;
+  }
+  var ownWordsReady = Promise.all([dictReady, storeReady]).then(([d]) => {
+    for (let r of store.words.values()) addOwnWord(d, r.w, r.g);
+  }), OWN_WORD = /^[㐀-䶿一-鿿豈-﫿]{2,8}$/;
+  function addOwnWord(d, word, gloss) {
+    OWN_WORD.test(word) && d.addWord({ trad: word, simp: word, py: "", tw: "", defs: [gloss || "(your own word)"], zipf: 0, tocfl: 0, rank: 0 });
+  }
+  async function lookupPhrase(d, raw) {
+    let text = raw.replace(/\s+/g, " ").trim().slice(0, 300);
+    if (!CJK.test(text)) return [];
+    if (d.has(text)) {
+      let all = d.lookup(text), exact = all.find((m) => m.text === text);
+      return exact ? [exact, ...all.filter((m) => m !== exact)] : all;
+    }
+    let py = d.segment(text).filter((t) => CJK.test(t.text)).map((t) => t.py ?? [...t.text].map((c) => d.charEntry(c)?.tw || d.charEntry(c)?.py || "?").join(" ")).join(" "), en = await Promise.race([
+      translateLines([text], "zh-TW", "en").then((r) => r[0], () => ""),
+      new Promise((ok) => setTimeout(() => ok(""), 5e3))
+    ]);
+    return [{ text, word: text, entries: [{ trad: text, simp: text, py, tw: "", defs: [en || "(not in the dictionary)"], zipf: 0, tocfl: 0, rank: 0 }], phrase: !0 }];
+  }
+  browser.menus.create({ id: "cb-lookup", title: "Look up \u201C%s\u201D", contexts: ["selection"] });
+  browser.menus.onClicked.addListener(async (info, tab) => {
+    if (info.menuItemId !== "cb-lookup" || tab?.id == null) return;
+    let msg = { type: "lookupSelection", text: info.selectionText ?? "" }, opts = { frameId: info.frameId ?? 0 };
+    try {
+      await browser.tabs.sendMessage(tab.id, msg, opts);
+    } catch {
+      try {
+        await browser.tabs.executeScript(tab.id, { file: "/content.js", frameId: opts.frameId });
+        for (let i = 0; ; i++) {
+          await new Promise((ok) => setTimeout(ok, 200));
+          try {
+            await browser.tabs.sendMessage(tab.id, msg, opts);
+            break;
+          } catch (e) {
+            if (i >= 9) throw e;
+          }
+        }
+      } catch (e) {
+        console.warn("[chinese-brain] no lookup in this frame", e);
+      }
+    }
+  });
+  browser.commands.onCommand.addListener(async (name) => {
+    if (name !== "toggle-colors") return;
+    let [tab] = await browser.tabs.query({ active: !0, currentWindow: !0 }), host = "";
+    try {
+      let u = new URL(tab?.url ?? "");
+      /^https?:$/.test(u.protocol) && (host = u.hostname);
+    } catch {
+    }
+    if (!host || tab?.id == null) return;
+    let s = await getSettings(), toast = (text) => browser.tabs.sendMessage(tab.id, { type: "toast", text }).catch(() => {
+    });
+    if (s.hoverMode === "off" || s.disabledSites.includes(host)) return toast("Chinese Brain is off on this site. Turn it on in the toolbar menu first.");
+    let next = !colorsOn(s, host), siteColors = { ...s.siteColors };
+    next === s.pageColors ? delete siteColors[host] : siteColors[host] = next, await browser.storage.local.set({ settings: { ...s, siteColors } }), toast(`Word colors ${next ? "on" : "off"} on ${host.replace(/^www\./, "")}`);
+  });
   function breakdown(d, word, sylls, depth = 0, out = []) {
     let aligned = sylls.length === [...word].length, i = 0;
     for (let part of d.split(word)) {
@@ -785,15 +880,17 @@ Give each with a natural American English translation.`, schema = {
     let m = msg;
     switch (m.type) {
       case "lookup":
-        return dictReady.then((d) => d.lookup(m.text));
+        return ownWordsReady.then(() => dict.lookup(m.text));
+      case "lookupPhrase":
+        return ownWordsReady.then(() => lookupPhrase(dict, m.text));
       case "segment":
-        return dictReady.then((d) => m.lines.map((l) => d.segment(l)));
+        return ownWordsReady.then(() => m.lines.map((l) => dict.segment(l)));
       case "statuses":
         return storeReady.then(() => store.statuses());
       case "getWord":
         return storeReady.then(() => store.words.get(m.word) ?? null);
       case "setStatus":
-        return storeReady.then(() => store.setStatus(m.word, m.status, m.entry, m.ctx)).then(() => !0);
+        return storeReady.then(async () => (await store.setStatus(m.word, m.status, m.entry, m.ctx), m.status && dict && addOwnWord(dict, m.word, m.entry ? shortGloss(m.entry) : void 0), !0));
       case "looked":
         return storeReady.then(() => store.looked(m.word, m.src, m.url, m.ctx)).then(() => !0);
       case "watch":
@@ -883,7 +980,7 @@ Give each with a natural American English translation.`, schema = {
         });
       case "wordInfo":
         return Promise.all([dictReady, storeReady, examplesReady]).then(async ([d]) => {
-          let word = any.word, py = String(any.py ?? ""), chars = breakdown(d, word, py.split(/\s+/)), record = store.words.get(word) ?? null, got = await browser.storage.local.get(["gex:" + word, "exh:" + word, "sav:" + word]), saved = (got["sav:" + word] ?? []).map((x) => x.zh), hidden = new Set(got["exh:" + word] ?? []), gex = got["gex:" + word] ?? [], ex = examples.pick(word, d, (w) => store.words.get(w)?.s, gex, hidden, new Set(saved)), seen = (record?.ctx ?? []).map((c) => ({ c, zh: cleanSentence(c.text.split(" \u2014 ")[0], word) })).filter(({ zh }) => usefulSentence(zh, word)).filter(({ zh }, i, all) => all.findIndex((x) => x.zh === zh) === i).slice(0, 3).map(({ c, zh }) => ({ ...c, zh, toks: d.segment(zh) }));
+          let word = any.word, py = String(any.py ?? ""), chars = breakdown(d, word, py.split(/\s+/)).filter((c) => CJK.test(c.ch) && ([...word].length <= 8 || c.depth === 0)), record = store.words.get(word) ?? null, got = await browser.storage.local.get(["gex:" + word, "exh:" + word, "sav:" + word]), saved = (got["sav:" + word] ?? []).map((x) => x.zh), hidden = new Set(got["exh:" + word] ?? []), gex = got["gex:" + word] ?? [], ex = examples.pick(word, d, (w) => store.words.get(w)?.s, gex, hidden, new Set(saved)), seen = (record?.ctx ?? []).map((c) => ({ c, zh: cleanSentence(c.text.split(" \u2014 ")[0], word) })).filter(({ zh }) => usefulSentence(zh, word)).filter(({ zh }, i, all) => all.findIndex((x) => x.zh === zh) === i).slice(0, 3).map(({ c, zh }) => ({ ...c, zh, toks: d.segment(zh) }));
           return { chars, examples: ex, seen, record, saved };
         });
       case "glosses":

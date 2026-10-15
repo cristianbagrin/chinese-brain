@@ -1,8 +1,8 @@
 import { cleanSentence, usefulSentence } from '../shared/context.ts';
-import { Dictionary } from '../shared/dict.ts';
-import type { Entry, SavedSentence } from '../shared/types.ts';
+import { CJK, Dictionary } from '../shared/dict.ts';
+import type { Entry, LookupMatch, SavedSentence } from '../shared/types.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
-import { DEFAULT_SETTINGS, normalizeSettings, type Msg, type Settings, type Status, type WordRecord } from '../shared/types.ts';
+import { colorsOn, DEFAULT_SETTINGS, normalizeSettings, type Msg, type Settings, type Status, type WordRecord } from '../shared/types.ts';
 import { shortGloss, Store } from './store.ts';
 import { geminiExamples, geminiModels, geminiTranscribe } from './gemini.ts';
 import { checkAzure, ttsAudio } from './speech.ts';
@@ -35,15 +35,106 @@ async function loadExamples() {
   }
 }
 
+async function gunzipText(path: string): Promise<string> {
+  const res = await fetch(browser.runtime.getURL(path));
+  if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
+  return new Response(res.body!.pipeThrough(new DecompressionStream('gzip'))).text();
+}
+
 async function loadDictionary(): Promise<Dictionary> {
   const t0 = performance.now();
-  const res = await fetch(browser.runtime.getURL('data/dict.tsv.gz'));
-  const stream = res.body!.pipeThrough(new DecompressionStream('gzip'));
-  const text = await new Response(stream).text();
-  dict = Dictionary.fromTsv(text);
+  // CC-CEDICT, then names and foods it lacks (Taiwan places, dishes) from Wikidata.
+  const [text, names] = await Promise.all([gunzipText('data/dict.tsv.gz'), gunzipText('data/names.tsv.gz').catch(() => '')]);
+  dict = Dictionary.fromTsv(text + '\n' + names);
   console.log(`[chinese-brain] dictionary: ${dict.entries.length} entries in ${Math.round(performance.now() - t0)} ms`);
   return dict;
 }
+
+/** Words and names you stamped that no dictionary has: they become words, so pages color them. */
+const ownWordsReady = Promise.all([dictReady, storeReady]).then(([d]) => {
+  for (const r of store.words.values()) addOwnWord(d, r.w, r.g);
+});
+
+const OWN_WORD = /^[㐀-䶿一-鿿豈-﫿]{2,8}$/;
+function addOwnWord(d: Dictionary, word: string, gloss?: string) {
+  if (OWN_WORD.test(word)) d.addWord({ trad: word, simp: word, py: '', tw: '', defs: [gloss || '(your own word)'], zipf: 0, tocfl: 0, rank: 0 });
+}
+
+/**
+ * The card for a selection: the dictionary word when it is one, otherwise the selection
+ * itself (a name, a phrase, a sentence) with its reading and a translation.
+ */
+async function lookupPhrase(d: Dictionary, raw: string): Promise<LookupMatch[]> {
+  const text = raw.replace(/\s+/g, ' ').trim().slice(0, 300);
+  if (!CJK.test(text)) return [];
+  if (d.has(text)) {
+    const all = d.lookup(text);
+    const exact = all.find((m) => m.text === text);
+    return exact ? [exact, ...all.filter((m) => m !== exact)] : all;
+  }
+  const py = d
+    .segment(text)
+    .filter((t) => CJK.test(t.text))
+    .map((t) => t.py ?? [...t.text].map((c) => d.charEntry(c)?.tw || d.charEntry(c)?.py || '?').join(' '))
+    .join(' ');
+  const en = await Promise.race([
+    translateLines([text], 'zh-TW', 'en').then((r) => r[0], () => ''),
+    new Promise<string>((ok) => setTimeout(() => ok(''), 5000)),
+  ]);
+  const entry: Entry = { trad: text, simp: text, py, tw: '', defs: [en || '(not in the dictionary)'], zipf: 0, tocfl: 0, rank: 0 };
+  return [{ text, word: text, entries: [entry], phrase: true }];
+}
+
+// Right-click a selection (on a page, in a search box or a text field): its card.
+browser.menus.create({ id: 'cb-lookup', title: 'Look up “%s”', contexts: ['selection'] });
+browser.menus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId !== 'cb-lookup' || tab?.id == null) return;
+  const msg = { type: 'lookupSelection', text: info.selectionText ?? '' };
+  const opts = { frameId: info.frameId ?? 0 };
+  try {
+    await browser.tabs.sendMessage(tab.id, msg, opts);
+  } catch {
+    // Inside a frame the content script doesn't run in on its own: start it there, then ask again.
+    try {
+      await browser.tabs.executeScript(tab.id, { file: '/content.js', frameId: opts.frameId });
+      for (let i = 0; ; i++) {
+        await new Promise((ok) => setTimeout(ok, 200));
+        try {
+          await browser.tabs.sendMessage(tab.id, msg, opts);
+          break;
+        } catch (e) {
+          if (i >= 9) throw e; // it starts once its settings have loaded
+        }
+      }
+    } catch (e) {
+      console.warn('[chinese-brain] no lookup in this frame', e);
+    }
+  }
+});
+
+// The shortcut (Alt+Shift+C, Option+Shift+C on a Mac): page colors on or off for this website.
+browser.commands.onCommand.addListener(async (name) => {
+  if (name !== 'toggle-colors') return;
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+  let host = '';
+  try {
+    const u = new URL(tab?.url ?? '');
+    if (/^https?:$/.test(u.protocol)) host = u.hostname;
+  } catch {
+    /* not a web page */
+  }
+  if (!host || tab?.id == null) return;
+  const s = await getSettings();
+  const toast = (text: string) => browser.tabs.sendMessage(tab.id!, { type: 'toast', text }).catch(() => {});
+  if (s.hoverMode === 'off' || s.disabledSites.includes(host)) return toast('Chinese Brain is off on this site. Turn it on in the toolbar menu first.');
+  const next = !colorsOn(s, host);
+  const siteColors = { ...s.siteColors };
+  // Same as the global switch: no exception needed.
+  if (next === s.pageColors) delete siteColors[host];
+  else siteColors[host] = next;
+  await browser.storage.local.set({ settings: { ...s, siteColors } });
+  void toast(`Word colors ${next ? 'on' : 'off'} on ${host.replace(/^www\./, '')}`);
+});
 
 /**
  * A word broken down top to bottom: smaller words first, then their characters
@@ -78,15 +169,22 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
   const m = msg as Msg;
   switch (m.type) {
     case 'lookup':
-      return dictReady.then((d) => d.lookup(m.text));
+      return ownWordsReady.then(() => dict!.lookup(m.text));
+    case 'lookupPhrase':
+      return ownWordsReady.then(() => lookupPhrase(dict!, m.text));
     case 'segment':
-      return dictReady.then((d) => m.lines.map((l) => d.segment(l)));
+      return ownWordsReady.then(() => m.lines.map((l) => dict!.segment(l)));
     case 'statuses':
       return storeReady.then(() => store.statuses());
     case 'getWord':
       return storeReady.then(() => store.words.get(m.word) ?? null);
     case 'setStatus':
-      return storeReady.then(() => store.setStatus(m.word, m.status, m.entry, m.ctx)).then(() => true);
+      return storeReady.then(async () => {
+        await store.setStatus(m.word, m.status, m.entry, m.ctx);
+        // A stamped name or phrase from a selection: a word from now on.
+        if (m.status && dict) addOwnWord(dict, m.word, m.entry ? shortGloss(m.entry) : undefined);
+        return true;
+      });
     case 'looked':
       return storeReady.then(() => store.looked(m.word, m.src, m.url, m.ctx)).then(() => true);
     case 'watch':
@@ -202,7 +300,8 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
       return Promise.all([dictReady, storeReady, examplesReady]).then(async ([d]) => {
         const word = any.word as string;
         const py = String(any.py ?? '');
-        const chars = breakdown(d, word, py.split(/\s+/));
+        // A long selection (a sentence) lists its words, not every character as well.
+        const chars = breakdown(d, word, py.split(/\s+/)).filter((c) => CJK.test(c.ch) && ([...word].length <= 8 || c.depth === 0));
         const record = store.words.get(word) ?? null;
         // Sentences come pre-split into words so every word in the card is clickable and colored.
         // Bundled sentences first, then ones Gemini wrote on request; minus any you deleted.

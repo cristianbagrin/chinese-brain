@@ -57,6 +57,29 @@ function mainSense(e: Entry): string {
   return first.length > 60 ? first.slice(0, 58) + '…' : first;
 }
 
+/** A selected phrase gets stamps (and joins your words) when it is short and all Chinese, like a name. */
+const OWN_WORD = /^[㐀-䶿一-鿿豈-﫿]{2,8}$/;
+function stampable(m: LookupMatch): boolean {
+  return !m.phrase || OWN_WORD.test(m.word);
+}
+
+/** Copy text, with or without the async clipboard (plain-http pages lack it). */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+    document.documentElement.append(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  }
+}
+
 type Pt = { x: number; y: number };
 /** Is p inside triangle abc, allowing `pad` px outside each edge? */
 function inTriangle(p: Pt, a: Pt, b: Pt, c: Pt, pad: number): boolean {
@@ -339,14 +362,14 @@ export class Popup {
 
   private recordLook() {
     const m = this.current;
-    if (!m || !this.opts) return;
+    if (!m || !this.opts || !stampable(m)) return;
     browser.runtime.sendMessage({ type: 'looked', word: m.word, src: this.opts.src, url: this.opts.ctx?.url, ctx: this.opts.ctx });
   }
 
   /** Set a status; pressing the active one again clears it. */
   setStatus(status: Status | null, toggle = true) {
     const m = this.current;
-    if (!m || !this.opts) return;
+    if (!m || !this.opts || !stampable(m)) return;
     const cur = state.status(m.word);
     const next = toggle && cur === status ? null : status;
     if (next === cur) return;
@@ -611,6 +634,30 @@ export class Popup {
     return b;
   }
 
+  /** A small button that copies a sentence. */
+  private copyButton(text: string, what = 'sentence'): H {
+    const b = h('button', { class: 'copy', title: `Copy the ${what}`, 'aria-label': `Copy the ${what}` });
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16');
+    const path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', 'M5.5 5.5h7.5v8h-7.5zM3 10.5V2.5h7.5');
+    svg.append(path);
+    b.append(svg);
+    b.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (!(await copyText(text))) return;
+      b.classList.add('done');
+      b.title = 'Copied';
+      setTimeout(() => {
+        b.classList.remove('done');
+        b.title = `Copy the ${what}`;
+      }, 1200);
+    });
+    return b;
+  }
+
   /** A small speaker button that reads a sentence aloud. */
   private sayButton(text: string): H {
     const b = h('button', { class: 'say', title: 'Play the sentence', 'aria-label': 'Play the sentence' });
@@ -714,7 +761,10 @@ export class Popup {
       first = false;
     }
 
-    const head = h('span', { class: `head${status ? ' st-' + status : ''}` }, m.word);
+    const long = [...m.word].length > 8;
+    const head = h('span', { class: `head${status ? ' st-' + status : ''}${long ? ' long' : ''}` }, m.word);
+    // A translated selection says so.
+    if (m.phrase && !e0.defs[0]?.startsWith('(')) readings[0]?.querySelector('.defs')?.append(h('span', { class: 'mt' }, 'machine translation'));
     const top = h('div', { class: 'top' });
     if (this.trail.length > 1) {
       const nav = h('div', { class: 'nav' });
@@ -732,6 +782,7 @@ export class Popup {
         'div',
         { class: 'headrow' },
         head,
+        m.phrase ? this.copyButton(m.word, long ? 'sentence' : 'text') : null,
         pyEl,
         freq
           ? h(
@@ -762,7 +813,7 @@ export class Popup {
     const here = o.ctx?.text.split(' — ')[0].trim();
     const seen = (info?.seen ?? []).filter((c) => c.zh !== here && c.text !== o.ctx?.text).slice(0, 2);
     const examples = info?.examples ?? [];
-    const canWrite = examples.length < 2 && !!s.geminiKey;
+    const canWrite = examples.length < 2 && !!s.geminiKey && !m.phrase;
     if (examples.length || seen.length || canWrite) {
       const sect = h('div', { class: 'sect' });
       if (examples.length) {
@@ -776,6 +827,7 @@ export class Popup {
                 null,
                 h('span', { class: 'zh' }, ...this.sentence(x.toks, m.word)),
                 this.sayButton(x.zh),
+                this.copyButton(x.zh),
                 this.saveButton(m.word, x.zh, x.en),
                 this.deleteButton(m.word, { type: 'hideExample', zh: x.zh }),
                 h('span', { class: 'en' }, x.en),
@@ -804,6 +856,7 @@ export class Popup {
                 null,
                 h('span', { class: 'zh' }, ...this.sentence(c.toks, m.word)),
                 this.sayButton(c.zh),
+                this.copyButton(c.zh),
                 this.deleteButton(m.word, { type: 'forgetContext', text: c.text }),
               ),
             ),
@@ -827,7 +880,7 @@ export class Popup {
     say.addEventListener('click', () => this.speak());
     const img = h('button', null, 'images', h('kbd', null, 'i'));
     img.addEventListener('click', () => this.images());
-    card.append(h('div', { class: 'foot' }, h('div', { class: 'stamps' }, ...stamps), h('div', { class: 'tools' }, say, img)));
+    card.append(h('div', { class: 'foot' }, stampable(m) ? h('div', { class: 'stamps' }, ...stamps) : null, h('div', { class: 'tools' }, say, long ? null : img)));
     card.hidden = false;
   }
 }
