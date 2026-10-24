@@ -1,7 +1,7 @@
 import { buildClaudeExport, parseWordList, shortSource } from '../shared/export.ts';
 import { clock } from '../shared/time.ts';
 import type { LogEvent, Status, WordRecord } from '../shared/types.ts';
-import { $, ago, download, h, today } from './common.ts';
+import { $, ago, download, h, saveAs, today } from './common.ts';
 
 const STAMPS: [Status, string, string][] = [
   ['fresh', '新', 'Fresh'],
@@ -98,30 +98,35 @@ $('filter').addEventListener('click', (e) => {
   render();
 });
 
-/** Fresh data, then the export since the last one; the watermark moves to the fetch time. */
-async function exportNew(): Promise<string> {
+/**
+ * Fresh data, then the export since the last one, handed to `deliver`. The watermark moves to
+ * the fetch time only once it was delivered (cancel the save dialog and nothing is lost).
+ */
+async function exportNew(deliver: (text: string) => Promise<boolean>): Promise<void> {
   const at = Date.now();
   const data = await browser.runtime.sendMessage({ type: 'allData' });
   words = data.words;
   logs = data.logs;
   const { lastExportAt } = await browser.storage.local.get('lastExportAt');
   const text = buildClaudeExport(words, logs, (lastExportAt as number) ?? 0, data.saved);
+  if (!(await deliver(text))) return;
   await browser.storage.local.set({ lastExportAt: at });
   render();
   renderExportInfo();
-  return text;
 }
 
-$('exportNew').addEventListener('click', async () => {
-  download(`chinese-brain-${today()}.tsv`, await exportNew(), 'text/tab-separated-values;charset=utf-8');
-});
-$('copyNew').addEventListener('click', async () => {
-  await navigator.clipboard.writeText(await exportNew());
-  $('copyOk').textContent = 'Copied';
-});
+const TSV = 'text/tab-separated-values;charset=utf-8';
+$('exportNew').addEventListener('click', () => exportNew((text) => saveAs(`chinese-brain-${today()}.tsv`, text, TSV)));
+$('copyNew').addEventListener('click', () =>
+  exportNew(async (text) => {
+    await navigator.clipboard.writeText(text);
+    $('copyOk').textContent = 'Copied';
+    return true;
+  }),
+);
 $('exportAll').addEventListener('click', async () => {
   const data = await browser.runtime.sendMessage({ type: 'allData' });
-  download(`chinese-brain-all-${today()}.tsv`, buildClaudeExport(data.words, data.logs, 0, data.saved), 'text/tab-separated-values;charset=utf-8');
+  await saveAs(`chinese-brain-all-${today()}.tsv`, buildClaudeExport(data.words, data.logs, 0, data.saved), TSV);
 });
 
 $('backup').addEventListener('click', async () => {

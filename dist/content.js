@@ -1381,6 +1381,54 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     return a.length === b.length && a[0]?.text === b[0]?.text && a[a.length - 1]?.text === b[b.length - 1]?.text;
   }
 
+  // src/shared/context.ts
+  var HAN2 = /[㐀-䶿一-鿿豈-﫿]/g;
+  function cleanSentence(text, word) {
+    let withWord = text.split(/\s*(?:[|｜]|\s[-–—]\s|(?<=[^\s\x00-\x7f])[-–—_](?=[^\s\x00-\x7f]))\s*/).map((p) => p.replace(/\[\d+\]|【\d+】/g, "").trim()).filter((p) => p && !/^(pdf|docx?|pptx?|xlsx?|html?|…|\.\.\.)$/i.test(p)).filter((p) => p.includes(word));
+    return withWord.length ? withWord.sort((a, b) => b.length - a.length)[0] : text.trim();
+  }
+  function usefulSentence(text, word) {
+    return (text.match(HAN2)?.length ?? 0) >= [...word].length + 2;
+  }
+  function isStop(s, i) {
+    let c = s[i];
+    return `\u3002\uFF01\uFF1F!?
+\r`.includes(c) ? !0 : c === "." && !(/[0-9A-Za-z]/.test(s[i - 1] ?? "") && /[0-9A-Za-z]/.test(s[i + 1] ?? ""));
+  }
+  var CLOSER = /[」』"”’'）)】》〉\]]/;
+  function sentenceBounds(s, pos) {
+    let a = Math.min(Math.max(pos, 0), s.length);
+    for (; a > 0 && !isStop(s, a - 1); ) a--;
+    for (; a < pos && (CLOSER.test(s[a]) || /\s/.test(s[a])); ) a++;
+    let b = Math.max(a, pos);
+    for (; b < s.length && !isStop(s, b); ) b++;
+    for (; b < s.length && isStop(s, b) && !/[\n\r]/.test(s[b]); ) b++;
+    for (; b < s.length && CLOSER.test(s[b]); ) b++;
+    return [a, b];
+  }
+  function sentenceAt(s, pos, max = 300) {
+    let [a, b] = sentenceBounds(s, pos);
+    return trimAround(s.slice(a, b), pos - a, 1, max);
+  }
+  var segmenter = typeof Intl < "u" && "Segmenter" in Intl ? new Intl.Segmenter("zh-TW", { granularity: "word" }) : void 0;
+  function trimAround(s, i, len, max) {
+    if (s.length <= max) return s.trim();
+    let cuts = segmenter ? [...segmenter.segment(s)].map((x) => x.index).concat(s.length) : [...s].map((_, k) => k).concat(s.length), a0 = Math.max(0, i - Math.floor((max - len) / 2)), b0 = Math.min(s.length, a0 + max);
+    a0 = Math.max(0, b0 - max);
+    let near = 12, clause = /[，、；：,;:\s（(「『]/, a = cuts.find((k) => k >= a0 && k <= i) ?? i;
+    for (let k = a0; k <= Math.min(i, a0 + near); k++) if (k > 0 && clause.test(s[k - 1])) {
+      a = k;
+      break;
+    }
+    let b = [...cuts].reverse().find((k) => k <= b0 && k >= i + len) ?? i + len;
+    for (let k = b0; k >= Math.max(i + len, b0 - near); k--) if (k < s.length && clause.test(s[k])) {
+      b = k;
+      break;
+    }
+    let mid = s.slice(a, b).trim().replace(/^[，、；：,;:]+|[，、；：,;:]+$/g, "");
+    return `${a > 0 ? "\u2026" : ""}${mid}${b < s.length ? "\u2026" : ""}`;
+  }
+
   // src/content/css.ts
   function addPageCSS(css) {
     if (location.protocol === "moz-extension:") {
@@ -1424,11 +1472,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         acc += n.data.length;
       }
     }
-    let stops = /[。！？!?；\n]/, a = pos;
-    for (; a > 0 && !stops.test(full[a - 1]) && pos - a < 120; ) a--;
-    let b = pos;
-    for (; b < full.length && !stops.test(full[b]) && b - pos < 160; ) b++;
-    return full.slice(a, Math.min(full.length, b + 1)).trim();
+    return sentenceAt(full, pos);
   }
   function covers(r, node, offset) {
     try {
@@ -1459,7 +1503,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     if ((el3 instanceof HTMLInputElement || el3 instanceof HTMLTextAreaElement) && el3.selectionStart != null && el3.selectionEnd != null) {
       if (el3.selectionEnd <= el3.selectionStart) return;
       let r = el3.getBoundingClientRect();
-      return { text: el3.value.slice(el3.selectionStart, el3.selectionEnd), rect: new DOMRect(r.left, r.top, Math.min(r.width, 40), Math.min(r.height, 40)), context: el3.value.slice(0, 200) };
+      return { text: el3.value.slice(el3.selectionStart, el3.selectionEnd), rect: new DOMRect(r.left, r.top, Math.min(r.width, 40), Math.min(r.height, 40)), context: sentenceAt(el3.value, el3.selectionStart) };
     }
     let sel = window.getSelection();
     if (!sel || sel.isCollapsed || !sel.rangeCount) return;
@@ -1742,16 +1786,6 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       return c;
     }
   };
-
-  // src/shared/context.ts
-  var HAN2 = /[㐀-䶿一-鿿豈-﫿]/g;
-  function cleanSentence(text, word) {
-    let withWord = text.split(/\s*(?:[|｜]|\s[-–—]\s|(?<=[^\s\x00-\x7f])[-–—_](?=[^\s\x00-\x7f]))\s*/).map((p) => p.replace(/\[\d+\]|【\d+】/g, "").trim()).filter((p) => p && !/^(pdf|docx?|pptx?|xlsx?|html?|…|\.\.\.)$/i.test(p)).filter((p) => p.includes(word));
-    return withWord.length ? withWord.sort((a, b) => b.length - a.length)[0] : text.trim();
-  }
-  function usefulSentence(text, word) {
-    return (text.match(HAN2)?.length ?? 0) >= [...word].length + 2;
-  }
 
   // src/content/audio.ts
   var ctx;

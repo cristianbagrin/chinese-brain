@@ -1,3 +1,4 @@
+import { sentenceWith } from './context.ts';
 import { dayKeyLocal } from './time.ts';
 import { STATUS_CODE, type LogEvent, type SavedSentence, type Status, type WordRecord } from './types.ts';
 
@@ -61,7 +62,7 @@ export function buildClaudeExport(words: WordRecord[], logs: LogEvent[], since =
     savedNow.set(w, fresh);
     if (!rows.some((r) => r.w === w)) {
       const rec = byWord.get(w);
-      rows.push({ w, now: rec?.s ?? null, was: rec?.s ?? null, date: Math.max(...fresh.map((x) => x.at)), rec });
+      rows.push({ w, now: rec?.s ?? null, was: rec?.s ?? null, date: rec?.updated ?? Math.max(...fresh.map((x) => x.at)), rec });
     }
   }
 
@@ -71,12 +72,14 @@ export function buildClaudeExport(words: WordRecord[], logs: LogEvent[], since =
   const lines = [
     `# Chinese Brain export · ${stamp(now)} · ${since ? `since ${stamp(since)}` : 'everything so far'}`,
     '# Codes as in known-words.txt: K known, L learning, F fresh (met, not studied yet), - not in the list.',
+    '# date = the day I set this status · sentence = where I met the word · saved = sentences I saved for a card, several joined with " ‖ "',
     '# was = status before this period (- = new). Only status changes I made are listed.',
     `# ${rows.length} words · ${[...savedNow.values()].flat().length} saved sentences · ${watches.length} videos with subtitles (${duration(watches.reduce((n, e) => n + e.secs, 0))})`,
     ['word', 'now', 'was', 'date', 'pinyin', 'meaning', 'sentence', 'source', 'saved'].join('\t'),
   ];
   for (const r of rows) {
-    const c = r.rec?.ctx[0];
+    // The first sentence met that has the word in it; none rather than a wrong one.
+    const met = (r.rec?.ctx ?? []).map((c) => ({ c, text: sentenceWith(c.text, r.w) })).find((x) => x.text);
     lines.push(
       [
         r.w,
@@ -85,8 +88,8 @@ export function buildClaudeExport(words: WordRecord[], logs: LogEvent[], since =
         dayKeyLocal(r.date),
         r.rec?.p?.toLowerCase(),
         r.rec?.g,
-        c?.text,
-        c ? shortSource(c.url, c.t) : '',
+        met?.text,
+        met ? shortSource(met.c.url, met.c.t) : '',
         (savedNow.get(r.w) ?? []).map((x) => (x.en ? `${x.zh} — ${x.en}` : x.zh)).join(' ‖ '),
       ]
         .map((x) => clean(x))

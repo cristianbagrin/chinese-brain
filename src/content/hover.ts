@@ -1,4 +1,5 @@
 import { CJK } from '../shared/dict.ts';
+import { sentenceAt } from '../shared/context.ts';
 import type { LookupMatch, Token } from '../shared/types.ts';
 import { addPageCSS } from './css.ts';
 import { lookupText } from './lookup.ts';
@@ -57,12 +58,7 @@ export function sentenceAround(node: Text, offset: number): string {
       acc += (n as Text).data.length;
     }
   }
-  const stops = /[。！？!?；\n]/;
-  let a = pos;
-  while (a > 0 && !stops.test(full[a - 1]) && pos - a < 120) a--;
-  let b = pos;
-  while (b < full.length && !stops.test(full[b]) && b - pos < 160) b++;
-  return full.slice(a, Math.min(full.length, b + 1)).trim();
+  return sentenceAt(full, pos);
 }
 
 /** Is the character at (node, offset) inside the range? */
@@ -112,7 +108,7 @@ function currentSelection(): Selected | undefined {
   if ((el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) && el.selectionStart != null && el.selectionEnd != null) {
     if (el.selectionEnd <= el.selectionStart) return undefined;
     const r = el.getBoundingClientRect();
-    return { text: el.value.slice(el.selectionStart, el.selectionEnd), rect: new DOMRect(r.left, r.top, Math.min(r.width, 40), Math.min(r.height, 40)), context: el.value.slice(0, 200) };
+    return { text: el.value.slice(el.selectionStart, el.selectionEnd), rect: new DOMRect(r.left, r.top, Math.min(r.width, 40), Math.min(r.height, 40)), context: sentenceAt(el.value, el.selectionStart) };
   }
   const sel = window.getSelection();
   if (!sel || sel.isCollapsed || !sel.rangeCount) return undefined;

@@ -132,6 +132,14 @@ Nothing else leaves your browser. Uninstalling the add-on deletes its data.
 
 ## 4. Version notes
 
+1.3.0:
+
+```
+• The export saves through Firefox's save-as dialog, which opens in the folder you used last. Cancel it and nothing is marked as exported.
+• The sentence column holds the one sentence the word appears in (trimmed to about 80 characters around it, between words), or nothing when the captured text doesn't contain the word.
+• A word whose sentence you saved is in the next export even if its status didn't change. The export header explains the date, sentence and saved columns.
+```
+
 1.2.0:
 
 ```
@@ -174,6 +182,8 @@ Permissions:
   storage + unlimitedStorage: the word list, logs and caches stay local.
   menus: one context-menu item, "Look up" on selected text. If the selection is in a frame the content
     script was not already running in, tabs.executeScript injects the add-on's own content.js there.
+  downloads: the word-list export is saved with downloads.download({ saveAs: true }) so the user picks
+    the folder; it only ever downloads a blob the page just built.
   commands: one keyboard shortcut (Alt+Shift+C) that toggles page colors for the current site.
 
 Remote requests (all user-facing features, listed in the privacy policy): translate.google.com (TTS),

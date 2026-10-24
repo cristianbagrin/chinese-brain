@@ -84,3 +84,42 @@ test('saved example sentences ride along in the export', () => {
   assert.equal(byWord['捷運'][8], '我搭捷運上班。 — I take the MRT to work.');
   assert.equal(rows.length, 2);
 });
+
+test('export: header, sentence with the word, empty when it is missing, saved-only rows', () => {
+  const now = Date.now();
+  const since = now - 7 * 86400000;
+  const ctx = (text: string, url = 'https://example.com/a') => ({ text, url, at: now, src: 'web' as const });
+  const words: WordRecord[] = [
+    { w: '便當', s: 'learning', added: 1, updated: now - 1000, hist: [], looks: 0, ctx: [ctx('昨天下雨了。我今天去台北車站買便當！便當很好吃')], p: 'biàn dāng', g: 'lunch box' },
+    // Typed in by hand: the captured text doesn't have the word.
+    { w: '颱風', s: 'fresh', added: 1, updated: now - 1000, hist: [], looks: 0, ctx: [ctx('搜尋結果')], p: 'tái fēng', g: 'typhoon' },
+    // Only a saved sentence this period.
+    { w: '捷運', s: 'known', added: 1, updated: 1, hist: [], looks: 0, ctx: [], p: 'jié yùn', g: 'MRT' },
+  ];
+  const logs = [
+    { at: now - 2000, k: 'status' as const, w: '便當', s: 'learning' as const, from: null },
+    { at: now - 2000, k: 'status' as const, w: '颱風', s: 'fresh' as const, from: null },
+  ];
+  const saved = {
+    捷運: [
+      { zh: '我搭捷運上班。', en: 'I take the MRT to work.', at: now - 500 },
+      { zh: '捷運很方便。', en: 'The MRT is convenient.', at: now - 400 },
+    ],
+  };
+  const out = buildClaudeExport(words, logs, since, saved);
+  const lines = out.split('\n');
+  assert.match(lines[0], / · since \d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
+  assert.ok(lines[1].startsWith('# Codes'));
+  assert.equal(lines[2], '# date = the day I set this status · sentence = where I met the word · saved = sentences I saved for a card, several joined with " ‖ "');
+  assert.equal(lines.find((l) => l.startsWith('word\t')), 'word\tnow\twas\tdate\tpinyin\tmeaning\tsentence\tsource\tsaved');
+  const rows = lines.filter((l) => l && !l.startsWith('#') && !l.startsWith('word\t')).map((r) => r.split('\t'));
+  assert.ok(rows.every((r) => r.length === 9));
+  const byWord = Object.fromEntries(rows.map((r) => [r[0], r]));
+  assert.equal(byWord['便當'][6], '我今天去台北車站買便當！');
+  assert.equal(byWord['便當'][7], 'example.com');
+  assert.equal(byWord['颱風'][6], '');
+  assert.equal(byWord['颱風'][7], '');
+  assert.deepEqual(byWord['捷運'].slice(1, 3), ['K', 'K']);
+  assert.equal(byWord['捷運'][8], '我搭捷運上班。 — I take the MRT to work. ‖ 捷運很方便。 — The MRT is convenient.');
+  assert.match(buildClaudeExport(words, logs, 0, saved).split('\n')[0], / · everything so far$/);
+});

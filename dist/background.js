@@ -17,6 +17,47 @@
     }
     return out;
   }
+  function isStop(s, i) {
+    let c = s[i];
+    return `\u3002\uFF01\uFF1F!?
+\r`.includes(c) ? !0 : c === "." && !(/[0-9A-Za-z]/.test(s[i - 1] ?? "") && /[0-9A-Za-z]/.test(s[i + 1] ?? ""));
+  }
+  var CLOSER = /[」』"”’'）)】》〉\]]/;
+  function sentenceBounds(s, pos) {
+    let a = Math.min(Math.max(pos, 0), s.length);
+    for (; a > 0 && !isStop(s, a - 1); ) a--;
+    for (; a < pos && (CLOSER.test(s[a]) || /\s/.test(s[a])); ) a++;
+    let b = Math.max(a, pos);
+    for (; b < s.length && !isStop(s, b); ) b++;
+    for (; b < s.length && isStop(s, b) && !/[\n\r]/.test(s[b]); ) b++;
+    for (; b < s.length && CLOSER.test(s[b]); ) b++;
+    return [a, b];
+  }
+  var segmenter = typeof Intl < "u" && "Segmenter" in Intl ? new Intl.Segmenter("zh-TW", { granularity: "word" }) : void 0;
+  function trimAround(s, i, len, max) {
+    if (s.length <= max) return s.trim();
+    let cuts = segmenter ? [...segmenter.segment(s)].map((x) => x.index).concat(s.length) : [...s].map((_, k) => k).concat(s.length), a0 = Math.max(0, i - Math.floor((max - len) / 2)), b0 = Math.min(s.length, a0 + max);
+    a0 = Math.max(0, b0 - max);
+    let near = 12, clause = /[，、；：,;:\s（(「『]/, a = cuts.find((k) => k >= a0 && k <= i) ?? i;
+    for (let k = a0; k <= Math.min(i, a0 + near); k++) if (k > 0 && clause.test(s[k - 1])) {
+      a = k;
+      break;
+    }
+    let b = [...cuts].reverse().find((k) => k <= b0 && k >= i + len) ?? i + len;
+    for (let k = b0; k >= Math.max(i + len, b0 - near); k--) if (k < s.length && clause.test(s[k])) {
+      b = k;
+      break;
+    }
+    let mid = s.slice(a, b).trim().replace(/^[，、；：,;:]+|[，、；：,;:]+$/g, "");
+    return `${a > 0 ? "\u2026" : ""}${mid}${b < s.length ? "\u2026" : ""}`;
+  }
+  var fold = (s) => s.replaceAll("\u81FA", "\u53F0");
+  function sentenceWith(text, word, max = 80) {
+    let [zh, ...rest] = text.split(" \u2014 "), i = fold(zh).indexOf(fold(word));
+    if (!word || i < 0) return "";
+    let [a, b] = sentenceBounds(zh, i), one = trimAround(zh.slice(a, b), i - a, word.length, max);
+    return one === zh.trim() && rest.length ? [one, ...rest].join(" \u2014 ") : one;
+  }
 
   // src/shared/dict.ts
   var CJK = /[㐀-䶿一-鿿豈-﫿]/;
@@ -340,7 +381,7 @@
   function addContext(rec, ctx) {
     let [zh, ...en] = ctx.text.trim().split(" \u2014 "), clean = cleanSentence(zh, rec.w);
     if (!usefulSentence(clean, rec.w)) return;
-    let text = [clean, ...en].join(" \u2014 ").slice(0, 300);
+    let text = sentenceWith([clean, ...en].join(" \u2014 "), rec.w, 300) || trimAround(clean, 0, 1, 300);
     rec.ctx.some((c) => c.text === text) || (rec.ctx.unshift({ ...ctx, text }), rec.ctx = rec.ctx.slice(0, 5));
   }
   function shortGloss(e) {

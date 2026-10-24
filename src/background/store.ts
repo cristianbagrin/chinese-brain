@@ -1,4 +1,4 @@
-import { cleanSentence, usefulSentence } from '../shared/context.ts';
+import { cleanSentence, sentenceWith, trimAround, usefulSentence } from '../shared/context.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import { dayKeyLocal } from '../shared/time.ts';
 import type { Context, Entry, LogEvent, Status, WordRecord } from '../shared/types.ts';
@@ -135,7 +135,8 @@ function addContext(rec: WordRecord, ctx: Context) {
   const [zh, ...en] = ctx.text.trim().split(' — ');
   const clean = cleanSentence(zh, rec.w);
   if (!usefulSentence(clean, rec.w)) return;
-  const text = [clean, ...en].join(' — ').slice(0, 300);
+  // Just the sentence with the word in it (whole, if the word isn't found: the export leaves those out).
+  const text = sentenceWith([clean, ...en].join(' — '), rec.w, 300) || trimAround(clean, 0, 1, 300);
   if (rec.ctx.some((c) => c.text === text)) return;
   rec.ctx.unshift({ ...ctx, text });
   rec.ctx = rec.ctx.slice(0, 5);

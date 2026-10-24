@@ -1,5 +1,48 @@
 "use strict";
 (() => {
+  // src/shared/context.ts
+  function isStop(s, i) {
+    let c = s[i];
+    return `\u3002\uFF01\uFF1F!?
+\r`.includes(c) ? !0 : c === "." && !(/[0-9A-Za-z]/.test(s[i - 1] ?? "") && /[0-9A-Za-z]/.test(s[i + 1] ?? ""));
+  }
+  var CLOSER = /[」』"”’'）)】》〉\]]/;
+  function sentenceBounds(s, pos) {
+    let a = Math.min(Math.max(pos, 0), s.length);
+    for (; a > 0 && !isStop(s, a - 1); ) a--;
+    for (; a < pos && (CLOSER.test(s[a]) || /\s/.test(s[a])); ) a++;
+    let b = Math.max(a, pos);
+    for (; b < s.length && !isStop(s, b); ) b++;
+    for (; b < s.length && isStop(s, b) && !/[\n\r]/.test(s[b]); ) b++;
+    for (; b < s.length && CLOSER.test(s[b]); ) b++;
+    return [a, b];
+  }
+  var segmenter = typeof Intl < "u" && "Segmenter" in Intl ? new Intl.Segmenter("zh-TW", { granularity: "word" }) : void 0;
+  function trimAround(s, i, len, max) {
+    if (s.length <= max) return s.trim();
+    let cuts = segmenter ? [...segmenter.segment(s)].map((x) => x.index).concat(s.length) : [...s].map((_, k) => k).concat(s.length), a0 = Math.max(0, i - Math.floor((max - len) / 2)), b0 = Math.min(s.length, a0 + max);
+    a0 = Math.max(0, b0 - max);
+    let near = 12, clause = /[，、；：,;:\s（(「『]/, a = cuts.find((k) => k >= a0 && k <= i) ?? i;
+    for (let k = a0; k <= Math.min(i, a0 + near); k++) if (k > 0 && clause.test(s[k - 1])) {
+      a = k;
+      break;
+    }
+    let b = [...cuts].reverse().find((k) => k <= b0 && k >= i + len) ?? i + len;
+    for (let k = b0; k >= Math.max(i + len, b0 - near); k--) if (k < s.length && clause.test(s[k])) {
+      b = k;
+      break;
+    }
+    let mid = s.slice(a, b).trim().replace(/^[，、；：,;:]+|[，、；：,;:]+$/g, "");
+    return `${a > 0 ? "\u2026" : ""}${mid}${b < s.length ? "\u2026" : ""}`;
+  }
+  var fold = (s) => s.replaceAll("\u81FA", "\u53F0");
+  function sentenceWith(text, word, max = 80) {
+    let [zh, ...rest] = text.split(" \u2014 "), i = fold(zh).indexOf(fold(word));
+    if (!word || i < 0) return "";
+    let [a, b] = sentenceBounds(zh, i), one = trimAround(zh.slice(a, b), i - a, word.length, max);
+    return one === zh.trim() && rest.length ? [one, ...rest].join(" \u2014 ") : one;
+  }
+
   // src/shared/time.ts
   function dayKeyLocal(t) {
     let d = new Date(t);
@@ -46,7 +89,7 @@
       let fresh = list.filter((x) => x.at > since);
       if (fresh.length && (savedNow.set(w, fresh), !rows.some((r) => r.w === w))) {
         let rec = byWord.get(w);
-        rows.push({ w, now: rec?.s ?? null, was: rec?.s ?? null, date: Math.max(...fresh.map((x) => x.at)), rec });
+        rows.push({ w, now: rec?.s ?? null, was: rec?.s ?? null, date: rec?.updated ?? Math.max(...fresh.map((x) => x.at)), rec });
       }
     }
     let order = { K: 0, L: 1, F: 2, "-": 3 };
@@ -54,12 +97,13 @@
     let lines = [
       `# Chinese Brain export \xB7 ${stamp(now)} \xB7 ${since ? `since ${stamp(since)}` : "everything so far"}`,
       "# Codes as in known-words.txt: K known, L learning, F fresh (met, not studied yet), - not in the list.",
+      '# date = the day I set this status \xB7 sentence = where I met the word \xB7 saved = sentences I saved for a card, several joined with " \u2016 "',
       "# was = status before this period (- = new). Only status changes I made are listed.",
       `# ${rows.length} words \xB7 ${[...savedNow.values()].flat().length} saved sentences \xB7 ${watches.length} videos with subtitles (${duration(watches.reduce((n, e) => n + e.secs, 0))})`,
       ["word", "now", "was", "date", "pinyin", "meaning", "sentence", "source", "saved"].join("	")
     ];
     for (let r of rows) {
-      let c = r.rec?.ctx[0];
+      let met = (r.rec?.ctx ?? []).map((c) => ({ c, text: sentenceWith(c.text, r.w) })).find((x) => x.text);
       lines.push(
         [
           r.w,
@@ -68,8 +112,8 @@
           dayKeyLocal(r.date),
           r.rec?.p?.toLowerCase(),
           r.rec?.g,
-          c?.text,
-          c ? shortSource(c.url, c.t) : "",
+          met?.text,
+          met ? shortSource(met.c.url, met.c.t) : "",
           (savedNow.get(r.w) ?? []).map((x) => x.en ? `${x.zh} \u2014 ${x.en}` : x.zh).join(" \u2016 ")
         ].map((x) => clean(x)).join("	")
       );
@@ -95,6 +139,19 @@
   function download(name, content, type = "text/plain;charset=utf-8") {
     let url = URL.createObjectURL(new Blob([content], { type })), a = document.createElement("a");
     a.href = url, a.download = name, document.body.append(a), a.click(), a.remove(), setTimeout(() => URL.revokeObjectURL(url), 1e4);
+  }
+  async function saveAs(name, content, type = "text/plain;charset=utf-8") {
+    if (!browser.downloads?.download)
+      return download(name, content, type), !0;
+    let url = URL.createObjectURL(new Blob([content], { type }));
+    try {
+      let id = await browser.downloads.download({ url, filename: name, saveAs: !0 }), done = (d) => {
+        d.id !== id || !d.state || d.state.current === "in_progress" || (browser.downloads.onChanged.removeListener(done), URL.revokeObjectURL(url));
+      };
+      return browser.downloads.onChanged.addListener(done), !0;
+    } catch (e) {
+      return URL.revokeObjectURL(url), /cancel/i.test(String(e?.message ?? e)) ? !1 : (download(name, content, type), !0);
+    }
   }
   function h(tag, attrs, ...kids) {
     let el = document.createElement(tag);
@@ -171,21 +228,21 @@
     let b = e.target.closest("button");
     b && (filter = b.dataset.f, render());
   });
-  async function exportNew() {
+  async function exportNew(deliver) {
     let at = Date.now(), data = await browser.runtime.sendMessage({ type: "allData" });
     words = data.words, logs = data.logs;
     let { lastExportAt } = await browser.storage.local.get("lastExportAt"), text = buildClaudeExport(words, logs, lastExportAt ?? 0, data.saved);
-    return await browser.storage.local.set({ lastExportAt: at }), render(), renderExportInfo(), text;
+    await deliver(text) && (await browser.storage.local.set({ lastExportAt: at }), render(), renderExportInfo());
   }
-  $("exportNew").addEventListener("click", async () => {
-    download(`chinese-brain-${today()}.tsv`, await exportNew(), "text/tab-separated-values;charset=utf-8");
-  });
-  $("copyNew").addEventListener("click", async () => {
-    await navigator.clipboard.writeText(await exportNew()), $("copyOk").textContent = "Copied";
-  });
+  var TSV = "text/tab-separated-values;charset=utf-8";
+  $("exportNew").addEventListener("click", () => exportNew((text) => saveAs(`chinese-brain-${today()}.tsv`, text, TSV)));
+  $("copyNew").addEventListener(
+    "click",
+    () => exportNew(async (text) => (await navigator.clipboard.writeText(text), $("copyOk").textContent = "Copied", !0))
+  );
   $("exportAll").addEventListener("click", async () => {
     let data = await browser.runtime.sendMessage({ type: "allData" });
-    download(`chinese-brain-all-${today()}.tsv`, buildClaudeExport(data.words, data.logs, 0, data.saved), "text/tab-separated-values;charset=utf-8");
+    await saveAs(`chinese-brain-all-${today()}.tsv`, buildClaudeExport(data.words, data.logs, 0, data.saved), TSV);
   });
   $("backup").addEventListener("click", async () => {
     let all = await browser.storage.local.get(null);
