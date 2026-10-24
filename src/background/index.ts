@@ -316,6 +316,11 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
         const hidden = new Set((got['exh:' + word] as string[] | undefined) ?? []);
         const gex = (got['gex:' + word] as [string, string][] | undefined) ?? [];
         const ex = examples.pick(word, d, (w) => store.words.get(w)?.s, gex, hidden, new Set(saved));
+        // A saved example shows the English you gave it.
+        for (const x of ex) {
+          const mineEn = savedList.find((y) => y.zh === x.zh)?.en;
+          if (mineEn) x.en = mineEn;
+        }
         // Where you met it: the last two real sentences, without page-title clutter.
         const seen = (record?.ctx ?? [])
           .map((c) => ({ c, zh: cleanSentence(c.text.split(' — ')[0], word) }))

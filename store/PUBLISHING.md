@@ -137,6 +137,8 @@ Nothing else leaves your browser. Uninstalling the add-on deletes its data.
 ```
 • The export saves through Firefox's save-as dialog, which opens in the folder you used last. Cancel it and nothing is marked as exported.
 • The sentence column holds the one sentence the word appears in (punctuation inside 「」 or 『』 doesn't end it; trimmed to about 80 characters around it, between words), or nothing when the captured text doesn't contain the word.
+• Edit any sentence in the card, example sentences included, Chinese and English (the pencil); the edited version is the one saved.
+• The play, copy, edit and save buttons line up with the sentence.
 • A word whose sentence you saved is in the next export even if its status didn't change. The export header explains the date, sentence and saved columns.
 ```
 

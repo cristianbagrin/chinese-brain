@@ -1050,7 +1050,12 @@ Give each with a natural American English translation.`, schema = {
         });
       case "wordInfo":
         return Promise.all([dictReady, storeReady, examplesReady]).then(async ([d]) => {
-          let word = any.word, py = String(any.py ?? ""), chars = breakdown(d, word, py.split(/\s+/)).filter((c) => CJK.test(c.ch) && ([...word].length <= 8 || c.depth === 0)), record = store.words.get(word) ?? null, got = await browser.storage.local.get(["gex:" + word, "exh:" + word, "sav:" + word]), savedList = got["sav:" + word] ?? [], saved = savedList.map((x) => x.zh), hidden = new Set(got["exh:" + word] ?? []), gex = got["gex:" + word] ?? [], ex = examples.pick(word, d, (w) => store.words.get(w)?.s, gex, hidden, new Set(saved)), seen = (record?.ctx ?? []).map((c) => ({ c, zh: cleanSentence(c.text.split(" \u2014 ")[0], word) })).filter(({ zh }) => usefulSentence(zh, word)).filter(({ zh }, i, all) => all.findIndex((x) => x.zh === zh) === i).slice(0, 3).map(({ c, zh }) => ({ ...c, zh, toks: d.segment(zh) })), shown = new Set(ex.map((x) => x.zh)), mine = savedList.filter((x) => !shown.has(x.zh)).map((x) => ({ zh: x.zh, en: x.en, from: x.from, toks: d.segment(x.zh) }));
+          let word = any.word, py = String(any.py ?? ""), chars = breakdown(d, word, py.split(/\s+/)).filter((c) => CJK.test(c.ch) && ([...word].length <= 8 || c.depth === 0)), record = store.words.get(word) ?? null, got = await browser.storage.local.get(["gex:" + word, "exh:" + word, "sav:" + word]), savedList = got["sav:" + word] ?? [], saved = savedList.map((x) => x.zh), hidden = new Set(got["exh:" + word] ?? []), gex = got["gex:" + word] ?? [], ex = examples.pick(word, d, (w) => store.words.get(w)?.s, gex, hidden, new Set(saved));
+          for (let x of ex) {
+            let mineEn = savedList.find((y) => y.zh === x.zh)?.en;
+            mineEn && (x.en = mineEn);
+          }
+          let seen = (record?.ctx ?? []).map((c) => ({ c, zh: cleanSentence(c.text.split(" \u2014 ")[0], word) })).filter(({ zh }) => usefulSentence(zh, word)).filter(({ zh }, i, all) => all.findIndex((x) => x.zh === zh) === i).slice(0, 3).map(({ c, zh }) => ({ ...c, zh, toks: d.segment(zh) })), shown = new Set(ex.map((x) => x.zh)), mine = savedList.filter((x) => !shown.has(x.zh)).map((x) => ({ zh: x.zh, en: x.en, from: x.from, toks: d.segment(x.zh) }));
           return { chars, examples: ex, seen, record, saved, mine };
         });
       case "glosses":

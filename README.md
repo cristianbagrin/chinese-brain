@@ -11,8 +11,9 @@ shared by everything:
   reading now, and the last two sentences you met the word in (page-title clutter
   trimmed). Every sentence has a play button and a copy button; examples and met
   sentences have a × to delete them. The bookmark saves a sentence for your
-  export, and the pencil lets you trim it first (Enter saves, Esc cancels): the
-  trimmed version shows under **Saved** in place of the original. Gemini can
+  export, and the pencil on any sentence, examples included, lets you edit the
+  Chinese and its English first (Enter saves, Esc cancels): the edited version
+  shows under **Saved** in place of the original. Gemini can
   write new examples on request.
   The card never covers the word or the pointer (below, above, or beside it),
   waits while the pointer travels to it, and stays put while you scroll. Hover

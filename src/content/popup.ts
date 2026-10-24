@@ -35,6 +35,8 @@ interface Editing {
   orig: string;
   draft: string;
   en: string;
+  /** The English as it was, to tell an English-only edit from no edit. */
+  origEn: string;
   /** The saved sentence the edit replaces. */
   replace?: string;
   /** The met sentence it was cut from. */
@@ -627,7 +629,8 @@ export class Popup {
       const mine = (this.info.mine ?? []).filter((x) => !drop(x.zh));
       const old = this.info.mine?.find((x) => x.zh === o.replace);
       if (o.on && !this.info.examples.some((x) => x.zh === o.zh)) mine.push({ zh: o.zh, en: o.en, from: o.from ?? old?.from, toks: [] });
-      this.info = { ...this.info, saved: [...this.info.saved.filter((x) => !drop(x)), ...(o.on ? [o.zh] : [])], mine };
+      const examples = o.on && o.en ? this.info.examples.map((x) => (x.zh === o.zh ? { ...x, en: o.en } : x)) : this.info.examples;
+      this.info = { ...this.info, examples, saved: [...this.info.saved.filter((x) => !drop(x)), ...(o.on ? [o.zh] : [])], mine };
     }
     if (o.on) stampSound('known');
     this.infoCache.delete(word);
@@ -642,7 +645,7 @@ export class Popup {
     });
   }
 
-  /** A small pencil that opens a sentence for trimming before it is saved. */
+  /** A small pencil that opens a sentence (Chinese and English) for editing before it is saved. */
   private editButton(word: string, zh: string, en: string, from?: string): H {
     const b = h('button', { class: 'edit', title: 'Edit, then save', 'aria-label': 'Edit this sentence' });
     const NS = 'http://www.w3.org/2000/svg';
@@ -656,7 +659,7 @@ export class Popup {
       e.stopPropagation();
       e.preventDefault();
       const replace = this.info?.saved.includes(zh) ? zh : undefined;
-      this.editing = { word, orig: zh, draft: zh, en, replace, from: from ?? zh };
+      this.editing = { word, orig: zh, draft: zh, en, origEn: en, replace, from: from ?? zh };
       // Editing keeps the card open, like a clicked word.
       if (this.opts) this.opts.pinned = true;
       this.render();
@@ -664,27 +667,32 @@ export class Popup {
     return b;
   }
 
-  /** The row being edited: a text box (Enter saves, Esc cancels). */
+  /** The row being edited: the Chinese and its English in text boxes (Enter saves, Esc cancels). */
   private editRow(ed: Editing): H {
-    const box = h('textarea', { class: 'editbox', rows: '2', spellcheck: 'false', 'aria-label': 'Edit the sentence' }) as HTMLTextAreaElement;
-    box.value = ed.draft;
-    box.addEventListener('input', () => (ed.draft = box.value));
-    // Typing here is typing: no card shortcuts, no YouTube keys.
-    box.addEventListener('focus', () => this.host.setAttribute('data-typing', ''));
-    box.addEventListener('blur', () => this.host.removeAttribute('data-typing'));
-    for (const t of ['keyup', 'keypress']) box.addEventListener(t, (e) => e.stopPropagation());
-    box.addEventListener('keydown', (e) => {
-      e.stopPropagation();
-      if (e.isComposing) return;
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        this.commitEdit();
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        this.endEdit();
-        this.render();
-      }
-    });
+    const field = (cls: string, value: string, label: string, set: (v: string) => void, placeholder?: string) => {
+      const box = h('textarea', { class: cls, rows: cls === 'editbox' ? '2' : '1', spellcheck: 'false', 'aria-label': label, ...(placeholder ? { placeholder } : {}) }) as HTMLTextAreaElement;
+      box.value = value;
+      box.addEventListener('input', () => set(box.value));
+      // Typing here is typing: no card shortcuts, no YouTube keys.
+      box.addEventListener('focus', () => this.host.setAttribute('data-typing', ''));
+      box.addEventListener('blur', () => this.host.removeAttribute('data-typing'));
+      for (const t of ['keyup', 'keypress']) box.addEventListener(t, (e) => e.stopPropagation());
+      box.addEventListener('keydown', (e) => {
+        e.stopPropagation();
+        if (e.isComposing) return;
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          this.commitEdit();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          this.endEdit();
+          this.render();
+        }
+      });
+      return box;
+    };
+    const box = field('editbox', ed.draft, 'Edit the sentence', (v) => (ed.draft = v));
+    const enBox = field('editbox editen', ed.en, 'Edit the English', (v) => (ed.en = v), 'English (optional)');
     const save = h('button', { class: 'editsave' }, 'Save');
     save.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -696,16 +704,17 @@ export class Popup {
       this.endEdit();
       this.render();
     });
-    return h('li', { class: 'editing' }, box, h('div', { class: 'editbar' }, save, cancel, this.copyButton(() => box.value), h('span', { class: 'edithint' }, 'Enter saves · Esc cancels')));
+    return h('li', { class: 'editing' }, box, enBox, h('div', { class: 'editbar' }, save, cancel, this.copyButton(() => box.value), h('span', { class: 'edithint' }, 'Enter saves · Esc cancels')));
   }
 
   private commitEdit() {
     const ed = this.editing;
     if (!ed) return;
     const zh = ed.draft.replace(/\s+/g, ' ').trim();
+    const en = ed.en.replace(/\s+/g, ' ').trim();
     this.endEdit();
-    if (!zh || (zh === ed.orig && ed.replace)) return this.render();
-    this.saveSentence(ed.word, { zh, en: ed.en, on: true, replace: ed.replace, from: ed.from });
+    if (!zh || (zh === ed.orig && en === ed.origEn.trim() && ed.replace)) return this.render();
+    this.saveSentence(ed.word, { zh, en, on: true, replace: ed.replace, from: ed.from });
   }
 
   private endEdit() {
@@ -714,7 +723,7 @@ export class Popup {
   }
 
   /** A sentence you met or saved, with its buttons (or its text box while being edited). */
-  private sentenceRow(word: string, r: { zh: string; en: string; toks?: Token[]; from?: string; met?: string }): H {
+  private sentenceRow(word: string, r: { zh: string; en: string; toks?: Token[]; from?: string; met?: string; showEn?: boolean }): H {
     const ed = this.editing;
     if (ed?.word === word && ed.orig === r.zh) return this.editRow(ed);
     return h(
@@ -726,6 +735,7 @@ export class Popup {
       this.editButton(word, r.zh, r.en, r.from),
       this.saveButton(word, r.zh, r.en),
       r.met ? this.deleteButton(word, { type: 'forgetContext', text: r.met }) : null,
+      r.showEn && r.en ? h('span', { class: 'en' }, r.en) : null,
     );
   }
 
@@ -951,7 +961,7 @@ export class Popup {
     const showHere = !!o.ctx && !m.phrase && usefulSentence(here, m.word) && !cutFrom.has(here);
     const seen = (info?.seen ?? []).filter((c) => c.zh !== here && c.text !== o.ctx?.text && !cutFrom.has(c.zh)).slice(0, 2);
     const savedRows = mine.filter((x) => x.zh !== here && !seen.some((c) => c.zh === x.zh));
-    const examples = info?.examples ?? [];
+    const examples = (info?.examples ?? []).filter((x) => !cutFrom.has(x.zh));
     const canWrite = examples.length < 2 && !!s.geminiKey && !m.phrase;
     if (examples.length || seen.length || canWrite || showHere || savedRows.length) {
       const sect = h('div', { class: 'sect' });
@@ -961,16 +971,19 @@ export class Popup {
             'ul',
             { class: 'ex' },
             ...examples.map((x) =>
-              h(
-                'li',
-                null,
-                h('span', { class: 'zh' }, ...this.sentence(x.toks, m.word)),
-                this.sayButton(x.zh),
-                this.copyButton(x.zh),
-                this.saveButton(m.word, x.zh, x.en),
-                this.deleteButton(m.word, { type: 'hideExample', zh: x.zh }),
-                h('span', { class: 'en' }, x.en),
-              ),
+              this.editing?.word === m.word && this.editing.orig === x.zh
+                ? this.editRow(this.editing)
+                : h(
+                    'li',
+                    null,
+                    h('span', { class: 'zh' }, ...this.sentence(x.toks, m.word)),
+                    this.sayButton(x.zh),
+                    this.copyButton(x.zh),
+                    this.editButton(m.word, x.zh, x.en),
+                    this.saveButton(m.word, x.zh, x.en),
+                    this.deleteButton(m.word, { type: 'hideExample', zh: x.zh }),
+                    h('span', { class: 'en' }, x.en),
+                  ),
             ),
           ),
         );
@@ -986,7 +999,7 @@ export class Popup {
       const lists: [string, H[]][] = [
         ['This sentence', showHere ? [this.sentenceRow(m.word, { zh: here, en: hereEn.join(' — ').trim() })] : []],
         ['You met it in', seen.map((c) => this.sentenceRow(m.word, { zh: c.zh, en: c.text.split(' — ').slice(1).join(' — ').trim(), toks: c.toks, met: c.text }))],
-        ['Saved', savedRows.map((x) => this.sentenceRow(m.word, x))],
+        ['Saved', savedRows.map((x) => this.sentenceRow(m.word, { ...x, showEn: true }))],
       ];
       let above = examples.length > 0 || canWrite;
       for (const [label, rows] of lists) {

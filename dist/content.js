@@ -1973,30 +1973,34 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 .ex { margin: 0; padding: 0; list-style: none; }
 .ex li + li { margin-top: 0.36em; }
 .ex .zh { font-size: 1.07em; }
-.say { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; margin-left: 0.25em; vertical-align: -0.2em; border-radius: 50%; color: var(--text3); }
+.say { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; margin-left: 0.25em; vertical-align: middle; border-radius: 50%; color: var(--text3); }
 .say:hover { color: var(--link); background: var(--bg2); }
 .say svg { width: 0.95em; height: 0.95em; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
 .say svg path { fill: none; }
-.copy { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; vertical-align: -0.2em; border-radius: 50%; color: var(--text3); }
+.copy { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; vertical-align: middle; border-radius: 50%; color: var(--text3); }
 .copy:hover { color: var(--link); background: var(--bg2); }
 .copy svg { width: 0.85em; height: 0.85em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
 .copy.done { color: var(--known); }
-.save { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; vertical-align: -0.2em; border-radius: 50%; color: var(--text3); }
+.save { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; vertical-align: middle; border-radius: 50%; color: var(--text3); }
 .save:hover { color: var(--link); background: var(--bg2); }
 .save svg { width: 0.9em; height: 0.9em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; }
 .save.on { color: var(--link); }
 .save.on svg { fill: currentColor; }
-.edit { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; vertical-align: -0.2em; border-radius: 50%; color: var(--text3); }
+.edit { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; vertical-align: middle; border-radius: 50%; color: var(--text3); }
 .edit:hover { color: var(--link); background: var(--bg2); }
 .edit svg { width: 0.85em; height: 0.85em; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
 .editbox { all: unset; box-sizing: border-box; display: block; width: 100%; min-width: 15em; padding: 0.3em 0.45em; border: 1px solid var(--link); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; font-size: 1.07em; line-height: 1.5; white-space: pre-wrap; resize: vertical; }
+.editbox.editen { margin-top: 0.3em; font-size: 0.89em; color: var(--text2); }
+.editbox.editen::placeholder { color: var(--text3); }
 .editbar { display: flex; align-items: center; gap: 0.6em; margin-top: 0.3em; }
 .editsave, .editcancel { all: unset; cursor: pointer; font-size: 0.89em; padding: 0.1em 0.6em; border-radius: 5px; }
 .editsave { background: var(--link); color: #fff; }
 .editcancel { color: var(--text2); }
 .editcancel:hover { background: var(--bg2); }
 .edithint { margin-left: auto; font-size: 0.79em; color: var(--text3); }
-.del { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.2em; height: 1.2em; margin-left: 0.1em; vertical-align: -0.15em; border-radius: 50%; color: var(--text3); font-size: 0.95em; line-height: 1; opacity: 0; transition: opacity 0.12s; }
+.del { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.2em; height: 1.2em; margin-left: 0.1em; vertical-align: middle; border-radius: 50%; color: var(--text3); font-size: 0.95em; line-height: 1; opacity: 0; transition: opacity 0.12s; }
+/* The sentence buttons share one line: centered on the Chinese, whatever the icon's size. */
+.ex li > :is(.say, .copy, .save, .edit, .del) { position: relative; top: -0.12em; }
 .ex li:hover .del { opacity: 1; }
 .del:hover { color: var(--fresh); background: var(--bg2); }
 .ex li.gone { opacity: 0.35; pointer-events: none; }
@@ -2432,7 +2436,9 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     saveSentence(word, o) {
       if (this.info) {
         let drop = (x) => x === o.zh || x === o.replace, mine = (this.info.mine ?? []).filter((x) => !drop(x.zh)), old = this.info.mine?.find((x) => x.zh === o.replace);
-        o.on && !this.info.examples.some((x) => x.zh === o.zh) && mine.push({ zh: o.zh, en: o.en, from: o.from ?? old?.from, toks: [] }), this.info = { ...this.info, saved: [...this.info.saved.filter((x) => !drop(x)), ...o.on ? [o.zh] : []], mine };
+        o.on && !this.info.examples.some((x) => x.zh === o.zh) && mine.push({ zh: o.zh, en: o.en, from: o.from ?? old?.from, toks: [] });
+        let examples = o.on && o.en ? this.info.examples.map((x) => x.zh === o.zh ? { ...x, en: o.en } : x) : this.info.examples;
+        this.info = { ...this.info, examples, saved: [...this.info.saved.filter((x) => !drop(x)), ...o.on ? [o.zh] : []], mine };
       }
       o.on && stampSound("known"), this.infoCache.delete(word), this.render(), browser.runtime.sendMessage({ type: "saveSentence", word, ...o }).then(async () => {
         this.infoCache.delete(word);
@@ -2442,7 +2448,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         this.info = await this.wordInfo(word, e0.tw || e0.py), this.current?.word === word && this.render();
       });
     }
-    /** A small pencil that opens a sentence for trimming before it is saved. */
+    /** A small pencil that opens a sentence (Chinese and English) for editing before it is saved. */
     editButton(word, zh, en, from) {
       let b = h("button", { class: "edit", title: "Edit, then save", "aria-label": "Edit this sentence" }), NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
       svg.setAttribute("viewBox", "0 0 16 16");
@@ -2450,32 +2456,33 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       return path.setAttribute("d", "M3 13l.8-3.2 7-7 2.4 2.4-7 7zM9.6 4l2.4 2.4"), svg.append(path), b.append(svg), b.addEventListener("click", (e) => {
         e.stopPropagation(), e.preventDefault();
         let replace = this.info?.saved.includes(zh) ? zh : void 0;
-        this.editing = { word, orig: zh, draft: zh, en, replace, from: from ?? zh }, this.opts && (this.opts.pinned = !0), this.render();
+        this.editing = { word, orig: zh, draft: zh, en, origEn: en, replace, from: from ?? zh }, this.opts && (this.opts.pinned = !0), this.render();
       }), b;
     }
-    /** The row being edited: a text box (Enter saves, Esc cancels). */
+    /** The row being edited: the Chinese and its English in text boxes (Enter saves, Esc cancels). */
     editRow(ed) {
-      let box2 = h("textarea", { class: "editbox", rows: "2", spellcheck: "false", "aria-label": "Edit the sentence" });
-      box2.value = ed.draft, box2.addEventListener("input", () => ed.draft = box2.value), box2.addEventListener("focus", () => this.host.setAttribute("data-typing", "")), box2.addEventListener("blur", () => this.host.removeAttribute("data-typing"));
-      for (let t of ["keyup", "keypress"]) box2.addEventListener(t, (e) => e.stopPropagation());
-      box2.addEventListener("keydown", (e) => {
-        e.stopPropagation(), !e.isComposing && (e.key === "Enter" && !e.shiftKey ? (e.preventDefault(), this.commitEdit()) : e.key === "Escape" && (e.preventDefault(), this.endEdit(), this.render()));
-      });
-      let save = h("button", { class: "editsave" }, "Save");
+      let field = (cls, value, label, set, placeholder) => {
+        let box3 = h("textarea", { class: cls, rows: cls === "editbox" ? "2" : "1", spellcheck: "false", "aria-label": label, ...placeholder ? { placeholder } : {} });
+        box3.value = value, box3.addEventListener("input", () => set(box3.value)), box3.addEventListener("focus", () => this.host.setAttribute("data-typing", "")), box3.addEventListener("blur", () => this.host.removeAttribute("data-typing"));
+        for (let t of ["keyup", "keypress"]) box3.addEventListener(t, (e) => e.stopPropagation());
+        return box3.addEventListener("keydown", (e) => {
+          e.stopPropagation(), !e.isComposing && (e.key === "Enter" && !e.shiftKey ? (e.preventDefault(), this.commitEdit()) : e.key === "Escape" && (e.preventDefault(), this.endEdit(), this.render()));
+        }), box3;
+      }, box2 = field("editbox", ed.draft, "Edit the sentence", (v) => ed.draft = v), enBox = field("editbox editen", ed.en, "Edit the English", (v) => ed.en = v, "English (optional)"), save = h("button", { class: "editsave" }, "Save");
       save.addEventListener("click", (e) => {
         e.stopPropagation(), this.commitEdit();
       });
       let cancel = h("button", { class: "editcancel" }, "Cancel");
       return cancel.addEventListener("click", (e) => {
         e.stopPropagation(), this.endEdit(), this.render();
-      }), h("li", { class: "editing" }, box2, h("div", { class: "editbar" }, save, cancel, this.copyButton(() => box2.value), h("span", { class: "edithint" }, "Enter saves \xB7 Esc cancels")));
+      }), h("li", { class: "editing" }, box2, enBox, h("div", { class: "editbar" }, save, cancel, this.copyButton(() => box2.value), h("span", { class: "edithint" }, "Enter saves \xB7 Esc cancels")));
     }
     commitEdit() {
       let ed = this.editing;
       if (!ed) return;
-      let zh = ed.draft.replace(/\s+/g, " ").trim();
-      if (this.endEdit(), !zh || zh === ed.orig && ed.replace) return this.render();
-      this.saveSentence(ed.word, { zh, en: ed.en, on: !0, replace: ed.replace, from: ed.from });
+      let zh = ed.draft.replace(/\s+/g, " ").trim(), en = ed.en.replace(/\s+/g, " ").trim();
+      if (this.endEdit(), !zh || zh === ed.orig && en === ed.origEn.trim() && ed.replace) return this.render();
+      this.saveSentence(ed.word, { zh, en, on: !0, replace: ed.replace, from: ed.from });
     }
     endEdit() {
       this.editing = void 0, this.host.removeAttribute("data-typing");
@@ -2491,7 +2498,8 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         this.copyButton(r.zh),
         this.editButton(word, r.zh, r.en, r.from),
         this.saveButton(word, r.zh, r.en),
-        r.met ? this.deleteButton(word, { type: "forgetContext", text: r.met }) : null
+        r.met ? this.deleteButton(word, { type: "forgetContext", text: r.met }) : null,
+        r.showEn && r.en ? h("span", { class: "en" }, r.en) : null
       );
     }
     /** A sentence not split into words yet: the headword underlined, the rest plain. */
@@ -2627,7 +2635,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         }
         card.append(h("div", { class: "sect" }, grid));
       }
-      let mine = info?.mine ?? [], cutFrom = new Set(mine.map((x) => x.from).filter((x) => !!x)), [hereZh = "", ...hereEn] = o.ctx?.text.split(" \u2014 ") ?? [], here = cleanSentence(hereZh.trim(), m.word), showHere = !!o.ctx && !m.phrase && usefulSentence(here, m.word) && !cutFrom.has(here), seen = (info?.seen ?? []).filter((c) => c.zh !== here && c.text !== o.ctx?.text && !cutFrom.has(c.zh)).slice(0, 2), savedRows = mine.filter((x) => x.zh !== here && !seen.some((c) => c.zh === x.zh)), examples = info?.examples ?? [], canWrite = examples.length < 2 && !!s.geminiKey && !m.phrase;
+      let mine = info?.mine ?? [], cutFrom = new Set(mine.map((x) => x.from).filter((x) => !!x)), [hereZh = "", ...hereEn] = o.ctx?.text.split(" \u2014 ") ?? [], here = cleanSentence(hereZh.trim(), m.word), showHere = !!o.ctx && !m.phrase && usefulSentence(here, m.word) && !cutFrom.has(here), seen = (info?.seen ?? []).filter((c) => c.zh !== here && c.text !== o.ctx?.text && !cutFrom.has(c.zh)).slice(0, 2), savedRows = mine.filter((x) => x.zh !== here && !seen.some((c) => c.zh === x.zh)), examples = (info?.examples ?? []).filter((x) => !cutFrom.has(x.zh)), canWrite = examples.length < 2 && !!s.geminiKey && !m.phrase;
       if (examples.length || seen.length || canWrite || showHere || savedRows.length) {
         let sect = h("div", { class: "sect" });
         if (examples.length && sect.append(
@@ -2635,12 +2643,13 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
             "ul",
             { class: "ex" },
             ...examples.map(
-              (x) => h(
+              (x) => this.editing?.word === m.word && this.editing.orig === x.zh ? this.editRow(this.editing) : h(
                 "li",
                 null,
                 h("span", { class: "zh" }, ...this.sentence(x.toks, m.word)),
                 this.sayButton(x.zh),
                 this.copyButton(x.zh),
+                this.editButton(m.word, x.zh, x.en),
                 this.saveButton(m.word, x.zh, x.en),
                 this.deleteButton(m.word, { type: "hideExample", zh: x.zh }),
                 h("span", { class: "en" }, x.en)
@@ -2654,7 +2663,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         let lists = [
           ["This sentence", showHere ? [this.sentenceRow(m.word, { zh: here, en: hereEn.join(" \u2014 ").trim() })] : []],
           ["You met it in", seen.map((c) => this.sentenceRow(m.word, { zh: c.zh, en: c.text.split(" \u2014 ").slice(1).join(" \u2014 ").trim(), toks: c.toks, met: c.text }))],
-          ["Saved", savedRows.map((x) => this.sentenceRow(m.word, x))]
+          ["Saved", savedRows.map((x) => this.sentenceRow(m.word, { ...x, showEn: !0 }))]
         ], above = examples.length > 0 || canWrite;
         for (let [label, rows] of lists)
           rows.length && (sect.append(h("div", { class: "label", style: above ? "margin-top:8px" : "" }, label), h("ul", { class: "ex seen" }, ...rows)), above = !0);

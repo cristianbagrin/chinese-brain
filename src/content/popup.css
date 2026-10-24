@@ -83,30 +83,34 @@
 .ex { margin: 0; padding: 0; list-style: none; }
 .ex li + li { margin-top: 0.36em; }
 .ex .zh { font-size: 1.07em; }
-.say { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; margin-left: 0.25em; vertical-align: -0.2em; border-radius: 50%; color: var(--text3); }
+.say { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; margin-left: 0.25em; vertical-align: middle; border-radius: 50%; color: var(--text3); }
 .say:hover { color: var(--link); background: var(--bg2); }
 .say svg { width: 0.95em; height: 0.95em; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
 .say svg path { fill: none; }
-.copy { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; vertical-align: -0.2em; border-radius: 50%; color: var(--text3); }
+.copy { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; vertical-align: middle; border-radius: 50%; color: var(--text3); }
 .copy:hover { color: var(--link); background: var(--bg2); }
 .copy svg { width: 0.85em; height: 0.85em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
 .copy.done { color: var(--known); }
-.save { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; vertical-align: -0.2em; border-radius: 50%; color: var(--text3); }
+.save { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; vertical-align: middle; border-radius: 50%; color: var(--text3); }
 .save:hover { color: var(--link); background: var(--bg2); }
 .save svg { width: 0.9em; height: 0.9em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; }
 .save.on { color: var(--link); }
 .save.on svg { fill: currentColor; }
-.edit { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; vertical-align: -0.2em; border-radius: 50%; color: var(--text3); }
+.edit { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; vertical-align: middle; border-radius: 50%; color: var(--text3); }
 .edit:hover { color: var(--link); background: var(--bg2); }
 .edit svg { width: 0.85em; height: 0.85em; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
 .editbox { all: unset; box-sizing: border-box; display: block; width: 100%; min-width: 15em; padding: 0.3em 0.45em; border: 1px solid var(--link); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; font-size: 1.07em; line-height: 1.5; white-space: pre-wrap; resize: vertical; }
+.editbox.editen { margin-top: 0.3em; font-size: 0.89em; color: var(--text2); }
+.editbox.editen::placeholder { color: var(--text3); }
 .editbar { display: flex; align-items: center; gap: 0.6em; margin-top: 0.3em; }
 .editsave, .editcancel { all: unset; cursor: pointer; font-size: 0.89em; padding: 0.1em 0.6em; border-radius: 5px; }
 .editsave { background: var(--link); color: #fff; }
 .editcancel { color: var(--text2); }
 .editcancel:hover { background: var(--bg2); }
 .edithint { margin-left: auto; font-size: 0.79em; color: var(--text3); }
-.del { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.2em; height: 1.2em; margin-left: 0.1em; vertical-align: -0.15em; border-radius: 50%; color: var(--text3); font-size: 0.95em; line-height: 1; opacity: 0; transition: opacity 0.12s; }
+.del { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 1.2em; height: 1.2em; margin-left: 0.1em; vertical-align: middle; border-radius: 50%; color: var(--text3); font-size: 0.95em; line-height: 1; opacity: 0; transition: opacity 0.12s; }
+/* The sentence buttons share one line: centered on the Chinese, whatever the icon's size. */
+.ex li > :is(.say, .copy, .save, .edit, .del) { position: relative; top: -0.12em; }
 .ex li:hover .del { opacity: 1; }
 .del:hover { color: var(--fresh); background: var(--bg2); }
 .ex li.gone { opacity: 0.35; pointer-events: none; }
