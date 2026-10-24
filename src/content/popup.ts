@@ -1,4 +1,4 @@
-import { cleanSentence, usefulSentence } from '../shared/context.ts';
+import { hasWord, metSentence } from '../shared/context.ts';
 import { CJK } from '../shared/dict.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import type { Context, Entry, LookupMatch, Status, Token } from '../shared/types.ts';
@@ -21,7 +21,7 @@ interface WordInfo {
   /** The breakdown: smaller words (depth 0) with their characters indented under them. */
   chars: { ch: string; py: string; gloss: string; depth: number }[];
   examples: (Sentence & { en: string })[];
-  seen: (Sentence & Context)[];
+  seen: (Sentence & Context & { en?: string })[];
   /** Example sentences you saved (for the export). */
   saved: string[];
   /** Saved sentences that aren't among the examples (met ones, often trimmed), with the one each was cut from. */
@@ -384,7 +384,17 @@ export class Popup {
   private recordLook() {
     const m = this.current;
     if (!m || !this.opts || !stampable(m)) return;
-    browser.runtime.sendMessage({ type: 'looked', word: m.word, src: this.opts.src, url: this.opts.ctx?.url, ctx: this.opts.ctx });
+    browser.runtime.sendMessage({ type: 'looked', word: m.word, src: this.opts.src, url: this.opts.ctx?.url, ctx: this.ctxFor(m) });
+  }
+
+  /**
+   * The sentence this word was met in: the page's, but only when the word is in it. A word opened
+   * inside the card (from an example or the breakdown) wasn't met there, and neither is one met
+   * on the extension's own pages. Carries the word as written there when that differs.
+   */
+  private ctxFor(m: LookupMatch, ctx = this.opts?.ctx): Context | undefined {
+    if (!ctx || /^(moz|chrome)-extension:/.test(ctx.url) || !hasWord(ctx.text.split(' — ')[0], m.word, m.text)) return undefined;
+    return m.text !== m.word ? { ...ctx, q: m.text } : ctx;
   }
 
   /** Set a status; pressing the active one again clears it. */
@@ -399,7 +409,7 @@ export class Popup {
     stampSound(next);
     this.infoCache.delete(m.word);
     this.render(next ?? undefined);
-    browser.runtime.sendMessage({ type: 'setStatus', word: m.word, status: next, entry: m.entries[0], ctx: this.opts.ctx });
+    browser.runtime.sendMessage({ type: 'setStatus', word: m.word, status: next, entry: m.entries[0], ctx: this.ctxFor(m) });
   }
 
   speak() {
@@ -500,8 +510,8 @@ export class Popup {
     if (next) state.statuses.set(m.word, next);
     else state.statuses.delete(m.word);
     stampSound(next);
-    const ctx: Context | undefined = target.sentence
-      ? { text: target.sentence, url: location.href, title: document.title, at: Date.now(), src: this.opts.src }
+    const ctx = target.sentence
+      ? this.ctxFor(m, { text: target.sentence, url: location.href, title: document.title, at: Date.now(), src: this.opts.src })
       : undefined;
     browser.runtime.sendMessage({ type: 'setStatus', word: m.word, status: next, entry: m.entries[0], ctx });
   }
@@ -956,10 +966,10 @@ export class Popup {
     // A met sentence you saved a trimmed version of gives way to it.
     const mine = info?.mine ?? [];
     const cutFrom = new Set(mine.map((x) => x.from).filter((x): x is string => !!x));
-    const [hereZh = '', ...hereEn] = o.ctx?.text.split(' — ') ?? [];
-    const here = cleanSentence(hereZh.trim(), m.word);
-    const showHere = !!o.ctx && !m.phrase && usefulSentence(here, m.word) && !cutFrom.has(here);
-    const seen = (info?.seen ?? []).filter((c) => c.zh !== here && c.text !== o.ctx?.text && !cutFrom.has(c.zh)).slice(0, 2);
+    const hereCtx = m.phrase ? undefined : this.ctxFor(m);
+    const [here = '', ...hereEn] = hereCtx ? metSentence(hereCtx, m.word, 120).split(' — ') : [];
+    const showHere = !!here && !cutFrom.has(here);
+    const seen = (info?.seen ?? []).filter((c) => c.zh !== here && !cutFrom.has(c.zh)).slice(0, 2);
     const savedRows = mine.filter((x) => x.zh !== here && !seen.some((c) => c.zh === x.zh));
     const examples = (info?.examples ?? []).filter((x) => !cutFrom.has(x.zh));
     const canWrite = examples.length < 2 && !!s.geminiKey && !m.phrase;
@@ -998,7 +1008,7 @@ export class Popup {
       }
       const lists: [string, H[]][] = [
         ['This sentence', showHere ? [this.sentenceRow(m.word, { zh: here, en: hereEn.join(' — ').trim() })] : []],
-        ['You met it in', seen.map((c) => this.sentenceRow(m.word, { zh: c.zh, en: c.text.split(' — ').slice(1).join(' — ').trim(), toks: c.toks, met: c.text }))],
+        ['You met it in', seen.map((c) => this.sentenceRow(m.word, { zh: c.zh, en: c.en ?? '', toks: c.toks, met: c.text }))],
         ['Saved', savedRows.map((x) => this.sentenceRow(m.word, { ...x, showEn: true }))],
       ];
       let above = examples.length > 0 || canWrite;

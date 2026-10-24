@@ -1,4 +1,4 @@
-import { sentenceWith } from './context.ts';
+import { metSentence } from './context.ts';
 import { dayKeyLocal } from './time.ts';
 import { STATUS_CODE, type LogEvent, type SavedSentence, type Status, type WordRecord } from './types.ts';
 
@@ -79,7 +79,7 @@ export function buildClaudeExport(words: WordRecord[], logs: LogEvent[], since =
   ];
   for (const r of rows) {
     // The first sentence met that has the word in it; none rather than a wrong one.
-    const met = (r.rec?.ctx ?? []).map((c) => ({ c, text: sentenceWith(c.text, r.w) })).find((x) => x.text);
+    const met = (r.rec?.ctx ?? []).map((c) => ({ c, text: metSentence(c, r.w) })).find((x) => x.text);
     lines.push(
       [
         r.w,

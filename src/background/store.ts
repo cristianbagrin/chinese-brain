@@ -1,4 +1,5 @@
-import { cleanSentence, sentenceWith, trimAround, usefulSentence } from '../shared/context.ts';
+import { metSentence } from '../shared/context.ts';
+import { shortGloss } from '../shared/gloss.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import { dayKeyLocal } from '../shared/time.ts';
 import type { Context, Entry, LogEvent, Status, WordRecord } from '../shared/types.ts';
@@ -129,23 +130,10 @@ export class Store {
   }
 }
 
-
 function addContext(rec: WordRecord, ctx: Context) {
-  // YouTube contexts are "Chinese — English"; only the Chinese part is cleaned.
-  const [zh, ...en] = ctx.text.trim().split(' — ');
-  const clean = cleanSentence(zh, rec.w);
-  if (!usefulSentence(clean, rec.w)) return;
-  // Just the sentence with the word in it (whole, if the word isn't found: the export leaves those out).
-  const text = sentenceWith([clean, ...en].join(' — '), rec.w, 300) || trimAround(clean, 0, 1, 300);
-  if (rec.ctx.some((c) => c.text === text)) return;
+  // Just the sentence with the word in it: a text without the word isn't where you met it.
+  const text = metSentence(ctx, rec.w, 300);
+  if (!text || rec.ctx.some((c) => c.text === text)) return;
   rec.ctx.unshift({ ...ctx, text });
   rec.ctx = rec.ctx.slice(0, 5);
-}
-
-export function shortGloss(e: Entry): string {
-  return e.defs
-    .filter((d) => !d.startsWith('CL:'))
-    .slice(0, 3)
-    .join('; ')
-    .slice(0, 120);
 }

@@ -1382,13 +1382,25 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
   }
 
   // src/shared/context.ts
-  var HAN2 = /[㐀-䶿一-鿿豈-﫿]/g;
-  function cleanSentence(text, word) {
-    let withWord = text.split(/\s*(?:[|｜]|\s[-–—]\s|(?<=[^\s\x00-\x7f])[-–—_](?=[^\s\x00-\x7f]))\s*/).map((p) => p.replace(/\[\d+\]|【\d+】/g, "").trim()).filter((p) => p && !/^(pdf|docx?|pptx?|xlsx?|html?|…|\.\.\.)$/i.test(p)).filter((p) => p.includes(word));
-    return withWord.length ? withWord.sort((a, b) => b.length - a.length)[0] : text.trim();
+  var HAN2 = /[㐀-䶿一-鿿豈-﫿]/g, fold = (s) => s.replaceAll("\u81FA", "\u53F0");
+  function findWord(text, word, alt) {
+    let t = fold(text);
+    for (let w2 of [word, alt]) {
+      let i = w2 ? t.indexOf(fold(w2)) : -1;
+      if (w2 && i >= 0) return { i, len: w2.length };
+    }
+  }
+  function hasWord(text, word, alt) {
+    return !!findWord(text, word, alt);
+  }
+  var CUES = /\[[^\]\n]{1,10}\]|［[^］\n]{1,10}］|【\d+】|\*[^*\n]{1,10}\*|[♪♫]/g;
+  function cleanSentence(text, word, alt) {
+    let withWord = text.replace(CUES, " ").split(/\s*(?:[|｜]|\s[-–—]\s|(?<=[^\s\x00-\x7f])[-–—_](?=[^\s\x00-\x7f]))\s*/).map((p) => p.replace(/[ \t]+/g, " ").trim()).filter((p) => p && !/^(pdf|docx?|pptx?|xlsx?|html?|…|\.\.\.)$/i.test(p)).filter((p) => hasWord(p, word, alt));
+    return withWord.length ? withWord.sort((a, b) => b.length - a.length)[0] : text.replace(CUES, " ").replace(/[ \t]+/g, " ").trim();
   }
   function usefulSentence(text, word) {
-    return (text.match(HAN2)?.length ?? 0) >= [...word].length + 2;
+    let han = text.match(HAN2)?.length ?? 0, latin = text.match(/[A-Za-z]/g)?.length ?? 0;
+    return han >= [...word].length + 2 && han * 2 >= latin;
   }
   function quoted(s) {
     let inside = new Array(s.length).fill(!1), open = [];
@@ -1408,7 +1420,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
   function isStop(s, i, inside) {
     let c = s[i];
     return c === `
-` || c === "\r" ? !0 : inside[i] ? !1 : "\u3002\uFF01\uFF1F!?".includes(c) ? !0 : c === "." && !(/[0-9A-Za-z]/.test(s[i - 1] ?? "") && /[0-9A-Za-z]/.test(s[i + 1] ?? ""));
+` || c === "\r" ? !0 : inside[i] ? !1 : "\u3002\uFF01\uFF1F".includes(c) ? !0 : ".!?".includes(c) && !/[0-9A-Za-z]/.test(s[i + 1] ?? "");
   }
   var CLOSER = /[」』"”’'）)】》〉\]]/;
   function sentenceBounds(s, pos) {
@@ -1442,6 +1454,14 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     }
     let mid = s.slice(a, b).trim().replace(/^[，、；：,;:]+|[，、；：,;:]+$/g, "");
     return `${a > 0 ? "\u2026" : ""}${mid}${b < s.length ? "\u2026" : ""}`;
+  }
+  function metSentence(c, word, max = 80) {
+    let [zh, ...en] = c.text.split(" \u2014 "), hit = findWord(zh, word, c.q);
+    if (!hit) return "";
+    let [a, b] = sentenceBounds(zh, hit.i), one = cleanSentence(zh.slice(a, b), word, c.q), at = findWord(one, word, c.q);
+    if (!at || !usefulSentence(one, word)) return "";
+    let out = trimAround(one, at.i, at.len, max);
+    return out === zh.trim() && en.length ? [out, ...en].join(" \u2014 ") : out;
   }
 
   // src/content/css.ts
@@ -2289,14 +2309,23 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     }
     recordLook() {
       let m = this.current;
-      !m || !this.opts || !stampable(m) || browser.runtime.sendMessage({ type: "looked", word: m.word, src: this.opts.src, url: this.opts.ctx?.url, ctx: this.opts.ctx });
+      !m || !this.opts || !stampable(m) || browser.runtime.sendMessage({ type: "looked", word: m.word, src: this.opts.src, url: this.opts.ctx?.url, ctx: this.ctxFor(m) });
+    }
+    /**
+     * The sentence this word was met in: the page's, but only when the word is in it. A word opened
+     * inside the card (from an example or the breakdown) wasn't met there, and neither is one met
+     * on the extension's own pages. Carries the word as written there when that differs.
+     */
+    ctxFor(m, ctx2 = this.opts?.ctx) {
+      if (!(!ctx2 || /^(moz|chrome)-extension:/.test(ctx2.url) || !hasWord(ctx2.text.split(" \u2014 ")[0], m.word, m.text)))
+        return m.text !== m.word ? { ...ctx2, q: m.text } : ctx2;
     }
     /** Set a status; pressing the active one again clears it. */
     setStatus(status, toggle = !0) {
       let m = this.current;
       if (!m || !this.opts || !stampable(m)) return;
       let cur = state.status(m.word), next = toggle && cur === status ? null : status;
-      next !== cur && (next ? state.statuses.set(m.word, next) : state.statuses.delete(m.word), stampSound(next), this.infoCache.delete(m.word), this.render(next ?? void 0), browser.runtime.sendMessage({ type: "setStatus", word: m.word, status: next, entry: m.entries[0], ctx: this.opts.ctx }));
+      next !== cur && (next ? state.statuses.set(m.word, next) : state.statuses.delete(m.word), stampSound(next), this.infoCache.delete(m.word), this.render(next ?? void 0), browser.runtime.sendMessage({ type: "setStatus", word: m.word, status: next, entry: m.entries[0], ctx: this.ctxFor(m) }));
     }
     speak() {
       let m = this.current;
@@ -2364,7 +2393,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       let want = key === "1" ? "fresh" : key === "2" ? "learning" : key === "3" ? "known" : null, cur = state.status(m.word), next = want && cur === want ? null : want;
       if (next === cur) return;
       next ? state.statuses.set(m.word, next) : state.statuses.delete(m.word), stampSound(next);
-      let ctx2 = target.sentence ? { text: target.sentence, url: location.href, title: document.title, at: Date.now(), src: this.opts.src } : void 0;
+      let ctx2 = target.sentence ? this.ctxFor(m, { text: target.sentence, url: location.href, title: document.title, at: Date.now(), src: this.opts.src }) : void 0;
       browser.runtime.sendMessage({ type: "setStatus", word: m.word, status: next, entry: m.entries[0], ctx: ctx2 });
     }
     async showHint(el3) {
@@ -2635,7 +2664,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         }
         card.append(h("div", { class: "sect" }, grid));
       }
-      let mine = info?.mine ?? [], cutFrom = new Set(mine.map((x) => x.from).filter((x) => !!x)), [hereZh = "", ...hereEn] = o.ctx?.text.split(" \u2014 ") ?? [], here = cleanSentence(hereZh.trim(), m.word), showHere = !!o.ctx && !m.phrase && usefulSentence(here, m.word) && !cutFrom.has(here), seen = (info?.seen ?? []).filter((c) => c.zh !== here && c.text !== o.ctx?.text && !cutFrom.has(c.zh)).slice(0, 2), savedRows = mine.filter((x) => x.zh !== here && !seen.some((c) => c.zh === x.zh)), examples = (info?.examples ?? []).filter((x) => !cutFrom.has(x.zh)), canWrite = examples.length < 2 && !!s.geminiKey && !m.phrase;
+      let mine = info?.mine ?? [], cutFrom = new Set(mine.map((x) => x.from).filter((x) => !!x)), hereCtx = m.phrase ? void 0 : this.ctxFor(m), [here = "", ...hereEn] = hereCtx ? metSentence(hereCtx, m.word, 120).split(" \u2014 ") : [], showHere = !!here && !cutFrom.has(here), seen = (info?.seen ?? []).filter((c) => c.zh !== here && !cutFrom.has(c.zh)).slice(0, 2), savedRows = mine.filter((x) => x.zh !== here && !seen.some((c) => c.zh === x.zh)), examples = (info?.examples ?? []).filter((x) => !cutFrom.has(x.zh)), canWrite = examples.length < 2 && !!s.geminiKey && !m.phrase;
       if (examples.length || seen.length || canWrite || showHere || savedRows.length) {
         let sect = h("div", { class: "sect" });
         if (examples.length && sect.append(
@@ -2662,7 +2691,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         }
         let lists = [
           ["This sentence", showHere ? [this.sentenceRow(m.word, { zh: here, en: hereEn.join(" \u2014 ").trim() })] : []],
-          ["You met it in", seen.map((c) => this.sentenceRow(m.word, { zh: c.zh, en: c.text.split(" \u2014 ").slice(1).join(" \u2014 ").trim(), toks: c.toks, met: c.text }))],
+          ["You met it in", seen.map((c) => this.sentenceRow(m.word, { zh: c.zh, en: c.en ?? "", toks: c.toks, met: c.text }))],
           ["Saved", savedRows.map((x) => this.sentenceRow(m.word, { ...x, showEn: !0 }))]
         ], above = examples.length > 0 || canWrite;
         for (let [label, rows] of lists)

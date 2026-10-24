@@ -1,13 +1,25 @@
 "use strict";
 (() => {
   // src/shared/context.ts
-  var HAN = /[㐀-䶿一-鿿豈-﫿]/g;
-  function cleanSentence(text, word) {
-    let withWord = text.split(/\s*(?:[|｜]|\s[-–—]\s|(?<=[^\s\x00-\x7f])[-–—_](?=[^\s\x00-\x7f]))\s*/).map((p) => p.replace(/\[\d+\]|【\d+】/g, "").trim()).filter((p) => p && !/^(pdf|docx?|pptx?|xlsx?|html?|…|\.\.\.)$/i.test(p)).filter((p) => p.includes(word));
-    return withWord.length ? withWord.sort((a, b) => b.length - a.length)[0] : text.trim();
+  var HAN = /[㐀-䶿一-鿿豈-﫿]/g, fold = (s) => s.replaceAll("\u81FA", "\u53F0");
+  function findWord(text, word, alt) {
+    let t = fold(text);
+    for (let w of [word, alt]) {
+      let i = w ? t.indexOf(fold(w)) : -1;
+      if (w && i >= 0) return { i, len: w.length };
+    }
+  }
+  function hasWord(text, word, alt) {
+    return !!findWord(text, word, alt);
+  }
+  var CUES = /\[[^\]\n]{1,10}\]|［[^］\n]{1,10}］|【\d+】|\*[^*\n]{1,10}\*|[♪♫]/g;
+  function cleanSentence(text, word, alt) {
+    let withWord = text.replace(CUES, " ").split(/\s*(?:[|｜]|\s[-–—]\s|(?<=[^\s\x00-\x7f])[-–—_](?=[^\s\x00-\x7f]))\s*/).map((p) => p.replace(/[ \t]+/g, " ").trim()).filter((p) => p && !/^(pdf|docx?|pptx?|xlsx?|html?|…|\.\.\.)$/i.test(p)).filter((p) => hasWord(p, word, alt));
+    return withWord.length ? withWord.sort((a, b) => b.length - a.length)[0] : text.replace(CUES, " ").replace(/[ \t]+/g, " ").trim();
   }
   function usefulSentence(text, word) {
-    return (text.match(HAN)?.length ?? 0) >= [...word].length + 2;
+    let han = text.match(HAN)?.length ?? 0, latin = text.match(/[A-Za-z]/g)?.length ?? 0;
+    return han >= [...word].length + 2 && han * 2 >= latin;
   }
   function saveInList(list, o, now = Date.now()) {
     let zh = o.zh.trim(), old = o.replace ? list.find((x) => x.zh === o.replace) : void 0, out = list.filter((x) => x.zh !== zh && (!o.replace || x.zh !== o.replace));
@@ -35,7 +47,7 @@
   function isStop(s, i, inside) {
     let c = s[i];
     return c === `
-` || c === "\r" ? !0 : inside[i] ? !1 : "\u3002\uFF01\uFF1F!?".includes(c) ? !0 : c === "." && !(/[0-9A-Za-z]/.test(s[i - 1] ?? "") && /[0-9A-Za-z]/.test(s[i + 1] ?? ""));
+` || c === "\r" ? !0 : inside[i] ? !1 : "\u3002\uFF01\uFF1F".includes(c) ? !0 : ".!?".includes(c) && !/[0-9A-Za-z]/.test(s[i + 1] ?? "");
   }
   var CLOSER = /[」』"”’'）)】》〉\]]/;
   function sentenceBounds(s, pos) {
@@ -66,12 +78,13 @@
     let mid = s.slice(a, b).trim().replace(/^[，、；：,;:]+|[，、；：,;:]+$/g, "");
     return `${a > 0 ? "\u2026" : ""}${mid}${b < s.length ? "\u2026" : ""}`;
   }
-  var fold = (s) => s.replaceAll("\u81FA", "\u53F0");
-  function sentenceWith(text, word, max = 80) {
-    let [zh, ...rest] = text.split(" \u2014 "), i = fold(zh).indexOf(fold(word));
-    if (!word || i < 0) return "";
-    let [a, b] = sentenceBounds(zh, i), one = trimAround(zh.slice(a, b), i - a, word.length, max);
-    return one === zh.trim() && rest.length ? [one, ...rest].join(" \u2014 ") : one;
+  function metSentence(c, word, max = 80) {
+    let [zh, ...en] = c.text.split(" \u2014 "), hit = findWord(zh, word, c.q);
+    if (!hit) return "";
+    let [a, b] = sentenceBounds(zh, hit.i), one = cleanSentence(zh.slice(a, b), word, c.q), at = findWord(one, word, c.q);
+    if (!at || !usefulSentence(one, word)) return "";
+    let out = trimAround(one, at.i, at.len, max);
+    return out === zh.trim() && en.length ? [out, ...en].join(" \u2014 ") : out;
   }
 
   // src/shared/dict.ts
@@ -315,6 +328,67 @@
     return s.siteColors[host] ?? s.pageColors;
   }
 
+  // src/shared/gloss.ts
+  var POINTER = /^(CL:|(old |unofficial )?variant of |used in |see |also pr\.|also written |surname )/i;
+  function tidy(sense) {
+    let s = sense.replace(/\s*\(?CL:[^)/]*\)?/g, "").replace(/\s*\(Taiwan pr\. \[[^\]]*\]\)/g, "").replace(/([^\s[|,;()"]+)\|[^\s[,;()"]+\[[^\]]*\]/g, "$1").replace(/([^\s[|,;()"]+)\[[a-zA-Z0-9: ]+\]/g, "$1"), outside = s.replace(/\([^()]*\)/g, "").trim();
+    return s = s.replace(/\(([^()]*)\)/g, (note, inner, at) => outside ? inner.length <= 24 || at > 0 && outside.length <= 12 ? note : "" : inner), s.replace(/\s+/g, " ").replace(/\s+([,;])/g, "$1").replace(/^[\s,;]+|[\s,;]+$/g, "");
+  }
+  function beforeComma(s) {
+    let depth = 0;
+    for (let i = 0; i < s.length - 1; i++)
+      if (s[i] === "(") depth++;
+      else if (s[i] === ")") depth = Math.max(0, depth - 1);
+      else if (s[i] === "," && s[i + 1] === " " && !depth) return s.slice(0, i);
+    return s;
+  }
+  function cutWords(s, max) {
+    let cut = s.lastIndexOf(" ", max - 1);
+    return `${s.slice(0, cut > max / 2 ? cut : max - 1).replace(/[\s,;]+$/, "")}\u2026`;
+  }
+  function shortGloss(e, max = 60) {
+    let items = [], seen = /* @__PURE__ */ new Set();
+    for (let sense of e.defs)
+      if (!POINTER.test(sense))
+        for (let item of tidy(sense).split(/;\s*/)) {
+          item.length > 40 && (item = beforeComma(item));
+          let key = (item.replace(/\([^()]*\)/g, "").trim() || item).toLowerCase();
+          !key || seen.has(key) || (seen.add(key), items.push(item));
+        }
+    if (!items.length) return tidy(e.defs[0] ?? "");
+    let out = items[0].length > max ? cutWords(items[0], max) : items[0];
+    for (let item of items.slice(1)) {
+      if (out.length + 2 + item.length > max) break;
+      out += "; " + item;
+    }
+    return out;
+  }
+  function listPinyin(py, word, parts) {
+    let sylls = py.split(/\s+/).filter(Boolean), chars = [...word];
+    if (sylls.length < 4 || sylls.length !== chars.length || parts.length < 2 || /[A-Za-z0-9]/.test(word)) return numberedToMarked(py);
+    let out = [], i = 0;
+    for (let part of parts) {
+      let n = [...part].length;
+      out.push(numberedToMarked(sylls.slice(i, i + n).join(" "))), i += n;
+    }
+    return i === sylls.length ? out.join(" ") : numberedToMarked(py);
+  }
+  function freshen(d, w) {
+    let entries = d.get(w.w), marked = (e2) => numberedToMarked(e2.tw || e2.py), saved = (w.p ?? "").replace(/\s+/g, "").toLowerCase(), e = saved ? entries.find((x) => marked(x).toLowerCase() === saved) : entries[0];
+    if (e) return { ...w, p: listPinyin(e.tw || e.py, w.w, d.split(w.w)), g: shortGloss(e) };
+    if (w.p || entries.length || !CJK.test(w.w)) return w.g && w.g.length >= 118 ? { ...w, g: uncut(w.g) } : w;
+    let parts = d.segment(w.w).map((t) => ({ t, e: t.word ? d.get(t.word)[0] : void 0 }));
+    return {
+      ...w,
+      p: parts.map(({ t, e: pe }) => pe ? marked(pe) : t.text).join(" "),
+      g: w.g || parts.map(({ t, e: pe }) => pe ? `${t.text} ${shortGloss(pe, 24).split("; ")[0]}` : "").filter(Boolean).join(" + ")
+    };
+  }
+  function uncut(g) {
+    let i = g.lastIndexOf("; ");
+    return i > 0 ? g.slice(0, i) : g;
+  }
+
   // src/shared/time.ts
   function dayKeyLocal(t) {
     let d = new Date(t);
@@ -394,13 +468,8 @@
     }
   };
   function addContext(rec, ctx) {
-    let [zh, ...en] = ctx.text.trim().split(" \u2014 "), clean = cleanSentence(zh, rec.w);
-    if (!usefulSentence(clean, rec.w)) return;
-    let text = sentenceWith([clean, ...en].join(" \u2014 "), rec.w, 300) || trimAround(clean, 0, 1, 300);
-    rec.ctx.some((c) => c.text === text) || (rec.ctx.unshift({ ...ctx, text }), rec.ctx = rec.ctx.slice(0, 5));
-  }
-  function shortGloss(e) {
-    return e.defs.filter((d) => !d.startsWith("CL:")).slice(0, 3).join("; ").slice(0, 120);
+    let text = metSentence(ctx, rec.w, 300);
+    !text || rec.ctx.some((c) => c.text === text) || (rec.ctx.unshift({ ...ctx, text }), rec.ctx = rec.ctx.slice(0, 5));
   }
 
   // src/background/gemini.ts
@@ -969,10 +1038,10 @@ Give each with a natural American English translation.`, schema = {
       case "ytCached":
         return Promise.resolve(sender.tab?.id != null ? cachedCaptions(sender.tab.id) : []);
       case "allData":
-        return storeReady.then(async () => {
+        return Promise.all([storeReady, dictReady]).then(async ([, d]) => {
           let all = await browser.storage.local.get(null), saved = {};
           for (let [k, v] of Object.entries(all)) k.startsWith("sav:") && (saved[k.slice(4)] = v);
-          return { words: [...store.words.values()], logs: await store.allLogs(), saved };
+          return { words: [...store.words.values()].map((w) => freshen(d, w)), logs: await store.allLogs(), saved };
         });
       case "importWords":
         return storeReady.then(() => store.importWords(any.words, any.mode ?? "merge"));
@@ -1055,7 +1124,10 @@ Give each with a natural American English translation.`, schema = {
             let mineEn = savedList.find((y) => y.zh === x.zh)?.en;
             mineEn && (x.en = mineEn);
           }
-          let seen = (record?.ctx ?? []).map((c) => ({ c, zh: cleanSentence(c.text.split(" \u2014 ")[0], word) })).filter(({ zh }) => usefulSentence(zh, word)).filter(({ zh }, i, all) => all.findIndex((x) => x.zh === zh) === i).slice(0, 3).map(({ c, zh }) => ({ ...c, zh, toks: d.segment(zh) })), shown = new Set(ex.map((x) => x.zh)), mine = savedList.filter((x) => !shown.has(x.zh)).map((x) => ({ zh: x.zh, en: x.en, from: x.from, toks: d.segment(x.zh) }));
+          let seen = (record?.ctx ?? []).map((c) => {
+            let [zh, ...en] = metSentence(c, word, 120).split(" \u2014 ");
+            return { c, zh, en: en.join(" \u2014 ") };
+          }).filter(({ zh }) => zh).filter(({ zh }, i, all) => all.findIndex((x) => x.zh === zh) === i).slice(0, 3).map(({ c, zh, en }) => ({ ...c, zh, en, toks: d.segment(zh) })), shown = new Set(ex.map((x) => x.zh)), mine = savedList.filter((x) => !shown.has(x.zh)).map((x) => ({ zh: x.zh, en: x.en, from: x.from, toks: d.segment(x.zh) }));
           return { chars, examples: ex, seen, record, saved, mine };
         });
       case "glosses":

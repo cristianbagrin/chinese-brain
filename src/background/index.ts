@@ -1,9 +1,10 @@
-import { cleanSentence, saveInList, usefulSentence } from '../shared/context.ts';
+import { metSentence, saveInList } from '../shared/context.ts';
 import { CJK, Dictionary } from '../shared/dict.ts';
 import type { Entry, LookupMatch, SavedSentence } from '../shared/types.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import { colorsOn, DEFAULT_SETTINGS, normalizeSettings, type Msg, type Settings, type Status, type WordRecord } from '../shared/types.ts';
-import { shortGloss, Store } from './store.ts';
+import { freshen, shortGloss } from '../shared/gloss.ts';
+import { Store } from './store.ts';
 import { geminiExamples, geminiModels, geminiTranscribe } from './gemini.ts';
 import { checkAzure, ttsAudio } from './speech.ts';
 import { translateLines } from './translate.ts';
@@ -200,11 +201,11 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
     case 'ytCached':
       return Promise.resolve(sender.tab?.id != null ? cachedCaptions(sender.tab.id) : []);
     case 'allData':
-      return storeReady.then(async () => {
+      return Promise.all([storeReady, dictReady]).then(async ([, d]) => {
         const all = await browser.storage.local.get(null);
         const saved: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(all)) if (k.startsWith('sav:')) saved[k.slice(4)] = v;
-        return { words: [...store.words.values()], logs: await store.allLogs(), saved };
+        return { words: [...store.words.values()].map((w) => freshen(d, w)), logs: await store.allLogs(), saved };
       });
     case 'importWords':
       return storeReady.then(() => store.importWords(any.words as never, (any.mode as 'merge' | 'replace') ?? 'merge'));
@@ -321,14 +322,17 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
           const mineEn = savedList.find((y) => y.zh === x.zh)?.en;
           if (mineEn) x.en = mineEn;
         }
-        // Where you met it: the last two real sentences, without page-title clutter.
+        // Where you met it: the last real sentences with the word in them, without page-title clutter.
         const seen = (record?.ctx ?? [])
-          .map((c) => ({ c, zh: cleanSentence(c.text.split(' — ')[0], word) }))
-          .filter(({ zh }) => usefulSentence(zh, word))
+          .map((c) => {
+            const [zh, ...en] = metSentence(c, word, 120).split(' — ');
+            return { c, zh, en: en.join(' — ') };
+          })
+          .filter(({ zh }) => zh)
           // The same line met twice (e.g. a replayed caption with a different tail) is one sentence.
           .filter(({ zh }, i, all) => all.findIndex((x) => x.zh === zh) === i)
           .slice(0, 3)
-          .map(({ c, zh }) => ({ ...c, zh, toks: d.segment(zh) }));
+          .map(({ c, zh, en }) => ({ ...c, zh, en, toks: d.segment(zh) }));
         // Your saved sentences that aren't among the examples (met ones, often trimmed).
         const shown = new Set(ex.map((x) => x.zh));
         const mine = savedList.filter((x) => !shown.has(x.zh)).map((x) => ({ zh: x.zh, en: x.en, from: x.from, toks: d.segment(x.zh) }));

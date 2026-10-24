@@ -42,6 +42,8 @@ export interface Token {
 
 export interface Context {
   text: string;
+  /** The word as written in the text when it differs from the headword (simplified, 台 for 臺). */
+  q?: string;
   url: string;
   title?: string;
   /** Seconds into the video, for YouTube contexts. */

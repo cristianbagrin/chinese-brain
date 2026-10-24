@@ -1,4 +1,4 @@
-import { sentenceWith } from '../shared/context.ts';
+import { metSentence } from '../shared/context.ts';
 import { buildClaudeExport, parseWordList, shortSource } from '../shared/export.ts';
 import { clock } from '../shared/time.ts';
 import type { LogEvent, Status, WordRecord } from '../shared/types.ts';
@@ -72,7 +72,7 @@ function sentence(text: string, word: string): (Node | string)[] {
 function card(w: WordRecord) {
   const gone = removed.has(w.w) && !words.some((x) => x.w === w.w);
   // The same sentence the export uses: the one with the word in it, trimmed around it.
-  const met = w.ctx.map((c) => ({ c, text: sentenceWith(c.text, w.w).split(' — ')[0] })).find((x) => x.text);
+  const met = w.ctx.map((c) => ({ c, text: metSentence(c, w.w).split(' — ')[0] })).find((x) => x.text);
   let link: HTMLElement | null = null;
   if (met) {
     const c = met.c;

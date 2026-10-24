@@ -2,25 +2,52 @@ import type { SavedSentence } from './types.ts';
 
 const HAN = /[㐀-䶿一-鿿豈-﫿]/g;
 
+/** 臺北 and 台北 are the same word; matching treats them alike. */
+const fold = (s: string) => s.replaceAll('臺', '台');
+
+/** Where the word is in the text: as stored, else as it was written there (`alt`, e.g. simplified). */
+function findWord(text: string, word: string, alt?: string): { i: number; len: number } | undefined {
+  const t = fold(text);
+  for (const w of [word, alt]) {
+    const i = w ? t.indexOf(fold(w)) : -1;
+    if (w && i >= 0) return { i, len: w.length };
+  }
+  return undefined;
+}
+
+/** Is the word in the text (as stored, or as written there)? */
+export function hasWord(text: string, word: string, alt?: string): boolean {
+  return !!findWord(text, word, alt);
+}
+
+/** Caption cues that aren't speech: [音樂], ［笑］, *拍手*, ♪, and [114902300]-style ids. */
+const CUES = /\[[^\]\n]{1,10}\]|［[^］\n]{1,10}］|【\d+】|\*[^*\n]{1,10}\*|[♪♫]/g;
+
 /**
  * A sentence met on a page, without the page-title clutter around it:
  * "維基百科，自由的百科全書 | PDF" -> "維基百科，自由的百科全書",
  * "簡單可愛的夏日插畫集（單色）-插圖素材[114902300] - PIXTA圖庫" -> "簡單可愛的夏日插畫集（單色）".
  * Titles join their parts with | or dashes; the part with the word is the one worth keeping.
  */
-export function cleanSentence(text: string, word: string): string {
+export function cleanSentence(text: string, word: string, alt?: string): string {
   const parts = text
+    .replace(CUES, ' ')
     .split(/\s*(?:[|｜]|\s[-–—]\s|(?<=[^\s\x00-\x7f])[-–—_](?=[^\s\x00-\x7f]))\s*/)
-    .map((p) => p.replace(/\[\d+\]|【\d+】/g, '').trim())
+    .map((p) => p.replace(/[ \t]+/g, ' ').trim())
     .filter((p) => p && !/^(pdf|docx?|pptx?|xlsx?|html?|…|\.\.\.)$/i.test(p));
-  const withWord = parts.filter((p) => p.includes(word));
-  if (!withWord.length) return text.trim();
+  const withWord = parts.filter((p) => hasWord(p, word, alt));
+  if (!withWord.length) return text.replace(CUES, ' ').replace(/[ \t]+/g, ' ').trim();
   return withWord.sort((a, b) => b.length - a.length)[0];
 }
 
-/** Worth showing: a real sentence around the word, not just the word (or a bare title). */
+/**
+ * Worth showing: a real Chinese sentence around the word. Not just the word, a bare title, or an
+ * English note with a few Chinese words in it (Latin letters count half: a name or two is fine).
+ */
 export function usefulSentence(text: string, word: string): boolean {
-  return (text.match(HAN)?.length ?? 0) >= [...word].length + 2;
+  const han = text.match(HAN)?.length ?? 0;
+  const latin = text.match(/[A-Za-z]/g)?.length ?? 0;
+  return han >= [...word].length + 2 && han * 2 >= latin;
 }
 
 /**
@@ -64,15 +91,16 @@ function quoted(s: string): boolean[] {
 }
 
 /**
- * Ends a sentence: 。！？!? or a line break, and a "." that isn't inside a number or a name like
- * www.x.com. Punctuation inside 「」 or 『』 doesn't: 「你好嗎？」他問。 is one sentence.
+ * Ends a sentence: 。！？ or a line break, and . ! ? unless a letter or digit follows them (3.5,
+ * www.x.com, .srt and watch?v= don't). Punctuation inside 「」 or 『』 doesn't: 「你好嗎？」他問。
+ * is one sentence.
  */
 function isStop(s: string, i: number, inside: boolean[]): boolean {
   const c = s[i];
   if (c === '\n' || c === '\r') return true;
   if (inside[i]) return false;
-  if ('。！？!?'.includes(c)) return true;
-  return c === '.' && !(/[0-9A-Za-z]/.test(s[i - 1] ?? '') && /[0-9A-Za-z]/.test(s[i + 1] ?? ''));
+  if ('。！？'.includes(c)) return true;
+  return '.!?'.includes(c) && !/[0-9A-Za-z]/.test(s[i + 1] ?? '');
 }
 const CLOSER = /[」』"”’'）)】》〉\]]/;
 
@@ -119,19 +147,21 @@ export function trimAround(s: string, i: number, len: number, max: number): stri
   return `${a > 0 ? '…' : ''}${mid}${b < s.length ? '…' : ''}`;
 }
 
-/** 臺北 and 台北 are the same word; matching treats them alike. */
-const fold = (s: string) => s.replaceAll('臺', '台');
-
 /**
- * The single sentence `word` appears in, trimmed to about `max` characters around it, or ''
- * when the word isn't in the text (an empty cell beats a wrong sentence). For YouTube's
- * "Chinese — English" the English stays only when the Chinese came through whole.
+ * The sentence a word was met in, ready to show or export: the one sentence with the word in it
+ * (from stop to stop, page-title clutter and caption cues removed), trimmed to about `max`
+ * characters around the word. '' when the text doesn't have the word or isn't really a Chinese
+ * sentence: an empty cell beats a wrong sentence. `q` is the word as written there (simplified,
+ * 台 for 臺). For YouTube's "Chinese — English" the English stays only with the whole line.
  */
-export function sentenceWith(text: string, word: string, max = 80): string {
-  const [zh, ...rest] = text.split(' — ');
-  const i = fold(zh).indexOf(fold(word));
-  if (!word || i < 0) return '';
-  const [a, b] = sentenceBounds(zh, i);
-  const one = trimAround(zh.slice(a, b), i - a, word.length, max);
-  return one === zh.trim() && rest.length ? [one, ...rest].join(' — ') : one;
+export function metSentence(c: { text: string; q?: string }, word: string, max = 80): string {
+  const [zh, ...en] = c.text.split(' — ');
+  const hit = findWord(zh, word, c.q);
+  if (!hit) return '';
+  const [a, b] = sentenceBounds(zh, hit.i);
+  const one = cleanSentence(zh.slice(a, b), word, c.q);
+  const at = findWord(one, word, c.q);
+  if (!at || !usefulSentence(one, word)) return '';
+  const out = trimAround(one, at.i, at.len, max);
+  return out === zh.trim() && en.length ? [out, ...en].join(' — ') : out;
 }

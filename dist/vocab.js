@@ -1,6 +1,26 @@
 "use strict";
 (() => {
   // src/shared/context.ts
+  var HAN = /[㐀-䶿一-鿿豈-﫿]/g, fold = (s) => s.replaceAll("\u81FA", "\u53F0");
+  function findWord(text, word, alt) {
+    let t = fold(text);
+    for (let w of [word, alt]) {
+      let i = w ? t.indexOf(fold(w)) : -1;
+      if (w && i >= 0) return { i, len: w.length };
+    }
+  }
+  function hasWord(text, word, alt) {
+    return !!findWord(text, word, alt);
+  }
+  var CUES = /\[[^\]\n]{1,10}\]|［[^］\n]{1,10}］|【\d+】|\*[^*\n]{1,10}\*|[♪♫]/g;
+  function cleanSentence(text, word, alt) {
+    let withWord = text.replace(CUES, " ").split(/\s*(?:[|｜]|\s[-–—]\s|(?<=[^\s\x00-\x7f])[-–—_](?=[^\s\x00-\x7f]))\s*/).map((p) => p.replace(/[ \t]+/g, " ").trim()).filter((p) => p && !/^(pdf|docx?|pptx?|xlsx?|html?|…|\.\.\.)$/i.test(p)).filter((p) => hasWord(p, word, alt));
+    return withWord.length ? withWord.sort((a, b) => b.length - a.length)[0] : text.replace(CUES, " ").replace(/[ \t]+/g, " ").trim();
+  }
+  function usefulSentence(text, word) {
+    let han = text.match(HAN)?.length ?? 0, latin = text.match(/[A-Za-z]/g)?.length ?? 0;
+    return han >= [...word].length + 2 && han * 2 >= latin;
+  }
   function quoted(s) {
     let inside = new Array(s.length).fill(!1), open = [];
     for (let i = 0; i < s.length; i++) {
@@ -19,7 +39,7 @@
   function isStop(s, i, inside) {
     let c = s[i];
     return c === `
-` || c === "\r" ? !0 : inside[i] ? !1 : "\u3002\uFF01\uFF1F!?".includes(c) ? !0 : c === "." && !(/[0-9A-Za-z]/.test(s[i - 1] ?? "") && /[0-9A-Za-z]/.test(s[i + 1] ?? ""));
+` || c === "\r" ? !0 : inside[i] ? !1 : "\u3002\uFF01\uFF1F".includes(c) ? !0 : ".!?".includes(c) && !/[0-9A-Za-z]/.test(s[i + 1] ?? "");
   }
   var CLOSER = /[」』"”’'）)】》〉\]]/;
   function sentenceBounds(s, pos) {
@@ -50,12 +70,13 @@
     let mid = s.slice(a, b).trim().replace(/^[，、；：,;:]+|[，、；：,;:]+$/g, "");
     return `${a > 0 ? "\u2026" : ""}${mid}${b < s.length ? "\u2026" : ""}`;
   }
-  var fold = (s) => s.replaceAll("\u81FA", "\u53F0");
-  function sentenceWith(text, word, max = 80) {
-    let [zh, ...rest] = text.split(" \u2014 "), i = fold(zh).indexOf(fold(word));
-    if (!word || i < 0) return "";
-    let [a, b] = sentenceBounds(zh, i), one = trimAround(zh.slice(a, b), i - a, word.length, max);
-    return one === zh.trim() && rest.length ? [one, ...rest].join(" \u2014 ") : one;
+  function metSentence(c, word, max = 80) {
+    let [zh, ...en] = c.text.split(" \u2014 "), hit = findWord(zh, word, c.q);
+    if (!hit) return "";
+    let [a, b] = sentenceBounds(zh, hit.i), one = cleanSentence(zh.slice(a, b), word, c.q), at = findWord(one, word, c.q);
+    if (!at || !usefulSentence(one, word)) return "";
+    let out = trimAround(one, at.i, at.len, max);
+    return out === zh.trim() && en.length ? [out, ...en].join(" \u2014 ") : out;
   }
 
   // src/shared/time.ts
@@ -118,7 +139,7 @@
       ["word", "now", "was", "date", "pinyin", "meaning", "sentence", "source", "saved"].join("	")
     ];
     for (let r of rows) {
-      let met = (r.rec?.ctx ?? []).map((c) => ({ c, text: sentenceWith(c.text, r.w) })).find((x) => x.text);
+      let met = (r.rec?.ctx ?? []).map((c) => ({ c, text: metSentence(c, r.w) })).find((x) => x.text);
       lines.push(
         [
           r.w,
@@ -217,7 +238,7 @@
     }), out;
   }
   function card(w) {
-    let gone = removed.has(w.w) && !words.some((x) => x.w === w.w), met = w.ctx.map((c) => ({ c, text: sentenceWith(c.text, w.w).split(" \u2014 ")[0] })).find((x) => x.text), link = null;
+    let gone = removed.has(w.w) && !words.some((x) => x.w === w.w), met = w.ctx.map((c) => ({ c, text: metSentence(c, w.w).split(" \u2014 ")[0] })).find((x) => x.text), link = null;
     if (met) {
       let c = met.c, yt = c.src === "yt" && c.t != null;
       link = h("a", { href: yt ? `${c.url}&t=${c.t}s` : c.url, target: "_blank", title: c.title ?? c.url }, yt ? `\u25B6 ${clock(c.t)}` : shortSource(c.url));
