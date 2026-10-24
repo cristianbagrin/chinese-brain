@@ -92,31 +92,9 @@ h2 { font: 700 18px/1.3 var(--sans); margin: 36px 0 12px; }
 .count.learning { border-top-color: var(--learning); }
 .count.known { border-top-color: var(--known); }
 
-.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
-.toolbar input[type='search'] { min-width: 240px; flex: 1; max-width: 360px; }
 .seg { display: inline-flex; background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; padding: 2px; }
 .seg button { border: 0; border-radius: 6px; padding: 4px 12px; background: transparent; }
 .seg button[aria-pressed='true'] { background: var(--ink); color: #fff; }
-
-.list { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; overflow: hidden; }
-.row { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr) auto; gap: 4px 18px; padding: 10px 16px 10px 14px; border-left: 4px solid transparent; border-bottom: 1px solid var(--rule); align-items: center; }
-.row:last-child { border-bottom: 0; }
-.row.fresh { border-left-color: var(--fresh); }
-.row.learning { border-left-color: var(--learning); }
-.row.known { border-left-color: var(--known); }
-.w { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-.w b { font: 600 22px/1.2 var(--sans); }
-.w span { color: var(--ink2); font-size: 14px; }
-.mean { font-size: 14px; }
-.mean .ctx { display: block; color: var(--ink2); font-size: 13px; margin-top: 2px; }
-.mean .ctx a { margin-left: 6px; text-decoration: none; font-size: 12px; }
-.pills { display: flex; gap: 4px; align-items: center; }
-.pill { padding: 3px 10px; border-radius: 999px; font-size: 13px; border: 1px solid var(--rule); background: var(--paper); color: var(--ink2); }
-.pill.fresh.on { background: var(--fresh); border-color: var(--fresh); color: #fff; }
-.pill.learning.on { background: var(--learning); border-color: var(--learning); color: var(--ink); }
-.pill.known.on { background: var(--known); border-color: var(--known); color: #fff; }
-.pill.del { color: var(--ink3); padding: 3px 8px; }
-.when { font-size: 12px; color: var(--ink3); margin-left: 6px; white-space: nowrap; }
 
 .panel { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 18px 20px; max-width: 820px; }
 .panel + .panel { margin-top: 12px; }
@@ -133,7 +111,6 @@ kbd { font: 600 12px var(--sans); background: var(--ground); border: 1px solid v
 
 @media (max-width: 760px) {
   .sign .in, main { padding-left: 16px; padding-right: 16px; }
-  .row { grid-template-columns: 1fr; }
   .rows { grid-template-columns: 1fr; }
 }
 
@@ -154,18 +131,61 @@ kbd { font: 600 12px var(--sans); background: var(--ground); border: 1px solid v
 }
 .saved[hidden] { display: none; }
 
-/* Word list: the counts are the filter. */
-.tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-.tabs button { display: flex; flex-direction: column; align-items: flex-start; min-width: 112px; padding: 9px 16px 8px; border-radius: 10px; border: 1px solid var(--rule); border-bottom: 3px solid var(--rule); text-align: left; }
-.tabs button b { font: 700 22px/1.1 var(--sans); }
-.tabs button span { font-size: 13px; color: var(--ink2); }
-.tabs button.fresh { border-bottom-color: var(--fresh); }
-.tabs button.learning { border-bottom-color: var(--learning); }
-.tabs button.known { border-bottom-color: var(--known); }
-.tabs button.all { border-bottom-color: var(--ink3); }
-.tabs button[aria-pressed='true'] { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
-.tabs button:not([aria-pressed='true']) { opacity: 0.85; }
-.toolbar .grow { flex: 1; }
+/* Word list: a bar that stays on screen (filter, search, sort), then a grid of word cards. */
+.bar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: -8px 0 14px; padding: 8px 0; background: var(--ground); }
+.bar input[type='search'] { flex: 1 1 200px; min-width: 0; height: 38px; }
+.bar select { height: 38px; }
+.bar .jump { font-size: 14px; text-decoration: none; padding: 0 4px; }
+.bar .jump:hover { text-decoration: underline; }
+.seg4 { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: #e7e7f0; }
+.seg4 button { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--ink2); white-space: nowrap; }
+.seg4 button:hover { color: var(--ink); }
+.seg4 button[aria-pressed='true'] { background: var(--paper); color: var(--ink); box-shadow: 0 1px 3px rgba(27, 29, 58, 0.14); }
+.seg4 .zh { font-weight: 600; }
+.seg4 b { font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; min-width: 20px; padding: 1px 6px; border-radius: 999px; background: rgba(27, 29, 58, 0.07); color: var(--ink2); }
+.seg4 button.fresh .zh { color: var(--fresh); }
+.seg4 button.learning .zh { color: #c79400; }
+.seg4 button.known .zh { color: var(--known); }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.card { position: relative; display: flex; flex-direction: column; min-width: 0; padding: 14px 16px 12px; border: 1px solid var(--rule); border-radius: 12px; background: var(--paper); transition: opacity 0.15s; }
+.card:hover { border-color: #cfd0e0; }
+.card .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.card .hw { font: 600 26px/1.15 var(--sans); overflow-wrap: anywhere; }
+.card .py { margin-top: 2px; color: var(--ink2); font-size: 14px; }
+.card .gl { margin-top: 6px; font-size: 14px; line-height: 1.4; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2.8em; }
+.card .ctx { margin: 8px 0 0; padding-top: 8px; border-top: 1px dashed var(--rule); color: var(--ink2); font-size: 13.5px; line-height: 1.5; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2.8em; }
+.card .ctx u { text-decoration: none; color: var(--ink); box-shadow: inset 0 -2px 0 var(--learning); }
+.card .ctx a { font-size: 12px; text-decoration: none; white-space: nowrap; }
+.card .ctx a:hover { text-decoration: underline; }
+/* The stamps sit on the card's bottom edge, so they line up across a row of cards. */
+.card .foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 12px; }
+.stamps { display: inline-flex; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.stamps button { width: 36px; height: 28px; padding: 0; border: 0; border-radius: 0; background: var(--paper); color: var(--ink3); font-size: 14px; }
+.stamps button + button { border-left: 1px solid var(--rule); }
+.stamps button:hover { background: var(--ground); color: var(--ink); }
+.stamps button[aria-pressed='true'] { font-weight: 700; }
+.stamps button.fresh[aria-pressed='true'] { background: #fde6e8; color: #d0182b; }
+.stamps button.learning[aria-pressed='true'] { background: #fff3cc; color: #9a7200; }
+.stamps button.known[aria-pressed='true'] { background: #dcf3e4; color: #13893b; }
+.card .when { font-size: 12px; color: var(--ink3); white-space: nowrap; }
+.card .x { flex: none; width: 26px; height: 26px; margin: -4px -6px 0 0; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--ink3); font-size: 18px; line-height: 1; opacity: 0; transition: opacity 0.12s; }
+.card:hover .x, .card .x:focus-visible { opacity: 1; }
+.card .x:hover { background: var(--ground); color: var(--fresh); }
+@media (hover: none) { .card .x { opacity: 0.6; } }
+.card.gone > :not(.top), .card.gone .hw { opacity: 0.5; }
+.card.gone .hw { text-decoration: line-through; text-decoration-thickness: 2px; }
+.card .undo { padding: 2px 10px; font-size: 13px; }
+.empty { grid-column: 1 / -1; margin: 0; padding: 40px 16px; text-align: center; color: var(--ink2); background: var(--paper); border: 1px dashed var(--rule); border-radius: 12px; }
+.more { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; }
+@media (max-width: 760px) {
+  .seg4 { width: 100%; }
+  .seg4 button { flex: 1; justify-content: center; padding: 0 6px; gap: 4px; }
+  .seg4 button .en { display: none; }
+  .bar input[type='search'] { flex-basis: 0; }
+  .bar .jump { display: none; }
+  .cards { grid-template-columns: 1fr; }
+}
 
 /* Export, import, backup: three small cards. */
 .tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }

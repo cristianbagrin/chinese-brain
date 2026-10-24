@@ -92,7 +92,11 @@ for this one, YouTube subtitles); it fits without scrolling. **All settings** ha
 
 Toolbar button → **Word list & export**.
 
-- The counts at the top are the filter: click one to show only those words.
+- It opens on your 新 Fresh words; the bar at the top (it stays on screen) switches
+  to Learning, Known or All, searches and sorts. Each word is a card with its
+  pinyin, meaning and the sentence you met it in. Restamp it with 新 學 熟 or
+  remove it with × (Undo brings it back); cards you change stay where they are
+  until you switch filters.
 - **Import** your `known-words.txt` (`word⇥K|L⇥date`). K → Known, L → Learning,
   and the dates are kept.
 - **Download new** (or **Copy**) gives one small TSV: words

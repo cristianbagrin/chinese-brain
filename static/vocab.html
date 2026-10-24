@@ -13,18 +13,18 @@
   <nav><a href="vocab.html" aria-current="page">Words</a><a href="options.html">Settings</a></nav>
 </div></header>
 <main>
-  <div class="tabs" id="filter"></div>
-  <div class="toolbar">
-    <input type="search" id="q" placeholder="Search word, pinyin, meaning">
-    <span class="grow"></span>
-    <select id="sort">
+  <div class="bar">
+    <div class="seg4" id="filter" role="group" aria-label="Show"></div>
+    <input type="search" id="q" placeholder="Search words, pinyin, meanings" aria-label="Search">
+    <select id="sort" aria-label="Sort">
       <option value="updated">Recently changed</option>
       <option value="added">Recently added</option>
       <option value="looks">Most looked up</option>
     </select>
+    <a class="jump" href="#export">Export</a>
   </div>
-  <div class="list" id="rows"></div>
-  <p class="muted small" id="more"></p>
+  <div class="cards" id="rows"></div>
+  <div class="more"><span class="muted small" id="more"></span><button id="showMore" hidden>Show more</button></div>
 
   <h2 id="export">Export &amp; backup</h2>
   <div class="tools">

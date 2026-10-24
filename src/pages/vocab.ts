@@ -1,3 +1,4 @@
+import { sentenceWith } from '../shared/context.ts';
 import { buildClaudeExport, parseWordList, shortSource } from '../shared/export.ts';
 import { clock } from '../shared/time.ts';
 import type { LogEvent, Status, WordRecord } from '../shared/types.ts';
@@ -10,8 +11,16 @@ const STAMPS: [Status, string, string][] = [
 ];
 let words: WordRecord[] = [];
 let logs: LogEvent[] = [];
-let filter: Status | 'all' = 'all';
-const PAGE = 300;
+/** Fresh first: the words to work on. */
+let filter: Status | 'all' = 'fresh';
+const PAGE = 120;
+let shown = PAGE;
+/**
+ * Words you restamped or removed in this view stay where they are (with their new status, or
+ * faded with an Undo) until you switch filters, so the grid doesn't jump while you work through it.
+ */
+const kept = new Set<string>();
+const removed = new Map<string, WordRecord>();
 
 async function load() {
   const data = await browser.runtime.sendMessage({ type: 'allData' });
@@ -21,53 +30,114 @@ async function load() {
   renderExportInfo();
 }
 
+const LABEL: Record<Status | 'all', string> = { fresh: 'fresh', learning: 'learning', known: 'known', all: '' };
+
 function render() {
-  // The counts are the filter.
   const n = (s: Status) => words.filter((w) => w.s === s).length;
-  const tab = (f: Status | 'all', count: number, label: string) =>
-    h('button', { class: f, 'data-f': f, 'aria-pressed': String(filter === f) }, h('b', null, String(count)), h('span', null, label));
-  $('filter').replaceChildren(tab('all', words.length, 'All words'), ...STAMPS.map(([s, zh, label]) => tab(s, n(s), `${zh} ${label}`)));
+  const tab = (f: Status | 'all', count: number, ...label: (string | HTMLElement)[]) =>
+    h('button', { class: f, 'data-f': f, 'aria-pressed': String(filter === f) }, ...label, h('b', null, count.toLocaleString('en-US')));
+  $('filter').replaceChildren(
+    ...STAMPS.map(([s, zh, label]) => tab(s, n(s), h('span', { class: 'zh' }, zh), h('span', { class: 'en' }, label))),
+    tab('all', words.length, h('span', null, 'All')),
+  );
   const q = $<HTMLInputElement>('q').value.trim().toLowerCase();
   const sort = $<HTMLSelectElement>('sort').value as 'updated' | 'added' | 'looks';
-  const list = words
-    .filter((w) => filter === 'all' || w.s === filter)
+  const byWord = new Map(words.map((w) => [w.w, w]));
+  for (const [w, rec] of removed) if (!byWord.has(w)) byWord.set(w, rec);
+  const list = [...byWord.values()]
+    .filter((w) => filter === 'all' || w.s === filter || kept.has(w.w) || removed.has(w.w))
     .filter((w) => !q || w.w.includes(q) || (w.p ?? '').toLowerCase().includes(q) || (w.g ?? '').toLowerCase().includes(q))
     .sort((a, b) => (b[sort] as number) - (a[sort] as number));
-  $('rows').replaceChildren(...list.slice(0, PAGE).map(row));
-  $('more').textContent = list.length > PAGE ? `Showing ${PAGE} of ${list.length}. Search to narrow it down.` : `${list.length} words`;
+  $('rows').replaceChildren(...list.slice(0, shown).map(card));
+  if (!list.length) {
+    $('rows').append(
+      h('p', { class: 'empty' }, q ? 'No words match.' : filter === 'all' ? 'No words yet. Stamp a word in the card (1 新, 2 學, 3 熟) and it shows up here.' : `No ${LABEL[filter]} words.`),
+    );
+  }
+  const what = `${LABEL[filter] ? `${LABEL[filter]} ` : ''}word${list.length === 1 ? '' : 's'}`;
+  $('more').textContent = list.length > shown ? `${shown} of ${list.length.toLocaleString('en-US')} ${what}` : list.length ? `${list.length.toLocaleString('en-US')} ${what}` : '';
+  $('showMore').hidden = list.length <= shown;
 }
 
-function row(w: WordRecord) {
-  const c = w.ctx[0];
+/** The sentence with the headword underlined. */
+function sentence(text: string, word: string): (Node | string)[] {
+  const out: (Node | string)[] = [];
+  text.split(word).forEach((part, i) => {
+    if (i) out.push(h('u', null, word));
+    if (part) out.push(part);
+  });
+  return out;
+}
+
+function card(w: WordRecord) {
+  const gone = removed.has(w.w) && !words.some((x) => x.w === w.w);
+  // The same sentence the export uses: the one with the word in it, trimmed around it.
+  const met = w.ctx.map((c) => ({ c, text: sentenceWith(c.text, w.w).split(' — ')[0] })).find((x) => x.text);
   let link: HTMLElement | null = null;
-  if (c) {
+  if (met) {
+    const c = met.c;
     const yt = c.src === 'yt' && c.t != null;
     link = h('a', { href: yt ? `${c.url}&t=${c.t}s` : c.url, target: '_blank', title: c.title ?? c.url }, yt ? `▶ ${clock(c.t!)}` : shortSource(c.url));
   }
-  const pills = h(
+  const stamps = h(
     'div',
-    { class: 'pills' },
+    { class: 'stamps', role: 'group', 'aria-label': 'Status' },
     ...STAMPS.map(([s, zh, label]) => {
-      const b = h('button', { class: `pill ${s}${w.s === s ? ' on' : ''}`, title: label }, zh);
+      const b = h('button', { class: s, title: label, 'aria-pressed': String(w.s === s) }, zh);
       b.addEventListener('click', () => setStatus(w, s));
       return b;
     }),
   );
-  const del = h('button', { class: 'pill del', title: 'Remove from the list' }, '×');
-  del.addEventListener('click', () => setStatus(w, null));
-  pills.append(del, h('span', { class: 'when' }, ago(w.updated)));
+  let corner: HTMLElement;
+  if (gone) {
+    corner = h('button', { class: 'undo' }, 'Undo');
+    corner.addEventListener('click', () => restore(w));
+  } else {
+    corner = h('button', { class: 'x', title: 'Remove from the list', 'aria-label': 'Remove from the list' }, '×');
+    corner.addEventListener('click', () => remove(w));
+  }
   return h(
-    'div',
-    { class: `row ${w.s}` },
-    h('div', { class: 'w' }, h('b', null, w.w), h('span', null, (w.p ?? '').toLowerCase())),
-    h('div', { class: 'mean' }, w.g ?? '', c ? h('span', { class: 'ctx' }, c.text.split(' — ')[0], link) : null),
-    pills,
+    'article',
+    { class: `card ${w.s}${gone ? ' gone' : ''}` },
+    h('div', { class: 'top' }, h('b', { class: 'hw' }, w.w), corner),
+    h('div', { class: 'py' }, (w.p ?? '').toLowerCase()),
+    h('div', { class: 'gl', title: w.g ?? '' }, w.g ?? ''),
+    met ? h('p', { class: 'ctx' }, ...sentence(met.text, w.w), link ? ' ' : '', link) : null,
+    h('div', { class: 'foot' }, gone ? h('span', { class: 'when' }, 'Removed') : stamps, gone ? null : h('span', { class: 'when' }, ago(w.updated))),
   );
 }
 
-async function setStatus(w: WordRecord, s: Status | null) {
+async function setStatus(w: WordRecord, s: Status) {
+  if (w.s === s) return;
+  kept.add(w.w);
+  w.s = s;
+  w.updated = Date.now();
+  render();
   await browser.runtime.sendMessage({ type: 'setStatus', word: w.w, status: s });
-  await load();
+}
+
+async function remove(w: WordRecord) {
+  removed.set(w.w, { ...w, ctx: [...w.ctx], hist: [...w.hist] });
+  words = words.filter((x) => x.w !== w.w);
+  render();
+  await browser.runtime.sendMessage({ type: 'setStatus', word: w.w, status: null });
+}
+
+/** Undo a removal: the whole record comes back (sentences and history too). */
+async function restore(w: WordRecord) {
+  const rec = removed.get(w.w) ?? w;
+  removed.delete(w.w);
+  words = [...words, rec];
+  render();
+  await browser.runtime.sendMessage({ type: 'importWords', words: [rec], mode: 'merge' });
+}
+
+function setFilter(f: Status | 'all') {
+  filter = f;
+  kept.clear();
+  removed.clear();
+  shown = PAGE;
+  render();
 }
 
 async function renderExportInfo() {
@@ -77,25 +147,30 @@ async function renderExportInfo() {
     : 'Nothing exported yet.';
 }
 
-$('q').addEventListener('input', render);
+$('q').addEventListener('input', () => {
+  shown = PAGE;
+  render();
+});
 $('sort').addEventListener('change', render);
+$('showMore').addEventListener('click', () => {
+  shown += PAGE;
+  render();
+});
 /** Open on a status straight from the toolbar menu (vocab.html#fresh, #learning, #known). */
 function filterFromHash() {
   const f = location.hash.slice(1);
-  if (!['all', 'fresh', 'learning', 'known'].includes(f)) return;
+  if (!['all', 'fresh', 'learning', 'known'].includes(f)) return false;
   filter = f as Status | 'all';
+  return true;
 }
 filterFromHash();
 window.addEventListener('hashchange', () => {
-  filterFromHash();
-  render();
+  if (filterFromHash()) setFilter(filter);
 });
 
 $('filter').addEventListener('click', (e) => {
   const b = (e.target as HTMLElement).closest('button');
-  if (!b) return;
-  filter = b.dataset.f as Status | 'all';
-  render();
+  if (b) setFilter(b.dataset.f as Status | 'all');
 });
 
 /**

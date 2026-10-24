@@ -189,59 +189,92 @@
     ["fresh", "\u65B0", "Fresh"],
     ["learning", "\u5B78", "Learning"],
     ["known", "\u719F", "Known"]
-  ], words = [], logs = [], filter = "all", PAGE = 300;
+  ], words = [], logs = [], filter = "fresh", PAGE = 120, shown = PAGE, kept = /* @__PURE__ */ new Set(), removed = /* @__PURE__ */ new Map();
   async function load() {
     let data = await browser.runtime.sendMessage({ type: "allData" });
     words = data.words, logs = data.logs, render(), renderExportInfo();
   }
+  var LABEL = { fresh: "fresh", learning: "learning", known: "known", all: "" };
   function render() {
-    let n = (s) => words.filter((w) => w.s === s).length, tab = (f, count, label) => h("button", { class: f, "data-f": f, "aria-pressed": String(filter === f) }, h("b", null, String(count)), h("span", null, label));
-    $("filter").replaceChildren(tab("all", words.length, "All words"), ...STAMPS.map(([s, zh, label]) => tab(s, n(s), `${zh} ${label}`)));
-    let q = $("q").value.trim().toLowerCase(), sort = $("sort").value, list = words.filter((w) => filter === "all" || w.s === filter).filter((w) => !q || w.w.includes(q) || (w.p ?? "").toLowerCase().includes(q) || (w.g ?? "").toLowerCase().includes(q)).sort((a, b) => b[sort] - a[sort]);
-    $("rows").replaceChildren(...list.slice(0, PAGE).map(row)), $("more").textContent = list.length > PAGE ? `Showing ${PAGE} of ${list.length}. Search to narrow it down.` : `${list.length} words`;
+    let n = (s) => words.filter((w) => w.s === s).length, tab = (f, count, ...label) => h("button", { class: f, "data-f": f, "aria-pressed": String(filter === f) }, ...label, h("b", null, count.toLocaleString("en-US")));
+    $("filter").replaceChildren(
+      ...STAMPS.map(([s, zh, label]) => tab(s, n(s), h("span", { class: "zh" }, zh), h("span", { class: "en" }, label))),
+      tab("all", words.length, h("span", null, "All"))
+    );
+    let q = $("q").value.trim().toLowerCase(), sort = $("sort").value, byWord = new Map(words.map((w) => [w.w, w]));
+    for (let [w, rec] of removed) byWord.has(w) || byWord.set(w, rec);
+    let list = [...byWord.values()].filter((w) => filter === "all" || w.s === filter || kept.has(w.w) || removed.has(w.w)).filter((w) => !q || w.w.includes(q) || (w.p ?? "").toLowerCase().includes(q) || (w.g ?? "").toLowerCase().includes(q)).sort((a, b) => b[sort] - a[sort]);
+    $("rows").replaceChildren(...list.slice(0, shown).map(card)), list.length || $("rows").append(
+      h("p", { class: "empty" }, q ? "No words match." : filter === "all" ? "No words yet. Stamp a word in the card (1 \u65B0, 2 \u5B78, 3 \u719F) and it shows up here." : `No ${LABEL[filter]} words.`)
+    );
+    let what = `${LABEL[filter] ? `${LABEL[filter]} ` : ""}word${list.length === 1 ? "" : "s"}`;
+    $("more").textContent = list.length > shown ? `${shown} of ${list.length.toLocaleString("en-US")} ${what}` : list.length ? `${list.length.toLocaleString("en-US")} ${what}` : "", $("showMore").hidden = list.length <= shown;
   }
-  function row(w) {
-    let c = w.ctx[0], link = null;
-    if (c) {
-      let yt = c.src === "yt" && c.t != null;
+  function sentence(text, word) {
+    let out = [];
+    return text.split(word).forEach((part, i) => {
+      i && out.push(h("u", null, word)), part && out.push(part);
+    }), out;
+  }
+  function card(w) {
+    let gone = removed.has(w.w) && !words.some((x) => x.w === w.w), met = w.ctx.map((c) => ({ c, text: sentenceWith(c.text, w.w).split(" \u2014 ")[0] })).find((x) => x.text), link = null;
+    if (met) {
+      let c = met.c, yt = c.src === "yt" && c.t != null;
       link = h("a", { href: yt ? `${c.url}&t=${c.t}s` : c.url, target: "_blank", title: c.title ?? c.url }, yt ? `\u25B6 ${clock(c.t)}` : shortSource(c.url));
     }
-    let pills = h(
+    let stamps = h(
       "div",
-      { class: "pills" },
+      { class: "stamps", role: "group", "aria-label": "Status" },
       ...STAMPS.map(([s, zh, label]) => {
-        let b = h("button", { class: `pill ${s}${w.s === s ? " on" : ""}`, title: label }, zh);
+        let b = h("button", { class: s, title: label, "aria-pressed": String(w.s === s) }, zh);
         return b.addEventListener("click", () => setStatus(w, s)), b;
       })
-    ), del = h("button", { class: "pill del", title: "Remove from the list" }, "\xD7");
-    return del.addEventListener("click", () => setStatus(w, null)), pills.append(del, h("span", { class: "when" }, ago(w.updated))), h(
-      "div",
-      { class: `row ${w.s}` },
-      h("div", { class: "w" }, h("b", null, w.w), h("span", null, (w.p ?? "").toLowerCase())),
-      h("div", { class: "mean" }, w.g ?? "", c ? h("span", { class: "ctx" }, c.text.split(" \u2014 ")[0], link) : null),
-      pills
+    ), corner;
+    return gone ? (corner = h("button", { class: "undo" }, "Undo"), corner.addEventListener("click", () => restore(w))) : (corner = h("button", { class: "x", title: "Remove from the list", "aria-label": "Remove from the list" }, "\xD7"), corner.addEventListener("click", () => remove(w))), h(
+      "article",
+      { class: `card ${w.s}${gone ? " gone" : ""}` },
+      h("div", { class: "top" }, h("b", { class: "hw" }, w.w), corner),
+      h("div", { class: "py" }, (w.p ?? "").toLowerCase()),
+      h("div", { class: "gl", title: w.g ?? "" }, w.g ?? ""),
+      met ? h("p", { class: "ctx" }, ...sentence(met.text, w.w), link ? " " : "", link) : null,
+      h("div", { class: "foot" }, gone ? h("span", { class: "when" }, "Removed") : stamps, gone ? null : h("span", { class: "when" }, ago(w.updated)))
     );
   }
   async function setStatus(w, s) {
-    await browser.runtime.sendMessage({ type: "setStatus", word: w.w, status: s }), await load();
+    w.s !== s && (kept.add(w.w), w.s = s, w.updated = Date.now(), render(), await browser.runtime.sendMessage({ type: "setStatus", word: w.w, status: s }));
+  }
+  async function remove(w) {
+    removed.set(w.w, { ...w, ctx: [...w.ctx], hist: [...w.hist] }), words = words.filter((x) => x.w !== w.w), render(), await browser.runtime.sendMessage({ type: "setStatus", word: w.w, status: null });
+  }
+  async function restore(w) {
+    let rec = removed.get(w.w) ?? w;
+    removed.delete(w.w), words = [...words, rec], render(), await browser.runtime.sendMessage({ type: "importWords", words: [rec], mode: "merge" });
+  }
+  function setFilter(f) {
+    filter = f, kept.clear(), removed.clear(), shown = PAGE, render();
   }
   async function renderExportInfo() {
     let { lastExportAt } = await browser.storage.local.get("lastExportAt");
     $("lastExport").textContent = lastExportAt ? `Last export ${ago(lastExportAt)}. "What's new" is everything since.` : "Nothing exported yet.";
   }
-  $("q").addEventListener("input", render);
+  $("q").addEventListener("input", () => {
+    shown = PAGE, render();
+  });
   $("sort").addEventListener("change", render);
+  $("showMore").addEventListener("click", () => {
+    shown += PAGE, render();
+  });
   function filterFromHash() {
     let f = location.hash.slice(1);
-    ["all", "fresh", "learning", "known"].includes(f) && (filter = f);
+    return ["all", "fresh", "learning", "known"].includes(f) ? (filter = f, !0) : !1;
   }
   filterFromHash();
   window.addEventListener("hashchange", () => {
-    filterFromHash(), render();
+    filterFromHash() && setFilter(filter);
   });
   $("filter").addEventListener("click", (e) => {
     let b = e.target.closest("button");
-    b && (filter = b.dataset.f, render());
+    b && setFilter(b.dataset.f);
   });
   async function exportNew(deliver) {
     let at = Date.now(), data = await browser.runtime.sendMessage({ type: "allData" });
