@@ -2,6 +2,10 @@ import { CJK, type Dictionary } from './dict.ts';
 import { numberedToMarked } from './pinyin.ts';
 import type { Entry, WordRecord } from './types.ts';
 
+/** What the extension writes where it has no meaning: not a meaning. */
+const PLACEHOLDER = /^\(?(your own word|not in the dictionary)\)?$/i;
+export const isPlaceholder = (g: string | undefined) => !g || PLACEHOLDER.test(g.trim());
+
 /** Senses that only point elsewhere or say how else to read the word. */
 const POINTER = /^(CL:|(old |unofficial )?variant of |used in |see |also pr\.|also written |surname )/i;
 
@@ -51,6 +55,7 @@ function cutWords(s: string, max: number): string {
  * in …" -> "Southern Min").
  */
 export function shortGloss(e: Entry, max = 60): string {
+  if (e.defs.every((d) => isPlaceholder(d))) return '';
   const items: string[] = [];
   const seen = new Set<string>();
   for (const sense of e.defs) {
@@ -98,7 +103,9 @@ export function listPinyin(py: string, word: string, parts: string[]): string {
  * neither. The stamped reading (the saved pinyin) picks the entry.
  */
 export function freshen(d: Dictionary, w: WordRecord): WordRecord {
-  const entries = d.get(w.w);
+  // Words you stamped that no dictionary has are added to it as your own: not real entries.
+  const entries = d.get(w.w).filter((x) => !x.own);
+  w = withSurface(w, entries);
   const marked = (e: Entry) => numberedToMarked(e.tw || e.py);
   const saved = (w.p ?? '').replace(/\s+/g, '').toLowerCase();
   const e = saved ? entries.find((x) => marked(x).toLowerCase() === saved) : entries[0];
@@ -107,17 +114,29 @@ export function freshen(d: Dictionary, w: WordRecord): WordRecord {
     const syl = sylls.length === [...w.w].length && [...w.w].every((c) => CJK.test(c)) ? sylls.map((x) => numberedToMarked(x)) : undefined;
     return { ...w, p: listPinyin(e.tw || e.py, w.w, d.split(w.w)), g: shortGloss(e), ...(syl ? { syl } : {}) };
   }
+  if (w.g && isPlaceholder(w.g)) w = { ...w, g: '' };
   if (w.p || entries.length || !CJK.test(w.w)) return w.g && w.g.length >= 118 ? { ...w, g: uncut(w.g) } : w;
   // Not in the dictionary (a phrase, or a typo): the readings and meanings of its parts.
-  const parts = d.segment(w.w).map((t) => ({ t, e: t.word ? d.get(t.word)[0] : undefined }));
+  // split() never returns the word itself (it may be in the dictionary as your own word).
+  const parts = d.split(w.w).map((t) => ({ t, e: d.get(t).filter((x) => !x.own)[0] }));
   const sylls = parts.flatMap(({ e: pe }) => (pe ? (pe.tw || pe.py).split(/\s+/).filter(Boolean) : []));
-  const whole = parts.every(({ e: pe }) => pe) && sylls.length === [...w.w].length;
+  const whole = parts.length > 0 && parts.every(({ e: pe }) => pe) && sylls.length === [...w.w].length;
   return {
     ...w,
-    p: parts.map(({ t, e: pe }) => (pe ? marked(pe) : t.text)).join(' '),
+    p: parts.map(({ t, e: pe }) => (pe ? marked(pe) : t)).join(' '),
     ...(whole ? { syl: sylls.map((x) => numberedToMarked(x)) } : {}),
-    g: w.g || parts.map(({ t, e: pe }) => (pe ? `${t.text} ${shortGloss(pe, 24).split('; ')[0]}` : '')).filter(Boolean).join(' + '),
+    g: w.g || parts.map(({ t, e: pe }) => (pe ? `${t} ${shortGloss(pe, 24).split('; ')[0]}` : '')).filter(Boolean).join(' + '),
   };
+}
+
+/**
+ * Sentences saved before the word's form as written there was kept (`q`): on a simplified page
+ * that's the simplified form, so they still count as having the word.
+ */
+export function withSurface(w: WordRecord, entries: Entry[]): WordRecord {
+  const simp = entries.find((e) => e.simp && e.simp !== w.w)?.simp;
+  if (!simp || w.ctx.every((c) => c.q)) return w;
+  return { ...w, ctx: w.ctx.map((c) => (c.q ? c : { ...c, q: simp })) };
 }
 
 /** A meaning older versions cut at 120 characters, back to its last whole sense. */

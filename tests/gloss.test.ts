@@ -41,8 +41,10 @@ test('shortGloss: a note that says which sense a short word has stays', () => {
   assert.equal(g('to take blood/to draw blood (e.g. for a test)'), 'to take blood; to draw blood (e.g. for a test)');
 });
 
-test('shortGloss: pointer-only entries say where they point', () => {
+test('shortGloss: pointer-only entries say where they point; placeholders say nothing', () => {
   assert.equal(g('old variant of 留[liu2]'), 'old variant of 留');
+  assert.equal(g('(not in the dictionary)'), '');
+  assert.equal(g('(your own word)'), '');
 });
 
 test('listPinyin: long words spaced into their parts, short ones joined', () => {
@@ -67,4 +69,15 @@ test('freshen: stored meanings and pinyin come back whole, from the stamped read
   assert.match(parts.g ?? '', /^脫 .+ \+ 鞋子 shoe/);
   // Nothing to go on: left alone.
   assert.deepEqual(freshen(dict, rec('Costco')), rec('Costco'));
+  // A hand-typed word the extension added to the dictionary as "your own word" (at startup), or
+  // stored with that placeholder by an older version: the parts, not the placeholder.
+  dict.addWord({ trad: '脫鞋子', simp: '脫鞋子', py: '', tw: '', defs: ['(your own word)'], zipf: 0, tocfl: 0, rank: 0, own: true });
+  for (const r of [rec('脫鞋子'), rec('脫鞋子', undefined, '(your own word)')]) {
+    const f = freshen(dict, r);
+    assert.equal(f.p, 'tuō xiézi');
+    assert.match(f.g ?? '', /^脫 .+ \+ 鞋子 shoe/);
+  }
+  // A sentence saved on a simplified page before its form there was kept still has the word.
+  const simplified = { ...rec('學習', 'xuéxí', 'x'), ctx: [{ text: '我们今天去学习中文吧。', url: 'https://x.cn', at: 1, src: 'web' as const }] };
+  assert.equal(freshen(dict, simplified).ctx[0].q, '学习');
 });

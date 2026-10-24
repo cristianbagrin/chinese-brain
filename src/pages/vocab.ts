@@ -1,7 +1,7 @@
 import { metSentence } from '../shared/context.ts';
-import { buildClaudeExport, parseWordList, sourceName } from '../shared/export.ts';
+import { buildClaudeExport, exportCount, parseWordList, sourceName } from '../shared/export.ts';
 import { clock } from '../shared/time.ts';
-import type { LogEvent, SavedSentence, Status, WordRecord } from '../shared/types.ts';
+import type { Context, LogEvent, SavedSentence, Status, WordRecord } from '../shared/types.ts';
 import { $, ago, download, h, saveAs, today } from './common.ts';
 
 const STAMPS: [Status, string, string][] = [
@@ -21,6 +21,8 @@ let shown = PAGE;
  */
 const kept = new Map<string, number>(); // word -> when it was last changed before this view touched it
 const removed = new Map<string, WordRecord>();
+/** Each removal in flight: it resolves to the record as stored, which Undo puts back. */
+const removing = new Map<string, Promise<WordRecord | null>>();
 
 let saved: Record<string, SavedSentence[]> = {};
 
@@ -115,7 +117,14 @@ function headword(w: WordRecord): HTMLElement {
 function row(w: WordRecord) {
   const gone = removed.has(w.w) && !words.some((x) => x.w === w.w);
   // The same sentence the export uses: the one with the word in it, trimmed around it (shorter here).
-  const met = w.ctx.map((c) => ({ c, text: metSentence(c, w.w, 36).split(' — ')[0] })).find((x) => x.text);
+  let met: { c: Context; text: string } | undefined;
+  for (const c of w.ctx) {
+    const text = metSentence(c, w.w, 36).split(' — ')[0];
+    if (text) {
+      met = { c, text };
+      break;
+    }
+  }
   let src: HTMLElement | null = null;
   if (met) {
     const c = met.c;
@@ -167,16 +176,27 @@ async function remove(w: WordRecord) {
   removed.set(w.w, { ...w, ctx: [...w.ctx], hist: [...w.hist] });
   words = words.filter((x) => x.w !== w.w);
   render();
-  await browser.runtime.sendMessage({ type: 'setStatus', word: w.w, status: null });
+  const done = (async () => {
+    const stored: WordRecord | null = await browser.runtime.sendMessage({ type: 'getWord', word: w.w });
+    await browser.runtime.sendMessage({ type: 'setStatus', word: w.w, status: null });
+    return stored;
+  })();
+  removing.set(w.w, done);
+  await done;
 }
 
-/** Undo a removal: the whole record comes back (sentences and history too). */
+/**
+ * Undo a removal: the whole record comes back (sentences and history too), as it was stored,
+ * not the list's tidied-up pinyin and meaning. It waits for the removal to finish first.
+ */
 async function restore(w: WordRecord) {
-  const rec = removed.get(w.w) ?? w;
+  const shown = removed.get(w.w) ?? w;
   removed.delete(w.w);
-  words = [...words, rec];
+  words = [...words, shown];
   render();
-  const { syl: _, ...stored } = rec; // the list's per-character pinyin isn't stored
+  const { syl: _, ...fallback } = shown;
+  const stored = (await removing.get(w.w)) ?? fallback;
+  removing.delete(w.w);
   await browser.runtime.sendMessage({ type: 'importWords', words: [stored], mode: 'merge' });
 }
 
@@ -184,6 +204,7 @@ function setFilter(f: Status | 'all') {
   filter = f;
   kept.clear();
   removed.clear();
+  removing.clear();
   shown = PAGE;
   render();
 }
@@ -192,7 +213,7 @@ function setFilter(f: Status | 'all') {
 async function renderExportInfo() {
   const { lastExportAt } = await browser.storage.local.get('lastExportAt');
   const since = (lastExportAt as number) ?? 0;
-  const rows = buildClaudeExport(words, logs, since, saved).split('\n').filter((l) => l && !l.startsWith('#')).length - 1;
+  const rows = exportCount(words, logs, since, saved);
   const waiting = rows > 0 ? `${rows} word${rows === 1 ? '' : 's'} to send` : 'Nothing new to send yet';
   $('lastExport').textContent = since ? `Last export ${ago(since)}. ${waiting}.` : `Nothing exported yet. ${waiting}.`;
 }

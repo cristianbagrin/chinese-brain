@@ -30,24 +30,26 @@ const CUES = /\[[^\]\n]{1,10}\]|［[^］\n]{1,10}］|【\d+】|\*[^*\n]{1,10}\*|
  * Titles join their parts with | or dashes; the part with the word is the one worth keeping.
  */
 export function cleanSentence(text: string, word: string, alt?: string): string {
-  const parts = text
-    .replace(CUES, ' ')
+  // A "cue" with the word in it is the word, not a cue: 請按下[確定]按鈕.
+  const uncue = (s: string) => s.replace(CUES, (cue) => (hasWord(cue, word, alt) ? cue : ' '));
+  const parts = uncue(text)
     .split(/\s*(?:[|｜]|\s[-–—]\s|(?<=[^\s\x00-\x7f])[-–—_](?=[^\s\x00-\x7f]))\s*/)
     .map((p) => p.replace(/[ \t]+/g, ' ').trim())
     .filter((p) => p && !/^(pdf|docx?|pptx?|xlsx?|html?|…|\.\.\.)$/i.test(p));
   const withWord = parts.filter((p) => hasWord(p, word, alt));
-  if (!withWord.length) return text.replace(CUES, ' ').replace(/[ \t]+/g, ' ').trim();
+  if (!withWord.length) return uncue(text).replace(/[ \t]+/g, ' ').trim();
   return withWord.sort((a, b) => b.length - a.length)[0];
 }
 
 /**
  * Worth showing: a real Chinese sentence around the word. Not just the word, a bare title, or an
- * English note with a few Chinese words in it (Latin letters count half: a name or two is fine).
+ * English note with a few Chinese words in it. English words count, not letters, so a name or
+ * a term (我在用Visual Studio Code寫程式) is fine: at least 1.5 Chinese characters per English word.
  */
 export function usefulSentence(text: string, word: string): boolean {
   const han = text.match(HAN)?.length ?? 0;
-  const latin = text.match(/[A-Za-z]/g)?.length ?? 0;
-  return han >= [...word].length + 2 && han * 2 >= latin;
+  const latinWords = text.match(/[A-Za-z][A-Za-z'’-]*/g)?.length ?? 0;
+  return han >= [...word].length + 2 && han * 2 >= latinWords * 3;
 }
 
 /**
@@ -163,5 +165,8 @@ export function metSentence(c: { text: string; q?: string }, word: string, max =
   const at = findWord(one, word, c.q);
   if (!at || !usefulSentence(one, word)) return '';
   const out = trimAround(one, at.i, at.len, max);
-  return out === zh.trim() && en.length ? [out, ...en].join(' — ') : out;
+  // The English (a YouTube line's translation) belongs to the whole line: kept only when the
+  // sentence is the whole line, caption cues aside.
+  const english = en.join(' — ').replace(CUES, ' ').replace(/\s+/g, ' ').trim();
+  return english && out === cleanSentence(zh, word, c.q) ? `${out} — ${english}` : out;
 }

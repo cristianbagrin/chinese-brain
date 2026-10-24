@@ -72,12 +72,18 @@ test('metSentence: not an English note with a few Chinese words in it', () => {
   const blob =
     "ssions, transcribe with SenseVoice and convert the .srt to Traditional Chinese, or use Whisper Large and type 以下是台灣繁體中文的字幕： plus any custom names into AutoSubs' Vocabulary & Context prompt (OpenAI Whisper Discussion #277; AutoSubs changelog).";
   assert.equal(met(blob, '字幕'), '');
-  // A name or two in English is fine.
+  // A name or a term or two in English is fine: English words count, not letters.
   assert.equal(met('我跟John一起騎大屯山了。', '大屯山'), '我跟John一起騎大屯山了。');
+  assert.equal(met('我覺得這個 project 真的很 interesting', '覺得'), '我覺得這個 project 真的很 interesting');
+  assert.equal(met('我在用Visual Studio Code寫TypeScript的程式', '程式'), '我在用Visual Studio Code寫TypeScript的程式');
   assert.equal(met('然後父母跟他說「你要說『You’re welcome』」。', '要說'), '然後父母跟他說「你要說『You’re welcome』」。');
 });
 
 test('metSentence: caption cues are not part of the sentence', () => {
+  // A bracket with the word in it is the word, not a cue.
+  assert.equal(met('請按下[確定]按鈕就可以完成設定了。', '確定'), '請按下[確定]按鈕就可以完成設定了。');
+  // The English of a YouTube line stays when only cues differ (and loses its own cue).
+  assert.equal(met('[音樂] 颱風來了 — [Music] The typhoon is here', '颱風'), '颱風來了 — The typhoon is here');
   assert.equal(met('[音樂] 我們一起來玩遊戲吧 [掌聲]', '遊戲'), '我們一起來玩遊戲吧');
   assert.equal(met('*拍手* 遊戲 *拍手* 週!', '遊戲'), '');
   assert.equal(cleanSentence('♪ 真是太幸福了 ♪', '幸福'), '真是太幸福了');

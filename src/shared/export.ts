@@ -1,6 +1,6 @@
 import { metSentence } from './context.ts';
 import { dayKeyLocal } from './time.ts';
-import { STATUS_CODE, type LogEvent, type SavedSentence, type Status, type WordRecord } from './types.ts';
+import { STATUS_CODE, type Context, type LogEvent, type SavedSentence, type Status, type WordRecord } from './types.ts';
 
 const clean = (s: string | undefined) => (s ?? '').replace(/[\t\r\n]+/g, ' ').trim();
 const stamp = (t: number) => {
@@ -53,41 +53,7 @@ function duration(secs: number) {
  */
 export function buildClaudeExport(words: WordRecord[], logs: LogEvent[], since = 0, saved: Record<string, SavedSentence[]> = {}): string {
   const now = Date.now();
-  const evs = logs.filter((e) => e.at > since);
-  const watches = evs.filter((e) => e.k === 'watch') as Extract<LogEvent, { k: 'watch' }>[];
-  const byWord = new Map(words.map((w) => [w.w, w]));
-
-  // Status before the period = the "from" of each word's first status change in it.
-  const before = new Map<string, Status | null>();
-  for (const e of evs) if (e.k === 'status' && !before.has(e.w)) before.set(e.w, e.from ?? null);
-
-  type Row = { w: string; now: Status | null; was: Status | null; date: number; rec?: WordRecord };
-  const rows: Row[] = [];
-  if (!since) {
-    for (const w of words) rows.push({ w: w.w, now: w.s, was: null, date: w.updated, rec: w });
-  } else {
-    for (const [w, was] of before) {
-      const rec = byWord.get(w);
-      const cur = rec?.s ?? null;
-      if (was === cur) continue; // changed and changed back: nothing to report
-      rows.push({ w, now: cur, was, date: rec?.updated ?? now, rec });
-    }
-  }
-  // Sentences saved in the period, on their word's row (a word of its own if its status didn't change).
-  const savedNow = new Map<string, SavedSentence[]>();
-  for (const [w, list] of Object.entries(saved)) {
-    const fresh = list.filter((x) => x.at > since);
-    if (!fresh.length) continue;
-    savedNow.set(w, fresh);
-    if (!rows.some((r) => r.w === w)) {
-      const rec = byWord.get(w);
-      rows.push({ w, now: rec?.s ?? null, was: rec?.s ?? null, date: rec?.updated ?? Math.max(...fresh.map((x) => x.at)), rec });
-    }
-  }
-
-  const order = { K: 0, L: 1, F: 2, '-': 3 } as Record<string, number>;
-  rows.sort((a, b) => order[code(a.now)] - order[code(b.now)] || a.date - b.date);
-
+  const { rows, savedNow, watches } = exportRows(words, logs, since, saved);
   const lines = [
     `# Chinese Brain export · ${stamp(now)} · ${since ? `since ${stamp(since)}` : 'everything so far'}`,
     '# Codes as in known-words.txt: K known, L learning, F fresh (met, not studied yet), - not in the list.',
@@ -98,7 +64,14 @@ export function buildClaudeExport(words: WordRecord[], logs: LogEvent[], since =
   ];
   for (const r of rows) {
     // The first sentence met that has the word in it; none rather than a wrong one.
-    const met = (r.rec?.ctx ?? []).map((c) => ({ c, text: metSentence(c, r.w) })).find((x) => x.text);
+    let met: { c: Context; text: string } | undefined;
+    for (const c of r.rec?.ctx ?? []) {
+      const text = metSentence(c, r.w);
+      if (text) {
+        met = { c, text };
+        break;
+      }
+    }
     lines.push(
       [
         r.w,
@@ -116,6 +89,53 @@ export function buildClaudeExport(words: WordRecord[], logs: LogEvent[], since =
     );
   }
   return lines.join('\n') + '\n';
+}
+
+/** How many words the export would have (without building its sentences). */
+export function exportCount(words: WordRecord[], logs: LogEvent[], since = 0, saved: Record<string, SavedSentence[]> = {}): number {
+  return exportRows(words, logs, since, saved).rows.length;
+}
+
+type ExportRow = { w: string; now: Status | null; was: Status | null; date: number; rec?: WordRecord };
+
+/** The export's rows, in order: status changes in the period, then words with sentences saved in it. */
+function exportRows(words: WordRecord[], logs: LogEvent[], since: number, saved: Record<string, SavedSentence[]>) {
+  const now = Date.now();
+  const evs = logs.filter((e) => e.at > since);
+  const watches = evs.filter((e) => e.k === 'watch') as Extract<LogEvent, { k: 'watch' }>[];
+  const byWord = new Map(words.map((w) => [w.w, w]));
+
+  // Status before the period = the "from" of each word's first status change in it.
+  const before = new Map<string, Status | null>();
+  for (const e of evs) if (e.k === 'status' && !before.has(e.w)) before.set(e.w, e.from ?? null);
+
+  const rows: ExportRow[] = [];
+  if (!since) {
+    for (const w of words) rows.push({ w: w.w, now: w.s, was: null, date: w.updated, rec: w });
+  } else {
+    for (const [w, was] of before) {
+      const rec = byWord.get(w);
+      const cur = rec?.s ?? null;
+      if (was === cur) continue; // changed and changed back: nothing to report
+      rows.push({ w, now: cur, was, date: rec?.updated ?? now, rec });
+    }
+  }
+  // Sentences saved in the period, on their word's row (a word of its own if its status didn't change).
+  const savedNow = new Map<string, SavedSentence[]>();
+  const listed = new Set(rows.map((r) => r.w));
+  for (const [w, list] of Object.entries(saved)) {
+    const fresh = list.filter((x) => x.at > since);
+    if (!fresh.length) continue;
+    savedNow.set(w, fresh);
+    if (!listed.has(w)) {
+      const rec = byWord.get(w);
+      rows.push({ w, now: rec?.s ?? null, was: rec?.s ?? null, date: rec?.updated ?? Math.max(...fresh.map((x) => x.at)), rec });
+    }
+  }
+
+  const order = { K: 0, L: 1, F: 2, '-': 3 } as Record<string, number>;
+  rows.sort((a, b) => order[code(a.now)] - order[code(b.now)] || a.date - b.date);
+  return { rows, savedNow, watches };
 }
 
 /** Parse a known-words.txt style list: word<TAB>K|L|F<TAB>date. Lines with only a word count as known. */

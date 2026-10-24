@@ -14,12 +14,12 @@
   }
   var CUES = /\[[^\]\n]{1,10}\]|［[^］\n]{1,10}］|【\d+】|\*[^*\n]{1,10}\*|[♪♫]/g;
   function cleanSentence(text, word, alt) {
-    let withWord = text.replace(CUES, " ").split(/\s*(?:[|｜]|\s[-–—]\s|(?<=[^\s\x00-\x7f])[-–—_](?=[^\s\x00-\x7f]))\s*/).map((p) => p.replace(/[ \t]+/g, " ").trim()).filter((p) => p && !/^(pdf|docx?|pptx?|xlsx?|html?|…|\.\.\.)$/i.test(p)).filter((p) => hasWord(p, word, alt));
-    return withWord.length ? withWord.sort((a, b) => b.length - a.length)[0] : text.replace(CUES, " ").replace(/[ \t]+/g, " ").trim();
+    let uncue = (s) => s.replace(CUES, (cue) => hasWord(cue, word, alt) ? cue : " "), withWord = uncue(text).split(/\s*(?:[|｜]|\s[-–—]\s|(?<=[^\s\x00-\x7f])[-–—_](?=[^\s\x00-\x7f]))\s*/).map((p) => p.replace(/[ \t]+/g, " ").trim()).filter((p) => p && !/^(pdf|docx?|pptx?|xlsx?|html?|…|\.\.\.)$/i.test(p)).filter((p) => hasWord(p, word, alt));
+    return withWord.length ? withWord.sort((a, b) => b.length - a.length)[0] : uncue(text).replace(/[ \t]+/g, " ").trim();
   }
   function usefulSentence(text, word) {
-    let han = text.match(HAN)?.length ?? 0, latin = text.match(/[A-Za-z]/g)?.length ?? 0;
-    return han >= [...word].length + 2 && han * 2 >= latin;
+    let han = text.match(HAN)?.length ?? 0, latinWords = text.match(/[A-Za-z][A-Za-z'’-]*/g)?.length ?? 0;
+    return han >= [...word].length + 2 && han * 2 >= latinWords * 3;
   }
   function quoted(s) {
     let inside = new Array(s.length).fill(!1), open = [];
@@ -75,8 +75,8 @@
     if (!hit) return "";
     let [a, b] = sentenceBounds(zh, hit.i), one = cleanSentence(zh.slice(a, b), word, c.q), at = findWord(one, word, c.q);
     if (!at || !usefulSentence(one, word)) return "";
-    let out = trimAround(one, at.i, at.len, max);
-    return out === zh.trim() && en.length ? [out, ...en].join(" \u2014 ") : out;
+    let out = trimAround(one, at.i, at.len, max), english = en.join(" \u2014 ").replace(CUES, " ").replace(/\s+/g, " ").trim();
+    return english && out === cleanSentence(zh, word, c.q) ? `${out} \u2014 ${english}` : out;
   }
 
   // src/shared/time.ts
@@ -144,27 +144,7 @@
     return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min` : `${m} min`;
   }
   function buildClaudeExport(words2, logs2, since = 0, saved2 = {}) {
-    let now = Date.now(), evs = logs2.filter((e) => e.at > since), watches = evs.filter((e) => e.k === "watch"), byWord = new Map(words2.map((w) => [w.w, w])), before = /* @__PURE__ */ new Map();
-    for (let e of evs) e.k === "status" && !before.has(e.w) && before.set(e.w, e.from ?? null);
-    let rows = [];
-    if (since)
-      for (let [w, was] of before) {
-        let rec = byWord.get(w), cur = rec?.s ?? null;
-        was !== cur && rows.push({ w, now: cur, was, date: rec?.updated ?? now, rec });
-      }
-    else
-      for (let w of words2) rows.push({ w: w.w, now: w.s, was: null, date: w.updated, rec: w });
-    let savedNow = /* @__PURE__ */ new Map();
-    for (let [w, list] of Object.entries(saved2)) {
-      let fresh = list.filter((x) => x.at > since);
-      if (fresh.length && (savedNow.set(w, fresh), !rows.some((r) => r.w === w))) {
-        let rec = byWord.get(w);
-        rows.push({ w, now: rec?.s ?? null, was: rec?.s ?? null, date: rec?.updated ?? Math.max(...fresh.map((x) => x.at)), rec });
-      }
-    }
-    let order = { K: 0, L: 1, F: 2, "-": 3 };
-    rows.sort((a, b) => order[code(a.now)] - order[code(b.now)] || a.date - b.date);
-    let lines = [
+    let now = Date.now(), { rows, savedNow, watches } = exportRows(words2, logs2, since, saved2), lines = [
       `# Chinese Brain export \xB7 ${stamp(now)} \xB7 ${since ? `since ${stamp(since)}` : "everything so far"}`,
       "# Codes as in known-words.txt: K known, L learning, F fresh (met, not studied yet), - not in the list.",
       '# date = the day I set this status \xB7 sentence = where I met the word \xB7 saved = sentences I saved for a card, several joined with " \u2016 "',
@@ -173,7 +153,14 @@
       ["word", "now", "was", "date", "pinyin", "meaning", "sentence", "source", "saved"].join("	")
     ];
     for (let r of rows) {
-      let met = (r.rec?.ctx ?? []).map((c) => ({ c, text: metSentence(c, r.w) })).find((x) => x.text);
+      let met;
+      for (let c of r.rec?.ctx ?? []) {
+        let text = metSentence(c, r.w);
+        if (text) {
+          met = { c, text };
+          break;
+        }
+      }
       lines.push(
         [
           r.w,
@@ -191,6 +178,31 @@
     return lines.join(`
 `) + `
 `;
+  }
+  function exportCount(words2, logs2, since = 0, saved2 = {}) {
+    return exportRows(words2, logs2, since, saved2).rows.length;
+  }
+  function exportRows(words2, logs2, since, saved2) {
+    let now = Date.now(), evs = logs2.filter((e) => e.at > since), watches = evs.filter((e) => e.k === "watch"), byWord = new Map(words2.map((w) => [w.w, w])), before = /* @__PURE__ */ new Map();
+    for (let e of evs) e.k === "status" && !before.has(e.w) && before.set(e.w, e.from ?? null);
+    let rows = [];
+    if (since)
+      for (let [w, was] of before) {
+        let rec = byWord.get(w), cur = rec?.s ?? null;
+        was !== cur && rows.push({ w, now: cur, was, date: rec?.updated ?? now, rec });
+      }
+    else
+      for (let w of words2) rows.push({ w: w.w, now: w.s, was: null, date: w.updated, rec: w });
+    let savedNow = /* @__PURE__ */ new Map(), listed = new Set(rows.map((r) => r.w));
+    for (let [w, list] of Object.entries(saved2)) {
+      let fresh = list.filter((x) => x.at > since);
+      if (fresh.length && (savedNow.set(w, fresh), !listed.has(w))) {
+        let rec = byWord.get(w);
+        rows.push({ w, now: rec?.s ?? null, was: rec?.s ?? null, date: rec?.updated ?? Math.max(...fresh.map((x) => x.at)), rec });
+      }
+    }
+    let order = { K: 0, L: 1, F: 2, "-": 3 };
+    return rows.sort((a, b) => order[code(a.now)] - order[code(b.now)] || a.date - b.date), { rows, savedNow, watches };
   }
   function parseWordList(text) {
     let out = [];
@@ -249,7 +261,7 @@
     ["fresh", "\u65B0", "Fresh"],
     ["learning", "\u5B78", "Learning"],
     ["known", "\u719F", "Known"]
-  ], words = [], logs = [], filter = "fresh", PAGE = 120, shown = PAGE, kept = /* @__PURE__ */ new Map(), removed = /* @__PURE__ */ new Map(), saved = {};
+  ], words = [], logs = [], filter = "fresh", PAGE = 120, shown = PAGE, kept = /* @__PURE__ */ new Map(), removed = /* @__PURE__ */ new Map(), removing = /* @__PURE__ */ new Map(), saved = {};
   async function load() {
     let data = await browser.runtime.sendMessage({ type: "allData" });
     words = data.words, logs = data.logs, saved = data.saved ?? {}, render(), renderExportInfo();
@@ -296,7 +308,15 @@
     );
   }
   function row(w) {
-    let gone = removed.has(w.w) && !words.some((x) => x.w === w.w), met = w.ctx.map((c) => ({ c, text: metSentence(c, w.w, 36).split(" \u2014 ")[0] })).find((x) => x.text), src = null;
+    let gone = removed.has(w.w) && !words.some((x) => x.w === w.w), met;
+    for (let c of w.ctx) {
+      let text = metSentence(c, w.w, 36).split(" \u2014 ")[0];
+      if (text) {
+        met = { c, text };
+        break;
+      }
+    }
+    let src = null;
     if (met) {
       let c = met.c, line = c.src === "yt" && c.t != null;
       src = h("a", { class: "src", href: line ? `${c.url}&t=${c.t}s` : c.url, target: "_blank", title: c.title || c.url }, line ? `\u25B6 ${clock(c.t)}` : sourceName(c.url));
@@ -326,20 +346,24 @@
     w.s !== s && (kept.has(w.w) || kept.set(w.w, w.updated), w.s = s, w.updated = Date.now(), render(), document.querySelector(`.word[data-w="${CSS.escape(w.w)}"] .stamps .${s}`)?.classList.add("press"), await browser.runtime.sendMessage({ type: "setStatus", word: w.w, status: s }));
   }
   async function remove(w) {
-    removed.set(w.w, { ...w, ctx: [...w.ctx], hist: [...w.hist] }), words = words.filter((x) => x.w !== w.w), render(), await browser.runtime.sendMessage({ type: "setStatus", word: w.w, status: null });
+    removed.set(w.w, { ...w, ctx: [...w.ctx], hist: [...w.hist] }), words = words.filter((x) => x.w !== w.w), render();
+    let done = (async () => {
+      let stored = await browser.runtime.sendMessage({ type: "getWord", word: w.w });
+      return await browser.runtime.sendMessage({ type: "setStatus", word: w.w, status: null }), stored;
+    })();
+    removing.set(w.w, done), await done;
   }
   async function restore(w) {
-    let rec = removed.get(w.w) ?? w;
-    removed.delete(w.w), words = [...words, rec], render();
-    let { syl: _, ...stored } = rec;
-    await browser.runtime.sendMessage({ type: "importWords", words: [stored], mode: "merge" });
+    let shown2 = removed.get(w.w) ?? w;
+    removed.delete(w.w), words = [...words, shown2], render();
+    let { syl: _, ...fallback } = shown2, stored = await removing.get(w.w) ?? fallback;
+    removing.delete(w.w), await browser.runtime.sendMessage({ type: "importWords", words: [stored], mode: "merge" });
   }
   function setFilter(f) {
-    filter = f, kept.clear(), removed.clear(), shown = PAGE, render();
+    filter = f, kept.clear(), removed.clear(), removing.clear(), shown = PAGE, render();
   }
   async function renderExportInfo() {
-    let { lastExportAt } = await browser.storage.local.get("lastExportAt"), since = lastExportAt ?? 0, rows = buildClaudeExport(words, logs, since, saved).split(`
-`).filter((l) => l && !l.startsWith("#")).length - 1, waiting = rows > 0 ? `${rows} word${rows === 1 ? "" : "s"} to send` : "Nothing new to send yet";
+    let { lastExportAt } = await browser.storage.local.get("lastExportAt"), since = lastExportAt ?? 0, rows = exportCount(words, logs, since, saved), waiting = rows > 0 ? `${rows} word${rows === 1 ? "" : "s"} to send` : "Nothing new to send yet";
     $("lastExport").textContent = since ? `Last export ${ago(since)}. ${waiting}.` : `Nothing exported yet. ${waiting}.`;
   }
   $("q").addEventListener("input", () => {

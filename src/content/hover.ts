@@ -32,6 +32,30 @@ function textFrom(node: Text, offset: number, max = 10): { text: string; ranges:
   return { text, ranges };
 }
 
+/**
+ * Up to `max` characters just before (node, offset), going back into earlier text nodes of the
+ * same block: a word split over several elements (one per character, or <em>颱</em>風) is still
+ * found from any of its characters.
+ */
+function textBefore(node: Text, offset: number, max = 7): { text: string; ranges: [Text, number, number][] } {
+  let text = node.data.slice(Math.max(0, offset - max), offset);
+  const ranges: [Text, number, number][] = text ? [[node, offset - text.length, offset]] : [];
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  walker.currentNode = node;
+  let cur: Text = node;
+  while (text.length < max) {
+    const prev = walker.previousNode() as Text | null;
+    if (!prev || !sameBlock(prev, cur)) break;
+    const piece = prev.data.slice(Math.max(0, prev.data.length - (max - text.length)));
+    if (piece) {
+      ranges.unshift([prev, prev.data.length - piece.length, prev.data.length]);
+      text = piece + text;
+    }
+    cur = prev;
+  }
+  return { text, ranges };
+}
+
 function sameBlock(a: Node, b: Node): boolean {
   const block = (n: Node) => {
     let el = n.parentElement;
@@ -292,9 +316,12 @@ export class HoverLookup {
     }
     // The word under the pointer is the one the segmenter sees there (as in the subtitles),
     // so 基 in 維基百科 opens 維基百科, not whatever starts at 基.
-    const back = Math.min(offset, 7);
-    const { text: str, ranges } = textFrom(text, offset - back, back + 10);
-    const at = this.charRect(text, offset - back);
+    const before = textBefore(text, offset, 7);
+    const after = textFrom(text, offset, 10);
+    const back = before.text.length;
+    const str = before.text + after.text;
+    const ranges = [...before.ranges, ...after.ranges];
+    const at = this.charRect(ranges[0][0], ranges[0][1]);
     const key = `${str}@${Math.round(at?.left ?? 0)},${Math.round(at?.top ?? 0)}`;
     const toks = await this.segment(str);
     if (seq !== this.seq) return; // the pointer moved on while we were working

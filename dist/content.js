@@ -1395,12 +1395,12 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
   }
   var CUES = /\[[^\]\n]{1,10}\]|［[^］\n]{1,10}］|【\d+】|\*[^*\n]{1,10}\*|[♪♫]/g;
   function cleanSentence(text, word, alt) {
-    let withWord = text.replace(CUES, " ").split(/\s*(?:[|｜]|\s[-–—]\s|(?<=[^\s\x00-\x7f])[-–—_](?=[^\s\x00-\x7f]))\s*/).map((p) => p.replace(/[ \t]+/g, " ").trim()).filter((p) => p && !/^(pdf|docx?|pptx?|xlsx?|html?|…|\.\.\.)$/i.test(p)).filter((p) => hasWord(p, word, alt));
-    return withWord.length ? withWord.sort((a, b) => b.length - a.length)[0] : text.replace(CUES, " ").replace(/[ \t]+/g, " ").trim();
+    let uncue = (s) => s.replace(CUES, (cue) => hasWord(cue, word, alt) ? cue : " "), withWord = uncue(text).split(/\s*(?:[|｜]|\s[-–—]\s|(?<=[^\s\x00-\x7f])[-–—_](?=[^\s\x00-\x7f]))\s*/).map((p) => p.replace(/[ \t]+/g, " ").trim()).filter((p) => p && !/^(pdf|docx?|pptx?|xlsx?|html?|…|\.\.\.)$/i.test(p)).filter((p) => hasWord(p, word, alt));
+    return withWord.length ? withWord.sort((a, b) => b.length - a.length)[0] : uncue(text).replace(/[ \t]+/g, " ").trim();
   }
   function usefulSentence(text, word) {
-    let han = text.match(HAN2)?.length ?? 0, latin = text.match(/[A-Za-z]/g)?.length ?? 0;
-    return han >= [...word].length + 2 && han * 2 >= latin;
+    let han = text.match(HAN2)?.length ?? 0, latinWords2 = text.match(/[A-Za-z][A-Za-z'’-]*/g)?.length ?? 0;
+    return han >= [...word].length + 2 && han * 2 >= latinWords2 * 3;
   }
   function quoted(s) {
     let inside = new Array(s.length).fill(!1), open = [];
@@ -1460,8 +1460,8 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     if (!hit) return "";
     let [a, b] = sentenceBounds(zh, hit.i), one = cleanSentence(zh.slice(a, b), word, c.q), at = findWord(one, word, c.q);
     if (!at || !usefulSentence(one, word)) return "";
-    let out = trimAround(one, at.i, at.len, max);
-    return out === zh.trim() && en.length ? [out, ...en].join(" \u2014 ") : out;
+    let out = trimAround(one, at.i, at.len, max), english = en.join(" \u2014 ").replace(CUES, " ").replace(/\s+/g, " ").trim();
+    return english && out === cleanSentence(zh, word, c.q) ? `${out} \u2014 ${english}` : out;
   }
 
   // src/content/css.ts
@@ -1484,6 +1484,18 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       let next = walker.nextNode();
       if (!next || !sameBlock(cur, next)) break;
       cur = next, start = 0;
+    }
+    return { text, ranges };
+  }
+  function textBefore(node, offset, max = 7) {
+    let text = node.data.slice(Math.max(0, offset - max), offset), ranges = text ? [[node, offset - text.length, offset]] : [], walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    walker.currentNode = node;
+    let cur = node;
+    for (; text.length < max; ) {
+      let prev = walker.previousNode();
+      if (!prev || !sameBlock(prev, cur)) break;
+      let piece = prev.data.slice(Math.max(0, prev.data.length - (max - text.length)));
+      piece && (ranges.unshift([prev, prev.data.length - piece.length, prev.data.length]), text = piece + text), cur = prev;
     }
     return { text, ranges };
   }
@@ -1653,7 +1665,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         this.popup.cancelHide();
         return;
       }
-      let back = Math.min(offset, 7), { text: str, ranges } = textFrom(text, offset - back, back + 10), at = this.charRect(text, offset - back), key = `${str}@${Math.round(at?.left ?? 0)},${Math.round(at?.top ?? 0)}`, toks = await this.segment(str);
+      let before = textBefore(text, offset, 7), after = textFrom(text, offset, 10), back = before.text.length, str = before.text + after.text, ranges = [...before.ranges, ...after.ranges], at = this.charRect(ranges[0][0], ranges[0][1]), key = `${str}@${Math.round(at?.left ?? 0)},${Math.round(at?.top ?? 0)}`, toks = await this.segment(str);
       if (seq !== this.seq) return;
       let start = back, tok;
       for (let pos2 = 0, i = 0; i < toks.length; pos2 += toks[i].text.length, i++)

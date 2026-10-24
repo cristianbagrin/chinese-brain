@@ -3,7 +3,7 @@ import { CJK, Dictionary } from '../shared/dict.ts';
 import type { Entry, LookupMatch, SavedSentence } from '../shared/types.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import { colorsOn, DEFAULT_SETTINGS, normalizeSettings, type Msg, type Settings, type Status, type WordRecord } from '../shared/types.ts';
-import { freshen, shortGloss } from '../shared/gloss.ts';
+import { freshen, isPlaceholder, shortGloss, withSurface } from '../shared/gloss.ts';
 import { Store } from './store.ts';
 import { geminiExamples, geminiModels, geminiTranscribe } from './gemini.ts';
 import { checkAzure, ttsAudio } from './speech.ts';
@@ -58,7 +58,7 @@ const ownWordsReady = Promise.all([dictReady, storeReady]).then(([d]) => {
 
 const OWN_WORD = /^[㐀-䶿一-鿿豈-﫿]{2,8}$/;
 function addOwnWord(d: Dictionary, word: string, gloss?: string) {
-  if (OWN_WORD.test(word)) d.addWord({ trad: word, simp: word, py: '', tw: '', defs: [gloss || '(your own word)'], zipf: 0, tocfl: 0, rank: 0 });
+  if (OWN_WORD.test(word)) d.addWord({ trad: word, simp: word, py: '', tw: '', defs: [isPlaceholder(gloss) ? '(your own word)' : gloss!], zipf: 0, tocfl: 0, rank: 0, own: true });
 }
 
 /**
@@ -323,7 +323,7 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
           if (mineEn) x.en = mineEn;
         }
         // Where you met it: the last real sentences with the word in them, without page-title clutter.
-        const seen = (record?.ctx ?? [])
+        const seen = (record ? withSurface(record, d.get(word)).ctx : [])
           .map((c) => {
             const [zh, ...en] = metSentence(c, word, 120).split(' — ');
             return { c, zh, en: en.join(' — ') };

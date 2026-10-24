@@ -18,6 +18,8 @@ export interface Entry {
   tocfl: number;
   /** Frequency rank of the headword (1 = most common, 0 = unknown). */
   rank?: number;
+  /** A word you stamped that no dictionary has (added so pages color it), not a real entry. */
+  own?: boolean;
 }
 
 export interface LookupMatch {

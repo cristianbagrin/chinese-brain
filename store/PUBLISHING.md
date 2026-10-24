@@ -141,6 +141,7 @@ Nothing else leaves your browser. Uninstalling the add-on deletes its data.
 • New word list: words written in 田字格 squares with each character's pinyin above, in 楷書; it opens on your Fresh words, with a filter bar that stays on screen. Restamping a word keeps it in place; removing one can be undone; hover a word for its card.
 • Meanings in the list and export are short and whole (they used to be cut mid-word), long pinyin is spaced into its parts, and words typed in by hand get their parts' readings.
 • Fixed: a word opened inside the card (from an example or the breakdown) was saved with the page's sentence, which didn't contain it. Sentences without the word, and English notes, are no longer shown or exported.
+• Hover finds the whole word from any of its characters, also when a page splits the word over several elements.
 • Edit any sentence in the card, example sentences included, Chinese and English (the pencil); the edited version is the one saved.
 • The play, copy, edit and save buttons line up with the sentence.
 • A word whose sentence you saved is in the next export even if its status didn't change. The export header explains the date, sentence and saved columns.

@@ -14,12 +14,12 @@
   }
   var CUES = /\[[^\]\n]{1,10}\]|［[^］\n]{1,10}］|【\d+】|\*[^*\n]{1,10}\*|[♪♫]/g;
   function cleanSentence(text, word, alt) {
-    let withWord = text.replace(CUES, " ").split(/\s*(?:[|｜]|\s[-–—]\s|(?<=[^\s\x00-\x7f])[-–—_](?=[^\s\x00-\x7f]))\s*/).map((p) => p.replace(/[ \t]+/g, " ").trim()).filter((p) => p && !/^(pdf|docx?|pptx?|xlsx?|html?|…|\.\.\.)$/i.test(p)).filter((p) => hasWord(p, word, alt));
-    return withWord.length ? withWord.sort((a, b) => b.length - a.length)[0] : text.replace(CUES, " ").replace(/[ \t]+/g, " ").trim();
+    let uncue = (s) => s.replace(CUES, (cue) => hasWord(cue, word, alt) ? cue : " "), withWord = uncue(text).split(/\s*(?:[|｜]|\s[-–—]\s|(?<=[^\s\x00-\x7f])[-–—_](?=[^\s\x00-\x7f]))\s*/).map((p) => p.replace(/[ \t]+/g, " ").trim()).filter((p) => p && !/^(pdf|docx?|pptx?|xlsx?|html?|…|\.\.\.)$/i.test(p)).filter((p) => hasWord(p, word, alt));
+    return withWord.length ? withWord.sort((a, b) => b.length - a.length)[0] : uncue(text).replace(/[ \t]+/g, " ").trim();
   }
   function usefulSentence(text, word) {
-    let han = text.match(HAN)?.length ?? 0, latin = text.match(/[A-Za-z]/g)?.length ?? 0;
-    return han >= [...word].length + 2 && han * 2 >= latin;
+    let han = text.match(HAN)?.length ?? 0, latinWords = text.match(/[A-Za-z][A-Za-z'’-]*/g)?.length ?? 0;
+    return han >= [...word].length + 2 && han * 2 >= latinWords * 3;
   }
   function saveInList(list, o, now = Date.now()) {
     let zh = o.zh.trim(), old = o.replace ? list.find((x) => x.zh === o.replace) : void 0, out = list.filter((x) => x.zh !== zh && (!o.replace || x.zh !== o.replace));
@@ -83,8 +83,8 @@
     if (!hit) return "";
     let [a, b] = sentenceBounds(zh, hit.i), one = cleanSentence(zh.slice(a, b), word, c.q), at = findWord(one, word, c.q);
     if (!at || !usefulSentence(one, word)) return "";
-    let out = trimAround(one, at.i, at.len, max);
-    return out === zh.trim() && en.length ? [out, ...en].join(" \u2014 ") : out;
+    let out = trimAround(one, at.i, at.len, max), english = en.join(" \u2014 ").replace(CUES, " ").replace(/\s+/g, " ").trim();
+    return english && out === cleanSentence(zh, word, c.q) ? `${out} \u2014 ${english}` : out;
   }
 
   // src/shared/dict.ts
@@ -329,7 +329,7 @@
   }
 
   // src/shared/gloss.ts
-  var POINTER = /^(CL:|(old |unofficial )?variant of |used in |see |also pr\.|also written |surname )/i;
+  var PLACEHOLDER = /^\(?(your own word|not in the dictionary)\)?$/i, isPlaceholder = (g) => !g || PLACEHOLDER.test(g.trim()), POINTER = /^(CL:|(old |unofficial )?variant of |used in |see |also pr\.|also written |surname )/i;
   function tidy(sense) {
     let s = sense.replace(/\s*\(?CL:[^)/]*\)?/g, "").replace(/\s*\(Taiwan pr\. \[[^\]]*\]\)/g, "").replace(/([^\s[|,;()"]+)\|[^\s[,;()"]+\[[^\]]*\]/g, "$1").replace(/([^\s[|,;()"]+)\[[a-zA-Z0-9: ]+\]/g, "$1"), outside = s.replace(/\([^()]*\)/g, "").trim();
     return s = s.replace(/\(([^()]*)\)/g, (note, inner, at) => outside ? inner.length <= 24 || at > 0 && outside.length <= 12 ? note : "" : inner), s.replace(/\s+/g, " ").replace(/\s+([,;])/g, "$1").replace(/^[\s,;]+|[\s,;]+$/g, "");
@@ -347,6 +347,7 @@
     return `${s.slice(0, cut > max / 2 ? cut : max - 1).replace(/[\s,;]+$/, "")}\u2026`;
   }
   function shortGloss(e, max = 60) {
+    if (e.defs.every((d) => isPlaceholder(d))) return "";
     let items = [], seen = /* @__PURE__ */ new Set();
     for (let sense of e.defs)
       if (!POINTER.test(sense))
@@ -374,19 +375,25 @@
     return i === sylls.length ? out.join(" ") : numberedToMarked(py);
   }
   function freshen(d, w) {
-    let entries = d.get(w.w), marked = (e2) => numberedToMarked(e2.tw || e2.py), saved = (w.p ?? "").replace(/\s+/g, "").toLowerCase(), e = saved ? entries.find((x) => marked(x).toLowerCase() === saved) : entries[0];
+    let entries = d.get(w.w).filter((x) => !x.own);
+    w = withSurface(w, entries);
+    let marked = (e2) => numberedToMarked(e2.tw || e2.py), saved = (w.p ?? "").replace(/\s+/g, "").toLowerCase(), e = saved ? entries.find((x) => marked(x).toLowerCase() === saved) : entries[0];
     if (e) {
       let sylls2 = (e.tw || e.py).split(/\s+/).filter(Boolean), syl = sylls2.length === [...w.w].length && [...w.w].every((c) => CJK.test(c)) ? sylls2.map((x) => numberedToMarked(x)) : void 0;
       return { ...w, p: listPinyin(e.tw || e.py, w.w, d.split(w.w)), g: shortGloss(e), ...syl ? { syl } : {} };
     }
-    if (w.p || entries.length || !CJK.test(w.w)) return w.g && w.g.length >= 118 ? { ...w, g: uncut(w.g) } : w;
-    let parts = d.segment(w.w).map((t) => ({ t, e: t.word ? d.get(t.word)[0] : void 0 })), sylls = parts.flatMap(({ e: pe }) => pe ? (pe.tw || pe.py).split(/\s+/).filter(Boolean) : []), whole = parts.every(({ e: pe }) => pe) && sylls.length === [...w.w].length;
+    if (w.g && isPlaceholder(w.g) && (w = { ...w, g: "" }), w.p || entries.length || !CJK.test(w.w)) return w.g && w.g.length >= 118 ? { ...w, g: uncut(w.g) } : w;
+    let parts = d.split(w.w).map((t) => ({ t, e: d.get(t).filter((x) => !x.own)[0] })), sylls = parts.flatMap(({ e: pe }) => pe ? (pe.tw || pe.py).split(/\s+/).filter(Boolean) : []), whole = parts.length > 0 && parts.every(({ e: pe }) => pe) && sylls.length === [...w.w].length;
     return {
       ...w,
-      p: parts.map(({ t, e: pe }) => pe ? marked(pe) : t.text).join(" "),
+      p: parts.map(({ t, e: pe }) => pe ? marked(pe) : t).join(" "),
       ...whole ? { syl: sylls.map((x) => numberedToMarked(x)) } : {},
-      g: w.g || parts.map(({ t, e: pe }) => pe ? `${t.text} ${shortGloss(pe, 24).split("; ")[0]}` : "").filter(Boolean).join(" + ")
+      g: w.g || parts.map(({ t, e: pe }) => pe ? `${t} ${shortGloss(pe, 24).split("; ")[0]}` : "").filter(Boolean).join(" + ")
     };
+  }
+  function withSurface(w, entries) {
+    let simp = entries.find((e) => e.simp && e.simp !== w.w)?.simp;
+    return !simp || w.ctx.every((c) => c.q) ? w : { ...w, ctx: w.ctx.map((c) => c.q ? c : { ...c, q: simp }) };
   }
   function uncut(g) {
     let i = g.lastIndexOf("; ");
@@ -943,7 +950,7 @@ Give each with a natural American English translation.`, schema = {
     for (let r of store.words.values()) addOwnWord(d, r.w, r.g);
   }), OWN_WORD = /^[㐀-䶿一-鿿豈-﫿]{2,8}$/;
   function addOwnWord(d, word, gloss) {
-    OWN_WORD.test(word) && d.addWord({ trad: word, simp: word, py: "", tw: "", defs: [gloss || "(your own word)"], zipf: 0, tocfl: 0, rank: 0 });
+    OWN_WORD.test(word) && d.addWord({ trad: word, simp: word, py: "", tw: "", defs: [isPlaceholder(gloss) ? "(your own word)" : gloss], zipf: 0, tocfl: 0, rank: 0, own: !0 });
   }
   async function lookupPhrase(d, raw) {
     let text = raw.replace(/\s+/g, " ").trim().slice(0, 300);
@@ -1128,7 +1135,7 @@ Give each with a natural American English translation.`, schema = {
             let mineEn = savedList.find((y) => y.zh === x.zh)?.en;
             mineEn && (x.en = mineEn);
           }
-          let seen = (record?.ctx ?? []).map((c) => {
+          let seen = (record ? withSurface(record, d.get(word)).ctx : []).map((c) => {
             let [zh, ...en] = metSentence(c, word, 120).split(" \u2014 ");
             return { c, zh, en: en.join(" \u2014 ") };
           }).filter(({ zh }) => zh).filter(({ zh }, i, all) => all.findIndex((x) => x.zh === zh) === i).slice(0, 3).map(({ c, zh, en }) => ({ ...c, zh, en, toks: d.segment(zh) })), shown = new Set(ex.map((x) => x.zh)), mine = savedList.filter((x) => !shown.has(x.zh)).map((x) => ({ zh: x.zh, en: x.en, from: x.from, toks: d.segment(x.zh) }));
