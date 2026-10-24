@@ -42,22 +42,49 @@ export function saveInList(
   return out;
 }
 
-/** Ends a sentence: 。！？!? or a line break, and a "." that isn't inside a number or a name like www.x.com. */
-function isStop(s: string, i: number): boolean {
+/**
+ * Positions inside a quote: between 「 and its 」, or 『 and its 』. A quote that never closes
+ * (or a 」 with no 「) doesn't count, so a quote cut off by the page doesn't swallow the text.
+ */
+function quoted(s: string): boolean[] {
+  const inside = new Array<boolean>(s.length).fill(false);
+  const open: { i: number; close: string }[] = [];
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === '「' || c === '『') open.push({ i, close: c === '「' ? '」' : '』' });
+    else if (c === '」' || c === '』') {
+      const k = open.map((o) => o.close).lastIndexOf(c);
+      if (k < 0) continue;
+      const from = open[k].i;
+      open.length = k;
+      for (let j = from + 1; j < i; j++) inside[j] = true;
+    }
+  }
+  return inside;
+}
+
+/**
+ * Ends a sentence: 。！？!? or a line break, and a "." that isn't inside a number or a name like
+ * www.x.com. Punctuation inside 「」 or 『』 doesn't: 「你好嗎？」他問。 is one sentence.
+ */
+function isStop(s: string, i: number, inside: boolean[]): boolean {
   const c = s[i];
-  if ('。！？!?\n\r'.includes(c)) return true;
+  if (c === '\n' || c === '\r') return true;
+  if (inside[i]) return false;
+  if ('。！？!?'.includes(c)) return true;
   return c === '.' && !(/[0-9A-Za-z]/.test(s[i - 1] ?? '') && /[0-9A-Za-z]/.test(s[i + 1] ?? ''));
 }
 const CLOSER = /[」』"”’'）)】》〉\]]/;
 
 /** [start, end) of the sentence around position `pos`: from the previous stop to the next one (its closing quote included). */
 export function sentenceBounds(s: string, pos: number): [number, number] {
+  const q = quoted(s);
   let a = Math.min(Math.max(pos, 0), s.length);
-  while (a > 0 && !isStop(s, a - 1)) a--;
+  while (a > 0 && !isStop(s, a - 1, q)) a--;
   while (a < pos && (CLOSER.test(s[a]) || /\s/.test(s[a]))) a++; // the last sentence's 」 or space
   let b = Math.max(a, pos);
-  while (b < s.length && !isStop(s, b)) b++;
-  while (b < s.length && isStop(s, b) && !/[\n\r]/.test(s[b])) b++; // 。 or ?! or ...
+  while (b < s.length && !isStop(s, b, q)) b++;
+  while (b < s.length && isStop(s, b, q) && !/[\n\r]/.test(s[b])) b++; // 。 or ?! or ...
   while (b < s.length && CLOSER.test(s[b])) b++;
   return [a, b];
 }

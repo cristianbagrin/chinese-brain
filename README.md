@@ -99,8 +99,8 @@ Toolbar button → **Word list & export**.
   sentence for (`saved` column, several joined with ` ‖ `). Only your own
   stamps count; lookups don't. It opens the save-as dialog in the folder you
   used last (`chinese-brain-YYYY-MM-DD.tsv`); cancel it and nothing is marked
-  as exported. The `sentence` column is the one sentence the word appears in,
-  trimmed to about 80 characters around it, or empty when the captured text
+  as exported. The `sentence` column is the one sentence the word appears in
+  (「你好嗎？」他問。 is one sentence), trimmed to about 80 characters around it, or empty when the captured text
   doesn't contain the word.
 - **Backup / restore** saves everything as JSON, for moving to another
   browser or computer.

@@ -32,7 +32,15 @@ test('sentenceWith: the one sentence with the word, from stop to stop', () => {
   const text = '昨天下雨了。我今天去台北車站買便當！便當很好吃？Yes. 明天再去';
   assert.equal(sentenceWith(text, '便當'), '我今天去台北車站買便當！');
   assert.equal(sentenceWith(text, '明天'), '明天再去');
-  assert.equal(sentenceWith('他說：「好啊。」然後就走了。', '然後'), '然後就走了。');
+  // 。！？ inside 「」 or 『』 don't end the sentence.
+  assert.equal(sentenceWith('「你好嗎？」他問。我很好。', '他問'), '「你好嗎？」他問。');
+  assert.equal(sentenceWith('「你好嗎？」他問。我很好。', '你好'), '「你好嗎？」他問。');
+  assert.equal(sentenceWith('他說：「好啊。」然後就走了。下一句。', '然後'), '他說：「好啊。」然後就走了。');
+  assert.equal(sentenceWith('書名是『我是貓！』，很有名。', '有名'), '書名是『我是貓！』，很有名。');
+  assert.equal(sentenceWith('她說：「我說『不要！』了。」好。', '她說'), '她說：「我說『不要！』了。」好。');
+  // A quote that never closes doesn't swallow the rest.
+  assert.equal(sentenceWith('前一句。「沒有結尾。後面有字。', '後面'), '後面有字。');
+  assert.equal(sentenceWith('你好。」他問。', '他問'), '他問。');
   assert.equal(sentenceWith('第一行\n第二行有颱風\n第三行', '颱風'), '第二行有颱風');
   // A "." inside a number or a domain doesn't end the sentence.
   assert.equal(sentenceWith('我買了3.5公斤的芒果。', '芒果'), '我買了3.5公斤的芒果。');

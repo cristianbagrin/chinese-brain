@@ -1390,19 +1390,34 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
   function usefulSentence(text, word) {
     return (text.match(HAN2)?.length ?? 0) >= [...word].length + 2;
   }
-  function isStop(s, i) {
+  function quoted(s) {
+    let inside = new Array(s.length).fill(!1), open = [];
+    for (let i = 0; i < s.length; i++) {
+      let c = s[i];
+      if (c === "\u300C" || c === "\u300E") open.push({ i, close: c === "\u300C" ? "\u300D" : "\u300F" });
+      else if (c === "\u300D" || c === "\u300F") {
+        let k = open.map((o) => o.close).lastIndexOf(c);
+        if (k < 0) continue;
+        let from = open[k].i;
+        open.length = k;
+        for (let j = from + 1; j < i; j++) inside[j] = !0;
+      }
+    }
+    return inside;
+  }
+  function isStop(s, i, inside) {
     let c = s[i];
-    return `\u3002\uFF01\uFF1F!?
-\r`.includes(c) ? !0 : c === "." && !(/[0-9A-Za-z]/.test(s[i - 1] ?? "") && /[0-9A-Za-z]/.test(s[i + 1] ?? ""));
+    return c === `
+` || c === "\r" ? !0 : inside[i] ? !1 : "\u3002\uFF01\uFF1F!?".includes(c) ? !0 : c === "." && !(/[0-9A-Za-z]/.test(s[i - 1] ?? "") && /[0-9A-Za-z]/.test(s[i + 1] ?? ""));
   }
   var CLOSER = /[」』"”’'）)】》〉\]]/;
   function sentenceBounds(s, pos) {
-    let a = Math.min(Math.max(pos, 0), s.length);
-    for (; a > 0 && !isStop(s, a - 1); ) a--;
+    let q = quoted(s), a = Math.min(Math.max(pos, 0), s.length);
+    for (; a > 0 && !isStop(s, a - 1, q); ) a--;
     for (; a < pos && (CLOSER.test(s[a]) || /\s/.test(s[a])); ) a++;
     let b = Math.max(a, pos);
-    for (; b < s.length && !isStop(s, b); ) b++;
-    for (; b < s.length && isStop(s, b) && !/[\n\r]/.test(s[b]); ) b++;
+    for (; b < s.length && !isStop(s, b, q); ) b++;
+    for (; b < s.length && isStop(s, b, q) && !/[\n\r]/.test(s[b]); ) b++;
     for (; b < s.length && CLOSER.test(s[b]); ) b++;
     return [a, b];
   }
