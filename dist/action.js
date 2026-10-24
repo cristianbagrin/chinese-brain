@@ -24,12 +24,18 @@
     ]), vals = Object.values(statuses);
     $("counts").replaceChildren(
       ...[
-        ["fresh", "\u65B0 Fresh"],
-        ["learning", "\u5B78 Learning"],
-        ["known", "\u719F Known"]
-      ].map(
-        ([k, label]) => h("a", { class: `count ${k}`, href: `vocab.html#${k}`, target: "_blank", title: `Open the ${label.split(" ")[1]} words` }, h("b", null, String(vals.filter((v) => v === k).length)), h("span", null, label))
-      )
+        ["fresh", "\u65B0", "Fresh"],
+        ["learning", "\u5B78", "Learning"],
+        ["known", "\u719F", "Known"]
+      ].map(([k, zh, label]) => {
+        let n = vals.filter((v) => v === k).length;
+        return h(
+          "a",
+          { class: k, href: `vocab.html#${k}`, target: "_blank", title: `Open your ${label.toLowerCase()} words`, "aria-label": `${n} ${label.toLowerCase()} words` },
+          h("span", { class: "seal", lang: "zh-Hant" }, zh),
+          h("b", null, n.toLocaleString("en-US"))
+        );
+      })
     );
     for (let el of document.querySelectorAll("[data-setting]")) {
       let key = el.dataset.setting;

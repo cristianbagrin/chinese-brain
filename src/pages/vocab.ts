@@ -1,7 +1,7 @@
 import { metSentence } from '../shared/context.ts';
-import { buildClaudeExport, parseWordList, shortSource } from '../shared/export.ts';
+import { buildClaudeExport, parseWordList, sourceName } from '../shared/export.ts';
 import { clock } from '../shared/time.ts';
-import type { LogEvent, Status, WordRecord } from '../shared/types.ts';
+import type { LogEvent, SavedSentence, Status, WordRecord } from '../shared/types.ts';
 import { $, ago, download, h, saveAs, today } from './common.ts';
 
 const STAMPS: [Status, string, string][] = [
@@ -17,73 +17,116 @@ const PAGE = 120;
 let shown = PAGE;
 /**
  * Words you restamped or removed in this view stay where they are (with their new status, or
- * faded with an Undo) until you switch filters, so the grid doesn't jump while you work through it.
+ * faded with an Undo) until you switch filters, so the list doesn't jump while you work through it.
  */
-const kept = new Set<string>();
+const kept = new Map<string, number>(); // word -> when it was last changed before this view touched it
 const removed = new Map<string, WordRecord>();
+
+let saved: Record<string, SavedSentence[]> = {};
 
 async function load() {
   const data = await browser.runtime.sendMessage({ type: 'allData' });
   words = data.words;
   logs = data.logs;
+  saved = data.saved ?? {};
   render();
   renderExportInfo();
 }
 
 const LABEL: Record<Status | 'all', string> = { fresh: 'fresh', learning: 'learning', known: 'known', all: '' };
+const EMPTY: Record<Status | 'all', string> = {
+  fresh: 'No fresh words. Stamp 新 on a word in the card (press 1) and it lands here.',
+  learning: 'Nothing in learning yet. Stamp 學 (press 2) on a word you want to study.',
+  known: 'No known words yet. Stamp 熟 (press 3), or import your known-words.txt below.',
+  all: 'No words yet. Stamp a word in the card (1 新, 2 學, 3 熟) and it shows up here.',
+};
 
 function render() {
   const n = (s: Status) => words.filter((w) => w.s === s).length;
   const tab = (f: Status | 'all', count: number, ...label: (string | HTMLElement)[]) =>
     h('button', { class: f, 'data-f': f, 'aria-pressed': String(filter === f) }, ...label, h('b', null, count.toLocaleString('en-US')));
   $('filter').replaceChildren(
-    ...STAMPS.map(([s, zh, label]) => tab(s, n(s), h('span', { class: 'zh' }, zh), h('span', { class: 'en' }, label))),
+    ...STAMPS.map(([s, zh, label]) => tab(s, n(s), h('span', { class: 'seal', lang: 'zh-Hant' }, zh), h('span', { class: 'en' }, label))),
     tab('all', words.length, h('span', null, 'All')),
   );
   const q = $<HTMLInputElement>('q').value.trim().toLowerCase();
   const sort = $<HTMLSelectElement>('sort').value as 'updated' | 'added' | 'looks';
   const byWord = new Map(words.map((w) => [w.w, w]));
   for (const [w, rec] of removed) if (!byWord.has(w)) byWord.set(w, rec);
+  const matches = (w: WordRecord) => !q || w.w.includes(q) || plain(w.p ?? '').includes(plain(q)) || (w.g ?? '').toLowerCase().includes(q);
   const list = [...byWord.values()]
     .filter((w) => filter === 'all' || w.s === filter || kept.has(w.w) || removed.has(w.w))
-    .filter((w) => !q || w.w.includes(q) || (w.p ?? '').toLowerCase().includes(q) || (w.g ?? '').toLowerCase().includes(q))
-    .sort((a, b) => (b[sort] as number) - (a[sort] as number));
-  $('rows').replaceChildren(...list.slice(0, shown).map(card));
-  if (!list.length) {
-    $('rows').append(
-      h('p', { class: 'empty' }, q ? 'No words match.' : filter === 'all' ? 'No words yet. Stamp a word in the card (1 新, 2 學, 3 熟) and it shows up here.' : `No ${LABEL[filter]} words.`),
-    );
-  }
-  const what = `${LABEL[filter] ? `${LABEL[filter]} ` : ''}word${list.length === 1 ? '' : 's'}`;
-  $('more').textContent = list.length > shown ? `${shown} of ${list.length.toLocaleString('en-US')} ${what}` : list.length ? `${list.length.toLocaleString('en-US')} ${what}` : '';
+    .filter(matches)
+    .sort((a, b) => key(b, sort) - key(a, sort));
+  $('rows').replaceChildren(...list.slice(0, shown).map(row));
+  if (!list.length) $('rows').append(emptyState(q, words.filter(matches).length));
+  // The count is of the list's words now, not the ones only kept in place.
+  const total = list.filter((w) => words.includes(w) && (filter === 'all' || w.s === filter)).length;
+  const what = `${q ? 'match' : `${LABEL[filter] ? `${LABEL[filter]} ` : ''}word`}${total === 1 ? '' : q ? 'es' : 's'}`;
+  $('more').textContent = list.length > shown ? `${shown} of ${total.toLocaleString('en-US')} ${what}` : total ? `${total.toLocaleString('en-US')} ${what}` : '';
   $('showMore').hidden = list.length <= shown;
 }
 
-/** The sentence with the headword underlined. */
-function sentence(text: string, word: string): (Node | string)[] {
-  const out: (Node | string)[] = [];
-  text.split(word).forEach((part, i) => {
-    if (i) out.push(h('u', null, word));
-    if (part) out.push(part);
-  });
-  return out;
+/** Nothing to show: say why, and when the search finds words in the other lists, offer them. */
+function emptyState(q: string, elsewhere: number): HTMLElement {
+  if (!q) return h('p', { class: 'empty' }, EMPTY[filter]);
+  if (!elsewhere || filter === 'all') return h('p', { class: 'empty' }, `Nothing matches “${q}”.`);
+  const all = h('button', { class: 'link' }, elsewhere === 1 ? 'Show it' : `Show all ${elsewhere}`);
+  all.addEventListener('click', () => setFilter('all'));
+  return h('p', { class: 'empty' }, `No ${LABEL[filter]} words match “${q}”, but ${elsewhere === 1 ? 'one word' : `${elsewhere} words`} in your other lists ${elsewhere === 1 ? 'does' : 'do'}. `, all);
 }
 
-function card(w: WordRecord) {
+/** Sort key; a word restamped here keeps its place in "Recently changed" until the filter changes. */
+const key = (w: WordRecord, sort: 'updated' | 'added' | 'looks') => (sort === 'updated' ? (kept.get(w.w) ?? w.updated) : w[sort]);
+
+/** Pinyin without tone marks or spaces, so "zhongwen" finds zhōngwén. */
+const plain = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f\s']/g, '').toLowerCase();
+
+/** The sentence with the headword marked, however it's written there (台/臺, or as `alt`). */
+function marked(text: string, word: string, alt?: string): (Node | string)[] {
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/[臺台]/g, '[臺台]');
+  const re = new RegExp([word, alt].filter(Boolean).map((x) => esc(x!)).join('|'), 'g');
+  const out: (Node | string)[] = [];
+  let at = 0;
+  for (const m of text.matchAll(re)) {
+    out.push(text.slice(at, m.index), h('u', null, m[0]));
+    at = m.index! + m[0].length;
+  }
+  out.push(text.slice(at));
+  return out.filter((x) => x !== '');
+}
+
+/**
+ * The headword in 田字格 squares with each character's pinyin above it, like a practice book.
+ * The squares stay inline and the pinyin is drawn by CSS (data-py), so hovering the word still
+ * opens the card for the whole word, not one character.
+ */
+function headword(w: WordRecord): HTMLElement {
+  const chars = [...w.w];
+  const syl = w.syl?.length === chars.length ? w.syl : undefined;
+  return h(
+    'div',
+    { class: 'hw', lang: 'zh-Hant' },
+    syl ? null : h('div', { class: 'pyline' }, w.p ?? ''),
+    h('div', { class: `chars${syl ? '' : ' nopy'}`, title: syl ? w.p ?? '' : '' }, ...chars.map((ch, i) => h('span', { class: 'ch', 'data-py': syl?.[i] ?? '' }, h('b', null, ch)))),
+  );
+}
+
+function row(w: WordRecord) {
   const gone = removed.has(w.w) && !words.some((x) => x.w === w.w);
-  // The same sentence the export uses: the one with the word in it, trimmed around it.
-  const met = w.ctx.map((c) => ({ c, text: metSentence(c, w.w).split(' — ')[0] })).find((x) => x.text);
-  let link: HTMLElement | null = null;
+  // The same sentence the export uses: the one with the word in it, trimmed around it (shorter here).
+  const met = w.ctx.map((c) => ({ c, text: metSentence(c, w.w, 36).split(' — ')[0] })).find((x) => x.text);
+  let src: HTMLElement | null = null;
   if (met) {
     const c = met.c;
-    const yt = c.src === 'yt' && c.t != null;
-    link = h('a', { href: yt ? `${c.url}&t=${c.t}s` : c.url, target: '_blank', title: c.title ?? c.url }, yt ? `▶ ${clock(c.t!)}` : shortSource(c.url));
+    const line = c.src === 'yt' && c.t != null;
+    src = h('a', { class: 'src', href: line ? `${c.url}&t=${c.t}s` : c.url, target: '_blank', title: c.title || c.url }, line ? `▶ ${clock(c.t!)}` : sourceName(c.url));
   }
   const stamps = h(
     'div',
     { class: 'stamps', role: 'group', 'aria-label': 'Status' },
     ...STAMPS.map(([s, zh, label]) => {
-      const b = h('button', { class: s, title: label, 'aria-pressed': String(w.s === s) }, zh);
+      const b = h('button', { class: s, title: `${label} (${zh})`, 'aria-pressed': String(w.s === s), lang: 'zh-Hant' }, zh);
       b.addEventListener('click', () => setStatus(w, s));
       return b;
     }),
@@ -93,26 +136,30 @@ function card(w: WordRecord) {
     corner = h('button', { class: 'undo' }, 'Undo');
     corner.addEventListener('click', () => restore(w));
   } else {
-    corner = h('button', { class: 'x', title: 'Remove from the list', 'aria-label': 'Remove from the list' }, '×');
+    corner = h('button', { class: 'x', title: 'Remove from the list', 'aria-label': `Remove ${w.w} from the list` }, '×');
     corner.addEventListener('click', () => remove(w));
   }
   return h(
     'article',
-    { class: `card ${w.s}${gone ? ' gone' : ''}` },
-    h('div', { class: 'top' }, h('b', { class: 'hw' }, w.w), corner),
-    h('div', { class: 'py' }, (w.p ?? '').toLowerCase()),
-    h('div', { class: 'gl', title: w.g ?? '' }, w.g ?? ''),
-    met ? h('p', { class: 'ctx' }, ...sentence(met.text, w.w), link ? ' ' : '', link) : null,
-    h('div', { class: 'foot' }, gone ? h('span', { class: 'when' }, 'Removed') : stamps, gone ? null : h('span', { class: 'when' }, ago(w.updated))),
+    { class: `word ${w.s}${gone ? ' gone' : ''}`, 'data-w': w.w },
+    headword(w),
+    h(
+      'div',
+      { class: 'txt' },
+      w.g ? h('p', { class: 'gl' }, w.g) : h('p', { class: 'gl none' }, 'Not in the dictionary'),
+      met ? h('p', { class: 'ctx', lang: 'zh-Hant' }, ...marked(met.text, w.w, met.c.q), src) : null,
+    ),
+    h('div', { class: 'act' }, gone ? corner : stamps, gone ? null : corner, h('span', { class: 'when' }, gone ? 'Removed' : ago(w.updated))),
   );
 }
 
 async function setStatus(w: WordRecord, s: Status) {
   if (w.s === s) return;
-  kept.add(w.w);
+  if (!kept.has(w.w)) kept.set(w.w, w.updated);
   w.s = s;
   w.updated = Date.now();
   render();
+  document.querySelector(`.word[data-w="${CSS.escape(w.w)}"] .stamps .${s}`)?.classList.add('press');
   await browser.runtime.sendMessage({ type: 'setStatus', word: w.w, status: s });
 }
 
@@ -129,7 +176,8 @@ async function restore(w: WordRecord) {
   removed.delete(w.w);
   words = [...words, rec];
   render();
-  await browser.runtime.sendMessage({ type: 'importWords', words: [rec], mode: 'merge' });
+  const { syl: _, ...stored } = rec; // the list's per-character pinyin isn't stored
+  await browser.runtime.sendMessage({ type: 'importWords', words: [stored], mode: 'merge' });
 }
 
 function setFilter(f: Status | 'all') {
@@ -140,11 +188,13 @@ function setFilter(f: Status | 'all') {
   render();
 }
 
+/** When you last exported, and how many words the next "Download new" has. */
 async function renderExportInfo() {
   const { lastExportAt } = await browser.storage.local.get('lastExportAt');
-  $('lastExport').textContent = lastExportAt
-    ? `Last export ${ago(lastExportAt as number)}. "What's new" is everything since.`
-    : 'Nothing exported yet.';
+  const since = (lastExportAt as number) ?? 0;
+  const rows = buildClaudeExport(words, logs, since, saved).split('\n').filter((l) => l && !l.startsWith('#')).length - 1;
+  const waiting = rows > 0 ? `${rows} word${rows === 1 ? '' : 's'} to send` : 'Nothing new to send yet';
+  $('lastExport').textContent = since ? `Last export ${ago(since)}. ${waiting}.` : `Nothing exported yet. ${waiting}.`;
 }
 
 $('q').addEventListener('input', () => {
@@ -182,8 +232,9 @@ async function exportNew(deliver: (text: string) => Promise<boolean>): Promise<v
   const data = await browser.runtime.sendMessage({ type: 'allData' });
   words = data.words;
   logs = data.logs;
+  saved = data.saved ?? {};
   const { lastExportAt } = await browser.storage.local.get('lastExportAt');
-  const text = buildClaudeExport(words, logs, (lastExportAt as number) ?? 0, data.saved);
+  const text = buildClaudeExport(words, logs, (lastExportAt as number) ?? 0, saved);
   if (!(await deliver(text))) return;
   await browser.storage.local.set({ lastExportAt: at });
   render();

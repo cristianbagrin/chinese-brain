@@ -12,13 +12,13 @@
   transition: bottom 0.15s ease;
   /* Light band (default) */
   --band: rgba(255, 255, 255, 0.9);
-  --text: #1b1d3a;
-  --text2: #3d4166;
+  --text: #1e1a18;
+  --text2: #3f3833;
   --fresh: #ffccd2;
   --learning: #ffe066;
   --known: #c3ecd0;
-  --hover: rgba(27, 29, 58, 0.1);
-  --rt: #565a7e;
+  --hover: rgba(30, 26, 24, 0.1);
+  --rt: #5e5650;
   --serif: 'Songti TC', 'Noto Serif TC', 'Noto Serif CJK TC', 'PMingLiU', serif;
   --sans: -apple-system, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, monospace;
@@ -26,11 +26,11 @@
 :host(.low) { bottom: 3%; }
 /* Dark band (setting): status shown as text color. */
 :host(.dark) {
-  --band: rgba(22, 24, 50, 0.8);
+  --band: rgba(24, 20, 18, 0.8);
   --text: #ffffff;
-  --text2: #d4d8ff;
+  --text2: #efe6dc;
   --hover: rgba(255, 255, 255, 0.18);
-  --rt: #c9cdf0;
+  --rt: #e3d8cc;
 }
 :host([hidden]) { display: none; }
 

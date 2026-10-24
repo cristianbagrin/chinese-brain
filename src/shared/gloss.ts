@@ -102,13 +102,20 @@ export function freshen(d: Dictionary, w: WordRecord): WordRecord {
   const marked = (e: Entry) => numberedToMarked(e.tw || e.py);
   const saved = (w.p ?? '').replace(/\s+/g, '').toLowerCase();
   const e = saved ? entries.find((x) => marked(x).toLowerCase() === saved) : entries[0];
-  if (e) return { ...w, p: listPinyin(e.tw || e.py, w.w, d.split(w.w)), g: shortGloss(e) };
+  if (e) {
+    const sylls = (e.tw || e.py).split(/\s+/).filter(Boolean);
+    const syl = sylls.length === [...w.w].length && [...w.w].every((c) => CJK.test(c)) ? sylls.map((x) => numberedToMarked(x)) : undefined;
+    return { ...w, p: listPinyin(e.tw || e.py, w.w, d.split(w.w)), g: shortGloss(e), ...(syl ? { syl } : {}) };
+  }
   if (w.p || entries.length || !CJK.test(w.w)) return w.g && w.g.length >= 118 ? { ...w, g: uncut(w.g) } : w;
   // Not in the dictionary (a phrase, or a typo): the readings and meanings of its parts.
   const parts = d.segment(w.w).map((t) => ({ t, e: t.word ? d.get(t.word)[0] : undefined }));
+  const sylls = parts.flatMap(({ e: pe }) => (pe ? (pe.tw || pe.py).split(/\s+/).filter(Boolean) : []));
+  const whole = parts.every(({ e: pe }) => pe) && sylls.length === [...w.w].length;
   return {
     ...w,
     p: parts.map(({ t, e: pe }) => (pe ? marked(pe) : t.text)).join(' '),
+    ...(whole ? { syl: sylls.map((x) => numberedToMarked(x)) } : {}),
     g: w.g || parts.map(({ t, e: pe }) => (pe ? `${t.text} ${shortGloss(pe, 24).split('; ')[0]}` : '')).filter(Boolean).join(' + '),
   };
 }

@@ -56,5 +56,6 @@ export function ago(t: number): string {
   if (s < 3600) return `${Math.round(s / 60)} min ago`;
   if (s < 86400 * 2) return `${Math.round(s / 3600)} h ago`;
   if (s < 86400 * 30) return `${Math.round(s / 86400)} days ago`;
-  return new Date(t).toLocaleDateString();
+  const d = new Date(t);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(d.getFullYear() === new Date().getFullYear() ? {} : { year: 'numeric' }) });
 }

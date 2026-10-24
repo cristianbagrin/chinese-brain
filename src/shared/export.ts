@@ -22,6 +22,25 @@ export function shortSource(url: string, t?: number): string {
   }
 }
 
+/** Sites by the names people call them, for the word list ("Notion", not app.notion.com). */
+const SITES: [string, string][] = [
+  ['notion.so', 'Notion'], ['notion.com', 'Notion'], ['notion.site', 'Notion'], ['youtube.com', 'YouTube'], ['youtu.be', 'YouTube'],
+  ['gemini.google.com', 'Gemini'], ['docs.google.com', 'Google Docs'], ['fonts.google.com', 'Google Fonts'], ['translate.google.com', 'Google Translate'],
+  ['chatgpt.com', 'ChatGPT'], ['claude.ai', 'Claude'], ['tally.so', 'Tally'], ['wikipedia.org', 'Wikipedia'], ['ptt.cc', 'PTT'], ['dcard.tw', 'Dcard'],
+  ['facebook.com', 'Facebook'], ['instagram.com', 'Instagram'], ['threads.net', 'Threads'], ['threads.com', 'Threads'], ['reddit.com', 'Reddit'],
+  ['x.com', 'X'], ['twitter.com', 'X'], ['netflix.com', 'Netflix'], ['line.me', 'LINE'],
+];
+
+/** A short, readable name for where a sentence came from. */
+export function sourceName(url: string): string {
+  try {
+    const host = new URL(url).hostname.replace(/^(www|m|app)\./, '');
+    return SITES.find(([d]) => host === d || host.endsWith('.' + d))?.[1] ?? host;
+  } catch {
+    return '';
+  }
+}
+
 function duration(secs: number) {
   const m = Math.round(secs / 60);
   return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min` : `${m} min`;

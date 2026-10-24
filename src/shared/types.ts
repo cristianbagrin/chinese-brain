@@ -59,6 +59,8 @@ export interface WordRecord {
   p?: string;
   /** Short gloss captured when saved. */
   g?: string;
+  /** Pinyin per character, for the word list (worked out when it loads, never stored). */
+  syl?: string[];
   added: number;
   updated: number;
   /** Status changes over time (oldest first). */

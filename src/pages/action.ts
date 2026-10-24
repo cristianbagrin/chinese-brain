@@ -10,14 +10,21 @@ async function init() {
     browser.tabs.query({ active: true, currentWindow: true }),
   ]);
   const vals = Object.values(statuses);
+  // Each pile opens the word list on it.
   $('counts').replaceChildren(
     ...([
-      ['fresh', '新 Fresh'],
-      ['learning', '學 Learning'],
-      ['known', '熟 Known'],
-    ] as const).map(([k, label]) =>
-      h('a', { class: `count ${k}`, href: `vocab.html#${k}`, target: '_blank', title: `Open the ${label.split(' ')[1]} words` }, h('b', null, String(vals.filter((v) => v === k).length)), h('span', null, label)),
-    ),
+      ['fresh', '新', 'Fresh'],
+      ['learning', '學', 'Learning'],
+      ['known', '熟', 'Known'],
+    ] as const).map(([k, zh, label]) => {
+      const n = vals.filter((v) => v === k).length;
+      return h(
+        'a',
+        { class: k, href: `vocab.html#${k}`, target: '_blank', title: `Open your ${label.toLowerCase()} words`, 'aria-label': `${n} ${label.toLowerCase()} words` },
+        h('span', { class: 'seal', lang: 'zh-Hant' }, zh),
+        h('b', null, n.toLocaleString('en-US')),
+      );
+    }),
   );
 
   // Switches and segmented choices, each bound to one setting.

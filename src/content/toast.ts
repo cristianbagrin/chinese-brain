@@ -11,7 +11,7 @@ export function toast(text: string) {
     const style = document.createElement('style');
     style.textContent = `
       div { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 2147483647;
-        font: 500 14px/1.3 system-ui, sans-serif; color: #fff; background: rgba(27, 29, 58, 0.92);
+        font: 500 14px/1.3 system-ui, sans-serif; color: #fff; background: rgba(30, 26, 24, 0.92);
         padding: 8px 14px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
         pointer-events: none; transition: opacity 0.2s; }
       div.out { opacity: 0; }`;

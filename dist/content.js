@@ -261,10 +261,10 @@
   var controls_default = `:host {
   all: initial;
   --bg: rgba(255, 255, 255, 0.97);
-  --line: #e2e2ec;
-  --text: #1b1d3a;
-  --text2: #565a7e;
-  --text3: #8a8eb0;
+  --line: #e9e1d7;
+  --text: #1e1a18;
+  --text2: #5e5650;
+  --text3: #958c85;
   --fresh: #ef2f42;
   --learning: #ffc81f;
   --known: #1fae4f;
@@ -332,7 +332,7 @@
 .seg.known { background: var(--known); }
 .seg.learning { background: var(--learning); }
 .seg.fresh { background: var(--fresh); }
-.seg.new { background: #c9cbe0; }
+.seg.new { background: #d6cec5; }
 .legend { display: flex; gap: 12px; font-size: 12px; color: var(--text2); }
 .legend .k { color: var(--known); }
 .legend .l { color: #a37b00; }
@@ -349,7 +349,7 @@
   font-size: 12.5px;
 }
 .chip.on { color: #fff; border-color: var(--text); background: var(--text); }
-.chip.on kbd { color: #c9cbe0; }
+.chip.on kbd { color: #d6cec5; }
 .chip kbd { font: 600 10px var(--sans); color: var(--text3); margin-left: 5px; }
 .keys { margin-top: 10px; font-size: 11.5px; color: var(--text3); }
 
@@ -381,7 +381,7 @@
   z-index: 71;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(22, 24, 50, 0.75);
+  background: rgba(24, 20, 18, 0.75);
   color: #fff;
   font: 500 12px/1.3 var(--sans);
   pointer-events: none;
@@ -558,11 +558,11 @@
   var transcript_default = `:host {
   all: initial;
   --bg: #ffffff;
-  --bg2: #f5f5f9;
-  --line: #e2e2ec;
-  --text: #1b1d3a;
-  --text2: #565a7e;
-  --text3: #8a8eb0;
+  --bg2: #f6f2ed;
+  --line: #e9e1d7;
+  --text: #1e1a18;
+  --text2: #5e5650;
+  --text3: #958c85;
   --fresh: #ef2f42;
   --learning: #ffc81f;
   --known: #1fae4f;
@@ -797,13 +797,13 @@
   transition: bottom 0.15s ease;
   /* Light band (default) */
   --band: rgba(255, 255, 255, 0.9);
-  --text: #1b1d3a;
-  --text2: #3d4166;
+  --text: #1e1a18;
+  --text2: #3f3833;
   --fresh: #ffccd2;
   --learning: #ffe066;
   --known: #c3ecd0;
-  --hover: rgba(27, 29, 58, 0.1);
-  --rt: #565a7e;
+  --hover: rgba(30, 26, 24, 0.1);
+  --rt: #5e5650;
   --serif: 'Songti TC', 'Noto Serif TC', 'Noto Serif CJK TC', 'PMingLiU', serif;
   --sans: -apple-system, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, monospace;
@@ -811,11 +811,11 @@
 :host(.low) { bottom: 3%; }
 /* Dark band (setting): status shown as text color. */
 :host(.dark) {
-  --band: rgba(22, 24, 50, 0.8);
+  --band: rgba(24, 20, 18, 0.8);
   --text: #ffffff;
-  --text2: #d4d8ff;
+  --text2: #efe6dc;
   --hover: rgba(255, 255, 255, 0.18);
-  --rt: #c9cdf0;
+  --rt: #e3d8cc;
 }
 :host([hidden]) { display: none; }
 
@@ -1910,19 +1910,19 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
   // src/content/popup.css
   var popup_default = `:host {
   all: initial;
-  --bg: #ffffff;
-  --bg2: #f5f5f9;
-  --line: #e2e2ec;
-  --text: #1b1d3a;
-  --text2: #565a7e;
-  --text3: #8a8eb0;
+  --bg: #fffdf9;
+  --bg2: #f6f2ed;
+  --line: #e9e1d7;
+  --text: #1e1a18;
+  --text2: #5e5650;
+  --text3: #958c85;
   --fresh: #ef2f42;
   --learning: #ffc81f;
   --known: #1fae4f;
   --fresh-mark: #ffd3d8;
   --learning-mark: #ffe680;
   --known-mark: #c9eed5;
-  --link: #3b48c4;
+  --link: #a3192a;
   --sans: -apple-system, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
 }
 
@@ -1944,7 +1944,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
   border: 1px solid var(--line);
   border-radius: 10px;
   font: 14px/1.45 var(--sans);
-  box-shadow: 0 8px 28px rgba(27, 29, 58, 0.16), 0 1px 3px rgba(27, 29, 58, 0.08);
+  box-shadow: 0 8px 28px rgba(30, 26, 24, 0.16), 0 1px 3px rgba(30, 26, 24, 0.08);
   text-align: left;
   pointer-events: auto;
   scrollbar-width: thin;
@@ -2025,7 +2025,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 .del:hover { color: var(--fresh); background: var(--bg2); }
 .ex li.gone { opacity: 0.35; pointer-events: none; }
 .ex .en { display: block; font-size: 0.89em; color: var(--text2); }
-.label { font-size: 0.79em; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 0.3em; }
+.label { font-size: 0.86em; font-weight: 600; color: var(--text2); margin-bottom: 0.3em; }
 .gem { all: unset; cursor: pointer; font-size: 0.89em; color: var(--link); }
 .gem:hover { text-decoration: underline; }
 .gem[disabled] { cursor: default; color: var(--text3); text-decoration: none; }
@@ -2041,30 +2041,31 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
   position: relative;
   width: 2.57em;
   height: 2.57em;
-  border-radius: 50%;
+  border-radius: 0.5em;
   display: grid;
   place-items: center;
-  border: 1.5px solid var(--line);
+  border: 1.5px dashed var(--line);
   background: var(--bg);
   font: 600 1.15em/1 var(--sans);
   color: var(--text2);
   transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.12s, border-color 0.12s, color 0.12s;
 }
 .stamp small { position: absolute; right: -3px; bottom: -3px; font: 600 8.5px/1 var(--sans); color: var(--text3); background: var(--bg2); padding: 1px 2px; border-radius: 3px; }
-.stamp:hover { border-color: var(--text3); color: var(--text); }
+.stamp:hover { border-style: solid; color: var(--text); }
 .stamp:active { transform: scale(0.88); }
 .stamp.fresh { border-color: color-mix(in srgb, var(--fresh) 45%, var(--line)); }
 .stamp.learning { border-color: color-mix(in srgb, var(--learning) 75%, var(--line)); }
 .stamp.known { border-color: color-mix(in srgb, var(--known) 45%, var(--line)); }
-.stamp.on { transform: rotate(-10deg); color: #fff; }
-.stamp.fresh.on { background: var(--fresh); border-color: var(--fresh); }
-.stamp.learning.on { background: var(--learning); border-color: var(--learning); color: var(--text); }
-.stamp.known.on { background: var(--known); border-color: var(--known); }
+/* A stamp that's set looks like a seal: filled, a thin inner frame, a little crooked. */
+.stamp.on { transform: rotate(-6deg); color: #fff; border-style: solid; }
+.stamp.fresh.on { background: var(--fresh); border-color: var(--fresh); box-shadow: inset 0 0 0 2px var(--fresh), inset 0 0 0 3px rgba(255, 255, 255, 0.6); }
+.stamp.learning.on { background: var(--learning); border-color: var(--learning); color: var(--text); box-shadow: inset 0 0 0 2px var(--learning), inset 0 0 0 3px rgba(255, 255, 255, 0.6); }
+.stamp.known.on { background: var(--known); border-color: var(--known); box-shadow: inset 0 0 0 2px var(--known), inset 0 0 0 3px rgba(255, 255, 255, 0.6); }
 .stamp.pop { animation: pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1); }
 @keyframes pop {
   0% { transform: rotate(0) scale(0.85); }
-  60% { transform: rotate(-14deg) scale(1.08); }
-  100% { transform: rotate(-10deg) scale(1); }
+  60% { transform: rotate(-12deg) scale(1.08); }
+  100% { transform: rotate(-6deg) scale(1); }
 }
 .tools { margin-left: auto; display: flex; gap: 0.85em; font-size: 12.5px; }
 .tools button { all: unset; cursor: pointer; color: var(--link); }
@@ -2094,7 +2095,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
   background: var(--text);
   color: #fff;
   font: 12px/1.3 var(--sans);
-  box-shadow: 0 3px 10px rgba(27, 29, 58, 0.25);
+  box-shadow: 0 3px 10px rgba(30, 26, 24, 0.25);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2102,7 +2103,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 .hint.large { font-size: 13px; }
 .hint[hidden] { display: none; }
 .hint .hg, .hint .hpy { overflow: hidden; text-overflow: ellipsis; }
-.hint .hpy { color: #c9cdf0; font-size: 0.82em; }
+.hint .hpy { color: #e3d8cc; font-size: 0.82em; }
 `;
 
   // src/content/popup.ts
@@ -2723,7 +2724,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       let root = host.attachShadow({ mode: "closed" }), style = document.createElement("style");
       style.textContent = `
       div { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 2147483647;
-        font: 500 14px/1.3 system-ui, sans-serif; color: #fff; background: rgba(27, 29, 58, 0.92);
+        font: 500 14px/1.3 system-ui, sans-serif; color: #fff; background: rgba(30, 26, 24, 0.92);
         padding: 8px 14px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
         pointer-events: none; transition: opacity 0.2s; }
       div.out { opacity: 0; }`, box = document.createElement("div"), root.append(style, box);

@@ -5,15 +5,18 @@
 <link rel="stylesheet" href="pages.css">
 <style>
   body { width: 320px; background: var(--paper); font-size: 14px; }
-  .wrap { padding: 12px 14px 12px; }
-  .counts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0 0 4px; }
-  .count { min-width: 0; padding: 5px 8px 4px; border-top-width: 3px; border-radius: 8px; background: var(--ground); border-left: 0; border-right: 0; border-bottom: 0; }
-  a.count { color: inherit; text-decoration: none; transition: background 0.12s; }
-  a.count:hover { background: var(--rule); }
-  .count b { font-size: 18px; }
-  .count span { font-size: 11.5px; }
-  .group { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--rule); }
-  .group h3 { margin: 0 0 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink3); }
+  /* The band: the logo's red tile, with your three piles of words on it. */
+  .band { display: flex; align-items: center; gap: 4px; padding: 8px 10px 8px 6px; background: var(--red); color: #fff; }
+  .band .mark { width: 34px; height: 34px; flex: none; margin-right: 2px; }
+  .band a { display: flex; align-items: center; gap: 7px; flex: 1; min-width: 0; padding: 5px 6px; border-radius: 8px; color: inherit; text-decoration: none; }
+  .band a:hover { background: rgba(0, 0, 0, 0.14); }
+  .band a:focus-visible { outline-color: #fff; outline-offset: -2px; }
+  .band .seal { width: 24px; height: 24px; border: 0; background: var(--paper); font-size: 14px; }
+  .band b { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .wrap { padding: 4px 14px 12px; }
+  .group { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--rule); }
+  .group:first-child { margin-top: 0; border-top: 0; }
+  .group h3 { margin: 0 0 2px; font-size: 12.5px; font-weight: 650; color: var(--ink2); }
   /* Compact rows: everything fits in the popup without scrolling (Firefox caps it near 600px). */
   .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 30px; padding: 2px 0; border: 0; }
   .row > span { flex: 1; }
@@ -23,7 +26,7 @@
   /* Switches */
   .sw { position: relative; flex: none; width: 32px; height: 18px; cursor: pointer; }
   .sw input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
-  .sw i { position: absolute; inset: 0; border-radius: 9px; background: #c9cbe0; transition: background 0.15s; pointer-events: none; }
+  .sw i { position: absolute; inset: 0; border-radius: 9px; background: #d6cec5; transition: background 0.15s; pointer-events: none; }
   .sw i::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
   .sw input:checked + i { background: var(--known); }
   .sw input:checked + i::after { transform: translateX(14px); }
@@ -42,8 +45,8 @@
 </style>
 </head>
 <body>
+<div class="band"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M45.01 21.65 43.44 43.58 20.9 44.2 19.61 23ZM21.07 48.29 47.25 47.5Q48.09 47.45 48.74 47.34Q49.38 47.22 49.38 46.44Q49.38 45.99 48.99 45.32Q48.6 44.64 47.81 43.64L49.66 21.32Q49.72 21.09 49.86 20.79Q50 20.48 50 20.08Q50 19.3 49.05 18.46Q48.09 17.62 46.8 17.62H46.47L19.21 19.02Q16.02 17.62 15.01 17.62Q14 17.62 14 18.51Q14 19.02 14.39 19.69Q14.73 20.36 14.95 21.35Q15.18 22.33 15.23 23.17L16.52 45.49Q16.58 45.77 16.58 46.07Q16.58 46.38 16.58 46.66Q16.58 47.39 16.52 47.93Q16.47 48.46 16.36 49.07Q16.36 49.13 16.33 49.21Q16.3 49.3 16.3 49.47Q16.3 50.53 17.25 51.15Q18.21 51.77 19.1 52.1L20 52.38Q21.23 52.38 21.23 50.64V50.36Z" fill="#fbf1de"/><g transform="rotate(4 32 34)"><path d="M27.2 4h4.6l-1.0999999999999999 56h-2.4z" fill="#1c1a1a"/><path d="M27.2 4h4.6l-.15 9h-4.3z" fill="#e9b44c"/></g><g transform="rotate(11 32 34)"><path d="M32.7 4h4.6l-1.0999999999999999 56h-2.4z" fill="#1c1a1a"/><path d="M32.7 4h4.6l-.15 9h-4.3z" fill="#e9b44c"/></g></svg><div id="counts" style="display:contents"></div></div>
 <div class="wrap">
-  <div class="counts" id="counts"></div>
 
   <div class="group">
     <h3>Lookup</h3>

@@ -93,10 +93,16 @@ for this one, YouTube subtitles); it fits without scrolling. **All settings** ha
 Toolbar button → **Word list & export**.
 
 - It opens on your 新 Fresh words; the bar at the top (it stays on screen) switches
-  to Learning, Known or All, searches and sorts. Each word is a card with its
-  pinyin, meaning and the sentence you met it in. Restamp it with 新 學 熟 or
-  remove it with × (Undo brings it back); cards you change stay where they are
-  until you switch filters.
+  to Learning, Known or All, searches and sorts. Each word is written in 田字格
+  squares like a practice book, each character's pinyin above it, with its
+  meaning and the sentence you met it in (and where: Notion, YouTube, a video
+  time). Hover a word for its full card. Restamp it with 新 學 熟 or remove it
+  with × (Undo brings it back); words you change stay where they are until you
+  switch filters. A search that finds nothing in this list offers the matches
+  in your other lists.
+- Meanings are short and whole (never cut mid-word), and the sentence is the
+  one the word is in. Sentences that don't contain the word, or that are really
+  English notes, aren't shown or exported.
 - **Import** your `known-words.txt` (`word⇥K|L⇥date`). K → Known, L → Learning,
   and the dates are kept.
 - **Download new** (or **Copy**) gives one small TSV: words
@@ -128,6 +134,8 @@ pip install wordfreq
 npm run data                      # CC-CEDICT + MOE readings + frequencies -> static/data/dict.tsv.gz
 python3 scripts/build_examples.py # data-src/examples/out-*.tsv -> static/data/examples.tsv.gz
 python3 scripts/build_names.py    # Wikidata names + foods -> static/data/names.tsv.gz (slow when Wikidata rate-limits)
+pip install fonttools brotli
+python3 scripts/build_fonts.py    # LXGW WenKai TC, 7,000 most common characters -> static/fonts/zh.woff2
 ```
 
 `tests/youtube-mock/` is a small stand-in for the YouTube player, used to test
@@ -168,6 +176,9 @@ Gemini, on request.
   Only the pinyin field is used, unchanged.
 - Names and foods: [Wikidata](https://www.wikidata.org/), CC0.
 - Word frequencies: [wordfreq](https://github.com/rspeer/wordfreq), CC BY-SA 4.0.
+- Font on the extension's pages: [LXGW WenKai TC](https://github.com/lxgw/LxgwWenkaiTC)
+  (霞鶩文楷), SIL Open Font License 1.1 (`static/fonts/OFL.txt`), cut down to
+  the 7,000 most common characters.
 - Example sentences: written for this project by language models from a
   Taiwan-usage brief (`data-src/examples/PROMPT.md`), then machine-checked
   (Traditional only, no 兒化, the word present) and spot-checked.

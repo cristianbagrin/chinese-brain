@@ -1,11 +1,11 @@
 :host {
   all: initial;
   --bg: #ffffff;
-  --bg2: #f5f5f9;
-  --line: #e2e2ec;
-  --text: #1b1d3a;
-  --text2: #565a7e;
-  --text3: #8a8eb0;
+  --bg2: #f6f2ed;
+  --line: #e9e1d7;
+  --text: #1e1a18;
+  --text2: #5e5650;
+  --text3: #958c85;
   --fresh: #ef2f42;
   --learning: #ffc81f;
   --known: #1fae4f;

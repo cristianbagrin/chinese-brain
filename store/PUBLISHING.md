@@ -86,7 +86,7 @@ OPTIONAL, WITH YOUR OWN KEYS
 
 Copyright © Cristian Bagrin. All rights reserved. No account and no server of ours; your word list stays in your browser.
 
-Data: CC-CEDICT (CC BY-SA 4.0); Taiwan readings from the MOE Revised Mandarin Dictionary via g0v/moedict-data (CC BY-ND 3.0 TW, pinyin only); word frequencies from wordfreq (CC BY-SA 4.0); names and foods from Wikidata (CC0).
+Data: CC-CEDICT (CC BY-SA 4.0); Taiwan readings from the MOE Revised Mandarin Dictionary via g0v/moedict-data (CC BY-ND 3.0 TW, pinyin only); word frequencies from wordfreq (CC BY-SA 4.0); names and foods from Wikidata (CC0). Font: LXGW WenKai TC (SIL Open Font License 1.1).
 ```
 
 **Categories**: Language Support · Photos, Music & Videos
@@ -137,9 +137,12 @@ Nothing else leaves your browser. Uninstalling the add-on deletes its data.
 ```
 • The export saves through Firefox's save-as dialog, which opens in the folder you used last. Cancel it and nothing is marked as exported.
 • The sentence column holds the one sentence the word appears in (punctuation inside 「」 or 『』 doesn't end it; trimmed to about 80 characters around it, between words), or nothing when the captured text doesn't contain the word.
+• A new look: a new icon (中 made of a 口 and a pair of chopsticks) and red, ink and paper colors across the card, the word list, settings, the toolbar menu and the YouTube subtitles. Stamps look like seals.
+• New word list: words written in 田字格 squares with each character's pinyin above, in 楷書; it opens on your Fresh words, with a filter bar that stays on screen. Restamping a word keeps it in place; removing one can be undone; hover a word for its card.
+• Meanings in the list and export are short and whole (they used to be cut mid-word), long pinyin is spaced into its parts, and words typed in by hand get their parts' readings.
+• Fixed: a word opened inside the card (from an example or the breakdown) was saved with the page's sentence, which didn't contain it. Sentences without the word, and English notes, are no longer shown or exported.
 • Edit any sentence in the card, example sentences included, Chinese and English (the pencil); the edited version is the one saved.
 • The play, copy, edit and save buttons line up with the sentence.
-• New word list: it opens on your Fresh words, as cards that line up, with a filter bar that stays on screen. Restamping a word keeps it in place; removing one can be undone.
 • A word whose sentence you saved is in the next export even if its status didn't change. The export header explains the date, sentence and saved columns.
 ```
 
@@ -176,6 +179,9 @@ The bundled data files (static/data/dict.tsv.gz, names.tsv.gz, examples.tsv.gz) 
   dict: python3 scripts/build_data.py (downloads CC-CEDICT and MOE readings, uses the wordfreq package)
   names: python3 scripts/build_names.py (Wikidata SPARQL queries, CC0 data)
   examples: python3 scripts/build_examples.py (from data-src/examples/)
+The font static/fonts/zh.woff2 (and zh-bold.woff2) is LXGW WenKai TC (SIL OFL 1.1, license in
+static/fonts/OFL.txt), cut to the 7,000 most common characters by scripts/build_fonts.py. It is
+used only on the extension's own pages.
 
 Permissions:
   <all_urls> + content script: hover lookup works on any page the user reads.

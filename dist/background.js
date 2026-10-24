@@ -375,12 +375,16 @@
   }
   function freshen(d, w) {
     let entries = d.get(w.w), marked = (e2) => numberedToMarked(e2.tw || e2.py), saved = (w.p ?? "").replace(/\s+/g, "").toLowerCase(), e = saved ? entries.find((x) => marked(x).toLowerCase() === saved) : entries[0];
-    if (e) return { ...w, p: listPinyin(e.tw || e.py, w.w, d.split(w.w)), g: shortGloss(e) };
+    if (e) {
+      let sylls2 = (e.tw || e.py).split(/\s+/).filter(Boolean), syl = sylls2.length === [...w.w].length && [...w.w].every((c) => CJK.test(c)) ? sylls2.map((x) => numberedToMarked(x)) : void 0;
+      return { ...w, p: listPinyin(e.tw || e.py, w.w, d.split(w.w)), g: shortGloss(e), ...syl ? { syl } : {} };
+    }
     if (w.p || entries.length || !CJK.test(w.w)) return w.g && w.g.length >= 118 ? { ...w, g: uncut(w.g) } : w;
-    let parts = d.segment(w.w).map((t) => ({ t, e: t.word ? d.get(t.word)[0] : void 0 }));
+    let parts = d.segment(w.w).map((t) => ({ t, e: t.word ? d.get(t.word)[0] : void 0 })), sylls = parts.flatMap(({ e: pe }) => pe ? (pe.tw || pe.py).split(/\s+/).filter(Boolean) : []), whole = parts.every(({ e: pe }) => pe) && sylls.length === [...w.w].length;
     return {
       ...w,
       p: parts.map(({ t, e: pe }) => pe ? marked(pe) : t.text).join(" "),
+      ...whole ? { syl: sylls.map((x) => numberedToMarked(x)) } : {},
       g: w.g || parts.map(({ t, e: pe }) => pe ? `${t.text} ${shortGloss(pe, 24).split("; ")[0]}` : "").filter(Boolean).join(" + ")
     };
   }
