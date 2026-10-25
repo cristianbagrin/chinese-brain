@@ -220,7 +220,9 @@ and browsingActivity (the YouTube link sent to Gemini when the user asks for it)
 Take these in Firefox at 1280 × 800 (Responsive Design Mode helps):
 
 1. The card over a Chinese web page (a word with examples and the breakdown).
-2. YouTube with the dual subtitles and the card open on a subtitle word.
-3. The 中 panel on YouTube (coverage bar and toggles).
-4. The transcript with the "Learn first" tab.
-5. The word list page.
+2. The card with "This sentence" and "You met it in" (colors show your level).
+3. YouTube with the dual subtitles, the card and the clickable transcript.
+4. The transcript's "Learn first" tab.
+5. The 中 panel on YouTube (coverage bar and toggles).
+
+The files in `store/screenshots/` are these shots in the red-and-paper frame (1280 × 800).
