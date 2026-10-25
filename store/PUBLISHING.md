@@ -132,6 +132,17 @@ Nothing else leaves your browser. Uninstalling the add-on deletes its data.
 
 ## 4. Version notes
 
+1.3.1:
+
+```
+• Stamping sounds like a rubber stamp: a thud with an ink tick in each status's own pitch (新 brightest, 熟 lowest). Clearing a status sounds like the stamp lifting off; saving a sentence has its own light tick. The word list's stamps make the same sounds.
+• Stamps land on the first frame, together with the sound, and spring back in a ring of ink. The card fades in from the word's side.
+• Editing a sentence: the text boxes grow to fit the whole sentence.
+• The word list and export show your edited version of a sentence you met, whole, instead of the long original cut short.
+• The toolbar menu no longer has a pale rim around its red top.
+• Reduced motion (system setting): stamps and the card change without moving.
+```
+
 1.3.0:
 
 ```
