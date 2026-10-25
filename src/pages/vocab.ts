@@ -1,7 +1,7 @@
-import { metSentence } from '../shared/context.ts';
+import { shownSentence } from '../shared/context.ts';
 import { buildClaudeExport, exportCount, parseWordList, sourceName } from '../shared/export.ts';
 import { clock } from '../shared/time.ts';
-import type { Context, LogEvent, SavedSentence, Status, WordRecord } from '../shared/types.ts';
+import type { LogEvent, SavedSentence, Status, WordRecord } from '../shared/types.ts';
 import { $, ago, download, h, saveAs, today } from './common.ts';
 
 const STAMPS: [Status, string, string][] = [
@@ -116,15 +116,9 @@ function headword(w: WordRecord): HTMLElement {
 
 function row(w: WordRecord) {
   const gone = removed.has(w.w) && !words.some((x) => x.w === w.w);
-  // The same sentence the export uses: the one with the word in it, trimmed around it (shorter here).
-  let met: { c: Context; text: string } | undefined;
-  for (const c of w.ctx) {
-    const text = metSentence(c, w.w, 36).split(' — ')[0];
-    if (text) {
-      met = { c, text };
-      break;
-    }
-  }
+  // The same sentence the export uses: your edit of it, else the one with the word in it, trimmed around it (shorter here).
+  const shown = shownSentence(w.ctx, w.w, saved[w.w], 36);
+  const met = shown && { c: shown.c, text: shown.text.split(' — ')[0] };
   let src: HTMLElement | null = null;
   if (met) {
     const c = met.c;
@@ -315,7 +309,8 @@ $('knownGo').addEventListener('click', async () => {
 
 let reloadTimer: ReturnType<typeof setTimeout> | undefined;
 browser.storage.onChanged.addListener((ch) => {
-  if (Object.keys(ch).some((k) => k.startsWith('w:'))) {
+  // A word changed, or a sentence was saved or edited in a card.
+  if (Object.keys(ch).some((k) => k.startsWith('w:') || k.startsWith('sav:'))) {
     clearTimeout(reloadTimer);
     reloadTimer = setTimeout(load, 500);
   }

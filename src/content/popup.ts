@@ -99,6 +99,14 @@ async function copyText(text: string): Promise<boolean> {
 }
 
 type Pt = { x: number; y: number };
+/** A text box as tall as its text, so a long sentence shows whole (it can still be dragged taller). */
+function fitBox(box: HTMLTextAreaElement) {
+  if (!box.isConnected || !box.offsetHeight) return; // not laid out yet
+  box.style.height = 'auto';
+  const border = box.offsetHeight - box.clientHeight;
+  box.style.height = `${box.scrollHeight + border}px`;
+}
+
 /** Is p inside triangle abc, allowing `pad` px outside each edge? */
 function inTriangle(p: Pt, a: Pt, b: Pt, c: Pt, pad: number): boolean {
   const side = (u: Pt, v: Pt, w: Pt, q: Pt) => {
@@ -680,9 +688,12 @@ export class Popup {
   /** The row being edited: the Chinese and its English in text boxes (Enter saves, Esc cancels). */
   private editRow(ed: Editing): H {
     const field = (cls: string, value: string, label: string, set: (v: string) => void, placeholder?: string) => {
-      const box = h('textarea', { class: cls, rows: cls === 'editbox' ? '2' : '1', spellcheck: 'false', 'aria-label': label, ...(placeholder ? { placeholder } : {}) }) as HTMLTextAreaElement;
+      const box = h('textarea', { class: cls, rows: '1', spellcheck: 'false', 'aria-label': label, ...(placeholder ? { placeholder } : {}) }) as HTMLTextAreaElement;
       box.value = value;
-      box.addEventListener('input', () => set(box.value));
+      box.addEventListener('input', () => {
+        set(box.value);
+        fitBox(box);
+      });
       // Typing here is typing: no card shortcuts, no YouTube keys.
       box.addEventListener('focus', () => this.host.setAttribute('data-typing', ''));
       box.addEventListener('blur', () => this.host.removeAttribute('data-typing'));
@@ -1036,6 +1047,7 @@ export class Popup {
     img.addEventListener('click', () => this.images());
     card.append(h('div', { class: 'foot' }, stampable(m) ? h('div', { class: 'stamps' }, ...stamps) : null, h('div', { class: 'tools' }, say, long ? null : img)));
     card.hidden = false;
+    for (const b of card.querySelectorAll<HTMLTextAreaElement>('.editbox')) fitBox(b);
     const box = card.querySelector<HTMLTextAreaElement>('.editbox');
     if (box && this.root.activeElement !== box) {
       box.focus();

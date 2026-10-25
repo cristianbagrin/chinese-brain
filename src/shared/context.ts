@@ -170,3 +170,27 @@ export function metSentence(c: { text: string; q?: string }, word: string, max =
   const english = en.join(' — ').replace(CUES, ' ').replace(/\s+/g, ' ').trim();
   return english && out === cleanSentence(zh, word, c.q) ? `${out} — ${english}` : out;
 }
+
+/**
+ * The sentence the word list and the export show for a word: your own edit of a sentence you met
+ * it in, whole, as you saved it; else the first met sentence, trimmed to about `max` characters.
+ * An edit is found by the sentence it was cut from, which is the met sentence as the card shows it.
+ */
+export function shownSentence<C extends { text: string; q?: string }>(
+  ctx: C[],
+  word: string,
+  saved: SavedSentence[] = [],
+  max = 80,
+): { c: C; text: string; edited?: boolean } | undefined {
+  const newest = [...saved].sort((a, b) => b.at - a.at);
+  for (const c of ctx) {
+    const inCard = metSentence(c, word, 120).split(' — ')[0];
+    const mine = inCard ? newest.find((s) => s.from === inCard || s.zh === inCard) : undefined;
+    if (mine) return { c, text: mine.en ? `${mine.zh} — ${mine.en}` : mine.zh, edited: true };
+  }
+  for (const c of ctx) {
+    const text = metSentence(c, word, max);
+    if (text) return { c, text };
+  }
+  return undefined;
+}

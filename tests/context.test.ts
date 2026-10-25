@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanSentence, hasWord, metSentence, usefulSentence, saveInList, sentenceAt } from '../src/shared/context.ts';
+import { cleanSentence, hasWord, metSentence, usefulSentence, saveInList, sentenceAt, shownSentence } from '../src/shared/context.ts';
 
 const met = (text: string, word: string, max?: number, q?: string) => metSentence({ text, q }, word, max);
 
@@ -123,4 +123,22 @@ test('metSentence: a long sentence is trimmed to ~80 around the word, between wo
 test('sentenceAt: the sentence around a point in a block', () => {
   assert.equal(sentenceAt('第一句。第二句有字！第三句。', 6), '第二句有字！');
   assert.equal(sentenceAt('no stop at all', 3), 'no stop at all');
+});
+
+test('shownSentence: your edit of a met sentence wins, whole; else the met one, trimmed', () => {
+  const long = '大家好今天我們要來聊一個很有趣的話題，他已經看這支影片看3次了（估計還會有4、5、6次），真的很誇張吧，你們覺得呢我覺得很好玩';
+  const ctx = [{ text: long, url: 'https://www.youtube.com/watch?v=x', at: 1, src: 'yt' as const }];
+  const plain = shownSentence(ctx, '估計', [], 36)!;
+  assert.ok(plain.text.startsWith('…') || plain.text.endsWith('…'));
+  assert.equal(plain.edited, undefined);
+  const from = metSentence(ctx[0], '估計', 120);
+  const saved = [
+    { zh: '舊的版本（估計）', en: '', at: 1, from },
+    { zh: '他已經看這支影片看3次了（估計還會有4、5、6…次）', en: '', at: 2, from },
+  ];
+  const mine = shownSentence(ctx, '估計', saved, 36)!;
+  assert.equal(mine.text, '他已經看這支影片看3次了（估計還會有4、5、6…次）');
+  assert.equal(mine.edited, true);
+  // A saved sentence from somewhere else doesn't replace the one you met.
+  assert.equal(shownSentence(ctx, '估計', [{ zh: '我估計要三天。', en: '', at: 3 }], 36)!.text, plain.text);
 });

@@ -78,6 +78,17 @@
     let out = trimAround(one, at.i, at.len, max), english = en.join(" \u2014 ").replace(CUES, " ").replace(/\s+/g, " ").trim();
     return english && out === cleanSentence(zh, word, c.q) ? `${out} \u2014 ${english}` : out;
   }
+  function shownSentence(ctx, word, saved2 = [], max = 80) {
+    let newest = [...saved2].sort((a, b) => b.at - a.at);
+    for (let c of ctx) {
+      let inCard = metSentence(c, word, 120).split(" \u2014 ")[0], mine = inCard ? newest.find((s) => s.from === inCard || s.zh === inCard) : void 0;
+      if (mine) return { c, text: mine.en ? `${mine.zh} \u2014 ${mine.en}` : mine.zh, edited: !0 };
+    }
+    for (let c of ctx) {
+      let text = metSentence(c, word, max);
+      if (text) return { c, text };
+    }
+  }
 
   // src/shared/time.ts
   function dayKeyLocal(t) {
@@ -153,14 +164,7 @@
       ["word", "now", "was", "date", "pinyin", "meaning", "sentence", "source", "saved"].join("	")
     ];
     for (let r of rows) {
-      let met;
-      for (let c of r.rec?.ctx ?? []) {
-        let text = metSentence(c, r.w);
-        if (text) {
-          met = { c, text };
-          break;
-        }
-      }
+      let met = shownSentence(r.rec?.ctx ?? [], r.w, saved2[r.w]);
       lines.push(
         [
           r.w,
@@ -308,15 +312,7 @@
     );
   }
   function row(w) {
-    let gone = removed.has(w.w) && !words.some((x) => x.w === w.w), met;
-    for (let c of w.ctx) {
-      let text = metSentence(c, w.w, 36).split(" \u2014 ")[0];
-      if (text) {
-        met = { c, text };
-        break;
-      }
-    }
-    let src = null;
+    let gone = removed.has(w.w) && !words.some((x) => x.w === w.w), shown2 = shownSentence(w.ctx, w.w, saved[w.w], 36), met = shown2 && { c: shown2.c, text: shown2.text.split(" \u2014 ")[0] }, src = null;
     if (met) {
       let c = met.c, line = c.src === "yt" && c.t != null;
       src = h("a", { class: "src", href: line ? `${c.url}&t=${c.t}s` : c.url, target: "_blank", title: c.title || c.url }, line ? `\u25B6 ${clock(c.t)}` : sourceName(c.url));
@@ -428,7 +424,7 @@
   });
   var reloadTimer;
   browser.storage.onChanged.addListener((ch) => {
-    Object.keys(ch).some((k) => k.startsWith("w:")) && (clearTimeout(reloadTimer), reloadTimer = setTimeout(load, 500));
+    Object.keys(ch).some((k) => k.startsWith("w:") || k.startsWith("sav:")) && (clearTimeout(reloadTimer), reloadTimer = setTimeout(load, 500));
   });
   load();
 })();

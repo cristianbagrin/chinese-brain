@@ -4,16 +4,22 @@
 <meta charset="utf-8">
 <link rel="stylesheet" href="pages.css">
 <style>
-  body { width: 320px; background: var(--paper); font-size: 14px; }
+  /*
+   * The whole menu is the logo: a red tile with the paper-white settings inside it. Firefox paints
+   * the panel (its rim and arrow) in the body's color, so the body is red: a paper body left a
+   * pale rim around the red band.
+   */
+  html, body { background: var(--red); }
+  body { width: 320px; padding: 0 5px 5px; font-size: 14px; }
   /* The band: the logo's red tile, with your three piles of words on it. */
-  .band { display: flex; align-items: center; gap: 4px; padding: 8px 10px 8px 6px; background: var(--red); color: #fff; }
+  .band { display: flex; align-items: center; gap: 4px; padding: 8px 5px 8px 1px; background: var(--red); color: #fff; }
   .band .mark { width: 34px; height: 34px; flex: none; margin-right: 2px; }
   .band a { display: flex; align-items: center; gap: 7px; flex: 1; min-width: 0; padding: 5px 6px; border-radius: 8px; color: inherit; text-decoration: none; }
   .band a:hover { background: rgba(0, 0, 0, 0.14); }
   .band a:focus-visible { outline-color: #fff; outline-offset: -2px; }
   .band .seal { width: 24px; height: 24px; border: 0; background: var(--paper); font-size: 14px; }
   .band b { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .wrap { padding: 4px 14px 12px; }
+  .wrap { padding: 6px 12px 10px; border-radius: 9px; background: var(--paper); }
   .group { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--rule); }
   .group:first-child { margin-top: 0; border-top: 0; }
   .group h3 { margin: 0 0 2px; font-size: 12.5px; font-weight: 650; color: var(--ink2); }

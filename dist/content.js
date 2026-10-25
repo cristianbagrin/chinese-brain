@@ -2161,6 +2161,12 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       return ta.remove(), ok;
     }
   }
+  function fitBox(box2) {
+    if (!box2.isConnected || !box2.offsetHeight) return;
+    box2.style.height = "auto";
+    let border = box2.offsetHeight - box2.clientHeight;
+    box2.style.height = `${box2.scrollHeight + border}px`;
+  }
   function inTriangle(p, a, b, c, pad) {
     let side = (u, v, w2, q) => {
       let len = Math.hypot(v.x - u.x, v.y - u.y) || 1, sq = (v.x - u.x) * (q.y - u.y) - (v.y - u.y) * (q.x - u.x), sw = (v.x - u.x) * (w2.y - u.y) - (v.y - u.y) * (w2.x - u.x);
@@ -2504,8 +2510,10 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     /** The row being edited: the Chinese and its English in text boxes (Enter saves, Esc cancels). */
     editRow(ed) {
       let field = (cls, value, label, set, placeholder) => {
-        let box3 = h("textarea", { class: cls, rows: cls === "editbox" ? "2" : "1", spellcheck: "false", "aria-label": label, ...placeholder ? { placeholder } : {} });
-        box3.value = value, box3.addEventListener("input", () => set(box3.value)), box3.addEventListener("focus", () => this.host.setAttribute("data-typing", "")), box3.addEventListener("blur", () => this.host.removeAttribute("data-typing"));
+        let box3 = h("textarea", { class: cls, rows: "1", spellcheck: "false", "aria-label": label, ...placeholder ? { placeholder } : {} });
+        box3.value = value, box3.addEventListener("input", () => {
+          set(box3.value), fitBox(box3);
+        }), box3.addEventListener("focus", () => this.host.setAttribute("data-typing", "")), box3.addEventListener("blur", () => this.host.removeAttribute("data-typing"));
         for (let t of ["keyup", "keypress"]) box3.addEventListener(t, (e) => e.stopPropagation());
         return box3.addEventListener("keydown", (e) => {
           e.stopPropagation(), !e.isComposing && (e.key === "Enter" && !e.shiftKey ? (e.preventDefault(), this.commitEdit()) : e.key === "Escape" && (e.preventDefault(), this.endEdit(), this.render()));
@@ -2723,6 +2731,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       say.addEventListener("click", () => this.speak());
       let img = h("button", null, "images", h("kbd", null, "i"));
       img.addEventListener("click", () => this.images()), card.append(h("div", { class: "foot" }, stampable(m) ? h("div", { class: "stamps" }, ...stamps) : null, h("div", { class: "tools" }, say, long ? null : img))), card.hidden = !1;
+      for (let b of card.querySelectorAll(".editbox")) fitBox(b);
       let box2 = card.querySelector(".editbox");
       box2 && this.root.activeElement !== box2 && (box2.focus(), box2.setSelectionRange(box2.value.length, box2.value.length));
     }

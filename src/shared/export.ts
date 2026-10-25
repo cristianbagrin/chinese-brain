@@ -1,6 +1,6 @@
-import { metSentence } from './context.ts';
+import { shownSentence } from './context.ts';
 import { dayKeyLocal } from './time.ts';
-import { STATUS_CODE, type Context, type LogEvent, type SavedSentence, type Status, type WordRecord } from './types.ts';
+import { STATUS_CODE, type LogEvent, type SavedSentence, type Status, type WordRecord } from './types.ts';
 
 const clean = (s: string | undefined) => (s ?? '').replace(/[\t\r\n]+/g, ' ').trim();
 const stamp = (t: number) => {
@@ -63,15 +63,8 @@ export function buildClaudeExport(words: WordRecord[], logs: LogEvent[], since =
     ['word', 'now', 'was', 'date', 'pinyin', 'meaning', 'sentence', 'source', 'saved'].join('\t'),
   ];
   for (const r of rows) {
-    // The first sentence met that has the word in it; none rather than a wrong one.
-    let met: { c: Context; text: string } | undefined;
-    for (const c of r.rec?.ctx ?? []) {
-      const text = metSentence(c, r.w);
-      if (text) {
-        met = { c, text };
-        break;
-      }
-    }
+    // Your edit of a sentence you met it in, else the first one that has the word; none rather than a wrong one.
+    const met = shownSentence(r.rec?.ctx ?? [], r.w, saved[r.w]);
     lines.push(
       [
         r.w,
