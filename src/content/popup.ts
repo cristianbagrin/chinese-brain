@@ -2,7 +2,7 @@ import { hasWord, metSentence } from '../shared/context.ts';
 import { CJK } from '../shared/dict.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import type { Context, Entry, LookupMatch, Status, Token } from '../shared/types.ts';
-import { speak, stampSound } from './audio.ts';
+import { saveSound, speak, stampSound } from './audio.ts';
 import { lookupText } from './lookup.ts';
 import css from './popup.css';
 import { state } from './state.ts';
@@ -344,6 +344,7 @@ export class Popup {
       this.pos = 0;
     }
     this.mount();
+    const appearing = this.card.hidden;
     const m = opts.matches[0];
     const e0 = m.entries[0];
     const [, info] = await Promise.all([state.loadStatuses(), this.wordInfo(m.word, e0.tw || e0.py)]);
@@ -357,10 +358,24 @@ export class Popup {
       this.exit = this.px >= 0 ? { x: this.px, y: this.py } : undefined;
       this.position(opts);
     } else this.keepOnScreen();
+    if (appearing) this.appear();
     this.shownAt = Date.now();
     clearTimeout(this.lookTimer);
     // A card left open for a moment counts as a deliberate lookup.
     this.lookTimer = setTimeout(() => this.recordLook(), opts.pinned ? 0 : 1200);
+  }
+
+  /**
+   * A card that wasn't showing settles in from the word's side: a quick fade and a few pixels of
+   * travel, so it reads as coming from the word. Moving between words doesn't replay it.
+   */
+  private appear() {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches || !this.card.animate) return;
+    const below = this.anchor ? this.card.getBoundingClientRect().top >= this.anchor.top : true;
+    this.card.animate([{ opacity: 0, transform: `translateY(${below ? -3 : 3}px)` }, { opacity: 1, transform: 'none' }], {
+      duration: 130,
+      easing: 'cubic-bezier(0.2, 0.8, 0.3, 1)',
+    });
   }
 
   private async wordInfo(word: string, py: string): Promise<WordInfo> {
@@ -650,7 +665,7 @@ export class Popup {
       const examples = o.on && o.en ? this.info.examples.map((x) => (x.zh === o.zh ? { ...x, en: o.en } : x)) : this.info.examples;
       this.info = { ...this.info, examples, saved: [...this.info.saved.filter((x) => !drop(x)), ...(o.on ? [o.zh] : [])], mine };
     }
-    if (o.on) stampSound('known');
+    if (o.on) saveSound();
     this.infoCache.delete(word);
     this.render();
     void browser.runtime.sendMessage({ type: 'saveSentence', word, ...o }).then(async () => {

@@ -1839,27 +1839,52 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
   function audio() {
     return ctx ??= new AudioContext(), ctx.state === "suspended" && ctx.resume(), ctx;
   }
-  function note(ac, freq, at, len, gain, type = "sine") {
-    let o = ac.createOscillator(), g = ac.createGain();
-    o.type = type, o.frequency.setValueAtTime(freq, at), g.gain.setValueAtTime(1e-4, at), g.gain.exponentialRampToValueAtTime(gain, at + 8e-3), g.gain.exponentialRampToValueAtTime(1e-4, at + len), o.connect(g).connect(ac.destination), o.start(at), o.stop(at + len + 0.02);
+  var sfx;
+  function stampOut(ac) {
+    if (!sfx) {
+      let comp = ac.createDynamicsCompressor();
+      comp.threshold.value = -12, comp.knee.value = 8, comp.ratio.value = 4, comp.attack.value = 2e-3, comp.release.value = 0.15;
+      let out = ac.createGain();
+      out.gain.value = 0.8, out.connect(comp).connect(ac.destination);
+      let noise2 = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), d = noise2.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      sfx = { out, noise: noise2 };
+    }
+    return sfx;
   }
+  function envelope(g, at, peak, attack, len) {
+    g.gain.setValueAtTime(1e-4, at), g.gain.exponentialRampToValueAtTime(peak, at + attack), g.gain.exponentialRampToValueAtTime(1e-4, at + len);
+  }
+  function note(ac, freq, at, len, gain, type = "sine", to, drop = len / 2) {
+    let o = ac.createOscillator(), g = ac.createGain();
+    o.type = type, o.frequency.setValueAtTime(freq, at), to && o.frequency.exponentialRampToValueAtTime(to, at + drop), envelope(g, at, gain, 3e-3, len), o.connect(g).connect(stampOut(ac).out), o.start(at), o.stop(at + len + 0.03);
+  }
+  function noise(ac, at, len, gain, type, freq, q = 0.8) {
+    let s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = stampOut(ac).noise, f.type = type, f.frequency.value = freq, f.Q.value = q, envelope(g, at, gain, 1e-3, len), s.connect(f).connect(g).connect(stampOut(ac).out), s.start(at, Math.random() * 0.5), s.stop(at + len + 0.03);
+  }
+  function thump(ac, at, freq, gain, len) {
+    note(ac, freq, at, len, gain, "sine", freq * 0.42, len * 0.55), note(ac, freq * 2, at, len * 0.55, gain * 0.35, "sine", freq * 0.84, len * 0.4);
+  }
+  var STAMP = { fresh: [190, 1320], learning: [160, 880], known: [135, 660] };
   function stampSound(status) {
     if (state.settings.sounds)
       try {
         let ac = audio(), t = ac.currentTime + 5e-3;
-        switch (status) {
-          case "fresh":
-            note(ac, 1046.5, t, 0.09, 0.05, "triangle"), note(ac, 1568, t + 0.055, 0.12, 0.04, "triangle");
-            break;
-          case "learning":
-            note(ac, 523.25, t, 0.16, 0.07), note(ac, 1046.5, t, 0.08, 0.02);
-            break;
-          case "known":
-            note(ac, 784, t, 0.1, 0.045), note(ac, 988, t + 0.05, 0.1, 0.045), note(ac, 1175, t + 0.1, 0.18, 0.05);
-            break;
-          default:
-            note(ac, 440, t, 0.07, 0.035), note(ac, 330, t + 0.045, 0.1, 0.03);
+        if (!status) {
+          noise(ac, t, 0.03, 0.2, "bandpass", 1800, 0.9), thump(ac, t, 120, 0.25, 0.09);
+          return;
         }
+        let [thud, tick] = STAMP[status];
+        noise(ac, t, 0.035, 0.5, "bandpass", 1100, 0.9), noise(ac, t, 0.07, 0.35, "lowpass", 420), thump(ac, t, thud, 0.75, 0.15), note(ac, tick, t + 0.03, 0.12, 0.07, "triangle"), status === "known" && note(ac, tick * 1.5, t + 0.03, 0.16, 0.05, "triangle");
+      } catch {
+      }
+  }
+  function saveSound() {
+    if (state.settings.sounds)
+      try {
+        let ac = audio(), t = ac.currentTime + 5e-3;
+        noise(ac, t, 0.02, 0.18, "bandpass", 2400, 1), note(ac, 1320, t, 0.1, 0.06, "triangle"), note(ac, 1980, t + 0.045, 0.12, 0.04, "triangle");
       } catch {
       }
   }
@@ -2044,7 +2069,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 .gemrow .err { font-size: 0.86em; color: var(--fresh); margin-top: 0.2em; }
 
 /* The footer keeps one compact size, also on the large card. */
-.foot { font-size: 12px; display: flex; align-items: center; gap: 0.7em; padding: 0.5em 0.85em 0.6em 1em; border-top: 1px solid var(--line); background: var(--bg2); }
+.foot { font-size: 12px; display: flex; align-items: center; gap: 0.7em; padding: 0.55em 0.85em 0.85em 1em; border-top: 1px solid var(--line); background: var(--bg2); overflow: clip; }
 .stamps { display: flex; gap: 0.57em; }
 .stamp {
   all: unset;
@@ -2064,7 +2089,9 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 }
 .stamp small { position: absolute; right: -3px; bottom: -3px; font: 600 8.5px/1 var(--sans); color: var(--text3); background: var(--bg2); padding: 1px 2px; border-radius: 3px; }
 .stamp:hover { border-style: solid; color: var(--text); }
-.stamp:active { transform: scale(0.88); }
+/* Pressing answers at once; the springy curve is only for letting go. */
+.stamp:active { transform: scale(0.9); transition-duration: 0.05s; }
+.stamp.on:active { transform: rotate(-6deg) scale(0.9); }
 .stamp.fresh { border-color: color-mix(in srgb, var(--fresh) 45%, var(--line)); }
 .stamp.learning { border-color: color-mix(in srgb, var(--learning) 75%, var(--line)); }
 .stamp.known { border-color: color-mix(in srgb, var(--known) 45%, var(--line)); }
@@ -2073,11 +2100,28 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 .stamp.fresh.on { background: var(--fresh); border-color: var(--fresh); box-shadow: inset 0 0 0 2px var(--fresh), inset 0 0 0 3px rgba(255, 255, 255, 0.6); }
 .stamp.learning.on { background: var(--learning); border-color: var(--learning); color: var(--text); box-shadow: inset 0 0 0 2px var(--learning), inset 0 0 0 3px rgba(255, 255, 255, 0.6); }
 .stamp.known.on { background: var(--known); border-color: var(--known); box-shadow: inset 0 0 0 2px var(--known), inset 0 0 0 3px rgba(255, 255, 255, 0.6); }
-.stamp.pop { animation: pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1); }
+/*
+ * Stamping lands on the first frame, with the thud: pressed flat, then the rubber springs back
+ * while a ring of ink spreads from under it.
+ */
+.stamp.pop { animation: pop 0.34s cubic-bezier(0.2, 0.8, 0.3, 1); }
+.stamp.pop::after { content: ''; position: absolute; inset: -1.5px; border-radius: inherit; border: 2px solid var(--ink, currentColor); pointer-events: none; animation: ink 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
+.stamp.fresh { --ink: var(--fresh); }
+.stamp.learning { --ink: var(--learning); }
+.stamp.known { --ink: var(--known); }
 @keyframes pop {
-  0% { transform: rotate(0) scale(0.85); }
-  60% { transform: rotate(-12deg) scale(1.08); }
+  0% { transform: rotate(-9deg) scale(0.86); }
+  40% { transform: rotate(-5deg) scale(1.05); }
   100% { transform: rotate(-6deg) scale(1); }
+}
+@keyframes ink {
+  from { opacity: 0.6; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stamp { transition: background 0.12s, border-color 0.12s, color 0.12s; }
+  .stamp.pop, .stamp.pop::after { animation: none; }
+  .stamp.pop::after { display: none; }
 }
 .tools { margin-left: auto; display: flex; gap: 0.85em; font-size: 12.5px; }
 .tools button { all: unset; cursor: pointer; color: var(--link); }
@@ -2314,8 +2358,20 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     async show(opts, keepPlace = !1) {
       let sameWord = this.opts?.matches[0]?.word === opts.matches[0]?.word;
       this.editing?.word !== opts.matches[0]?.word && this.endEdit(), this.opts = opts, this.cancelHide(), keepPlace || (this.trail = [opts], this.pos = 0), this.mount();
-      let m = opts.matches[0], e0 = m.entries[0], [, info] = await Promise.all([state.loadStatuses(), this.wordInfo(m.word, e0.tw || e0.py)]);
-      this.opts === opts && (this.info = info, this.hoverWord = void 0, this.hideHint(), this.render(), keepPlace ? this.keepOnScreen() : (this.anchor = opts.rect, this.exit = this.px >= 0 ? { x: this.px, y: this.py } : void 0, this.position(opts)), this.shownAt = Date.now(), clearTimeout(this.lookTimer), this.lookTimer = setTimeout(() => this.recordLook(), opts.pinned ? 0 : 1200));
+      let appearing = this.card.hidden, m = opts.matches[0], e0 = m.entries[0], [, info] = await Promise.all([state.loadStatuses(), this.wordInfo(m.word, e0.tw || e0.py)]);
+      this.opts === opts && (this.info = info, this.hoverWord = void 0, this.hideHint(), this.render(), keepPlace ? this.keepOnScreen() : (this.anchor = opts.rect, this.exit = this.px >= 0 ? { x: this.px, y: this.py } : void 0, this.position(opts)), appearing && this.appear(), this.shownAt = Date.now(), clearTimeout(this.lookTimer), this.lookTimer = setTimeout(() => this.recordLook(), opts.pinned ? 0 : 1200));
+    }
+    /**
+     * A card that wasn't showing settles in from the word's side: a quick fade and a few pixels of
+     * travel, so it reads as coming from the word. Moving between words doesn't replay it.
+     */
+    appear() {
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches || !this.card.animate) return;
+      let below = this.anchor ? this.card.getBoundingClientRect().top >= this.anchor.top : !0;
+      this.card.animate([{ opacity: 0, transform: `translateY(${below ? -3 : 3}px)` }, { opacity: 1, transform: "none" }], {
+        duration: 130,
+        easing: "cubic-bezier(0.2, 0.8, 0.3, 1)"
+      });
     }
     async wordInfo(word, py) {
       let hit = this.infoCache.get(word);
@@ -2488,7 +2544,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         let examples = o.on && o.en ? this.info.examples.map((x) => x.zh === o.zh ? { ...x, en: o.en } : x) : this.info.examples;
         this.info = { ...this.info, examples, saved: [...this.info.saved.filter((x) => !drop(x)), ...o.on ? [o.zh] : []], mine };
       }
-      o.on && stampSound("known"), this.infoCache.delete(word), this.render(), browser.runtime.sendMessage({ type: "saveSentence", word, ...o }).then(async () => {
+      o.on && saveSound(), this.infoCache.delete(word), this.render(), browser.runtime.sendMessage({ type: "saveSentence", word, ...o }).then(async () => {
         this.infoCache.delete(word);
         let cur = this.current;
         if (cur?.word !== word) return;

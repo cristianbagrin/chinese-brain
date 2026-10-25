@@ -1,3 +1,4 @@
+import { stampSound } from '../content/audio.ts';
 import { shownSentence } from '../shared/context.ts';
 import { buildClaudeExport, exportCount, parseWordList, sourceName } from '../shared/export.ts';
 import { clock } from '../shared/time.ts';
@@ -159,6 +160,7 @@ function row(w: WordRecord) {
 async function setStatus(w: WordRecord, s: Status) {
   if (w.s === s) return;
   if (!kept.has(w.w)) kept.set(w.w, w.updated);
+  stampSound(s);
   w.s = s;
   w.updated = Date.now();
   render();
@@ -167,6 +169,7 @@ async function setStatus(w: WordRecord, s: Status) {
 }
 
 async function remove(w: WordRecord) {
+  stampSound(null);
   removed.set(w.w, { ...w, ctx: [...w.ctx], hist: [...w.hist] });
   words = words.filter((x) => x.w !== w.w);
   render();

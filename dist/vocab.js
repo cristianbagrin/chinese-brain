@@ -1,5 +1,137 @@
 "use strict";
 (() => {
+  // src/shared/types.ts
+  var STATUS_CODE = { fresh: "F", learning: "L", known: "K" }, DEFAULT_SETTINGS = {
+    hoverMode: "hover",
+    disabledSites: [],
+    ytEnabled: !0,
+    pinyin: !0,
+    translation: "blur",
+    pauseOnHover: !0,
+    autoFreshOnClick: !0,
+    subFontSize: 30,
+    subStyle: "light",
+    shadowFactor: 1.5,
+    cardSize: "normal",
+    cardColors: !0,
+    sounds: !0,
+    pageColors: !1,
+    siteColors: {},
+    speechRate: 0.9,
+    voice: "google",
+    azureKey: "",
+    azureRegion: "eastasia",
+    azureVoice: "zh-TW-HsiaoChenNeural",
+    geminiKey: "",
+    geminiModel: "gemini-3.8-flash"
+  };
+  function normalizeSettings(raw) {
+    let r = { ...raw ?? {} };
+    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), r.hoverMode === "shift" && (r.hoverMode = "alt"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, { ...DEFAULT_SETTINGS, ...r };
+  }
+  function colorsOn(s, host) {
+    return s.siteColors[host] ?? s.pageColors;
+  }
+
+  // src/content/state.ts
+  var State = class {
+    settings = { ...DEFAULT_SETTINGS };
+    statuses = /* @__PURE__ */ new Map();
+    statusesLoaded;
+    settingsLoaded;
+    listeners = /* @__PURE__ */ new Set();
+    constructor() {
+      this.settingsLoaded = browser.storage.local.get("settings").then(({ settings }) => {
+        this.settings = normalizeSettings(settings);
+      }), browser.storage.onChanged.addListener((changes, area) => {
+        if (area !== "local") return;
+        let dirty = !1;
+        for (let [k, ch] of Object.entries(changes))
+          if (k === "settings")
+            this.settings = normalizeSettings(ch.newValue), dirty = !0;
+          else if (k.startsWith("w:") && this.statusesLoaded) {
+            let rec = ch.newValue;
+            rec ? this.statuses.set(k.slice(2), rec.s) : this.statuses.delete(k.slice(2)), dirty = !0;
+          }
+        dirty && this.listeners.forEach((l) => l());
+      });
+    }
+    ready() {
+      return this.settingsLoaded;
+    }
+    loadStatuses() {
+      return this.statusesLoaded ??= browser.runtime.sendMessage({ type: "statuses" }).then((s) => {
+        this.statuses = new Map(Object.entries(s)), this.listeners.forEach((l) => l());
+      }), this.statusesLoaded;
+    }
+    status(word) {
+      return word ? this.statuses.get(word) : void 0;
+    }
+    onChange(l) {
+      return this.listeners.add(l), () => this.listeners.delete(l);
+    }
+    /** Color the words on this page? */
+    colorsEnabled() {
+      return this.siteEnabled() && colorsOn(this.settings, location.hostname);
+    }
+    siteEnabled() {
+      return this.settings.hoverMode !== "off" && !this.settings.disabledSites.includes(location.hostname);
+    }
+  }, state = new State();
+
+  // src/content/audio.ts
+  var ctx;
+  function audio() {
+    return ctx ??= new AudioContext(), ctx.state === "suspended" && ctx.resume(), ctx;
+  }
+  var sfx;
+  function stampOut(ac) {
+    if (!sfx) {
+      let comp = ac.createDynamicsCompressor();
+      comp.threshold.value = -12, comp.knee.value = 8, comp.ratio.value = 4, comp.attack.value = 2e-3, comp.release.value = 0.15;
+      let out = ac.createGain();
+      out.gain.value = 0.8, out.connect(comp).connect(ac.destination);
+      let noise2 = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), d = noise2.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      sfx = { out, noise: noise2 };
+    }
+    return sfx;
+  }
+  function envelope(g, at, peak, attack, len) {
+    g.gain.setValueAtTime(1e-4, at), g.gain.exponentialRampToValueAtTime(peak, at + attack), g.gain.exponentialRampToValueAtTime(1e-4, at + len);
+  }
+  function note(ac, freq, at, len, gain, type = "sine", to, drop = len / 2) {
+    let o = ac.createOscillator(), g = ac.createGain();
+    o.type = type, o.frequency.setValueAtTime(freq, at), to && o.frequency.exponentialRampToValueAtTime(to, at + drop), envelope(g, at, gain, 3e-3, len), o.connect(g).connect(stampOut(ac).out), o.start(at), o.stop(at + len + 0.03);
+  }
+  function noise(ac, at, len, gain, type, freq, q = 0.8) {
+    let s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = stampOut(ac).noise, f.type = type, f.frequency.value = freq, f.Q.value = q, envelope(g, at, gain, 1e-3, len), s.connect(f).connect(g).connect(stampOut(ac).out), s.start(at, Math.random() * 0.5), s.stop(at + len + 0.03);
+  }
+  function thump(ac, at, freq, gain, len) {
+    note(ac, freq, at, len, gain, "sine", freq * 0.42, len * 0.55), note(ac, freq * 2, at, len * 0.55, gain * 0.35, "sine", freq * 0.84, len * 0.4);
+  }
+  var STAMP = { fresh: [190, 1320], learning: [160, 880], known: [135, 660] };
+  function stampSound(status) {
+    if (state.settings.sounds)
+      try {
+        let ac = audio(), t = ac.currentTime + 5e-3;
+        if (!status) {
+          noise(ac, t, 0.03, 0.2, "bandpass", 1800, 0.9), thump(ac, t, 120, 0.25, 0.09);
+          return;
+        }
+        let [thud, tick] = STAMP[status];
+        noise(ac, t, 0.035, 0.5, "bandpass", 1100, 0.9), noise(ac, t, 0.07, 0.35, "lowpass", 420), thump(ac, t, thud, 0.75, 0.15), note(ac, tick, t + 0.03, 0.12, 0.07, "triangle"), status === "known" && note(ac, tick * 1.5, t + 0.03, 0.16, 0.05, "triangle");
+      } catch {
+      }
+  }
+  var voice;
+  function pickVoice() {
+    let voices = speechSynthesis.getVoices();
+    voice = voices.find((v) => /zh[-_]TW/i.test(v.lang) && /meijia|美佳/i.test(v.name)) ?? voices.find((v) => /zh[-_]TW/i.test(v.lang)) ?? voices.find((v) => /taiwan|台灣|臺灣/i.test(v.name)) ?? voices.find((v) => v.lang.startsWith("zh"));
+  }
+  "speechSynthesis" in window && speechSynthesis.addEventListener?.("voiceschanged", pickVoice);
+
   // src/shared/context.ts
   var HAN = /[㐀-䶿一-鿿豈-﫿]/g, fold = (s) => s.replaceAll("\u81FA", "\u53F0");
   function findWord(text, word, alt) {
@@ -78,13 +210,13 @@
     let out = trimAround(one, at.i, at.len, max), english = en.join(" \u2014 ").replace(CUES, " ").replace(/\s+/g, " ").trim();
     return english && out === cleanSentence(zh, word, c.q) ? `${out} \u2014 ${english}` : out;
   }
-  function shownSentence(ctx, word, saved2 = [], max = 80) {
+  function shownSentence(ctx2, word, saved2 = [], max = 80) {
     let newest = [...saved2].sort((a, b) => b.at - a.at);
-    for (let c of ctx) {
+    for (let c of ctx2) {
       let inCard = metSentence(c, word, 120).split(" \u2014 ")[0], mine = inCard ? newest.find((s) => s.from === inCard || s.zh === inCard) : void 0;
       if (mine) return { c, text: mine.en ? `${mine.zh} \u2014 ${mine.en}` : mine.zh, edited: !0 };
     }
-    for (let c of ctx) {
+    for (let c of ctx2) {
       let text = metSentence(c, word, max);
       if (text) return { c, text };
     }
@@ -99,9 +231,6 @@
     let s = Math.max(0, Math.floor(secs)), h2 = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = String(s % 60).padStart(2, "0");
     return h2 ? `${h2}:${String(m).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
   }
-
-  // src/shared/types.ts
-  var STATUS_CODE = { fresh: "F", learning: "L", known: "K" };
 
   // src/shared/export.ts
   var clean = (s) => (s ?? "").replace(/[\t\r\n]+/g, " ").trim(), stamp = (t) => {
@@ -339,10 +468,10 @@
     );
   }
   async function setStatus(w, s) {
-    w.s !== s && (kept.has(w.w) || kept.set(w.w, w.updated), w.s = s, w.updated = Date.now(), render(), document.querySelector(`.word[data-w="${CSS.escape(w.w)}"] .stamps .${s}`)?.classList.add("press"), await browser.runtime.sendMessage({ type: "setStatus", word: w.w, status: s }));
+    w.s !== s && (kept.has(w.w) || kept.set(w.w, w.updated), stampSound(s), w.s = s, w.updated = Date.now(), render(), document.querySelector(`.word[data-w="${CSS.escape(w.w)}"] .stamps .${s}`)?.classList.add("press"), await browser.runtime.sendMessage({ type: "setStatus", word: w.w, status: s }));
   }
   async function remove(w) {
-    removed.set(w.w, { ...w, ctx: [...w.ctx], hist: [...w.hist] }), words = words.filter((x) => x.w !== w.w), render();
+    stampSound(null), removed.set(w.w, { ...w, ctx: [...w.ctx], hist: [...w.hist] }), words = words.filter((x) => x.w !== w.w), render();
     let done = (async () => {
       let stored = await browser.runtime.sendMessage({ type: "getWord", word: w.w });
       return await browser.runtime.sendMessage({ type: "setStatus", word: w.w, status: null }), stored;
