@@ -43,6 +43,15 @@
         "<all_urls>"
       ],
       "js": [
+        "early.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
         "content.js"
       ],
       "run_at": "document_idle"

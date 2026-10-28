@@ -6,6 +6,7 @@ const watch = process.argv.includes('--watch');
 const entries = {
   background: 'src/background/index.ts',
   content: 'src/content/index.ts',
+  early: 'src/content/early.ts',
   options: 'src/pages/options.ts',
   vocab: 'src/pages/vocab.ts',
   action: 'src/pages/action.ts',

@@ -1,6 +1,6 @@
 import { YouTubeSubs } from '../youtube/index.ts';
 import { HoverLookup } from './hover.ts';
-import { isTyping } from './keys.ts';
+import { cardTakes, onKeydown } from './keys.ts';
 import { PageColors } from './pagecolor.ts';
 import { Popup } from './popup.ts';
 import { state } from './state.ts';
@@ -28,17 +28,12 @@ if (!w.__chineseBrain) {
     const onYouTube = /(^|\.)youtube\.com$/.test(location.hostname);
     if (onYouTube) new YouTubeSubs(popup);
     else {
-      window.addEventListener(
-        'keydown',
-        (e) => {
-          if (isTyping(e)) return;
-          if (popup.visible && popup.handleKey(e)) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-          }
-        },
-        true,
-      );
+      onKeydown((e) => {
+        if (popup.visible && cardTakes(e, popup.age()) && popup.handleKey(e)) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        }
+      });
     }
   });
 }

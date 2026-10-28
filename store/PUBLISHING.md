@@ -132,6 +132,12 @@ Nothing else leaves your browser. Uninstalling the add-on deletes its data.
 
 ## 4. Version notes
 
+1.3.2:
+
+```
+• The card's shortcuts (1 2 3 0, Esc) work right away on YouTube and in pages you're typing in, like Notion: no need to click the card first. Once you type something else, digits go back to your text.
+```
+
 1.3.1:
 
 ```

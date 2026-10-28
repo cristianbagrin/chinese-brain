@@ -2,7 +2,7 @@ import { CJK } from '../shared/dict.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import { TRANS_LANG, type Status, type Token } from '../shared/types.ts';
 import { lookupText } from '../content/lookup.ts';
-import { isTyping } from '../content/keys.ts';
+import { cardTakes, isTyping, onKeydown } from '../content/keys.ts';
 import type { Popup } from '../content/popup.ts';
 import { state } from '../content/state.ts';
 import { alignTranslation, cueAt, cueBefore, parseTimedText, pickChinese, pickTranslation, splitNote, stripNote, urlInfo, type Cue, type TrackInfo } from './captions.ts';
@@ -115,7 +115,7 @@ export class YouTubeSubs {
       this.applyEnabled();
       this.renderLine(true);
     });
-    window.addEventListener('keydown', (e) => this.onKey(e), true);
+    onKeydown((e) => this.onKey(e));
     document.addEventListener('yt-navigate-finish', () => this.checkVideo());
     window.addEventListener('pagehide', () => this.flushWatch());
     setInterval(() => this.checkVideo(), 1000);
@@ -778,12 +778,12 @@ export class YouTubeSubs {
   }
 
   private onKey(e: KeyboardEvent) {
-    if (isTyping(e)) return;
-    if (this.popup.visible && this.popup.handleKey(e)) {
+    if (this.popup.visible && cardTakes(e, this.popup.age()) && this.popup.handleKey(e)) {
       e.preventDefault();
       e.stopImmediatePropagation();
       return;
     }
+    if (isTyping(e)) return;
     // Shift+P / Shift+N etc. stay YouTube's.
     if (!state.settings.ytEnabled || !this.cues.length || this.live || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
     const s = state.settings;

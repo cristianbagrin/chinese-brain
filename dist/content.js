@@ -78,8 +78,19 @@
   // src/content/keys.ts
   function isTyping(e) {
     if (e.isComposing) return !0;
-    let t = e.composedPath?.()[0] ?? e.target;
+    let t = target(e);
     return !!t && (t.isContentEditable || !!t.hasAttribute?.("data-typing") || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName ?? ""));
+  }
+  function target(e) {
+    return e.composedPath?.()[0] ?? e.target;
+  }
+  var typedAt = 0;
+  function cardTakes(e, shownAgo) {
+    return isTyping(e) ? e.isComposing || target(e)?.hasAttribute?.("data-typing") ? !1 : /^([0-3]|Escape)$/.test(e.key) && shownAgo < Date.now() - typedAt ? !0 : (/^(Shift|Control|Alt|Meta|CapsLock)$/.test(e.key) || (typedAt = Date.now()), !1) : !0;
+  }
+  function onKeydown(fn) {
+    let w2 = window;
+    w2.__cbKeys ? w2.__cbKeys.fn = fn : window.addEventListener("keydown", fn, !0);
   }
 
   // src/content/state.ts
@@ -933,7 +944,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         msg.type === "ytCaptions" && msg.url && msg.body && this.onBody(msg.url, msg.body), msg.type === "geminiProgress" && this.onGeminiProgress(msg);
       }), this.controls = new Controls(this), this.transcript = new Transcript(this), state.onChange(() => {
         this.applyEnabled(), this.renderLine(!0);
-      }), window.addEventListener("keydown", (e) => this.onKey(e), !0), document.addEventListener("yt-navigate-finish", () => this.checkVideo()), window.addEventListener("pagehide", () => this.flushWatch()), setInterval(() => this.checkVideo(), 1e3), new ResizeObserver(() => this.resize()).observe(document.documentElement), this.checkVideo(), this.tick = this.tick.bind(this), this.wake();
+      }), onKeydown((e) => this.onKey(e)), document.addEventListener("yt-navigate-finish", () => this.checkVideo()), window.addEventListener("pagehide", () => this.flushWatch()), setInterval(() => this.checkVideo(), 1e3), new ResizeObserver(() => this.resize()).observe(document.documentElement), this.checkVideo(), this.tick = this.tick.bind(this), this.wake();
     }
     player() {
       let el3 = document.getElementById("movie_player");
@@ -1324,12 +1335,11 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       v.currentTime = this.cues[j].start + 0.01, this.shadowDone = -1, delta === 0 && v.paused && v.play();
     }
     onKey(e) {
-      if (isTyping(e)) return;
-      if (this.popup.visible && this.popup.handleKey(e)) {
+      if (this.popup.visible && cardTakes(e, this.popup.age()) && this.popup.handleKey(e)) {
         e.preventDefault(), e.stopImmediatePropagation();
         return;
       }
-      if (!state.settings.ytEnabled || !this.cues.length || this.live || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      if (isTyping(e) || !state.settings.ytEnabled || !this.cues.length || this.live || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
       let s = state.settings, handled = !0;
       switch (e.key.toLowerCase()) {
         case "a":
@@ -1647,14 +1657,14 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         this.raf = 0, this.check(e.target);
       }));
     }
-    async check(target) {
+    async check(target2) {
       let seq = ++this.seq;
       if (this.popup.pinned) return;
-      if (this.popup.contains(target)) {
+      if (this.popup.contains(target2)) {
         if (this.popup.src !== "web" || this.popup.age() > 300) return;
         this.popup.hide();
       }
-      if (this.popup.visible && this.popup.inBridge(this.lastX, this.lastY) || target?.closest?.("[data-cb-own]")) return;
+      if (this.popup.visible && this.popup.inBridge(this.lastX, this.lastY) || target2?.closest?.("[data-cb-own]")) return;
       let s = state.settings;
       if (!state.siteEnabled() || s.hoverMode === "alt" && !this.alt) return this.scheduleHide();
       let pos = document.caretPositionFromPoint?.(this.lastX, this.lastY), node = pos?.offsetNode;
@@ -2460,15 +2470,15 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       return !1;
     }
     /** A shortcut for the word under the pointer inside the card. */
-    async actOnHovered(key, target) {
-      let matches = await lookupText(target.q), m = matches.find((x) => x.text === target.q) ?? matches[0];
+    async actOnHovered(key, target2) {
+      let matches = await lookupText(target2.q), m = matches.find((x) => x.text === target2.q) ?? matches[0];
       if (!m || !this.opts) return;
       if (key === "v") return void speak(m.word);
       if (key === "i") return this.images(m.word);
       let want = key === "1" ? "fresh" : key === "2" ? "learning" : key === "3" ? "known" : null, cur = state.status(m.word), next = want && cur === want ? null : want;
       if (next === cur) return;
       next ? state.statuses.set(m.word, next) : state.statuses.delete(m.word), stampSound(next);
-      let ctx2 = target.sentence ? this.ctxFor(m, { text: target.sentence, url: location.href, title: document.title, at: Date.now(), src: this.opts.src }) : void 0;
+      let ctx2 = target2.sentence ? this.ctxFor(m, { text: target2.sentence, url: location.href, title: document.title, at: Date.now(), src: this.opts.src }) : void 0;
       browser.runtime.sendMessage({ type: "setStatus", word: m.word, status: next, entry: m.entries[0], ctx: ctx2 });
     }
     async showHint(el3) {
@@ -2817,12 +2827,8 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     msg.type === "toast" && window === window.top && toast(msg.text ?? "");
   }), state.ready().then(() => {
     let popup = new Popup();
-    new HoverLookup(popup), new PageColors(), /(^|\.)youtube\.com$/.test(location.hostname) ? new YouTubeSubs(popup) : window.addEventListener(
-      "keydown",
-      (e) => {
-        isTyping(e) || popup.visible && popup.handleKey(e) && (e.preventDefault(), e.stopImmediatePropagation());
-      },
-      !0
-    );
+    new HoverLookup(popup), new PageColors(), /(^|\.)youtube\.com$/.test(location.hostname) ? new YouTubeSubs(popup) : onKeydown((e) => {
+      popup.visible && cardTakes(e, popup.age()) && popup.handleKey(e) && (e.preventDefault(), e.stopImmediatePropagation());
+    });
   }));
 })();
