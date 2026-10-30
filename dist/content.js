@@ -2827,7 +2827,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     msg.type === "toast" && window === window.top && toast(msg.text ?? "");
   }), state.ready().then(() => {
     let popup = new Popup();
-    new HoverLookup(popup), new PageColors(), /(^|\.)youtube\.com$/.test(location.hostname) ? new YouTubeSubs(popup) : onKeydown((e) => {
+    new HoverLookup(popup), new PageColors(), window === window.top && /(^|\.)youtube\.com$/.test(location.hostname) ? new YouTubeSubs(popup) : onKeydown((e) => {
       popup.visible && cardTakes(e, popup.age()) && popup.handleKey(e) && (e.preventDefault(), e.stopImmediatePropagation());
     });
   }));

@@ -132,6 +132,12 @@ Nothing else leaves your browser. Uninstalling the add-on deletes its data.
 
 ## 4. Version notes
 
+1.3.3:
+
+```
+• Hover lookup, page colors and the card work inside embedded frames right away, like an artifact on Claude or an embedded document: no need to start them with the right-click Look up first.
+```
+
 1.3.2:
 
 ```

@@ -25,7 +25,9 @@ if (!w.__chineseBrain) {
     const popup = new Popup();
     new HoverLookup(popup);
     new PageColors();
-    const onYouTube = /(^|\.)youtube\.com$/.test(location.hostname);
+    // Runs in every frame (pages like Claude's artifacts show their text in one); the
+    // subtitles belong to the YouTube page itself, not to embeds or YouTube's own frames.
+    const onYouTube = window === window.top && /(^|\.)youtube\.com$/.test(location.hostname);
     if (onYouTube) new YouTubeSubs(popup);
     else {
       onKeydown((e) => {
