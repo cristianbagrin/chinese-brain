@@ -17,12 +17,12 @@
         !__hasOwnProp.call(to, key) && key !== except && __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
     return to;
   };
-  var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  var __toESM = (mod, isNodeMode, target2) => (target2 = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
     // If the importer is in node compatibility mode or this is not an ESM
     // file that has been converted to a CommonJS file using a Babel-
     // compatible transform (i.e. "__esModule" has not been set), then set
     // "default" to the CommonJS "module.exports" for node compatibility.
-    isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: !0 }) : target,
+    isNodeMode || !mod || !mod.__esModule ? __defProp(target2, "default", { value: mod, enumerable: !0 }) : target2,
     mod
   ));
 
@@ -154,9 +154,29 @@
 
   // src/content/early.ts
   init_browser_shim();
-  var w = window;
-  if (!w.__cbKeys) {
-    let keys = {};
-    w.__cbKeys = keys, window.addEventListener("keydown", (e) => keys.fn?.(e), !0);
+
+  // src/content/keys.ts
+  init_browser_shim();
+  function target(e) {
+    return e.composedPath?.()[0] ?? e.target;
   }
+  function inOwnBox(e) {
+    return !!target(e)?.hasAttribute?.("data-typing");
+  }
+  function guardKeys(w2, keys) {
+    w2.addEventListener(
+      "keydown",
+      (e) => {
+        let own = inOwnBox(e);
+        keys.fn?.(e), own && e.stopImmediatePropagation();
+      },
+      !0
+    );
+    for (let t of ["keyup", "keypress"])
+      w2.addEventListener(t, (e) => inOwnBox(e) && e.stopImmediatePropagation(), !0);
+  }
+
+  // src/content/early.ts
+  var w = window;
+  w.__cbKeys || (w.__cbKeys = {}, guardKeys(window, w.__cbKeys));
 })();

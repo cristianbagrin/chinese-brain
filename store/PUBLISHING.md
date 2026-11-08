@@ -168,6 +168,14 @@ Nothing else leaves your browser. Uninstalling the add-on deletes its data.
 
 ## 4. Version notes
 
+1.4.0:
+
+```
+• Now also for Chrome.
+• Editing a sentence in the card works inside pop-up dialogs, like YouTube Studio's video details: what you type goes into the card, not the video's description, and Esc closes only the card's editor.
+• With the pointer on the card, 1 2 3 0 and Esc are the card's even right after you typed in the page.
+```
+
 1.3.3:
 
 ```
@@ -274,3 +282,25 @@ Take these in Firefox at 1280 × 800 (Responsive Design Mode helps):
 5. The 中 panel on YouTube (coverage bar and toggles).
 
 The files in `store/screenshots/` are these shots in the red-and-paper frame (1280 × 800).
+
+## Chrome Web Store (first upload)
+
+1. `npm run zip:chrome` → `release/chinese_brain-<version>-chrome.zip`.
+2. [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole)
+   (one-time $5 registration) → **New item** → upload the zip.
+3. **Store listing**: the same name, summary, description, category (Education or
+   Productivity), icon (`store/icon-128.png`) and screenshots as on AMO (sections 2 and 6).
+4. **Privacy practices**: single purpose "Look up Chinese words on web pages and in YouTube
+   subtitles to learn Taiwan Mandarin." Permission justifications:
+   - host permissions / content scripts: hover lookup on any page the user reads.
+   - storage, unlimitedStorage: the word list and settings, kept locally.
+   - contextMenus: the "Look up" item on selected text.
+   - scripting: starts the lookup in a frame from the menu, and hides YouTube's own captions
+     while ours show.
+   - downloads: saves the word-list export where the user chooses.
+   - Remote code: No. Data usage: website content (text sent for speech and translation, as
+     in the privacy policy, section 3); not sold, not used for anything else.
+   - Privacy policy URL: host section 3 somewhere public (a GitHub gist works) and link it.
+5. Submit for review. Then set up the `CWS_*` secrets ("Automatic releases") so later
+   versions go out on their own.
+

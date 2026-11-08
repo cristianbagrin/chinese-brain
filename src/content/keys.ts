@@ -46,8 +46,9 @@ export function guardKeys(w: Window, keys: Keys) {
   w.addEventListener(
     'keydown',
     (e) => {
+      const own = inOwnBox(e); // before fn: Enter or Esc closes the box
       keys.fn?.(e);
-      if (inOwnBox(e)) e.stopImmediatePropagation();
+      if (own) e.stopImmediatePropagation();
     },
     true,
   );

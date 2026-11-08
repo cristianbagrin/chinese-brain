@@ -84,13 +84,28 @@
   function target(e) {
     return e.composedPath?.()[0] ?? e.target;
   }
+  function inOwnBox(e) {
+    return !!target(e)?.hasAttribute?.("data-typing");
+  }
   var typedAt = 0;
-  function cardTakes(e, shownAgo) {
-    return isTyping(e) ? e.isComposing || target(e)?.hasAttribute?.("data-typing") ? !1 : /^([0-3]|Escape)$/.test(e.key) && shownAgo < Date.now() - typedAt ? !0 : (/^(Shift|Control|Alt|Meta|CapsLock)$/.test(e.key) || (typedAt = Date.now()), !1) : !0;
+  function cardTakes(e, shownAgo, onCard = !1) {
+    return isTyping(e) ? e.isComposing || inOwnBox(e) ? !1 : onCard && /^([0-3]|[vi]|Escape)$/.test(e.key) || /^([0-3]|Escape)$/.test(e.key) && shownAgo < Date.now() - typedAt ? !0 : (/^(Shift|Control|Alt|Meta|CapsLock)$/.test(e.key) || (typedAt = Date.now()), !1) : !0;
+  }
+  function guardKeys(w2, keys) {
+    w2.addEventListener(
+      "keydown",
+      (e) => {
+        let own = inOwnBox(e);
+        keys.fn?.(e), own && e.stopImmediatePropagation();
+      },
+      !0
+    );
+    for (let t of ["keyup", "keypress"])
+      w2.addEventListener(t, (e) => inOwnBox(e) && e.stopImmediatePropagation(), !0);
   }
   function onKeydown(fn) {
     let w2 = window;
-    w2.__cbKeys ? w2.__cbKeys.fn = fn : window.addEventListener("keydown", fn, !0);
+    w2.__cbKeys || (w2.__cbKeys = {}, guardKeys(window, w2.__cbKeys)), w2.__cbKeys.fn = fn;
   }
 
   // src/content/state.ts
@@ -1335,7 +1350,8 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       v.currentTime = this.cues[j].start + 0.01, this.shadowDone = -1, delta === 0 && v.paused && v.play();
     }
     onKey(e) {
-      if (this.popup.visible && cardTakes(e, this.popup.age()) && this.popup.handleKey(e)) {
+      if (this.popup.editKey(e)) return;
+      if (this.popup.visible && cardTakes(e, this.popup.age(), this.popup.isHovered) && this.popup.handleKey(e)) {
         e.preventDefault(), e.stopImmediatePropagation();
         return;
       }
@@ -2215,6 +2231,38 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       return ta.remove(), ok;
     }
   }
+  function place(el3, x, y) {
+    el3.style.left = `${x}px`, el3.style.top = `${y}px`;
+    let b = el3.getBoundingClientRect();
+    Math.abs(b.left - x) > 0.5 && (el3.style.left = `${2 * x - b.left}px`), Math.abs(b.top - y) > 0.5 && (el3.style.top = `${2 * y - b.top}px`);
+  }
+  var MODAL = 'dialog:modal, [aria-modal="true"], tp-yt-paper-dialog, paper-dialog';
+  function modalAt(rect) {
+    let starts = [];
+    if (rect) {
+      let el3 = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      for (; el3?.shadowRoot; ) {
+        let inner = el3.shadowRoot.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        if (!inner || inner === el3) break;
+        el3 = inner;
+      }
+      starts.push(el3);
+    }
+    let a = document.activeElement;
+    for (; a?.shadowRoot?.activeElement; ) a = a.shadowRoot.activeElement;
+    starts.push(a);
+    for (let start of starts)
+      for (let n = start; n; n = n instanceof ShadowRoot ? n.host : n.parentNode)
+        if (n instanceof Element && n.localName !== "chinese-brain-popup" && safeMatches(n, MODAL)) return n;
+    return null;
+  }
+  function safeMatches(el3, sel) {
+    try {
+      return el3.matches(sel);
+    } catch {
+      return el3.matches(sel.replace("dialog:modal, ", "dialog[open], "));
+    }
+  }
   function fitBox(box2) {
     if (!box2.isConnected || !box2.offsetHeight) return;
     box2.style.height = "auto";
@@ -2316,8 +2364,14 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     contains(node) {
       return node === this.host;
     }
-    mount() {
-      let parent = document.fullscreenElement ?? document.documentElement;
+    /**
+     * The card lives at the end of the page, or inside the modal dialog the word is in (or the
+     * fullscreen element). A modal (YouTube Studio's upload dialog, a <dialog>, an aria-modal
+     * box) takes focus back from anything outside it and makes the rest of the page inert:
+     * outside it, the card's text box couldn't be typed in.
+     */
+    mount(rect) {
+      let parent = document.fullscreenElement ?? modalAt(rect) ?? document.documentElement;
       this.host.parentNode !== parent && parent.append(this.host);
     }
     onHide(fn) {
@@ -2367,7 +2421,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     }
     async show(opts, keepPlace = !1) {
       let sameWord = this.opts?.matches[0]?.word === opts.matches[0]?.word;
-      this.editing?.word !== opts.matches[0]?.word && this.endEdit(), this.opts = opts, this.cancelHide(), keepPlace || (this.trail = [opts], this.pos = 0), this.mount();
+      this.editing?.word !== opts.matches[0]?.word && this.endEdit(), this.opts = opts, this.cancelHide(), keepPlace || (this.trail = [opts], this.pos = 0), (!keepPlace || !this.host.isConnected) && this.mount(opts.rect);
       let appearing = this.card.hidden, m = opts.matches[0], e0 = m.entries[0], [, info] = await Promise.all([state.loadStatuses(), this.wordInfo(m.word, e0.tw || e0.py)]);
       this.opts === opts && (this.info = info, this.hoverWord = void 0, this.hideHint(), this.render(), keepPlace ? this.keepOnScreen() : (this.anchor = opts.rect, this.exit = this.px >= 0 ? { x: this.px, y: this.py } : void 0, this.position(opts)), appearing && this.appear(), this.shownAt = Date.now(), clearTimeout(this.lookTimer), this.lookTimer = setTimeout(() => this.recordLook(), opts.pinned ? 0 : 1200));
     }
@@ -2442,6 +2496,13 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       t?.dataset.q && this.openInside(t.dataset.q);
     }
     /** Keyboard shortcuts while the card is open. Returns true when handled. */
+    /**
+     * A key typed into the card's own text box (the page never sees it): Enter saves, Esc
+     * cancels, anything else is typing. True when the key belonged to the box.
+     */
+    editKey(e) {
+      return !this.editing || !inOwnBox(e) ? !1 : (e.isComposing || (e.key === "Enter" && !e.shiftKey ? (e.preventDefault(), this.commitEdit()) : e.key === "Escape" && (e.preventDefault(), this.endEdit(), this.render())), !0);
+    }
     handleKey(e) {
       if (!this.opts || e.ctrlKey || e.metaKey || e.altKey) return !1;
       if (this.hoverWord && this.hovered && /^[1230vi]$/.test(e.key))
@@ -2494,7 +2555,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         h("div", { class: "hpy" }, numberedToMarked(e.tw || e.py, !1))
       ), hint.hidden = !1;
       let r = el3.getBoundingClientRect(), w2 = hint.offsetWidth, ht = hint.offsetHeight, y = r.top - ht - 6;
-      y < 4 && (y = r.bottom + 6), hint.style.left = `${Math.min(Math.max(4, r.left + r.width / 2 - w2 / 2), window.innerWidth - w2 - 4)}px`, hint.style.top = `${y}px`;
+      y < 4 && (y = r.bottom + 6), place(hint, Math.min(Math.max(4, r.left + r.width / 2 - w2 / 2), window.innerWidth - w2 - 4), y);
     }
     hideHint() {
       this.hintSeq++, this.hint.hidden = !0;
@@ -2530,12 +2591,12 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         let roomy = spaceBelow >= spaceAbove;
         ht = Math.max(120, roomy ? spaceBelow : spaceAbove), c.style.maxHeight = `${ht}px`, [x, y] = [near, roomy ? belowTop : r.top - gap - ht];
       }
-      c.style.left = `${x}px`, c.style.top = `${y}px`;
+      place(c, x, y);
     }
     /** After the content changed in place (← →, a clicked word), keep the card inside the window. */
     keepOnScreen() {
       let c = this.card, b = c.getBoundingClientRect(), vh = window.innerHeight;
-      b.bottom > vh - 8 && (c.style.top = `${Math.max(8, vh - 8 - b.height)}px`);
+      b.bottom > vh - 8 && place(c, b.left, Math.max(8, vh - 8 - b.height));
     }
     /** Save an example sentence to learn it: it goes into the export for Claude. */
     saveButton(word, zh, en) {
@@ -2577,13 +2638,9 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     editRow(ed) {
       let field = (cls, value, label, set, placeholder) => {
         let box3 = h("textarea", { class: cls, rows: "1", spellcheck: "false", "aria-label": label, ...placeholder ? { placeholder } : {} });
-        box3.value = value, box3.addEventListener("input", () => {
+        return box3.value = value, box3.addEventListener("input", () => {
           set(box3.value), fitBox(box3);
-        }), box3.addEventListener("focus", () => this.host.setAttribute("data-typing", "")), box3.addEventListener("blur", () => this.host.removeAttribute("data-typing"));
-        for (let t of ["keyup", "keypress"]) box3.addEventListener(t, (e) => e.stopPropagation());
-        return box3.addEventListener("keydown", (e) => {
-          e.stopPropagation(), !e.isComposing && (e.key === "Enter" && !e.shiftKey ? (e.preventDefault(), this.commitEdit()) : e.key === "Escape" && (e.preventDefault(), this.endEdit(), this.render()));
-        }), box3;
+        }), box3.addEventListener("focus", () => this.host.setAttribute("data-typing", "")), box3.addEventListener("blur", () => this.host.removeAttribute("data-typing")), box3;
       }, box2 = field("editbox", ed.draft, "Edit the sentence", (v) => ed.draft = v), enBox = field("editbox editen", ed.en, "Edit the English", (v) => ed.en = v, "English (optional)"), save = h("button", { class: "editsave" }, "Save");
       save.addEventListener("click", (e) => {
         e.stopPropagation(), this.commitEdit();
@@ -2828,7 +2885,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
   }), state.ready().then(() => {
     let popup = new Popup();
     new HoverLookup(popup), new PageColors(), window === window.top && /(^|\.)youtube\.com$/.test(location.hostname) ? new YouTubeSubs(popup) : onKeydown((e) => {
-      popup.visible && cardTakes(e, popup.age()) && popup.handleKey(e) && (e.preventDefault(), e.stopImmediatePropagation());
+      popup.editKey(e) || popup.visible && cardTakes(e, popup.age(), popup.isHovered) && popup.handleKey(e) && (e.preventDefault(), e.stopImmediatePropagation());
     });
   }));
 })();
