@@ -10,6 +10,8 @@ import { checkAzure, ttsAudio } from './speech.ts';
 import { translateLines } from './translate.ts';
 import { ExampleBank } from './examples.ts';
 import { cachedCaptions, startCaptionCapture } from './youtube.ts';
+import { audioOut, createMenu, injectContent, insertCSS, keepAlive, onMenuClicked } from '../platform/compat.ts';
+import { cachedHookCaptions, startHookCapture } from '../platform/yt-capture.ts';
 
 declare const __TEST__: boolean;
 
@@ -18,7 +20,9 @@ const dictReady = loadDictionary();
 const store = new Store();
 const storeReady = store.load();
 
-startCaptionCapture();
+// Chrome has no filterResponseData: a page hook copies the caption bodies instead.
+if (__CHROME__) startHookCapture();
+else startCaptionCapture();
 
 /** Example sentences, and the best two for a word and for you. */
 const examples = new ExampleBank();
@@ -87,8 +91,8 @@ async function lookupPhrase(d: Dictionary, raw: string): Promise<LookupMatch[]> 
 }
 
 // Right-click a selection (on a page, in a search box or a text field): its card.
-browser.menus.create({ id: 'cb-lookup', title: 'Look up “%s”', contexts: ['selection'] });
-browser.menus.onClicked.addListener(async (info, tab) => {
+createMenu({ id: 'cb-lookup', title: 'Look up “%s”', contexts: ['selection'] });
+onMenuClicked(async (info, tab) => {
   if (info.menuItemId !== 'cb-lookup' || tab?.id == null) return;
   const msg = { type: 'lookupSelection', text: info.selectionText ?? '' };
   const opts = { frameId: info.frameId ?? 0 };
@@ -97,7 +101,7 @@ browser.menus.onClicked.addListener(async (info, tab) => {
   } catch {
     // Inside a frame the content script doesn't run in on its own: start it there, then ask again.
     try {
-      await browser.tabs.executeScript(tab.id, { file: '/content.js', frameId: opts.frameId });
+      await injectContent(tab.id, opts.frameId);
       for (let i = 0; ; i++) {
         await new Promise((ok) => setTimeout(ok, 200));
         try {
@@ -199,6 +203,7 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
   const any = msg as { type: string; [k: string]: unknown };
   switch (any.type) {
     case 'ytCached':
+      if (__CHROME__) return sender.tab?.id != null ? cachedHookCaptions(sender.tab.id) : Promise.resolve([]);
       return Promise.resolve(sender.tab?.id != null ? cachedCaptions(sender.tab.id) : []);
     case 'allData':
       return Promise.all([storeReady, dictReady]).then(async ([, d]) => {
@@ -211,7 +216,7 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
       return storeReady.then(() => store.importWords(any.words as never, (any.mode as 'merge' | 'replace') ?? 'merge'));
     case 'insertCSS':
       if (sender.tab?.id != null)
-        return browser.tabs.insertCSS(sender.tab.id, { code: any.css as string, frameId: sender.frameId ?? 0 }).then(() => true);
+        return insertCSS(sender.tab.id, sender.frameId ?? 0, any.css as string).then(() => true);
       return undefined;
     case 'importList':
       // [{ w, s, t }] from known-words.txt style lists. Existing words keep their history.
@@ -253,7 +258,7 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
     case 'tts':
       return getSettings().then((st) =>
         ttsAudio(any.engine as 'google' | 'azure', String(any.text), st).then(
-          (audio) => ({ audio }),
+          (audio) => ({ audio: audioOut(audio) }),
           (e) => ({ error: String(e instanceof Error ? e.message : e) }),
         ),
       );
@@ -294,7 +299,7 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
         const word = String(any.word);
         const e = d.get(word)[0];
         try {
-          await geminiExamples(word, e ? shortGloss(e) : '', st.geminiKey, st.geminiModel, Math.max(1, Number(any.want) || 2));
+          await keepAlive(geminiExamples(word, e ? shortGloss(e) : '', st.geminiKey, st.geminiModel, Math.max(1, Number(any.want) || 2)));
           return { ok: true };
         } catch (err) {
           return { error: String(err instanceof Error ? err.message : err) };
@@ -353,9 +358,9 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
         const videoId = String(any.videoId);
         const tab = sender.tab?.id;
         try {
-          return await geminiTranscribe(videoId, st.geminiKey, st.geminiModel || DEFAULT_SETTINGS.geminiModel, Number(any.duration), (p) => {
+          return await keepAlive(geminiTranscribe(videoId, st.geminiKey, st.geminiModel || DEFAULT_SETTINGS.geminiModel, Number(any.duration), (p) => {
             if (tab != null) browser.tabs.sendMessage(tab, { type: 'geminiProgress', videoId, ...p }).catch(() => {});
-          });
+          }));
         } catch (e) {
           return { error: String(e instanceof Error ? e.message : e) };
         }

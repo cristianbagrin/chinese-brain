@@ -1,0 +1,1376 @@
+"use strict";
+(() => {
+  var __create = Object.create;
+  var __defProp = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __getProtoOf = Object.getPrototypeOf, __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __esm = (fn, res) => function() {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  };
+  var __commonJS = (cb, mod) => function() {
+    return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+  };
+  var __copyProps = (to, from, except, desc) => {
+    if (from && typeof from == "object" || typeof from == "function")
+      for (let key of __getOwnPropNames(from))
+        !__hasOwnProp.call(to, key) && key !== except && __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+    return to;
+  };
+  var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+    // If the importer is in node compatibility mode or this is not an ESM
+    // file that has been converted to a CommonJS file using a Babel-
+    // compatible transform (i.e. "__esModule" has not been set), then set
+    // "default" to the CommonJS "module.exports" for node compatibility.
+    isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: !0 }) : target,
+    mod
+  ));
+
+  // node_modules/webextension-polyfill/dist/browser-polyfill.min.js
+  var require_browser_polyfill_min = __commonJS({
+    "node_modules/webextension-polyfill/dist/browser-polyfill.min.js"(exports, module) {
+      init_browser_shim();
+      (function(a, b) {
+        if (typeof define == "function" && define.amd) define("webextension-polyfill", ["module"], b);
+        else if (typeof exports < "u") b(module);
+        else {
+          var c = { exports: {} };
+          b(c), a.browser = c.exports;
+        }
+      })(typeof globalThis > "u" ? typeof self > "u" ? exports : self : globalThis, function(a) {
+        "use strict";
+        if (!(globalThis.chrome && globalThis.chrome.runtime && globalThis.chrome.runtime.id)) throw new Error("This script should only be loaded in a browser extension.");
+        globalThis.browser && globalThis.browser.runtime && globalThis.browser.runtime.id ? a.exports = globalThis.browser : a.exports = ((a2) => {
+          let b = { alarms: { clear: { minArgs: 0, maxArgs: 1 }, clearAll: { minArgs: 0, maxArgs: 0 }, get: { minArgs: 0, maxArgs: 1 }, getAll: { minArgs: 0, maxArgs: 0 } }, bookmarks: { create: { minArgs: 1, maxArgs: 1 }, get: { minArgs: 1, maxArgs: 1 }, getChildren: { minArgs: 1, maxArgs: 1 }, getRecent: { minArgs: 1, maxArgs: 1 }, getSubTree: { minArgs: 1, maxArgs: 1 }, getTree: { minArgs: 0, maxArgs: 0 }, move: { minArgs: 2, maxArgs: 2 }, remove: { minArgs: 1, maxArgs: 1 }, removeTree: { minArgs: 1, maxArgs: 1 }, search: { minArgs: 1, maxArgs: 1 }, update: { minArgs: 2, maxArgs: 2 } }, browserAction: { disable: { minArgs: 0, maxArgs: 1, fallbackToNoCallback: !0 }, enable: { minArgs: 0, maxArgs: 1, fallbackToNoCallback: !0 }, getBadgeBackgroundColor: { minArgs: 1, maxArgs: 1 }, getBadgeText: { minArgs: 1, maxArgs: 1 }, getPopup: { minArgs: 1, maxArgs: 1 }, getTitle: { minArgs: 1, maxArgs: 1 }, openPopup: { minArgs: 0, maxArgs: 0 }, setBadgeBackgroundColor: { minArgs: 1, maxArgs: 1, fallbackToNoCallback: !0 }, setBadgeText: { minArgs: 1, maxArgs: 1, fallbackToNoCallback: !0 }, setIcon: { minArgs: 1, maxArgs: 1 }, setPopup: { minArgs: 1, maxArgs: 1, fallbackToNoCallback: !0 }, setTitle: { minArgs: 1, maxArgs: 1, fallbackToNoCallback: !0 } }, browsingData: { remove: { minArgs: 2, maxArgs: 2 }, removeCache: { minArgs: 1, maxArgs: 1 }, removeCookies: { minArgs: 1, maxArgs: 1 }, removeDownloads: { minArgs: 1, maxArgs: 1 }, removeFormData: { minArgs: 1, maxArgs: 1 }, removeHistory: { minArgs: 1, maxArgs: 1 }, removeLocalStorage: { minArgs: 1, maxArgs: 1 }, removePasswords: { minArgs: 1, maxArgs: 1 }, removePluginData: { minArgs: 1, maxArgs: 1 }, settings: { minArgs: 0, maxArgs: 0 } }, commands: { getAll: { minArgs: 0, maxArgs: 0 } }, contextMenus: { remove: { minArgs: 1, maxArgs: 1 }, removeAll: { minArgs: 0, maxArgs: 0 }, update: { minArgs: 2, maxArgs: 2 } }, cookies: { get: { minArgs: 1, maxArgs: 1 }, getAll: { minArgs: 1, maxArgs: 1 }, getAllCookieStores: { minArgs: 0, maxArgs: 0 }, remove: { minArgs: 1, maxArgs: 1 }, set: { minArgs: 1, maxArgs: 1 } }, devtools: { inspectedWindow: { eval: { minArgs: 1, maxArgs: 2, singleCallbackArg: !1 } }, panels: { create: { minArgs: 3, maxArgs: 3, singleCallbackArg: !0 }, elements: { createSidebarPane: { minArgs: 1, maxArgs: 1 } } } }, downloads: { cancel: { minArgs: 1, maxArgs: 1 }, download: { minArgs: 1, maxArgs: 1 }, erase: { minArgs: 1, maxArgs: 1 }, getFileIcon: { minArgs: 1, maxArgs: 2 }, open: { minArgs: 1, maxArgs: 1, fallbackToNoCallback: !0 }, pause: { minArgs: 1, maxArgs: 1 }, removeFile: { minArgs: 1, maxArgs: 1 }, resume: { minArgs: 1, maxArgs: 1 }, search: { minArgs: 1, maxArgs: 1 }, show: { minArgs: 1, maxArgs: 1, fallbackToNoCallback: !0 } }, extension: { isAllowedFileSchemeAccess: { minArgs: 0, maxArgs: 0 }, isAllowedIncognitoAccess: { minArgs: 0, maxArgs: 0 } }, history: { addUrl: { minArgs: 1, maxArgs: 1 }, deleteAll: { minArgs: 0, maxArgs: 0 }, deleteRange: { minArgs: 1, maxArgs: 1 }, deleteUrl: { minArgs: 1, maxArgs: 1 }, getVisits: { minArgs: 1, maxArgs: 1 }, search: { minArgs: 1, maxArgs: 1 } }, i18n: { detectLanguage: { minArgs: 1, maxArgs: 1 }, getAcceptLanguages: { minArgs: 0, maxArgs: 0 } }, identity: { launchWebAuthFlow: { minArgs: 1, maxArgs: 1 } }, idle: { queryState: { minArgs: 1, maxArgs: 1 } }, management: { get: { minArgs: 1, maxArgs: 1 }, getAll: { minArgs: 0, maxArgs: 0 }, getSelf: { minArgs: 0, maxArgs: 0 }, setEnabled: { minArgs: 2, maxArgs: 2 }, uninstallSelf: { minArgs: 0, maxArgs: 1 } }, notifications: { clear: { minArgs: 1, maxArgs: 1 }, create: { minArgs: 1, maxArgs: 2 }, getAll: { minArgs: 0, maxArgs: 0 }, getPermissionLevel: { minArgs: 0, maxArgs: 0 }, update: { minArgs: 2, maxArgs: 2 } }, pageAction: { getPopup: { minArgs: 1, maxArgs: 1 }, getTitle: { minArgs: 1, maxArgs: 1 }, hide: { minArgs: 1, maxArgs: 1, fallbackToNoCallback: !0 }, setIcon: { minArgs: 1, maxArgs: 1 }, setPopup: { minArgs: 1, maxArgs: 1, fallbackToNoCallback: !0 }, setTitle: { minArgs: 1, maxArgs: 1, fallbackToNoCallback: !0 }, show: { minArgs: 1, maxArgs: 1, fallbackToNoCallback: !0 } }, permissions: { contains: { minArgs: 1, maxArgs: 1 }, getAll: { minArgs: 0, maxArgs: 0 }, remove: { minArgs: 1, maxArgs: 1 }, request: { minArgs: 1, maxArgs: 1 } }, runtime: { getBackgroundPage: { minArgs: 0, maxArgs: 0 }, getPlatformInfo: { minArgs: 0, maxArgs: 0 }, openOptionsPage: { minArgs: 0, maxArgs: 0 }, requestUpdateCheck: { minArgs: 0, maxArgs: 0 }, sendMessage: { minArgs: 1, maxArgs: 3 }, sendNativeMessage: { minArgs: 2, maxArgs: 2 }, setUninstallURL: { minArgs: 1, maxArgs: 1 } }, sessions: { getDevices: { minArgs: 0, maxArgs: 1 }, getRecentlyClosed: { minArgs: 0, maxArgs: 1 }, restore: { minArgs: 0, maxArgs: 1 } }, storage: { local: { clear: { minArgs: 0, maxArgs: 0 }, get: { minArgs: 0, maxArgs: 1 }, getBytesInUse: { minArgs: 0, maxArgs: 1 }, remove: { minArgs: 1, maxArgs: 1 }, set: { minArgs: 1, maxArgs: 1 } }, managed: { get: { minArgs: 0, maxArgs: 1 }, getBytesInUse: { minArgs: 0, maxArgs: 1 } }, sync: { clear: { minArgs: 0, maxArgs: 0 }, get: { minArgs: 0, maxArgs: 1 }, getBytesInUse: { minArgs: 0, maxArgs: 1 }, remove: { minArgs: 1, maxArgs: 1 }, set: { minArgs: 1, maxArgs: 1 } } }, tabs: { captureVisibleTab: { minArgs: 0, maxArgs: 2 }, create: { minArgs: 1, maxArgs: 1 }, detectLanguage: { minArgs: 0, maxArgs: 1 }, discard: { minArgs: 0, maxArgs: 1 }, duplicate: { minArgs: 1, maxArgs: 1 }, executeScript: { minArgs: 1, maxArgs: 2 }, get: { minArgs: 1, maxArgs: 1 }, getCurrent: { minArgs: 0, maxArgs: 0 }, getZoom: { minArgs: 0, maxArgs: 1 }, getZoomSettings: { minArgs: 0, maxArgs: 1 }, goBack: { minArgs: 0, maxArgs: 1 }, goForward: { minArgs: 0, maxArgs: 1 }, highlight: { minArgs: 1, maxArgs: 1 }, insertCSS: { minArgs: 1, maxArgs: 2 }, move: { minArgs: 2, maxArgs: 2 }, query: { minArgs: 1, maxArgs: 1 }, reload: { minArgs: 0, maxArgs: 2 }, remove: { minArgs: 1, maxArgs: 1 }, removeCSS: { minArgs: 1, maxArgs: 2 }, sendMessage: { minArgs: 2, maxArgs: 3 }, setZoom: { minArgs: 1, maxArgs: 2 }, setZoomSettings: { minArgs: 1, maxArgs: 2 }, update: { minArgs: 1, maxArgs: 2 } }, topSites: { get: { minArgs: 0, maxArgs: 0 } }, webNavigation: { getAllFrames: { minArgs: 1, maxArgs: 1 }, getFrame: { minArgs: 1, maxArgs: 1 } }, webRequest: { handlerBehaviorChanged: { minArgs: 0, maxArgs: 0 } }, windows: { create: { minArgs: 0, maxArgs: 1 }, get: { minArgs: 1, maxArgs: 2 }, getAll: { minArgs: 0, maxArgs: 1 }, getCurrent: { minArgs: 0, maxArgs: 1 }, getLastFocused: { minArgs: 0, maxArgs: 1 }, remove: { minArgs: 1, maxArgs: 1 }, update: { minArgs: 2, maxArgs: 2 } } };
+          if (Object.keys(b).length === 0) throw new Error("api-metadata.json has not been included in browser-polyfill");
+          class c extends WeakMap {
+            constructor(a3, b2 = void 0) {
+              super(b2), this.createItem = a3;
+            }
+            get(a3) {
+              return this.has(a3) || this.set(a3, this.createItem(a3)), super.get(a3);
+            }
+          }
+          let d = (a3) => a3 && typeof a3 == "object" && typeof a3.then == "function", e = (b2, c2) => (...d2) => {
+            a2.runtime.lastError ? b2.reject(new Error(a2.runtime.lastError.message)) : c2.singleCallbackArg || 1 >= d2.length && c2.singleCallbackArg !== !1 ? b2.resolve(d2[0]) : b2.resolve(d2);
+          }, f = (a3) => a3 == 1 ? "argument" : "arguments", g = (a3, b2) => function(c2, ...d2) {
+            if (d2.length < b2.minArgs) throw new Error(`Expected at least ${b2.minArgs} ${f(b2.minArgs)} for ${a3}(), got ${d2.length}`);
+            if (d2.length > b2.maxArgs) throw new Error(`Expected at most ${b2.maxArgs} ${f(b2.maxArgs)} for ${a3}(), got ${d2.length}`);
+            return new Promise((f2, g2) => {
+              if (b2.fallbackToNoCallback) try {
+                c2[a3](...d2, e({ resolve: f2, reject: g2 }, b2));
+              } catch (e2) {
+                console.warn(`${a3} API method doesn't seem to support the callback parameter, falling back to call it without a callback: `, e2), c2[a3](...d2), b2.fallbackToNoCallback = !1, b2.noCallback = !0, f2();
+              }
+              else b2.noCallback ? (c2[a3](...d2), f2()) : c2[a3](...d2, e({ resolve: f2, reject: g2 }, b2));
+            });
+          }, h = (a3, b2, c2) => new Proxy(b2, { apply(b3, d2, e2) {
+            return c2.call(d2, a3, ...e2);
+          } }), i = Function.call.bind(Object.prototype.hasOwnProperty), j = (a3, b2 = {}, c2 = {}) => {
+            let d2 = /* @__PURE__ */ Object.create(null), e2 = Object.create(a3);
+            return new Proxy(e2, { has(b3, c3) {
+              return c3 in a3 || c3 in d2;
+            }, get(e3, f2) {
+              if (f2 in d2) return d2[f2];
+              if (!(f2 in a3)) return;
+              let k2 = a3[f2];
+              if (typeof k2 == "function")
+                if (typeof b2[f2] == "function") k2 = h(a3, a3[f2], b2[f2]);
+                else if (i(c2, f2)) {
+                  let b3 = g(f2, c2[f2]);
+                  k2 = h(a3, a3[f2], b3);
+                } else k2 = k2.bind(a3);
+              else if (typeof k2 == "object" && k2 !== null && (i(b2, f2) || i(c2, f2))) k2 = j(k2, b2[f2], c2[f2]);
+              else if (i(c2, "*")) k2 = j(k2, b2[f2], c2["*"]);
+              else return Object.defineProperty(d2, f2, { configurable: !0, enumerable: !0, get() {
+                return a3[f2];
+              }, set(b3) {
+                a3[f2] = b3;
+              } }), k2;
+              return d2[f2] = k2, k2;
+            }, set(b3, c3, e3) {
+              return c3 in d2 ? d2[c3] = e3 : a3[c3] = e3, !0;
+            }, defineProperty(a4, b3, c3) {
+              return Reflect.defineProperty(d2, b3, c3);
+            }, deleteProperty(a4, b3) {
+              return Reflect.deleteProperty(d2, b3);
+            } });
+          }, k = (a3) => ({ addListener(b2, c2, ...d2) {
+            b2.addListener(a3.get(c2), ...d2);
+          }, hasListener(b2, c2) {
+            return b2.hasListener(a3.get(c2));
+          }, removeListener(b2, c2) {
+            b2.removeListener(a3.get(c2));
+          } }), l = new c((a3) => typeof a3 == "function" ? function(b2) {
+            let c2 = j(b2, {}, { getContent: { minArgs: 0, maxArgs: 0 } });
+            a3(c2);
+          } : a3), m = new c((a3) => typeof a3 == "function" ? function(b2, c2, e2) {
+            let f2, g2, h2 = !1, i2 = new Promise((a4) => {
+              f2 = function(b3) {
+                h2 = !0, a4(b3);
+              };
+            });
+            try {
+              g2 = a3(b2, c2, f2);
+            } catch (a4) {
+              g2 = Promise.reject(a4);
+            }
+            let j2 = g2 !== !0 && d(g2);
+            if (g2 !== !0 && !j2 && !h2) return !1;
+            let k2 = (a4) => {
+              a4.then((a5) => {
+                e2(a5);
+              }, (a5) => {
+                let b3;
+                b3 = a5 && (a5 instanceof Error || typeof a5.message == "string") ? a5.message : "An unexpected error occurred", e2({ __mozWebExtensionPolyfillReject__: !0, message: b3 });
+              }).catch((a5) => {
+                console.error("Failed to send onMessage rejected reply", a5);
+              });
+            };
+            return k2(j2 ? g2 : i2), !0;
+          } : a3), n = ({ reject: b2, resolve: c2 }, d2) => {
+            a2.runtime.lastError ? a2.runtime.lastError.message === "The message port closed before a response was received." ? c2() : b2(new Error(a2.runtime.lastError.message)) : d2 && d2.__mozWebExtensionPolyfillReject__ ? b2(new Error(d2.message)) : c2(d2);
+          }, o = (a3, b2, c2, ...d2) => {
+            if (d2.length < b2.minArgs) throw new Error(`Expected at least ${b2.minArgs} ${f(b2.minArgs)} for ${a3}(), got ${d2.length}`);
+            if (d2.length > b2.maxArgs) throw new Error(`Expected at most ${b2.maxArgs} ${f(b2.maxArgs)} for ${a3}(), got ${d2.length}`);
+            return new Promise((a4, b3) => {
+              let e2 = n.bind(null, { resolve: a4, reject: b3 });
+              d2.push(e2), c2.sendMessage(...d2);
+            });
+          }, p = { devtools: { network: { onRequestFinished: k(l) } }, runtime: { onMessage: k(m), onMessageExternal: k(m), sendMessage: o.bind(null, "sendMessage", { minArgs: 1, maxArgs: 3 }) }, tabs: { sendMessage: o.bind(null, "sendMessage", { minArgs: 2, maxArgs: 3 }) } }, q = { clear: { minArgs: 1, maxArgs: 1 }, get: { minArgs: 1, maxArgs: 1 }, set: { minArgs: 1, maxArgs: 1 } };
+          return b.privacy = { network: { "*": q }, services: { "*": q }, websites: { "*": q } }, j(a2, p, b);
+        })(chrome);
+      });
+    }
+  });
+
+  // src/platform/browser-shim.ts
+  var import_browser_polyfill_min, init_browser_shim = __esm({
+    "src/platform/browser-shim.ts"() {
+      "use strict";
+      import_browser_polyfill_min = __toESM(require_browser_polyfill_min(), 1);
+    }
+  });
+
+  // src/background/index.ts
+  init_browser_shim();
+
+  // src/shared/context.ts
+  init_browser_shim();
+  var HAN = /[㐀-䶿一-鿿豈-﫿]/g, fold = (s) => s.replaceAll("\u81FA", "\u53F0");
+  function findWord(text, word, alt) {
+    let t = fold(text);
+    for (let w of [word, alt]) {
+      let i = w ? t.indexOf(fold(w)) : -1;
+      if (w && i >= 0) return { i, len: w.length };
+    }
+  }
+  function hasWord(text, word, alt) {
+    return !!findWord(text, word, alt);
+  }
+  var CUES = /\[[^\]\n]{1,10}\]|［[^］\n]{1,10}］|【\d+】|\*[^*\n]{1,10}\*|[♪♫]/g;
+  function cleanSentence(text, word, alt) {
+    let uncue = (s) => s.replace(CUES, (cue) => hasWord(cue, word, alt) ? cue : " "), withWord = uncue(text).split(/\s*(?:[|｜]|\s[-–—]\s|(?<=[^\s\x00-\x7f])[-–—_](?=[^\s\x00-\x7f]))\s*/).map((p) => p.replace(/[ \t]+/g, " ").trim()).filter((p) => p && !/^(pdf|docx?|pptx?|xlsx?|html?|…|\.\.\.)$/i.test(p)).filter((p) => hasWord(p, word, alt));
+    return withWord.length ? withWord.sort((a, b) => b.length - a.length)[0] : uncue(text).replace(/[ \t]+/g, " ").trim();
+  }
+  function usefulSentence(text, word) {
+    let han = text.match(HAN)?.length ?? 0, latinWords = text.match(/[A-Za-z][A-Za-z'’-]*/g)?.length ?? 0;
+    return han >= [...word].length + 2 && han * 2 >= latinWords * 3;
+  }
+  function saveInList(list, o, now = Date.now()) {
+    let zh = o.zh.trim(), old = o.replace ? list.find((x) => x.zh === o.replace) : void 0, out = list.filter((x) => x.zh !== zh && (!o.replace || x.zh !== o.replace));
+    if (o.on && zh) {
+      let from = o.from ?? old?.from;
+      out.push({ zh, en: o.en ?? "", at: now, ...from && from !== zh ? { from } : {} });
+    }
+    return out;
+  }
+  function quoted(s) {
+    let inside = new Array(s.length).fill(!1), open = [];
+    for (let i = 0; i < s.length; i++) {
+      let c = s[i];
+      if (c === "\u300C" || c === "\u300E") open.push({ i, close: c === "\u300C" ? "\u300D" : "\u300F" });
+      else if (c === "\u300D" || c === "\u300F") {
+        let k = open.map((o) => o.close).lastIndexOf(c);
+        if (k < 0) continue;
+        let from = open[k].i;
+        open.length = k;
+        for (let j = from + 1; j < i; j++) inside[j] = !0;
+      }
+    }
+    return inside;
+  }
+  function isStop(s, i, inside) {
+    let c = s[i];
+    return c === `
+` || c === "\r" ? !0 : inside[i] ? !1 : "\u3002\uFF01\uFF1F".includes(c) ? !0 : ".!?".includes(c) && !/[0-9A-Za-z]/.test(s[i + 1] ?? "");
+  }
+  var CLOSER = /[」』"”’'）)】》〉\]]/;
+  function sentenceBounds(s, pos) {
+    let q = quoted(s), a = Math.min(Math.max(pos, 0), s.length);
+    for (; a > 0 && !isStop(s, a - 1, q); ) a--;
+    for (; a < pos && (CLOSER.test(s[a]) || /\s/.test(s[a])); ) a++;
+    let b = Math.max(a, pos);
+    for (; b < s.length && !isStop(s, b, q); ) b++;
+    for (; b < s.length && isStop(s, b, q) && !/[\n\r]/.test(s[b]); ) b++;
+    for (; b < s.length && CLOSER.test(s[b]); ) b++;
+    return [a, b];
+  }
+  var segmenter = typeof Intl < "u" && "Segmenter" in Intl ? new Intl.Segmenter("zh-TW", { granularity: "word" }) : void 0;
+  function trimAround(s, i, len, max) {
+    if (s.length <= max) return s.trim();
+    let cuts = segmenter ? [...segmenter.segment(s)].map((x) => x.index).concat(s.length) : [...s].map((_, k) => k).concat(s.length), a0 = Math.max(0, i - Math.floor((max - len) / 2)), b0 = Math.min(s.length, a0 + max);
+    a0 = Math.max(0, b0 - max);
+    let near = 12, clause = /[，、；：,;:\s（(「『]/, a = cuts.find((k) => k >= a0 && k <= i) ?? i;
+    for (let k = a0; k <= Math.min(i, a0 + near); k++) if (k > 0 && clause.test(s[k - 1])) {
+      a = k;
+      break;
+    }
+    let b = [...cuts].reverse().find((k) => k <= b0 && k >= i + len) ?? i + len;
+    for (let k = b0; k >= Math.max(i + len, b0 - near); k--) if (k < s.length && clause.test(s[k])) {
+      b = k;
+      break;
+    }
+    let mid = s.slice(a, b).trim().replace(/^[，、；：,;:]+|[，、；：,;:]+$/g, "");
+    return `${a > 0 ? "\u2026" : ""}${mid}${b < s.length ? "\u2026" : ""}`;
+  }
+  function metSentence(c, word, max = 80) {
+    let [zh, ...en] = c.text.split(" \u2014 "), hit = findWord(zh, word, c.q);
+    if (!hit) return "";
+    let [a, b] = sentenceBounds(zh, hit.i), one = cleanSentence(zh.slice(a, b), word, c.q), at = findWord(one, word, c.q);
+    if (!at || !usefulSentence(one, word)) return "";
+    let out = trimAround(one, at.i, at.len, max), english = en.join(" \u2014 ").replace(CUES, " ").replace(/\s+/g, " ").trim();
+    return english && out === cleanSentence(zh, word, c.q) ? `${out} \u2014 ${english}` : out;
+  }
+
+  // src/shared/dict.ts
+  init_browser_shim();
+  var CJK = /[㐀-䶿一-鿿豈-﫿]/;
+  var Dictionary = class _Dictionary {
+    entries = [];
+    index = /* @__PURE__ */ new Map();
+    static fromTsv(text) {
+      let d = new _Dictionary(), start = 0;
+      for (; start < text.length; ) {
+        let end = text.indexOf(`
+`, start);
+        if (end < 0 && (end = text.length), text.charCodeAt(start) !== 35 && end > start) {
+          let f = text.slice(start, end).split("	"), e = {
+            trad: f[0],
+            simp: f[1],
+            py: f[2],
+            tw: f[3],
+            defs: f[4].split("/"),
+            zipf: Number(f[5]) || 0,
+            tocfl: Number(f[6]) || 0
+          }, i = d.entries.push(e) - 1;
+          d.add(e.trad, i), e.simp !== e.trad && d.add(e.simp, i);
+        }
+        start = end + 1;
+      }
+      return d.computeRanks(), d.addTaiAliases(), d;
+    }
+    /** People write 台 for 臺 (台東, 台中): every 臺 word can be found that way too. */
+    addTaiAliases() {
+      this.entries.forEach((e, i) => {
+        if (!e.trad.includes("\u81FA")) return;
+        let alias = e.trad.replaceAll("\u81FA", "\u53F0");
+        alias !== e.simp && !this.index.has(alias) && this.add(alias, i);
+      });
+    }
+    /**
+     * A word that is not in the dictionary (a name you stamped from a selection). The
+     * reading comes from the words inside it when `py` is empty. False when it was already known.
+     */
+    addWord(e) {
+      if (this.index.has(e.trad)) return !1;
+      let i = this.entries.push(e) - 1;
+      return this.add(e.trad, i), e.simp && e.simp !== e.trad && this.add(e.simp, i), !0;
+    }
+    /** Reading of a word from its parts (names come without one): 野柳 -> ye3 liu3. */
+    fillReading(e) {
+      e.py = "-";
+      let sylls = this.split(e.trad).map((part) => {
+        let x = [...part].length === 1 ? this.charEntry(part) : this.get(part)[0];
+        return x ? x.tw || x.py : "";
+      });
+      e.py = sylls.map((x) => x || "?").join(" ");
+    }
+    /** Frequency rank per headword (1 = most common), from the Zipf scores. */
+    computeRanks() {
+      let best = /* @__PURE__ */ new Map();
+      for (let e of this.entries) e.zipf > (best.get(e.trad) ?? 0) && best.set(e.trad, e.zipf);
+      let order = [...best].sort((a, b) => b[1] - a[1]), rank = /* @__PURE__ */ new Map();
+      order.forEach(([w], i) => rank.set(w, i + 1));
+      for (let e of this.entries) e.rank = rank.get(e.trad) ?? 0;
+    }
+    /** The best entry for a single character read as `syllable` (numbered, e.g. "dian4"). */
+    charEntry(ch, syllable) {
+      let all = this.get(ch), list = all.filter((e) => e.trad === ch).length ? all.filter((e) => e.trad === ch) : all, v = /variant of ([^|\[\s]+)\|/.exec(list.map((e) => e.defs.join("/")).join("/"));
+      if (v && list.every((e) => /^\(classical\)|variant of/.test(e.defs[0] ?? "") || e.defs.length <= 2)) {
+        let main = this.get(v[1]).filter((e) => e.trad === v[1]);
+        main.length && (list = main);
+      }
+      if (!syllable) return list[0];
+      let read = (e) => (e.tw || e.py).toLowerCase(), want = syllable.toLowerCase(), bare = (x) => x.replace(/[1-5]$/, "");
+      return list.find((e) => read(e) === want) ?? list.find((e) => bare(read(e)) === bare(want)) ?? list[0];
+    }
+    add(key, i) {
+      let list = this.index.get(key);
+      list ? list.push(i) : this.index.set(key, [i]);
+    }
+    has(word) {
+      return this.index.has(word);
+    }
+    /** All entries for a headword (either script), best first. */
+    get(word) {
+      let ids = this.index.get(word);
+      if (!ids) return [];
+      for (let i of ids) this.entries[i].py || this.fillReading(this.entries[i]);
+      return rankEntries(
+        ids.map((i) => this.entries[i]),
+        word
+      );
+    }
+    /** Longest-prefix matches for text starting at the cursor, longest first. */
+    lookup(text, max = 4) {
+      if (!text || !CJK.test(text[0])) return [];
+      let out = [];
+      for (let len = Math.min(8, text.length); len >= 1 && out.length < max; len--) {
+        let s = text.slice(0, len), entries = this.get(s);
+        entries.length && out.push({ text: s, word: entries[0].trad, entries });
+      }
+      return out;
+    }
+    /** log10 probability-ish score for a dictionary word. */
+    score(word) {
+      let entries = this.get(word);
+      if (!entries.length) return word.length === 1 ? -14 : -1 / 0;
+      let zipf = Math.max(...entries.map((e) => e.zipf));
+      return zipf > 0 ? zipf / 10 - 9 : word.length === 1 ? -9 : -8.6;
+    }
+    /**
+     * Split a line into words: dynamic programming over dictionary words,
+     * maximizing the summed log-frequency (a unigram model, like jieba).
+     */
+    segment(line) {
+      let tokens = [], re = /[㐀-䶿一-鿿豈-﫿]+|[^㐀-䶿一-鿿豈-﫿]+/g;
+      for (let m of line.matchAll(re)) {
+        let run = m[0];
+        if (!CJK.test(run[0])) {
+          tokens.push({ text: run });
+          continue;
+        }
+        let n = run.length, best = new Array(n + 1).fill(-1 / 0), back = new Array(n + 1).fill(0);
+        best[0] = 0;
+        for (let i = 0; i < n; i++)
+          if (best[i] !== -1 / 0)
+            for (let len = 1; len <= 8 && i + len <= n; len++) {
+              let s = run.slice(i, i + len), sc = len === 1 || this.index.has(s) ? this.score(s) : -1 / 0;
+              if (sc === -1 / 0) continue;
+              let v = best[i] + sc;
+              v > best[i + len] && (best[i + len] = v, back[i + len] = i);
+            }
+        let parts = [];
+        for (let j = n; j > 0; j = back[j]) parts.push(run.slice(back[j], j));
+        parts.reverse();
+        for (let p of parts) tokens.push(this.token(p));
+      }
+      return tokens;
+    }
+    /**
+     * The best way to split a word into smaller dictionary words (never the word
+     * itself): 臺北市 -> 臺北 + 市, 維基百科 -> 維基 + 百科, 電腦 -> 電 + 腦.
+     */
+    split(word) {
+      let chars = [...word], n = chars.length;
+      if (n < 2) return [];
+      let best = new Array(n + 1).fill(-1 / 0), back = new Array(n + 1).fill(0);
+      best[0] = 0;
+      for (let i = 0; i < n; i++)
+        if (best[i] !== -1 / 0)
+          for (let len = 1; len < n && i + len <= n; len++) {
+            let s = chars.slice(i, i + len).join(""), sc = len === 1 || this.index.has(s) ? this.score(s) : -1 / 0;
+            sc !== -1 / 0 && best[i] + sc > best[i + len] && (best[i + len] = best[i] + sc, back[i + len] = i);
+          }
+      let parts = [];
+      for (let j = n; j > 0; j = back[j]) parts.push(chars.slice(back[j], j).join(""));
+      return parts.reverse();
+    }
+    token(text) {
+      let entries = this.get(text);
+      if (!entries.length) return { text, trad: text };
+      let e = entries[0];
+      return { text, word: e.trad, py: e.tw || e.py, trad: e.trad };
+    }
+  }, LOW_VALUE = /^(old )?variant of|^see |^surname |^used in |^\(old\)|^archaic /i, PREFERRED = {
+    \u8457: "zhe5",
+    \u7740: "zhe5",
+    \u4E86: "le5",
+    \u5F97: "de5",
+    \u5730: "de5",
+    \u91CD: "zhong4",
+    \u6559: "jiao1",
+    \u7A7A: "kong1",
+    \u9577: "chang2",
+    \u8981: "yao4"
+  };
+  function rankEntries(entries, query) {
+    let rank = (e) => {
+      let r = 0;
+      return e.trad !== query && (r += 1), PREFERRED[query] === (e.tw || e.py) && (r -= 1), /^[A-Z]/.test(e.py) && (r += 4), LOW_VALUE.test(e.defs[0] ?? "") && (r += 8), e.defs.every((d) => /^(old )?variant of|^see /i.test(d)) && (r += 8), r;
+    }, single = [...query].length === 1;
+    return entries.map((e, i) => ({ e, i, r: rank(e) })).sort((a, b) => a.r - b.r || b.e.zipf - a.e.zipf || (single ? b.e.defs.length - a.e.defs.length : 0) || a.i - b.i).map((x) => x.e);
+  }
+
+  // src/shared/pinyin.ts
+  init_browser_shim();
+  var MARKS = {
+    a: ["\u0101", "\xE1", "\u01CE", "\xE0", "a"],
+    e: ["\u0113", "\xE9", "\u011B", "\xE8", "e"],
+    i: ["\u012B", "\xED", "\u01D0", "\xEC", "i"],
+    o: ["\u014D", "\xF3", "\u01D2", "\xF2", "o"],
+    u: ["\u016B", "\xFA", "\u01D4", "\xF9", "u"],
+    \u00FC: ["\u01D6", "\u01D8", "\u01DA", "\u01DC", "\xFC"]
+  };
+  function syllableToMarked(syl) {
+    let m = /^([a-zA-Z:üÜ]+)([1-5])$/.exec(syl);
+    if (!m) return syl.toLowerCase();
+    let [, raw, toneStr] = m, tone = Number(toneStr) - 1, base = raw.toLowerCase().replace(/u:/g, "\xFC").replace(/v/g, "\xFC"), idx = base.search(/[ae]/);
+    if (idx < 0 && (idx = base.indexOf("ou")), idx < 0) {
+      for (let i = base.length - 1; i >= 0; i--)
+        if ("aeiou\xFC".includes(base[i])) {
+          idx = i;
+          break;
+        }
+    }
+    if (idx < 0) return base;
+    let marked = MARKS[base[idx]][tone];
+    return base.slice(0, idx) + marked + base.slice(idx + 1);
+  }
+  function numberedToMarked(py, joined = !0) {
+    let sylls = py.split(/\s+/).filter(Boolean).map(syllableToMarked);
+    return joined ? sylls.reduce((acc, s, i) => i > 0 && /^[aeoāáǎàēéěèōóǒò]/i.test(s) ? acc + "'" + s : acc + s, "") : sylls.join(" ");
+  }
+
+  // src/shared/types.ts
+  init_browser_shim();
+  var DEFAULT_SETTINGS = {
+    hoverMode: "hover",
+    disabledSites: [],
+    ytEnabled: !0,
+    pinyin: !0,
+    translation: "blur",
+    pauseOnHover: !0,
+    autoFreshOnClick: !0,
+    subFontSize: 30,
+    subStyle: "light",
+    shadowFactor: 1.5,
+    cardSize: "normal",
+    cardColors: !0,
+    sounds: !0,
+    pageColors: !1,
+    siteColors: {},
+    speechRate: 0.9,
+    voice: "google",
+    azureKey: "",
+    azureRegion: "eastasia",
+    azureVoice: "zh-TW-HsiaoChenNeural",
+    geminiKey: "",
+    geminiModel: "gemini-3.8-flash"
+  };
+  function normalizeSettings(raw) {
+    let r = { ...raw ?? {} };
+    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), r.hoverMode === "shift" && (r.hoverMode = "alt"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, { ...DEFAULT_SETTINGS, ...r };
+  }
+  function colorsOn(s, host) {
+    return s.siteColors[host] ?? s.pageColors;
+  }
+
+  // src/shared/gloss.ts
+  init_browser_shim();
+  var PLACEHOLDER = /^\(?(your own word|not in the dictionary)\)?$/i, isPlaceholder = (g) => !g || PLACEHOLDER.test(g.trim()), POINTER = /^(CL:|(old |unofficial )?variant of |used in |see |also pr\.|also written |surname )/i;
+  function tidy(sense) {
+    let s = sense.replace(/\s*\(?CL:[^)/]*\)?/g, "").replace(/\s*\(Taiwan pr\. \[[^\]]*\]\)/g, "").replace(/([^\s[|,;()"]+)\|[^\s[,;()"]+\[[^\]]*\]/g, "$1").replace(/([^\s[|,;()"]+)\[[a-zA-Z0-9: ]+\]/g, "$1"), outside = s.replace(/\([^()]*\)/g, "").trim();
+    return s = s.replace(/\(([^()]*)\)/g, (note, inner, at) => outside ? inner.length <= 24 || at > 0 && outside.length <= 12 ? note : "" : inner), s.replace(/\s+/g, " ").replace(/\s+([,;])/g, "$1").replace(/^[\s,;]+|[\s,;]+$/g, "");
+  }
+  function beforeComma(s) {
+    let depth = 0;
+    for (let i = 0; i < s.length - 1; i++)
+      if (s[i] === "(") depth++;
+      else if (s[i] === ")") depth = Math.max(0, depth - 1);
+      else if (s[i] === "," && s[i + 1] === " " && !depth) return s.slice(0, i);
+    return s;
+  }
+  function cutWords(s, max) {
+    let cut = s.lastIndexOf(" ", max - 1);
+    return `${s.slice(0, cut > max / 2 ? cut : max - 1).replace(/[\s,;]+$/, "")}\u2026`;
+  }
+  function shortGloss(e, max = 60) {
+    if (e.defs.every((d) => isPlaceholder(d))) return "";
+    let items = [], seen = /* @__PURE__ */ new Set();
+    for (let sense of e.defs)
+      if (!POINTER.test(sense))
+        for (let item of tidy(sense).split(/;\s*/)) {
+          item.length > 40 && (item = beforeComma(item));
+          let key = (item.replace(/\([^()]*\)/g, "").trim() || item).toLowerCase();
+          !key || seen.has(key) || (seen.add(key), items.push(item));
+        }
+    if (!items.length) return tidy(e.defs[0] ?? "");
+    let out = items[0].length > max ? cutWords(items[0], max) : items[0];
+    for (let item of items.slice(1)) {
+      if (out.length + 2 + item.length > max) break;
+      out += "; " + item;
+    }
+    return out;
+  }
+  function listPinyin(py, word, parts) {
+    let sylls = py.split(/\s+/).filter(Boolean), chars = [...word];
+    if (sylls.length < 4 || sylls.length !== chars.length || parts.length < 2 || /[A-Za-z0-9]/.test(word)) return numberedToMarked(py);
+    let out = [], i = 0;
+    for (let part of parts) {
+      let n = [...part].length;
+      out.push(numberedToMarked(sylls.slice(i, i + n).join(" "))), i += n;
+    }
+    return i === sylls.length ? out.join(" ") : numberedToMarked(py);
+  }
+  function freshen(d, w) {
+    let entries = d.get(w.w).filter((x) => !x.own);
+    w = withSurface(w, entries);
+    let marked = (e2) => numberedToMarked(e2.tw || e2.py), saved = (w.p ?? "").replace(/\s+/g, "").toLowerCase(), e = saved ? entries.find((x) => marked(x).toLowerCase() === saved) : entries[0];
+    if (e) {
+      let sylls2 = (e.tw || e.py).split(/\s+/).filter(Boolean), syl = sylls2.length === [...w.w].length && [...w.w].every((c) => CJK.test(c)) ? sylls2.map((x) => numberedToMarked(x)) : void 0;
+      return { ...w, p: listPinyin(e.tw || e.py, w.w, d.split(w.w)), g: shortGloss(e), ...syl ? { syl } : {} };
+    }
+    if (w.g && isPlaceholder(w.g) && (w = { ...w, g: "" }), w.p || entries.length || !CJK.test(w.w)) return w.g && w.g.length >= 118 ? { ...w, g: uncut(w.g) } : w;
+    let parts = d.split(w.w).map((t) => ({ t, e: d.get(t).filter((x) => !x.own)[0] })), sylls = parts.flatMap(({ e: pe }) => pe ? (pe.tw || pe.py).split(/\s+/).filter(Boolean) : []), whole = parts.length > 0 && parts.every(({ e: pe }) => pe) && sylls.length === [...w.w].length;
+    return {
+      ...w,
+      p: parts.map(({ t, e: pe }) => pe ? marked(pe) : t).join(" "),
+      ...whole ? { syl: sylls.map((x) => numberedToMarked(x)) } : {},
+      g: w.g || parts.map(({ t, e: pe }) => pe ? `${t} ${shortGloss(pe, 24).split("; ")[0]}` : "").filter(Boolean).join(" + ")
+    };
+  }
+  function withSurface(w, entries) {
+    let simp = entries.find((e) => e.simp && e.simp !== w.w)?.simp;
+    return !simp || w.ctx.every((c) => c.q) ? w : { ...w, ctx: w.ctx.map((c) => c.q ? c : { ...c, q: simp }) };
+  }
+  function uncut(g) {
+    let i = g.lastIndexOf("; ");
+    return i > 0 ? g.slice(0, i) : g;
+  }
+
+  // src/background/store.ts
+  init_browser_shim();
+
+  // src/shared/time.ts
+  init_browser_shim();
+  function dayKeyLocal(t) {
+    let d = new Date(t);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  // src/background/store.ts
+  var Store = class {
+    words = /* @__PURE__ */ new Map();
+    pendingLog = [];
+    logTimer;
+    recentLooks = /* @__PURE__ */ new Map();
+    async load() {
+      let all = await import_browser_polyfill_min.default.storage.local.get(null), migrate = {};
+      for (let [k, v] of Object.entries(all)) {
+        if (!k.startsWith("w:")) continue;
+        let rec = v;
+        (rec.s === "difficult" || rec.hist.some((h) => h.s === "difficult")) && (rec.s === "difficult" && (rec.s = "learning"), rec.hist = rec.hist.map((h) => h.s === "difficult" ? { ...h, s: "learning" } : h), migrate[k] = rec), this.words.set(k.slice(2), rec);
+      }
+      Object.keys(migrate).length && await import_browser_polyfill_min.default.storage.local.set(migrate);
+    }
+    statuses() {
+      let out = {};
+      for (let [w, r] of this.words) out[w] = r.s;
+      return out;
+    }
+    async setStatus(word, status, entry, ctx) {
+      let now = Date.now(), prev = this.words.get(word);
+      if (this.log({ at: now, k: "status", w: word, s: status, from: prev?.s ?? null }), !status) {
+        this.words.delete(word), await import_browser_polyfill_min.default.storage.local.remove("w:" + word);
+        return;
+      }
+      let rec = prev ?? { w: word, s: status, added: now, updated: now, hist: [], looks: 0, ctx: [] };
+      prev?.s !== status && rec.hist.push({ t: now, s: status }), rec.s = status, rec.updated = now, entry && (rec.p = numberedToMarked(entry.tw || entry.py), rec.g = shortGloss(entry)), ctx && addContext(rec, ctx), this.words.set(word, rec), await import_browser_polyfill_min.default.storage.local.set({ ["w:" + word]: rec });
+    }
+    /** A deliberate lookup (click, or a popup that stayed open). */
+    async looked(word, src, url, ctx) {
+      let now = Date.now(), last = this.recentLooks.get(word) ?? 0;
+      if (now - last < 10 * 6e4) return;
+      this.recentLooks.set(word, now), this.log({ at: now, k: "look", w: word, src, url });
+      let rec = this.words.get(word);
+      rec && (rec.looks++, ctx && addContext(rec, ctx), await import_browser_polyfill_min.default.storage.local.set({ ["w:" + word]: rec }));
+    }
+    /** Forget a sentence the word was met in (the × in the card). */
+    async removeContext(word, text) {
+      let rec = this.words.get(word);
+      rec && (rec.ctx = rec.ctx.filter((c) => c.text !== text), await import_browser_polyfill_min.default.storage.local.set({ ["w:" + word]: rec }));
+    }
+    log(ev) {
+      this.pendingLog.push(ev), clearTimeout(this.logTimer), this.logTimer = setTimeout(() => this.flushLog(), 3e3);
+    }
+    async flushLog() {
+      if (!this.pendingLog.length) return;
+      let byDay = /* @__PURE__ */ new Map();
+      for (let ev of this.pendingLog) {
+        let k = "log:" + dayKeyLocal(ev.at);
+        byDay.has(k) || byDay.set(k, []), byDay.get(k).push(ev);
+      }
+      this.pendingLog = [];
+      let existing = await import_browser_polyfill_min.default.storage.local.get([...byDay.keys()]), update = {};
+      for (let [k, evs] of byDay) update[k] = [...existing[k] ?? [], ...evs];
+      await import_browser_polyfill_min.default.storage.local.set(update);
+    }
+    async allLogs() {
+      await this.flushLog();
+      let all = await import_browser_polyfill_min.default.storage.local.get(null);
+      return Object.keys(all).filter((k) => k.startsWith("log:")).sort().flatMap((k) => all[k]);
+    }
+    /** Bulk import (known-words file, backups). Existing records keep their history. */
+    async importWords(recs, mode = "merge") {
+      let update = {};
+      for (let r of recs) {
+        let prev = this.words.get(r.w);
+        prev && mode === "merge" && (prev.s === r.s || r.updated <= prev.updated) || (this.words.set(r.w, r), update["w:" + r.w] = r);
+      }
+      return Object.keys(update).length && await import_browser_polyfill_min.default.storage.local.set(update), Object.keys(update).length;
+    }
+  };
+  function addContext(rec, ctx) {
+    let text = metSentence(ctx, rec.w, 300);
+    !text || rec.ctx.some((c) => c.text === text) || (rec.ctx.unshift({ ...ctx, text }), rec.ctx = rec.ctx.slice(0, 5));
+  }
+
+  // src/background/gemini.ts
+  init_browser_shim();
+  var API = "https://generativelanguage.googleapis.com/v1beta";
+  var mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+  function subtitlePrompt(clip) {
+    return `You are subtitling a YouTube video for someone learning Taiwan Mandarin.
+${clip ? `Only handle the part of the video from ${mmss(clip.start)} to ${mmss(clip.end)}.
+` : ""}Listen to everything that is said and write subtitle lines:
+- Split at natural pauses: one phrase per line, about 1 to 5 seconds, at most about 18 Chinese characters.
+- "start" and "end": when the line is spoken, as MM:SS.s (for example 01:23.4), counted from the start of the full video. Follow the audio closely.
+- "zh": the line in Traditional Chinese characters as used in Taiwan.
+  - If the speaker speaks Mandarin, write exactly what they say, verbatim, including particles (\u554A, \u6B38, \u5566, \u5594, \u55EF).
+  - If they speak another language (English or anything else), translate the line into the natural spoken Mandarin a Taiwanese subtitler would write: Taiwan vocabulary and phrasing (\u5F71\u7247, \u8EDF\u9AD4, \u7DB2\u8DEF, \u8CC7\u8A0A, \u54C1\u8CEA, \u8A08\u7A0B\u8ECA, \u6377\u904B, \u6A5F\u8ECA, \u4FBF\u7576, \u8D85\u5546, \u597D\u5594, \u771F\u7684\u5047\u7684), never Mainland terms (\u8996\u983B, \u8EDF\u4EF6, \u8CEA\u91CF, \u4FE1\u606F, \u51FA\u79DF\u8ECA, \u6253\u8ECA, \u725B\u903C), no \u5152\u5316.
+- "en": natural American English: the translation of the Mandarin, or the original words if they were English.
+- "spoken": the language actually spoken in this part (for example "zh", "en", "nan").
+Do not summarize, skip or merge lines, and add no commentary. Skip music without words. If nothing is said, return an empty list.`;
+  }
+  var LINES_SCHEMA = {
+    type: "OBJECT",
+    properties: {
+      spoken: { type: "STRING" },
+      lines: {
+        type: "ARRAY",
+        items: {
+          type: "OBJECT",
+          properties: {
+            start: { type: "STRING", description: "MM:SS.s" },
+            end: { type: "STRING", description: "MM:SS.s" },
+            zh: { type: "STRING" },
+            en: { type: "STRING" }
+          },
+          required: ["start", "end", "zh", "en"]
+        }
+      }
+    },
+    required: ["lines"]
+  }, GeminiError = class extends Error {
+    status;
+    constructor(message, status) {
+      super(message), this.status = status;
+    }
+  };
+  async function errorFor(res) {
+    let raw = await res.text(), msg = raw.slice(0, 200);
+    try {
+      let j = JSON.parse(raw);
+      msg = (Array.isArray(j) ? j[0] : j)?.error?.message ?? msg;
+    } catch {
+    }
+    let s = res.status;
+    return s === 400 && /API key/i.test(msg) ? new GeminiError("Gemini rejected the API key. Copy it again from aistudio.google.com/apikey.", 401) : s === 403 ? new GeminiError(`Gemini refused the request (403): ${msg}`, s) : s === 404 ? new GeminiError("This Gemini model is not available for your key. Pick another one in Settings.", s) : s === 429 ? new GeminiError("Gemini rate limit or free quota reached (429). Wait a minute, or pick another model in Settings.", s) : s === 503 || s === 500 || s === 504 ? new GeminiError(`Gemini's servers are busy right now (${s}). This is on Google's side and passes; try again in a few minutes.`, s) : new GeminiError(`Gemini (HTTP ${s}): ${msg}`, s);
+  }
+  var sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  async function generate(key, model, parts, generationConfig, onText) {
+    let id = encodeURIComponent(model.replace(/^models\//, "")), res;
+    try {
+      res = await fetch(`${API}/models/${id}:${onText ? "streamGenerateContent?alt=sse" : "generateContent"}`, {
+        method: "POST",
+        headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig })
+      });
+    } catch {
+      throw new GeminiError("Could not reach Gemini. Check your connection.", 0);
+    }
+    if (!res.ok) throw await errorFor(res);
+    let text = "", finish = "", take = (data) => {
+      if (data.promptFeedback?.blockReason) throw new GeminiError(`Gemini blocked the request (${data.promptFeedback.blockReason}).`, 400);
+      let cand = data.candidates?.[0];
+      text += (cand?.content?.parts ?? []).filter((p) => !p.thought).map((p) => p.text ?? "").join(""), finish = cand?.finishReason ?? finish;
+    };
+    if (!onText || !res.body || !/event-stream/i.test(res.headers.get("content-type") ?? "")) {
+      let data = await res.json();
+      for (let d of Array.isArray(data) ? data : [data]) take(d);
+      return onText?.(text), { text, finish };
+    }
+    let reader = res.body.pipeThrough(new TextDecoderStream()).getReader(), buf = "";
+    try {
+      for (; ; ) {
+        let { value, done } = await reader.read();
+        if (done) break;
+        buf += value;
+        let cut;
+        for (; (cut = buf.indexOf(`
+
+`)) >= 0; ) {
+          let block = buf.slice(0, cut);
+          buf = buf.slice(cut + 2);
+          for (let line of block.split(`
+`)) line.startsWith("data:") && take(JSON.parse(line.slice(5)));
+        }
+        onText(text);
+      }
+    } catch (e) {
+      throw e instanceof GeminiError ? e : new GeminiError("The connection to Gemini dropped.", 0);
+    }
+    return { text, finish };
+  }
+  async function fallbackModels(key, chosen) {
+    let tag = key.slice(-6), { gemModels } = await import_browser_polyfill_min.default.storage.local.get("gemModels"), ids = gemModels && gemModels.tag === tag && Date.now() - gemModels.at < 864e5 ? gemModels.ids : void 0;
+    if (!ids)
+      try {
+        ids = (await geminiModels(key)).map((m) => m.id), await import_browser_polyfill_min.default.storage.local.set({ gemModels: { at: Date.now(), tag, ids } });
+      } catch {
+        ids = [];
+      }
+    let rank = (id) => (/preview|exp/.test(id) ? 2 : 0) + (/lite/.test(id) ? 1 : 0) + (/flash/.test(id) ? 0 : 4);
+    return ids.filter((id) => id !== chosen && /flash/.test(id)).sort((a, b) => rank(a) - rank(b)).slice(0, 2);
+  }
+  async function generateSturdy(key, model, parts, config, onText) {
+    let models = [model, ...await fallbackModels(key, model)], last;
+    for (let m of models) {
+      let cfg = config, retried = !1;
+      for (let attempt = 0; attempt < 3; attempt++)
+        try {
+          return { ...await generate(key, m, parts, cfg, onText), model: m };
+        } catch (e) {
+          last = e;
+          let st = e instanceof GeminiError ? e.status : 0;
+          if (st === 401 || st === 403) throw e;
+          if (st === 400 && cfg !== BARE) {
+            cfg = BARE;
+            continue;
+          }
+          if ((st === 500 || st === 503 || st === 504 || st === 0) && !retried) {
+            retried = !0, await sleep(2500);
+            continue;
+          }
+          break;
+        }
+    }
+    throw last;
+  }
+  var BARE = { responseMimeType: "application/json" };
+  function seconds(v) {
+    if (typeof v == "number") return v;
+    let parts = String(v ?? "").trim().split(":").map(Number);
+    return !parts.length || parts.some((n) => !Number.isFinite(n)) ? NaN : parts.reduce((acc, n) => acc * 60 + n, 0);
+  }
+  function parseReply(text) {
+    let body = text.trim().replace(/^```(?:json)?\s*|\s*```$/g, ""), raw = [], spoken = "";
+    try {
+      let json = JSON.parse(body);
+      Array.isArray(json) ? raw = json : (raw = json.lines ?? [], spoken = String(json.spoken ?? ""));
+    } catch {
+      for (let m of body.matchAll(/\{[^{}]*\}/g))
+        try {
+          raw.push(JSON.parse(m[0]));
+        } catch {
+        }
+      spoken = /"spoken"\s*:\s*"([^"]*)"/.exec(body)?.[1] ?? "";
+    }
+    return { lines: raw.filter((l) => l && typeof l.zh == "string" && l.zh.trim()).map((l) => {
+      let start = seconds(l.start), end = seconds(l.end);
+      return { start, end: Number.isFinite(end) && end > start ? end : start + 2, zh: String(l.zh).trim(), en: String(l.en ?? "").trim() };
+    }).filter((l) => Number.isFinite(l.start)).sort((a, b) => a.start - b.start), spoken };
+  }
+  function placeChunk(lines, clip) {
+    if (!lines.length) return lines;
+    let median = lines[Math.floor(lines.length / 2)].start, shift = clip.start > 0 && median < clip.start - 5 ? clip.start : 0;
+    return lines.map((l) => ({ ...l, start: l.start + shift, end: l.end + shift })).filter((l) => l.start >= clip.start - 3 && l.start <= clip.end + 3);
+  }
+  async function geminiTranscribe(videoId, key, model, duration, progress) {
+    let cacheKey = "gem:" + videoId, cached = (await import_browser_polyfill_min.default.storage.local.get(cacheKey))[cacheKey];
+    if (cached && (Array.isArray(cached) ? cached.length : cached.lines.length))
+      return Array.isArray(cached) ? { lines: cached, translated: !1, model } : { ...cached, model };
+    let n = Number.isFinite(duration) && duration > 300 * 1.25 ? Math.ceil(duration / 300) : 1, clips = Array.from({ length: n }, (_, i) => ({ start: i * 300, end: Math.min(duration, (i + 1) * 300) })), partKey = (i) => `gemc:${videoId}:${i}/${n}`, stored = await import_browser_polyfill_min.default.storage.local.get(clips.map((_, i) => partKey(i))), parts = clips.map((_, i) => stored[partKey(i)]), errors = [], used = model, reached = clips.map((_, i) => parts[i] ? 1 : 0), pct = () => Number.isFinite(duration) && duration > 0 ? clips.reduce((sum, c, i) => sum + reached[i] * (c.end - c.start), 0) / duration : void 0, report = () => progress({
+      done: parts.filter(Boolean).length,
+      total: n,
+      lines: parts.flatMap((p) => p?.lines ?? []).sort((a, b) => a.start - b.start),
+      model: used,
+      pct: pct()
+    }), lastTick = 0, streamed = (i) => (text) => {
+      let times = [...text.matchAll(/"start"\s*:\s*"?([\d:.]+)/g)];
+      if (!times.length) return;
+      let clip = clips[i], t = seconds(times[times.length - 1][1]);
+      n > 1 && t < clip.start - 5 && (t += clip.start), reached[i] = Math.max(reached[i], Math.min(0.99, (t - clip.start) / Math.max(1, clip.end - clip.start))), Date.now() - lastTick > 700 && (lastTick = Date.now(), progress({ done: parts.filter(Boolean).length, total: n, lines: [], model: used, pct: pct() }));
+    }, config = { responseMimeType: "application/json", responseSchema: LINES_SCHEMA, maxOutputTokens: 65536, temperature: 0.2, mediaResolution: "MEDIA_RESOLUTION_LOW" }, work = async (i) => {
+      let clip = clips[i], video = { file_data: { file_uri: `https://www.youtube.com/watch?v=${videoId}` } };
+      n > 1 && (video.video_metadata = { start_offset: `${clip.start}s`, end_offset: `${Math.ceil(clip.end)}s` });
+      try {
+        let out = await generateSturdy(key, used, [video, { text: subtitlePrompt(n > 1 ? clip : void 0) }], config, streamed(i));
+        used = out.model;
+        let reply = parseReply(out.text);
+        if (!reply.lines.length && !out.text.trim()) throw new Error(`Gemini sent an empty reply${out.finish ? ` (${out.finish})` : ""}.`);
+        let part = { lines: n > 1 ? placeChunk(reply.lines, clip) : reply.lines, spoken: reply.spoken };
+        parts[i] = part, reached[i] = 1, await import_browser_polyfill_min.default.storage.local.set({ [partKey(i)]: part }), report();
+      } catch (e) {
+        errors.push(String(e instanceof Error ? e.message : e));
+      }
+    }, queue = clips.map((_, i) => i).filter((i) => !parts[i]);
+    report(), await Promise.all(
+      [0, 1].map(async () => {
+        for (let i = queue.shift(); i !== void 0; i = queue.shift()) await work(i);
+      })
+    );
+    let lines = parts.flatMap((p) => p?.lines ?? []).sort((a, b) => a.start - b.start), spoken = parts.map((p) => p?.spoken ?? "").filter(Boolean), translated = spoken.length > 0 && spoken.every((s) => !/^(zh|cmn|mandarin|chinese)/i.test(s)), failed = parts.filter((p) => !p).length;
+    if (!lines.length)
+      throw errors.length ? new Error(errors[0]) : new Error("Gemini heard no speech in this video.");
+    return failed ? { lines, translated, model: used, error: `${failed} of ${n} parts failed: ${errors[0]} Press the button again to retry just those.` } : (await import_browser_polyfill_min.default.storage.local.set({ [cacheKey]: { lines, translated } }), await import_browser_polyfill_min.default.storage.local.remove(clips.map((_, i) => partKey(i))), { lines, translated, model: used });
+  }
+  async function geminiModels(key) {
+    let out = [], page = "";
+    do {
+      let res = await fetch(`${API}/models?pageSize=200${page ? `&pageToken=${page}` : ""}`, { headers: { "x-goog-api-key": key.trim() } });
+      if (!res.ok) throw await errorFor(res);
+      let data = await res.json();
+      for (let m of data.models ?? []) {
+        let id = m.name.replace(/^models\//, "");
+        m.supportedGenerationMethods?.includes("generateContent") && (!/^gemini-/.test(id) || /embedding|image|tts|audio|live|robotics|computer-use|aqa/.test(id) || out.push({ id, name: m.displayName || id }));
+      }
+      page = data.nextPageToken ?? "";
+    } while (page);
+    let ver = (id) => Number(/gemini-(\d+(?:\.\d+)?)/.exec(id)?.[1] ?? 0), tier = (id) => /flash-lite/.test(id) ? 1 : /flash/.test(id) ? 0 : 2, preview = (id) => /preview|exp/.test(id) ? 1 : 0;
+    return out.sort((a, b) => ver(b.id) - ver(a.id) || preview(a.id) - preview(b.id) || tier(a.id) - tier(b.id) || a.id.localeCompare(b.id));
+  }
+  async function geminiExamples(word, gloss, key, model, want = 2) {
+    let cacheKey = "gex:" + word, got = await import_browser_polyfill_min.default.storage.local.get([cacheKey, "exh:" + word]), cached = got[cacheKey] ?? [], hidden = new Set(got["exh:" + word] ?? []), prompt = `Write ${want === 1 ? "one natural example sentence" : "two natural example sentences"} that a Taiwanese person would really say or write, using the word \u300C${word}\u300D (${gloss}).
+- Show the word's most common meaning, in a concrete, everyday situation (not textbook, not a definition).
+- Besides \u300C${word}\u300D, use only common, everyday words, so a learner can understand everything else.
+- Traditional Chinese characters and Taiwan vocabulary (not Mainland forms, no \u5152\u5316).
+- ${want === 1 ? "About 10 to 22 characters." : "The first 12 to 25 characters; the second short and simple, under 12."}
+Give each with a natural American English translation.`, schema = {
+      type: "OBJECT",
+      properties: { examples: { type: "ARRAY", items: { type: "OBJECT", properties: { zh: { type: "STRING" }, en: { type: "STRING" } }, required: ["zh", "en"] } } },
+      required: ["examples"]
+    }, { text } = await generateSturdy(key, model, [{ text: prompt }], { responseMimeType: "application/json", responseSchema: schema, temperature: 0.7 }), fresh2 = (JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, "")).examples ?? []).map((x) => [(x.zh ?? "").trim(), (x.en ?? "").trim()]).filter(([zh]) => zh.includes(word) && !hidden.has(zh) && !cached.some(([c]) => c === zh)).slice(0, want);
+    if (!fresh2.length) throw new Error("Gemini wrote no usable sentences. Try again.");
+    let list = [...cached, ...fresh2];
+    return await import_browser_polyfill_min.default.storage.local.set({ [cacheKey]: list }), list;
+  }
+
+  // src/background/speech.ts
+  init_browser_shim();
+  var AZURE_REGIONS = [
+    "eastasia",
+    "southeastasia",
+    "japaneast",
+    "koreacentral",
+    "westeurope",
+    "northeurope",
+    "uksouth",
+    "francecentral",
+    "germanywestcentral",
+    "swedencentral",
+    "switzerlandnorth",
+    "norwayeast",
+    "italynorth",
+    "eastus",
+    "eastus2",
+    "westus",
+    "westus2",
+    "westus3",
+    "centralus",
+    "northcentralus",
+    "southcentralus",
+    "westcentralus",
+    "canadacentral",
+    "brazilsouth",
+    "australiaeast",
+    "centralindia",
+    "japanwest",
+    "southafricanorth",
+    "uaenorth",
+    "qatarcentral"
+  ], xml = (s) => s.replace(/[<&>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+  async function ttsAudio(engine, text, st) {
+    if (engine === "google") {
+      let url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=zh-TW&ttsspeed=${st.speechRate < 0.75 ? "0.24" : "1"}&q=${encodeURIComponent(text.slice(0, 200))}`, res2 = await fetch(url);
+      if (!res2.ok) throw new Error(`Google voice: HTTP ${res2.status}`);
+      return res2.arrayBuffer();
+    }
+    if (!st.azureKey) throw new Error("No Azure key");
+    let pct = Math.round((st.speechRate - 1) * 100), ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="zh-TW"><voice name="${xml(st.azureVoice)}"><prosody rate="${pct}%">${xml(text)}</prosody></voice></speak>`, res = await fetch(`https://${st.azureRegion}.tts.speech.microsoft.com/cognitiveservices/v1`, {
+      method: "POST",
+      headers: {
+        "Ocp-Apim-Subscription-Key": st.azureKey,
+        "Content-Type": "application/ssml+xml",
+        "X-Microsoft-OutputFormat": "audio-24khz-96kbitrate-mono-mp3"
+      },
+      body: ssml
+    });
+    if (!res.ok) throw new Error(azureError(res.status));
+    return res.arrayBuffer();
+  }
+  function azureError(status) {
+    return status === 401 ? 'Azure rejected the key for this region (401). Press "Check key" to find the right region.' : status === 429 ? "Azure: too many requests or the free monthly quota is used up (429)." : status === 400 ? "Azure: bad request (400). Try another voice." : `Azure: HTTP ${status}`;
+  }
+  async function azureKeyWorks(key, region) {
+    try {
+      return (await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/voices/list`, {
+        headers: { "Ocp-Apim-Subscription-Key": key }
+      })).status;
+    } catch {
+      return 0;
+    }
+  }
+  async function checkAzure(key, region) {
+    if (key = key.trim(), !key) return { ok: !1, error: "Paste your Azure Speech key first." };
+    let first = await azureKeyWorks(key, region);
+    if (first === 200) return { ok: !0, region };
+    if (first === 0) return { ok: !1, error: "Could not reach Azure. Check your connection." };
+    if (first !== 401 && first !== 403) return { ok: !1, error: azureError(first) };
+    let others = AZURE_REGIONS.filter((r) => r !== region), hit = (await Promise.all(others.map(async (r) => [r, await azureKeyWorks(key, r)]))).find(([, st]) => st === 200);
+    return hit ? { ok: !0, region: hit[0] } : { ok: !1, error: 'Azure did not accept this key in any region. Copy "KEY 1" from your Speech resource in the Azure portal.' };
+  }
+
+  // src/background/translate.ts
+  init_browser_shim();
+  var ENDPOINT = "https://translate.googleapis.com/translate_a/single?client=gtx&dt=t";
+  async function translateLines(lines, sl, tl) {
+    let out = new Array(lines.length).fill(""), batch = [], size = 0, flush = async () => {
+      if (!batch.length) return;
+      let ids = batch;
+      batch = [], size = 0;
+      let q = ids.map((i) => lines[i].replace(/\n/g, " ")).join(`
+`), res = await fetch(`${ENDPOINT}&sl=${encodeURIComponent(sl)}&tl=${encodeURIComponent(tl)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+        body: "q=" + encodeURIComponent(q)
+      });
+      if (!res.ok) throw new Error(`translate HTTP ${res.status}`);
+      let parts = (await res.json())[0].map((seg) => seg[0]).join("").split(`
+`);
+      parts.length === ids.length && ids.forEach((i, k) => out[i] = parts[k].trim());
+    };
+    for (let i = 0; i < lines.length; i++)
+      size + lines[i].length > 3e3 && await flush().catch(() => {
+      }), batch.push(i), size += lines[i].length + 1;
+    if (await flush().catch(() => {
+    }), out.every((x) => !x)) throw new Error("translate: no batch succeeded");
+    return out;
+  }
+
+  // src/background/examples.ts
+  init_browser_shim();
+  var ExampleBank = class {
+    /** Sentences written for each word. */
+    own = /* @__PURE__ */ new Map();
+    pool = [];
+    /** word -> pool sentences that use it (built in the background after start-up). */
+    index = /* @__PURE__ */ new Map();
+    load(tsv) {
+      let seen = /* @__PURE__ */ new Set();
+      for (let line of tsv.split(`
+`)) {
+        let [w, zh, en] = line.split("	");
+        if (!w || !zh) continue;
+        let list = this.own.get(w);
+        list ? list.push([zh, en ?? ""]) : this.own.set(w, [[zh, en ?? ""]]), seen.has(zh) || (seen.add(zh), this.pool.push([zh, en ?? ""]));
+      }
+    }
+    /** Split every sentence into words, a few hundred at a time, without hogging the browser. */
+    buildIndex(d, done) {
+      let i = 0, step = () => {
+        let end = Math.min(this.pool.length, i + 400);
+        for (; i < end; i++) {
+          let words = new Set(d.segment(this.pool[i][0]).filter((t) => t.word && CJK.test(t.text)).map((t) => t.word));
+          for (let w of words) {
+            let ids = this.index.get(w);
+            ids ? ids.push(i) : this.index.set(w, [i]);
+          }
+        }
+        i < this.pool.length ? setTimeout(step, 0) : done?.();
+      };
+      step();
+    }
+    /**
+     * The best two sentences for `word`. `extra` are sentences Gemini wrote for it; `hidden`
+     * the ones you deleted; `saved` the ones you saved (always shown first).
+     */
+    pick(word, d, statusOf, extra = [], hidden = /* @__PURE__ */ new Set(), saved = /* @__PURE__ */ new Set(), n = 2) {
+      let cands = /* @__PURE__ */ new Map(), add = (zh, en, base) => {
+        !hidden.has(zh) && !cands.has(zh) && cands.set(zh, { zh, en, base });
+      };
+      for (let [zh, en] of this.own.get(word) ?? []) add(zh, en, 2);
+      for (let [zh, en] of extra) add(zh, en, 2);
+      for (let id of (this.index.get(word) ?? []).slice(0, 80)) add(this.pool[id][0], this.pool[id][1], 0);
+      let scored = [...cands.values()].map((c) => {
+        let toks = d.segment(c.zh);
+        return { ...c, toks, score: (saved.has(c.zh) ? 100 : c.base) + readability(toks, word, d, statusOf) };
+      });
+      scored.sort((a, b) => b.score - a.score);
+      let out = [];
+      for (let c of scored) out.length < n && !out.some((o) => similar(o.zh, c.zh)) && out.push(c);
+      for (let c of scored) out.length < n && !out.includes(c) && out.push(c);
+      return out.map(({ zh, en, toks }) => ({ zh, en, toks }));
+    }
+  };
+  function similar(a, b) {
+    let A = new Set(a.replace(/[，。！？、\s]/g, "")), B = new Set(b.replace(/[，。！？、\s]/g, "")), common = 0;
+    for (let c of A) B.has(c) && common++;
+    return common / Math.min(A.size, B.size) > 0.6;
+  }
+  function readability(toks, word, d, statusOf) {
+    let unknown = 0, counted = /* @__PURE__ */ new Set();
+    for (let t of toks) {
+      if (!t.word || !CJK.test(t.text) || t.word === word || counted.has(t.word)) continue;
+      counted.add(t.word);
+      let st = statusOf(t.word);
+      if (st !== "known")
+        if (st === "learning") unknown += 0.4;
+        else {
+          let zipf = Math.max(0, ...d.get(t.word).map((e) => e.zipf));
+          unknown += zipf >= 60 ? 0.2 : zipf >= 52 ? 0.6 : 1;
+        }
+    }
+    let len = toks.reduce((n, t) => n + t.text.length, 0), lenCost = len > 26 ? (len - 26) * 0.08 : len < 6 ? 0.6 : 0;
+    return -0.6 * unknown - lenCost;
+  }
+
+  // src/background/youtube.ts
+  init_browser_shim();
+  var cache = /* @__PURE__ */ new Map();
+  function cachedCaptions(tabId) {
+    return cache.get(tabId) ?? [];
+  }
+
+  // src/platform/compat.ts
+  init_browser_shim();
+  function createMenu(props) {
+    import_browser_polyfill_min.default.contextMenus.removeAll().then(() => import_browser_polyfill_min.default.contextMenus.create(props, () => void import_browser_polyfill_min.default.runtime.lastError));
+  }
+  function onMenuClicked(fn) {
+    import_browser_polyfill_min.default.contextMenus.onClicked.addListener(fn);
+  }
+  async function injectContent(tabId, frameId) {
+    await chromeScripting().executeScript({ target: { tabId, frameIds: [frameId] }, files: ["content.js"] });
+  }
+  async function insertCSS(tabId, frameId, css) {
+    await chromeScripting().insertCSS({ target: { tabId, frameIds: [frameId] }, css });
+  }
+  function keepAlive(job) {
+    let timer = setInterval(() => void import_browser_polyfill_min.default.runtime.getPlatformInfo().catch(() => {
+    }), 2e4);
+    return job.finally(() => clearInterval(timer));
+  }
+  function audioOut(buf) {
+    let bytes = new Uint8Array(buf), s = "";
+    for (let i = 0; i < bytes.length; i += 32768) s += String.fromCharCode(...bytes.subarray(i, i + 32768));
+    return btoa(s);
+  }
+  var chromeScripting = () => import_browser_polyfill_min.default.scripting;
+
+  // src/platform/yt-capture.ts
+  init_browser_shim();
+
+  // src/platform/yt-bridge.ts
+  init_browser_shim();
+  var isTimedText = (url) => url.includes("/api/timedtext");
+
+  // src/platform/yt-capture.ts
+  var PREFIX = "ytc:", cache2 = /* @__PURE__ */ new Map(), fresh = (list) => list.filter((x) => Date.now() - x.at < 30 * 6e4), restoring, restored = () => restoring ??= import_browser_polyfill_min.default.storage.session.get(null).then((all) => {
+    for (let [k, v] of Object.entries(all)) k.startsWith(PREFIX) && cache2.set(Number(k.slice(PREFIX.length)), v);
+  }).catch(() => {
+  });
+  function startHookCapture() {
+    import_browser_polyfill_min.default.runtime.onMessage.addListener((msg, sender) => {
+      let m = msg;
+      if (m?.type !== "ytHook") return;
+      let tabId = sender.tab?.id;
+      if (tabId == null || typeof m.url != "string" || typeof m.body != "string" || !isTimedText(m.url)) return;
+      let item = { url: m.url, body: m.body, at: Date.now() };
+      return restored().then(() => {
+        let list = [...fresh(cache2.get(tabId) ?? []), item].slice(-12);
+        return cache2.set(tabId, list), import_browser_polyfill_min.default.storage.session.set({ [PREFIX + tabId]: list }).catch(() => {
+        });
+      }), import_browser_polyfill_min.default.tabs.sendMessage(tabId, { type: "ytCaptions", url: m.url, body: m.body }, { frameId: sender.frameId ?? 0 }).catch(() => {
+      }), Promise.resolve(!0);
+    }), import_browser_polyfill_min.default.tabs.onRemoved.addListener((tabId) => {
+      cache2.delete(tabId), import_browser_polyfill_min.default.storage.session.remove(PREFIX + tabId).catch(() => {
+      });
+    });
+  }
+  async function cachedHookCaptions(tabId) {
+    return await restored(), fresh(cache2.get(tabId) ?? []);
+  }
+
+  // src/background/index.ts
+  var dict, dictReady = loadDictionary(), store = new Store(), storeReady = store.load();
+  startHookCapture();
+  var examples = new ExampleBank(), examplesReady = loadExamples();
+  async function loadExamples() {
+    try {
+      let res = await fetch(import_browser_polyfill_min.default.runtime.getURL("data/examples.tsv.gz"));
+      if (!res.ok) return;
+      examples.load(await new Response(res.body.pipeThrough(new DecompressionStream("gzip"))).text()), dictReady.then((d) => examples.buildIndex(d));
+    } catch {
+    }
+  }
+  async function gunzipText(path) {
+    let res = await fetch(import_browser_polyfill_min.default.runtime.getURL(path));
+    if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
+    return new Response(res.body.pipeThrough(new DecompressionStream("gzip"))).text();
+  }
+  async function loadDictionary() {
+    let t0 = performance.now(), [text, names] = await Promise.all([gunzipText("data/dict.tsv.gz"), gunzipText("data/names.tsv.gz").catch(() => "")]);
+    return dict = Dictionary.fromTsv(text + `
+` + names), console.log(`[chinese-brain] dictionary: ${dict.entries.length} entries in ${Math.round(performance.now() - t0)} ms`), dict;
+  }
+  var ownWordsReady = Promise.all([dictReady, storeReady]).then(([d]) => {
+    for (let r of store.words.values()) addOwnWord(d, r.w, r.g);
+  }), OWN_WORD = /^[㐀-䶿一-鿿豈-﫿]{2,8}$/;
+  function addOwnWord(d, word, gloss) {
+    OWN_WORD.test(word) && d.addWord({ trad: word, simp: word, py: "", tw: "", defs: [isPlaceholder(gloss) ? "(your own word)" : gloss], zipf: 0, tocfl: 0, rank: 0, own: !0 });
+  }
+  async function lookupPhrase(d, raw) {
+    let text = raw.replace(/\s+/g, " ").trim().slice(0, 300);
+    if (!CJK.test(text)) return [];
+    if (d.has(text)) {
+      let all = d.lookup(text), exact = all.find((m) => m.text === text);
+      return exact ? [exact, ...all.filter((m) => m !== exact)] : all;
+    }
+    let py = d.segment(text).filter((t) => CJK.test(t.text)).map((t) => t.py ?? [...t.text].map((c) => d.charEntry(c)?.tw || d.charEntry(c)?.py || "?").join(" ")).join(" "), en = await Promise.race([
+      translateLines([text], "zh-TW", "en").then((r) => r[0], () => ""),
+      new Promise((ok) => setTimeout(() => ok(""), 5e3))
+    ]);
+    return [{ text, word: text, entries: [{ trad: text, simp: text, py, tw: "", defs: [en || "(not in the dictionary)"], zipf: 0, tocfl: 0, rank: 0 }], phrase: !0 }];
+  }
+  createMenu({ id: "cb-lookup", title: "Look up \u201C%s\u201D", contexts: ["selection"] });
+  onMenuClicked(async (info, tab) => {
+    if (info.menuItemId !== "cb-lookup" || tab?.id == null) return;
+    let msg = { type: "lookupSelection", text: info.selectionText ?? "" }, opts = { frameId: info.frameId ?? 0 };
+    try {
+      await import_browser_polyfill_min.default.tabs.sendMessage(tab.id, msg, opts);
+    } catch {
+      try {
+        await injectContent(tab.id, opts.frameId);
+        for (let i = 0; ; i++) {
+          await new Promise((ok) => setTimeout(ok, 200));
+          try {
+            await import_browser_polyfill_min.default.tabs.sendMessage(tab.id, msg, opts);
+            break;
+          } catch (e) {
+            if (i >= 9) throw e;
+          }
+        }
+      } catch (e) {
+        console.warn("[chinese-brain] no lookup in this frame", e);
+      }
+    }
+  });
+  import_browser_polyfill_min.default.commands.onCommand.addListener(async (name) => {
+    if (name !== "toggle-colors") return;
+    let [tab] = await import_browser_polyfill_min.default.tabs.query({ active: !0, currentWindow: !0 }), host = "";
+    try {
+      let u = new URL(tab?.url ?? "");
+      /^https?:$/.test(u.protocol) && (host = u.hostname);
+    } catch {
+    }
+    if (!host || tab?.id == null) return;
+    let s = await getSettings(), toast = (text) => import_browser_polyfill_min.default.tabs.sendMessage(tab.id, { type: "toast", text }).catch(() => {
+    });
+    if (s.hoverMode === "off" || s.disabledSites.includes(host)) return toast("Chinese Brain is off on this site. Turn it on in the toolbar menu first.");
+    let next = !colorsOn(s, host), siteColors = { ...s.siteColors };
+    next === s.pageColors ? delete siteColors[host] : siteColors[host] = next, await import_browser_polyfill_min.default.storage.local.set({ settings: { ...s, siteColors } }), toast(`Word colors ${next ? "on" : "off"} on ${host.replace(/^www\./, "")}`);
+  });
+  function breakdown(d, word, sylls, depth = 0, out = []) {
+    let aligned = sylls.length === [...word].length, i = 0;
+    for (let part of d.split(word)) {
+      let n = [...part].length, py = aligned ? sylls.slice(i, i + n).join(" ") : "", e;
+      if (n === 1) e = d.charEntry(part, aligned ? sylls[i] : void 0);
+      else {
+        let list = d.get(part);
+        e = list.find((x) => (x.tw || x.py).toLowerCase() === py.toLowerCase()) ?? list[0];
+      }
+      out.push({ ch: part, py: py || (e ? e.tw || e.py : ""), gloss: e ? shortGloss(e) : "", depth }), n > 1 && breakdown(d, part, aligned ? sylls.slice(i, i + n) : [], depth + 1, out), i += n;
+    }
+    return out;
+  }
+  async function getSettings() {
+    let { settings } = await import_browser_polyfill_min.default.storage.local.get("settings");
+    return normalizeSettings(settings);
+  }
+  import_browser_polyfill_min.default.runtime.onMessage.addListener((msg, sender) => {
+    let m = msg;
+    switch (m.type) {
+      case "lookup":
+        return ownWordsReady.then(() => dict.lookup(m.text));
+      case "lookupPhrase":
+        return ownWordsReady.then(() => lookupPhrase(dict, m.text));
+      case "segment":
+        return ownWordsReady.then(() => m.lines.map((l) => dict.segment(l)));
+      case "statuses":
+        return storeReady.then(() => store.statuses());
+      case "getWord":
+        return storeReady.then(() => store.words.get(m.word) ?? null);
+      case "setStatus":
+        return storeReady.then(async () => (await store.setStatus(m.word, m.status, m.entry, m.ctx), m.status && dict && addOwnWord(dict, m.word, m.entry ? shortGloss(m.entry) : void 0), !0));
+      case "looked":
+        return storeReady.then(() => store.looked(m.word, m.src, m.url, m.ctx)).then(() => !0);
+      case "watch":
+        return store.log({ at: Date.now(), k: "watch", url: m.url, title: m.title, secs: m.secs, coverage: m.coverage, lang: m.lang }), Promise.resolve(!0);
+      case "settings":
+        return getSettings();
+      case "saveSettings":
+        return getSettings().then((s) => import_browser_polyfill_min.default.storage.local.set({ settings: { ...s, ...m.settings } }).then(() => !0));
+    }
+    let any = msg;
+    switch (any.type) {
+      case "ytCached":
+        return sender.tab?.id != null ? cachedHookCaptions(sender.tab.id) : Promise.resolve([]);
+      case "allData":
+        return Promise.all([storeReady, dictReady]).then(async ([, d]) => {
+          let all = await import_browser_polyfill_min.default.storage.local.get(null), saved = {};
+          for (let [k, v] of Object.entries(all)) k.startsWith("sav:") && (saved[k.slice(4)] = v);
+          return { words: [...store.words.values()].map((w) => freshen(d, w)), logs: await store.allLogs(), saved };
+        });
+      case "importWords":
+        return storeReady.then(() => store.importWords(any.words, any.mode ?? "merge"));
+      case "insertCSS":
+        return sender.tab?.id != null ? insertCSS(sender.tab.id, sender.frameId ?? 0, any.css).then(() => !0) : void 0;
+      case "importList":
+        return Promise.all([dictReady, storeReady]).then(async ([d]) => {
+          let recs = [], seen = /* @__PURE__ */ new Set();
+          for (let item of any.items) {
+            let e = d.get(item.w)[0], w = e && e.trad.length === item.w.length ? e.trad : item.w;
+            if (seen.has(w)) continue;
+            seen.add(w);
+            let prev = store.words.get(w);
+            if (prev?.s === item.s) continue;
+            let t = item.t || Date.now();
+            prev && item.t && prev.updated > item.t || recs.push({
+              ...prev ?? { w, added: t, hist: [], looks: 0, ctx: [] },
+              s: item.s,
+              updated: Math.max(t, prev?.updated ?? 0),
+              hist: [...prev?.hist ?? [], { t, s: item.s }],
+              p: e ? numberedToMarked(e.tw || e.py) : prev?.p,
+              g: e ? shortGloss(e) : prev?.g
+            });
+          }
+          for (let r of recs) store.log({ at: Date.now(), k: "status", w: r.w, s: r.s, from: store.words.get(r.w)?.s ?? null });
+          return store.importWords(recs, "replace");
+        });
+      case "testSet":
+        return;
+      case "openPage":
+        return;
+      case "translate":
+        return translateLines(any.lines, String(any.sl ?? "zh-TW"), String(any.tl ?? "en")).catch((e) => (console.warn("[chinese-brain] translate fallback failed", e), null));
+      case "tts":
+        return getSettings().then(
+          (st) => ttsAudio(any.engine, String(any.text), st).then(
+            (audio) => ({ audio: audioOut(audio) }),
+            (e) => ({ error: String(e instanceof Error ? e.message : e) })
+          )
+        );
+      case "azureCheck":
+        return checkAzure(String(any.key ?? ""), String(any.region ?? "eastasia"));
+      case "geminiModels":
+        return geminiModels(String(any.key ?? "")).then(
+          (models) => ({ models }),
+          (e) => ({ error: String(e instanceof Error ? e.message : e) })
+        );
+      case "hideExample":
+        return import_browser_polyfill_min.default.storage.local.get(["exh:" + any.word, "gex:" + any.word]).then((got) => {
+          let word = String(any.word), zh = String(any.zh), hidden = [.../* @__PURE__ */ new Set([...got["exh:" + word] ?? [], zh])], gex = (got["gex:" + word] ?? []).filter(([x]) => x !== zh);
+          return import_browser_polyfill_min.default.storage.local.set({ ["exh:" + word]: hidden, ["gex:" + word]: gex }).then(() => !0);
+        });
+      case "saveSentence":
+        return import_browser_polyfill_min.default.storage.local.get("sav:" + any.word).then((got) => {
+          let key = "sav:" + any.word, list = saveInList(got[key] ?? [], {
+            zh: String(any.zh),
+            en: String(any.en ?? ""),
+            on: !!any.on,
+            replace: any.replace ? String(any.replace) : void 0,
+            from: any.from ? String(any.from) : void 0
+          });
+          return (list.length ? import_browser_polyfill_min.default.storage.local.set({ [key]: list }) : import_browser_polyfill_min.default.storage.local.remove(key)).then(() => !0);
+        });
+      case "forgetContext":
+        return storeReady.then(() => store.removeContext(String(any.word), String(any.text))).then(() => !0);
+      case "geminiExamples":
+        return Promise.all([getSettings(), dictReady]).then(async ([st, d]) => {
+          if (!st.geminiKey) return { error: "Add a Gemini API key in Settings first." };
+          let word = String(any.word), e = d.get(word)[0];
+          try {
+            return await keepAlive(geminiExamples(word, e ? shortGloss(e) : "", st.geminiKey, st.geminiModel, Math.max(1, Number(any.want) || 2))), { ok: !0 };
+          } catch (err) {
+            return { error: String(err instanceof Error ? err.message : err) };
+          }
+        });
+      case "wordInfo":
+        return Promise.all([dictReady, storeReady, examplesReady]).then(async ([d]) => {
+          let word = any.word, py = String(any.py ?? ""), chars = breakdown(d, word, py.split(/\s+/)).filter((c) => CJK.test(c.ch) && ([...word].length <= 8 || c.depth === 0)), record = store.words.get(word) ?? null, got = await import_browser_polyfill_min.default.storage.local.get(["gex:" + word, "exh:" + word, "sav:" + word]), savedList = got["sav:" + word] ?? [], saved = savedList.map((x) => x.zh), hidden = new Set(got["exh:" + word] ?? []), gex = got["gex:" + word] ?? [], ex = examples.pick(word, d, (w) => store.words.get(w)?.s, gex, hidden, new Set(saved));
+          for (let x of ex) {
+            let mineEn = savedList.find((y) => y.zh === x.zh)?.en;
+            mineEn && (x.en = mineEn);
+          }
+          let seen = (record ? withSurface(record, d.get(word)).ctx : []).map((c) => {
+            let [zh, ...en] = metSentence(c, word, 120).split(" \u2014 ");
+            return { c, zh, en: en.join(" \u2014 ") };
+          }).filter(({ zh }) => zh).filter(({ zh }, i, all) => all.findIndex((x) => x.zh === zh) === i).slice(0, 3).map(({ c, zh, en }) => ({ ...c, zh, en, toks: d.segment(zh) })), shown = new Set(ex.map((x) => x.zh)), mine = savedList.filter((x) => !shown.has(x.zh)).map((x) => ({ zh: x.zh, en: x.en, from: x.from, toks: d.segment(x.zh) }));
+          return { chars, examples: ex, seen, record, saved, mine };
+        });
+      case "glosses":
+        return dictReady.then((d) => {
+          let out = {};
+          for (let w of any.words) {
+            let e = d.get(w)[0];
+            e && (out[w] = { py: e.tw || e.py, g: shortGloss(e), zipf: e.zipf });
+          }
+          return out;
+        });
+      case "gemini":
+        return getSettings().then(async (st) => {
+          if (!st.geminiKey) return { error: "Add your Gemini API key in Settings first." };
+          let videoId = String(any.videoId), tab = sender.tab?.id;
+          try {
+            return await keepAlive(geminiTranscribe(videoId, st.geminiKey, st.geminiModel || DEFAULT_SETTINGS.geminiModel, Number(any.duration), (p) => {
+              tab != null && import_browser_polyfill_min.default.tabs.sendMessage(tab, { type: "geminiProgress", videoId, ...p }).catch(() => {
+              });
+            }));
+          } catch (e) {
+            return { error: String(e instanceof Error ? e.message : e) };
+          }
+        });
+      case "geminiForget":
+        return import_browser_polyfill_min.default.storage.local.get(null).then(
+          (all) => import_browser_polyfill_min.default.storage.local.remove(Object.keys(all).filter((k) => k === "gem:" + any.videoId || k.startsWith(`gemc:${any.videoId}:`))).then(() => !0)
+        );
+      case "geminiCached":
+        return import_browser_polyfill_min.default.storage.local.get("gem:" + any.videoId).then((r) => r["gem:" + any.videoId] ?? null);
+      case "entries":
+        return dictReady.then((d) => d.get(any.word));
+    }
+  });
+})();

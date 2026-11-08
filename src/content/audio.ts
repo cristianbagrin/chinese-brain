@@ -1,3 +1,4 @@
+import { audioIn } from '../platform/compat.ts';
 import type { Status, VoiceEngine } from '../shared/types.ts';
 import { state } from './state.ts';
 
@@ -155,7 +156,8 @@ async function playClip(engine: 'google' | 'azure', text: string) {
   if (!buf) {
     const res: { audio?: ArrayBuffer; error?: string } = await browser.runtime.sendMessage({ type: 'tts', engine, text });
     if (!res?.audio) throw new Error(res?.error ?? 'no audio');
-    buf = await ac.decodeAudioData(res.audio.slice(0));
+    // Chrome's messages are JSON, so the audio comes as base64 there.
+    buf = await ac.decodeAudioData(__CHROME__ ? audioIn(res.audio) : res.audio.slice(0));
     if (clipCache.size > 100) clipCache.clear();
     clipCache.set(key, buf);
   }
