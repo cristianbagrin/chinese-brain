@@ -778,7 +778,8 @@ export class YouTubeSubs {
   }
 
   private onKey(e: KeyboardEvent) {
-    if (this.popup.visible && cardTakes(e, this.popup.age()) && this.popup.handleKey(e)) {
+    if (this.popup.editKey(e)) return;
+    if (this.popup.visible && cardTakes(e, this.popup.age(), this.popup.isHovered) && this.popup.handleKey(e)) {
       e.preventDefault();
       e.stopImmediatePropagation();
       return;

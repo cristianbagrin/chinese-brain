@@ -3,6 +3,7 @@ import { CJK } from '../shared/dict.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import type { Context, Entry, LookupMatch, Status, Token } from '../shared/types.ts';
 import { saveSound, speak, stampSound } from './audio.ts';
+import { inOwnBox } from './keys.ts';
 import { lookupText } from './lookup.ts';
 import css from './popup.css';
 import { state } from './state.ts';
@@ -99,6 +100,49 @@ async function copyText(text: string): Promise<boolean> {
 }
 
 type Pt = { x: number; y: number };
+
+/**
+ * Put a fixed-position element at (x, y) in the window. Inside a dialog with a transform
+ * (or filter, or containment) "fixed" is relative to that dialog, so measure and correct.
+ */
+function place(el: HTMLElement, x: number, y: number) {
+  el.style.left = `${x}px`;
+  el.style.top = `${y}px`;
+  const b = el.getBoundingClientRect();
+  if (Math.abs(b.left - x) > 0.5) el.style.left = `${2 * x - b.left}px`;
+  if (Math.abs(b.top - y) > 0.5) el.style.top = `${2 * y - b.top}px`;
+}
+
+const MODAL = 'dialog:modal, [aria-modal="true"], tp-yt-paper-dialog, paper-dialog';
+/** The modal dialog around the word at `rect` (or around the focused element), if any. */
+function modalAt(rect?: DOMRect): Element | null {
+  const starts: (Element | null)[] = [];
+  if (rect) {
+    let el = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    while (el?.shadowRoot) {
+      const inner = el.shadowRoot.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      if (!inner || inner === el) break;
+      el = inner;
+    }
+    starts.push(el);
+  }
+  let a = document.activeElement;
+  while (a?.shadowRoot?.activeElement) a = a.shadowRoot.activeElement;
+  starts.push(a);
+  for (const start of starts) {
+    for (let n: Node | null = start; n; n = n instanceof ShadowRoot ? n.host : n.parentNode) {
+      if (n instanceof Element && n.localName !== 'chinese-brain-popup' && safeMatches(n, MODAL)) return n;
+    }
+  }
+  return null;
+}
+function safeMatches(el: Element, sel: string): boolean {
+  try {
+    return el.matches(sel);
+  } catch {
+    return el.matches(sel.replace('dialog:modal, ', 'dialog[open], '));
+  }
+}
 /** A text box as tall as its text, so a long sentence shows whole (it can still be dragged taller). */
 function fitBox(box: HTMLTextAreaElement) {
   if (!box.isConnected || !box.offsetHeight) return; // not laid out yet
@@ -257,8 +301,14 @@ export class Popup {
     return node === this.host;
   }
 
-  private mount() {
-    const parent = document.fullscreenElement ?? document.documentElement;
+  /**
+   * The card lives at the end of the page, or inside the modal dialog the word is in (or the
+   * fullscreen element). A modal (YouTube Studio's upload dialog, a <dialog>, an aria-modal
+   * box) takes focus back from anything outside it and makes the rest of the page inert:
+   * outside it, the card's text box couldn't be typed in.
+   */
+  private mount(rect?: DOMRect) {
+    const parent = document.fullscreenElement ?? modalAt(rect) ?? document.documentElement;
     if (this.host.parentNode !== parent) parent.append(this.host);
   }
 
@@ -343,7 +393,7 @@ export class Popup {
       this.trail = [opts];
       this.pos = 0;
     }
-    this.mount();
+    if (!keepPlace || !this.host.isConnected) this.mount(opts.rect);
     const appearing = this.card.hidden;
     const m = opts.matches[0];
     const e0 = m.entries[0];
@@ -481,6 +531,24 @@ export class Popup {
   }
 
   /** Keyboard shortcuts while the card is open. Returns true when handled. */
+  /**
+   * A key typed into the card's own text box (the page never sees it): Enter saves, Esc
+   * cancels, anything else is typing. True when the key belonged to the box.
+   */
+  editKey(e: KeyboardEvent): boolean {
+    if (!this.editing || !inOwnBox(e)) return false;
+    if (e.isComposing) return true;
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      this.commitEdit();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      this.endEdit();
+      this.render();
+    }
+    return true;
+  }
+
   handleKey(e: KeyboardEvent): boolean {
     if (!this.opts || e.ctrlKey || e.metaKey || e.altKey) return false;
     // Pointing at a word inside the card: 1 2 3 0 V I are for that word.
@@ -560,8 +628,7 @@ export class Popup {
     const ht = hint.offsetHeight;
     let y = r.top - ht - 6;
     if (y < 4) y = r.bottom + 6;
-    hint.style.left = `${Math.min(Math.max(4, r.left + r.width / 2 - w / 2), window.innerWidth - w - 4)}px`;
-    hint.style.top = `${y}px`;
+    place(hint, Math.min(Math.max(4, r.left + r.width / 2 - w / 2), window.innerWidth - w - 4), y);
   }
 
   private hideHint() {
@@ -624,8 +691,7 @@ export class Popup {
       c.style.maxHeight = `${ht}px`;
       [x, y] = [near, roomy ? belowTop : r.top - gap - ht];
     }
-    c.style.left = `${x}px`;
-    c.style.top = `${y}px`;
+    place(c, x, y);
   }
 
   /** After the content changed in place (← →, a clicked word), keep the card inside the window. */
@@ -633,7 +699,7 @@ export class Popup {
     const c = this.card;
     const b = c.getBoundingClientRect();
     const vh = window.innerHeight;
-    if (b.bottom > vh - 8) c.style.top = `${Math.max(8, vh - 8 - b.height)}px`;
+    if (b.bottom > vh - 8) place(c, b.left, Math.max(8, vh - 8 - b.height));
   }
 
   /** Save an example sentence to learn it: it goes into the export for Claude. */
@@ -709,22 +775,9 @@ export class Popup {
         set(box.value);
         fitBox(box);
       });
-      // Typing here is typing: no card shortcuts, no YouTube keys.
+      // Typing here is typing: no card shortcuts, no page keys (see guardKeys and editKey).
       box.addEventListener('focus', () => this.host.setAttribute('data-typing', ''));
       box.addEventListener('blur', () => this.host.removeAttribute('data-typing'));
-      for (const t of ['keyup', 'keypress']) box.addEventListener(t, (e) => e.stopPropagation());
-      box.addEventListener('keydown', (e) => {
-        e.stopPropagation();
-        if (e.isComposing) return;
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          this.commitEdit();
-        } else if (e.key === 'Escape') {
-          e.preventDefault();
-          this.endEdit();
-          this.render();
-        }
-      });
       return box;
     };
     const box = field('editbox', ed.draft, 'Edit the sentence', (v) => (ed.draft = v));

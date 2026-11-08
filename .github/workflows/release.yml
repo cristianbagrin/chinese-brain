@@ -1,0 +1,85 @@
+# Publishes each new version to Firefox Add-ons (AMO) and the Chrome Web Store.
+#
+# Runs when package.json changes on the default branch (a version bump) or by hand
+# (Actions → Release → Run workflow). A version is released once: the run tags it
+# v<version>, and later runs skip versions that already have a tag. Each store is
+# skipped while its secrets are missing (see store/PUBLISHING.md, "Automatic releases").
+name: Release
+
+on:
+  push:
+    branches: [claude/chinese-brain-extension-drtq0h]
+    paths: [package.json]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+      AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+      CWS_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+      CWS_PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
+      CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+      CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+      CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version
+        id: v
+        run: |
+          version=$(node -p "require('./package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null; then
+            echo "v$version is already released; nothing to do."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.v.outputs.skip != 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build and check
+        if: steps.v.outputs.skip != 'true'
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run build
+          npm run lint:ext
+          node scripts/release-notes.mjs "${{ steps.v.outputs.version }}" > amo-metadata.json
+
+      - name: Firefox Add-ons
+        if: steps.v.outputs.skip != 'true' && env.AMO_JWT_ISSUER != ''
+        run: >
+          npx web-ext sign --source-dir dist --artifacts-dir release
+          --channel listed --amo-metadata amo-metadata.json --approval-timeout 0
+          --api-key "$AMO_JWT_ISSUER" --api-secret "$AMO_JWT_SECRET"
+
+      - name: Chrome Web Store
+        if: steps.v.outputs.skip != 'true' && env.CWS_REFRESH_TOKEN != ''
+        env:
+          EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+          PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
+          CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+        run: |
+          npm run zip:chrome
+          npx --yes chrome-webstore-upload-cli@4.0.2 --source "release/chinese_brain-${{ steps.v.outputs.version }}-chrome.zip"
+
+      - name: Tag the release
+        if: steps.v.outputs.skip != 'true' && (env.AMO_JWT_ISSUER != '' || env.CWS_REFRESH_TOKEN != '')
+        run: |
+          git tag "v${{ steps.v.outputs.version }}"
+          git push origin "v${{ steps.v.outputs.version }}"

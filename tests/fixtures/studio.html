@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Studio-like dialog</title>
+<!-- Mimics YouTube Studio's upload dialog: a modal that takes focus back from anything
+     outside it (Polymer iron-overlay, document capture-phase focus listener) and closes on
+     Esc (document capture-phase keydown). The description is a contenteditable box. -->
+<style>
+  body { font: 16px sans-serif; margin: 0; }
+  .backdrop { position: fixed; inset: 0; background: #0006; }
+  tp-yt-paper-dialog { position: fixed; left: 80px; top: 60px; width: 600px; padding: 20px; background: #fff; display: block; }
+  #desc { border: 1px solid #999; min-height: 120px; padding: 8px; font-size: 20px; }
+  #native { padding: 20px; }
+</style>
+<div class="backdrop"></div>
+<tp-yt-paper-dialog role="dialog" id="dlg">
+  <h2>Details</h2>
+  <div id="desc" contenteditable="true">我今天去臺北看朋友。我們一起吃飯，然後去公園散步。</div>
+  <p id="log"></p>
+</tp-yt-paper-dialog>
+<script>
+  const dlg = document.getElementById('dlg');
+  window.closedByEsc = false;
+  document.addEventListener('focus', (e) => {
+    const path = e.composedPath();
+    if (!path.includes(dlg)) { e.stopPropagation(); document.getElementById('desc').focus(); window.stolen = (window.stolen || 0) + 1; }
+  }, true);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.body.contains(dlg)) { window.closedByEsc = true; }
+  }, true);
+</script>

@@ -2,7 +2,43 @@
 
 Copy each block into the matching field of the AMO Developer Hub.
 
-## Updating the published add-on (new version)
+## Automatic releases (Firefox and Chrome)
+
+Once the secrets below are in place, you never upload by hand again. When a new version
+lands on the default branch (`claude/chinese-brain-extension-drtq0h`, `package.json`
+changed), the **Release** workflow (`.github/workflows/release.yml`) builds and checks it,
+uploads it to Firefox Add-ons with its version notes (section 4) and notes to reviewer
+(section 5), uploads and publishes it on the Chrome Web Store, and tags it `v<version>`.
+A version is released once; a run for a version that already has a tag does nothing. You can
+also start it by hand: GitHub → Actions → Release → Run workflow.
+
+Every version needs its notes in section 4 (`1.4.0:` and a fenced block), or the run stops.
+Don't also upload the same version by hand: the store refuses a version it already has.
+
+Each store is skipped until its secrets exist (GitHub → the repository → Settings →
+Secrets and variables → Actions → New repository secret):
+
+**Firefox** (free):
+
+1. Open [addons.mozilla.org/developers/addon/api/key](https://addons.mozilla.org/developers/addon/api/key/)
+   → **Generate new credentials**.
+2. Save the *JWT issuer* as `AMO_JWT_ISSUER` and the *JWT secret* as `AMO_JWT_SECRET`.
+
+**Chrome** (one-time $5 developer fee):
+
+1. Publish the first version by hand (section "Chrome Web Store" below); the API can only
+   update an item that exists. Copy its item ID (the 32 letters in its dashboard URL) into
+   `CWS_EXTENSION_ID`, and your publisher ID (Developer Dashboard → Account) into
+   `CWS_PUBLISHER_ID`.
+2. Follow [this guide](https://github.com/fregante/chrome-webstore-upload-keys) to get a
+   client ID, client secret and refresh token for the Chrome Web Store API; save them as
+   `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET` and `CWS_REFRESH_TOKEN`. Set the OAuth consent
+   screen to **In production** (not Testing), or the refresh token stops working after a week.
+
+Mozilla and Google still review each version (minutes to a few days); users get it after
+that, on their own.
+
+## Updating the published add-on by hand (new version)
 
 Users get a new version automatically once Mozilla approves it.
 

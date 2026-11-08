@@ -31,7 +31,8 @@ if (!w.__chineseBrain) {
     if (onYouTube) new YouTubeSubs(popup);
     else {
       onKeydown((e) => {
-        if (popup.visible && cardTakes(e, popup.age()) && popup.handleKey(e)) {
+        if (popup.editKey(e)) return;
+        if (popup.visible && cardTakes(e, popup.age(), popup.isHovered) && popup.handleKey(e)) {
           e.preventDefault();
           e.stopImmediatePropagation();
         }
