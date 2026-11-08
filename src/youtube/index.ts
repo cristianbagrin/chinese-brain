@@ -10,6 +10,7 @@ import type { GeminiLine, TranscribeResult } from '../background/gemini.ts';
 import { Controls } from './controls.ts';
 import { Transcript } from './transcript.ts';
 import css from './overlay.css';
+import { pagePlayer } from '../platform/yt-player.ts';
 
 declare const __TEST__: boolean;
 declare function cloneInto<T>(obj: T, target: object, opts?: { cloneFunctions?: boolean }): T;
@@ -126,6 +127,7 @@ export class YouTubeSubs {
   }
 
   private player(): Player | undefined {
+    if (__CHROME__) return pagePlayer(); // Chrome: through the page hook (src/platform/yt-hook.ts)
     const el = document.getElementById('movie_player') as (HTMLElement & { wrappedJSObject?: Player }) | null;
     return el?.wrappedJSObject ?? el ?? undefined;
   }

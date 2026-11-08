@@ -21,6 +21,8 @@ export async function saveAs(name: string, content: string, type = 'text/plain;c
   const url = URL.createObjectURL(new Blob([content], { type }));
   try {
     const id = await browser.downloads.download({ url, filename: name, saveAs: true });
+    // Chrome starts the download before its dialog; a cancel shows up as an interruption.
+    if (__CHROME__) return chromeSaved(id, url);
     const done = (d: browser.downloads._OnChangedDownloadDelta) => {
       if (d.id !== id || !d.state || d.state.current === 'in_progress') return;
       browser.downloads.onChanged.removeListener(done);
@@ -34,6 +36,18 @@ export async function saveAs(name: string, content: string, type = 'text/plain;c
     download(name, content, type); // saveAs not supported here: save it the plain way
     return true;
   }
+}
+
+function chromeSaved(id: number, url: string): Promise<boolean> {
+  return new Promise((ok) => {
+    const done = (d: browser.downloads._OnChangedDownloadDelta) => {
+      if (d.id !== id || !d.state || d.state.current === 'in_progress') return;
+      browser.downloads.onChanged.removeListener(done);
+      URL.revokeObjectURL(url);
+      ok(d.state.current === 'complete');
+    };
+    browser.downloads.onChanged.addListener(done);
+  });
 }
 
 export function h(tag: string, attrs: Record<string, string> | null, ...kids: (Node | string | null | undefined | false)[]): HTMLElement {

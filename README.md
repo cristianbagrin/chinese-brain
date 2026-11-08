@@ -60,6 +60,10 @@ button → *Download ZIP*, then unzip) or `git clone` it, open
 `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and
 pick `dist/manifest.json`. A temporary add-on stays until the browser restarts.
 
+**Chrome** (and other Chromium browsers, version 128 or newer): open
+`chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick
+the `dist-chrome` folder. Change the color shortcut at `chrome://extensions/shortcuts`.
+
 ## Keys
 
 | Where | Keys |
@@ -120,12 +124,24 @@ Toolbar button → **Word list & export**.
 
 ```bash
 npm install
-npm run build        # bundles src/ + static/ into dist/
+npm run build        # bundles src/ + static/ into dist/ (Firefox) and dist-chrome/ (Chrome)
 npm run watch        # rebuild on change
 npm test             # dictionary, segmenter, captions, export tests
 npm run typecheck
 npm run lint:ext     # web-ext lint on dist/
+npm run zip          # release/chinese_brain-<version>.zip for Firefox
+npm run zip:chrome   # release/chinese_brain-<version>-chrome.zip for the Chrome Web Store
+node scripts/chrome-smoke.mjs   # loads dist-chrome in headless Chromium (Playwright) and checks it
 ```
+
+The Chrome build is the same source with `__CHROME__` set at build time: a Manifest V3
+service worker instead of the background page, Mozilla's `webextension-polyfill` for the
+`browser.*` API, `contextMenus` and `scripting` in place of `menus` and
+`tabs.executeScript`/`insertCSS`, and PNG icons from `static-chrome/`
+(`node scripts/chrome-icons.mjs` renders them from `static/icons/icon.svg`). Chrome has
+no `webRequest.filterResponseData`, so on YouTube a page script (`src/platform/yt-hook.ts`,
+run in the page's own world) copies the caption tracks the player downloads and makes
+the player calls the subtitles need. Chrome-only code lives in `src/platform/`.
 
 Data (only needed to refresh it):
 
@@ -149,7 +165,9 @@ src/content/      lookup card, hover lookup, page coloring, sounds and speech
 src/youtube/      caption parsing, subtitle overlay, player switch + panel, transcript
 src/pages/        word list, settings, toolbar menu
 src/shared/       types, dictionary + segmenter, pinyin, export/import formats
+src/platform/     what differs on Chrome: polyfill shim, background wrappers, YouTube page hook
 static/           HTML/CSS, icon, data/
+static-chrome/    PNG icons for the Chrome manifest
 scripts/          build.mjs (esbuild), build_data.py, build_names.py, build_examples.py
 docs/             Step 0 assessment, Explore verdicts
 ```
@@ -158,7 +176,8 @@ docs/             Step 0 assessment, Explore verdicts
 
 The YouTube player downloads caption tracks itself. The extension watches
 those `timedtext` responses with Firefox's `webRequest.filterResponseData` and
-keeps a copy without changing them. It asks the player (through its own API) to
+keeps a copy without changing them (on Chrome, which lacks that API, a small
+script in the page copies them from the player's own requests). It asks the player (through its own API) to
 load the best Chinese track, and then YouTube's English auto-translation of it.
 If YouTube refuses the translation, the lines go to Google's free web
 translator instead. If no track is captured, the extension reads YouTube's

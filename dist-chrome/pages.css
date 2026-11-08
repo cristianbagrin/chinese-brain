@@ -1,0 +1,300 @@
+/*
+ * Chinese Brain pages: the word list, settings and the toolbar menu.
+ * The colors come from the logo: a red tile, a paper-white 口, ink chopsticks with gold bands.
+ * Status colors (新 學 熟) are the ones words wear on every page you read.
+ */
+/* Chinese in 楷書, the hand students write in 田字格 squares (LXGW WenKai TC, OFL: fonts/OFL.txt).
+   The 7,000 most common characters; rarer ones fall back to the system's Chinese font. */
+@font-face { font-family: 'CB Zh'; src: url('fonts/zh.woff2') format('woff2'); font-weight: 400; font-display: block; }
+@font-face { font-family: 'CB Zh'; src: url('fonts/zh-bold.woff2') format('woff2'); font-weight: 600 900; font-display: block; unicode-range: U+4E2D, U+6587, U+8166, U+65B0, U+5B78, U+719F; }
+:root {
+  --red: #c8202f;
+  --red-deep: #a3192a;
+  --gold: #e9b44c;
+  --ink: #1e1a18;
+  --ink2: #5e5650;
+  --ink3: #958c85;
+  --paper: #fffdf9;
+  --ground: #f6f2ed;
+  --rule: #e9e1d7;
+  --rule2: #d9cfc3;
+  --grid: rgba(200, 32, 47, 0.2);
+  --fresh: #ef2f42;
+  --learning: #ffc81f;
+  --known: #1fae4f;
+  /* Darker versions for text and marks on paper. */
+  --fresh-ink: #d11e33;
+  --learning-ink: #a87800;
+  --known-ink: #138a3d;
+  --accent: var(--red);
+  --ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --zh: 'CB Zh', 'Kaiti TC', 'BiauKai', 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', serif;
+  --sans: var(--ui);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 15px/1.5 var(--ui); -webkit-font-smoothing: antialiased; }
+:lang(zh-Hant), [lang='zh-Hant'] { font-family: var(--zh), var(--ui); }
+a { color: var(--red-deep); }
+button, select, input, textarea { font: inherit; color: inherit; }
+button {
+  cursor: pointer;
+  background: var(--paper);
+  border: 1px solid var(--rule2);
+  border-radius: 8px;
+  padding: 6px 14px;
+}
+button:hover { border-color: var(--ink3); }
+button:active { transform: translateY(1px); }
+button.primary { background: var(--red); border-color: var(--red); color: #fff; font-weight: 600; }
+button.primary:hover { background: var(--red-deep); border-color: var(--red-deep); }
+input[type='search'], input[type='text'], input[type='password'], input[type='number'], select, textarea {
+  border: 1px solid var(--rule2);
+  border-radius: 8px;
+  background: var(--paper);
+  padding: 6px 10px;
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible, .filebtn:focus-within { outline: 2px solid var(--red); outline-offset: 2px; }
+select {
+  appearance: none;
+  -moz-appearance: none;
+  padding-right: 30px;
+  cursor: pointer;
+  background: var(--paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%23958c85' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 9px center / 12px;
+}
+select:hover, input[type='text']:hover, input[type='password']:hover, input[type='number']:hover, input[type='search']:hover { border-color: var(--ink3); }
+input[type='number'] { width: 76px; -moz-appearance: textfield; text-align: center; }
+input[type='number']::-webkit-inner-spin-button { display: none; }
+/* Checkboxes are switches, like the toolbar menu. */
+input[type='checkbox'] {
+  appearance: none;
+  -moz-appearance: none;
+  position: relative;
+  flex: none;
+  width: 36px;
+  height: 20px;
+  margin: 0;
+  border-radius: 10px;
+  background: #d6cec5;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: background 0.15s;
+}
+input[type='checkbox']::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(30, 26, 24, 0.25); transition: transform 0.15s; }
+input[type='checkbox']:checked { background: var(--known); }
+input[type='checkbox']:checked::after { transform: translateX(16px); }
+textarea { width: 100%; font-size: 14px; resize: vertical; }
+/* A file picker that looks like a button (the input itself stays hidden). */
+.filebtn { display: inline-block; cursor: pointer; background: var(--paper); border: 1px solid var(--rule2); border-radius: 8px; padding: 6px 14px; }
+.filebtn:hover { border-color: var(--ink3); }
+.filebtn input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+button.link { border: 0; background: none; padding: 6px 4px; color: var(--red-deep); }
+button.link:hover { text-decoration: underline; }
+[hidden] { display: none !important; }
+kbd { font: 600 12px var(--ui); background: var(--ground); border: 1px solid var(--rule2); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; }
+.muted { color: var(--ink2); }
+.small { font-size: 13px; }
+.ok { color: var(--known-ink); font-size: 13px; }
+
+/* The plate: the logo's red tile, stretched across the top. The page shows through the open tab. */
+.plate { background: var(--red); color: #fff; }
+.plate .in { max-width: 1080px; margin: 0 auto; padding: 14px 28px 0; display: flex; align-items: flex-end; gap: 24px; }
+.brand { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; color: inherit; text-decoration: none; }
+.brand .mark { width: 44px; height: 44px; flex: none; margin: -6px -4px -6px -8px; }
+.brand .name { font: var(--name-weight, 700) 28px/1 var(--zh); letter-spacing: 0.06em; }
+.plate nav { display: flex; gap: 2px; margin-left: auto; }
+.plate nav a { color: rgba(255, 255, 255, 0.86); text-decoration: none; padding: 9px 16px 12px; border-radius: 9px 9px 0 0; font-size: 14px; font-weight: 500; }
+.plate nav a:hover { color: #fff; background: rgba(0, 0, 0, 0.12); }
+.plate nav a[aria-current='page'] { background: var(--ground); color: var(--ink); font-weight: 650; }
+.plate nav a:focus-visible { outline-color: #fff; outline-offset: -4px; }
+
+main { max-width: 1080px; margin: 0 auto; padding: 24px 28px 72px; }
+h2 { font: 700 19px/1.3 var(--ui); margin: 44px 0 14px; letter-spacing: -0.01em; }
+/* Jumping to a section lands below the sticky bar. */
+#export { scroll-margin-top: 76px; }
+
+/* ---------- Word list ---------- */
+
+/* The bar stays on screen while the list scrolls under it. */
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  align-items: center;
+  margin: -8px -12px 10px;
+  padding: 10px 12px;
+  background: rgba(246, 242, 237, 0.86);
+  backdrop-filter: blur(14px) saturate(160%);
+}
+.bar::after { content: ''; position: absolute; left: 0; right: 0; bottom: -10px; height: 10px; background: linear-gradient(rgba(246, 242, 237, 0.86), rgba(246, 242, 237, 0)); pointer-events: none; }
+@media (prefers-reduced-transparency: reduce) { .bar { background: var(--ground); backdrop-filter: none; } }
+.bar input[type='search'] { flex: 1 1 200px; min-width: 0; height: 38px; }
+.bar select { height: 38px; }
+.bar .jump { font-size: 14px; font-weight: 500; text-decoration: none; padding: 0 2px; }
+.bar .jump:hover { text-decoration: underline; }
+
+/* The filter: one seal per status, with its count. */
+.filter { display: inline-flex; gap: 2px; padding: 3px; border-radius: 11px; background: #ebe4dc; }
+.filter button { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px 0 6px; border: 0; border-radius: 8px; background: transparent; color: var(--ink2); white-space: nowrap; }
+.filter button:hover { color: var(--ink); }
+.filter button:active { transform: none; }
+.filter button[aria-pressed='true'] { background: var(--paper); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(30, 26, 24, 0.12), 0 0 0 1px rgba(30, 26, 24, 0.04); }
+.filter button.all { padding-left: 12px; }
+.filter b { font-weight: 600; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink3); }
+.filter button[aria-pressed='true'] b { color: var(--ink2); }
+
+/* A seal: a small square stamp with the status character. Empty until set. */
+.seal { display: inline-grid; place-items: center; width: 24px; height: 24px; border: 1.5px solid var(--c, var(--ink3)); border-radius: 5px; color: var(--c, var(--ink3)); font: 600 13px/1 var(--zh); }
+.fresh { --c: var(--fresh-ink); --fill: var(--fresh); --on: #fff; }
+.learning { --c: var(--learning-ink); --fill: var(--learning); --on: var(--ink); }
+.known { --c: var(--known-ink); --fill: var(--known); --on: #fff; }
+.filter button[aria-pressed='true'] .seal { background: var(--fill); border-color: var(--fill); color: var(--on); }
+
+/* The list: each word on its own line of the exercise book. */
+.words { background: var(--paper); border: 1px solid var(--rule); border-radius: 14px; overflow: hidden; }
+.word { position: relative; display: grid; grid-template-columns: 200px minmax(0, 1fr) auto; gap: 6px 28px; align-items: center; padding: 12px 22px 14px; border-top: 1px solid var(--rule); transition: opacity 0.2s; }
+.word:first-child { border-top: 0; }
+.word:hover { background: #fffaf3; }
+
+/* The headword in 田字格 squares, each character's pinyin above it, like a practice book. */
+.hw { --box: 44px; min-width: 0; }
+/* Inline boxes, not flex or grid items: the hover lookup reads the characters as one word. */
+.chars { display: block; line-height: 0; }
+.ch { display: inline-block; width: var(--box); margin: 0 0 6px -1.5px; vertical-align: top; text-align: center; }
+.ch:first-child { margin-left: 0; }
+.ch::before, .pyline { content: attr(data-py); display: block; height: 19px; font: 500 13px/19px var(--ui); color: var(--ink2); white-space: nowrap; }
+.nopy .ch::before { display: none; }
+.ch b {
+  display: inline-grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: var(--box);
+  height: var(--box);
+  border: 1.5px solid rgba(200, 32, 47, 0.55);
+  background:
+    repeating-linear-gradient(to bottom, var(--grid) 0 3px, transparent 3px 6px) center / 1px 100% no-repeat,
+    repeating-linear-gradient(to right, var(--grid) 0 3px, transparent 3px 6px) center / 100% 1px no-repeat;
+  font: var(--hw-weight, 400) 30px/1 var(--zh);
+  color: var(--ink);
+}
+
+.txt { min-width: 0; }
+.gl { margin: 0; font-size: 16px; line-height: 1.4; }
+.gl.none { color: var(--ink3); font-style: italic; font-size: 14px; }
+.ctx { margin: 6px 0 0; font-size: 15px; line-height: 1.55; color: var(--ink2); }
+.ctx u { text-decoration: none; color: var(--ink); box-shadow: inset 0 -2px 0 rgba(200, 32, 47, 0.6); }
+.src { margin-left: 10px; font: 500 12.5px var(--ui); color: var(--ink3); text-decoration: none; white-space: nowrap; }
+.src:hover { color: var(--red-deep); text-decoration: underline; }
+
+/* Stamps with the remove button beside them; when it last changed, under the stamps. */
+.act { display: grid; grid-template-columns: auto 26px; align-items: center; gap: 6px 4px; margin-right: -8px; }
+.act .when { grid-column: 1; justify-self: end; }
+.stamps { display: flex; gap: 6px; }
+.stamps button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1.5px dashed var(--rule2);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink3);
+  font: 600 16px/1 var(--zh);
+  transition: color 0.12s, border-color 0.12s;
+}
+.stamps button:hover { border-style: solid; border-color: var(--c); color: var(--c); }
+.stamps button:active { transform: scale(0.9); }
+.stamps button[aria-pressed='true']:active { transform: rotate(-5deg) scale(0.9); }
+.stamps button[aria-pressed='true'] {
+  border: 1.5px solid var(--fill);
+  background: var(--fill);
+  color: var(--on);
+  box-shadow: inset 0 0 0 2px var(--fill), inset 0 0 0 3px rgba(255, 255, 255, 0.6);
+  transform: rotate(-5deg);
+}
+/* Setting a status lands like a stamp, as in the card: flat on the first frame (with the thud), then it springs back in a ring of ink. */
+.stamps button.press { animation: press 0.34s cubic-bezier(0.2, 0.8, 0.3, 1); }
+.stamps button.press::after { content: ''; position: absolute; inset: -1.5px; border-radius: inherit; border: 2px solid var(--fill); pointer-events: none; animation: ink 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
+@keyframes press { 0% { transform: rotate(-8deg) scale(0.86); } 40% { transform: rotate(-4deg) scale(1.05); } 100% { transform: rotate(-5deg); } }
+@keyframes ink { from { opacity: 0.6; transform: scale(1); } to { opacity: 0; transform: scale(1.4); } }
+@media (prefers-reduced-motion: reduce) { .stamps button.press { animation: none; } .stamps button.press::after { display: none; } }
+.when { font-size: 12px; color: var(--ink3); white-space: nowrap; }
+
+.word .x { width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--ink3); font-size: 18px; line-height: 1; opacity: 0; transition: opacity 0.12s; }
+.word:hover .x, .word .x:focus-visible { opacity: 1; }
+.word .x:hover { background: var(--ground); color: var(--fresh-ink); }
+@media (hover: none) { .word .x { opacity: 0.6; } }
+.word.gone > :not(.act) { opacity: 0.45; }
+.word.gone .ch b { text-decoration: line-through; }
+.word .undo { padding: 5px 14px; font-size: 13px; font-weight: 600; }
+
+.empty { margin: 0; padding: 48px 20px; text-align: center; color: var(--ink2); }
+.more { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; }
+
+@media (max-width: 760px) {
+  .plate .in, main { padding-left: 16px; padding-right: 16px; }
+  .filter { width: 100%; }
+  .filter button { flex: 1; justify-content: center; padding: 0 6px; gap: 6px; }
+  .filter button .en { display: none; }
+  .bar input[type='search'] { flex-basis: 0; }
+  .bar .jump { display: none; }
+  .word { grid-template-columns: minmax(0, 1fr) auto; padding: 14px 16px; }
+  .word .txt { grid-column: 1 / -1; grid-row: 2; }
+  .hw { --box: 42px; }
+}
+
+/* ---------- Export, import, backup ---------- */
+.tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.tool { background: var(--paper); border: 1px solid var(--rule); border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+.tool h3 { margin: 0; font-size: 16px; }
+.tool p { margin: -6px 0 0; font-size: 13.5px; color: var(--ink2); }
+.tool .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: auto; }
+.tool textarea { font-size: 13px; }
+
+/* ---------- Settings: one row per setting, label left, control right ---------- */
+.settings > * { max-width: 760px; }
+.settings h2 { font-size: 15px; font-weight: 650; color: var(--ink2); margin: 32px 0 8px 4px; }
+.settings h2:first-child { margin-top: 0; }
+.box { background: var(--paper); border: 1px solid var(--rule); border-radius: 14px; padding: 0 20px; }
+.set { display: flex; align-items: center; justify-content: space-between; gap: 8px 24px; padding: 13px 0; border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
+/* The last visible row (hidden Azure rows may follow it). */
+.set:not(:has(~ .set:not([hidden]))) { border-bottom: 0; }
+.set .txt { flex: 1 1 260px; min-width: 0; }
+.set .txt label { font-weight: 500; }
+.set .txt small { display: block; font-size: 13px; color: var(--ink2); margin-top: 1px; }
+.set .ctl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.set .ctl .status { margin-left: 0; flex-basis: 100%; text-align: right; }
+.set .ctl .status:empty { display: none; }
+.set.block .ctl { flex-basis: 100%; }
+.set input[type='password'] { width: 280px; max-width: 100%; }
+.status { font-size: 13px; margin-left: 8px; color: var(--ink2); }
+.status.ok { color: var(--known-ink); }
+.status.err { color: var(--fresh-ink); }
+.keys { display: grid; background: var(--paper); border: 1px solid var(--rule); border-radius: 14px; padding: 14px 20px; grid-template-columns: max-content 1fr max-content 1fr; gap: 8px 14px; align-items: center; font-size: 14px; }
+.keys .wide { grid-column: span 3; }
+@media (max-width: 760px) { .keys { grid-template-columns: max-content 1fr; } .keys .wide { grid-column: auto; } }
+.saved {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+  box-shadow: 0 4px 14px rgba(30, 26, 24, 0.22);
+}
+
+/* ---------- Counts (toolbar menu) ---------- */
+.counts { display: flex; gap: 10px; flex-wrap: wrap; }
+.count { background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; padding: 10px 16px 9px; min-width: 120px; border-top: 4px solid var(--ink3); }
+.count b { display: block; font: 700 26px/1.1 var(--ui); }
+.count span { font-size: 13px; color: var(--ink2); }
+.count.fresh { border-top-color: var(--fresh); }
+.count.learning { border-top-color: var(--learning); }
+.count.known { border-top-color: var(--known); }

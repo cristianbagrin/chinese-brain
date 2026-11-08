@@ -3,7 +3,7 @@
  * tabs.insertCSS, which no page CSP can block; the extension's own pages take a <style>.
  */
 export function addPageCSS(css: string) {
-  if (location.protocol === 'moz-extension:') {
+  if (location.protocol === 'moz-extension:' || (__CHROME__ && location.protocol === 'chrome-extension:')) {
     const style = document.createElement('style');
     style.textContent = css;
     document.head.append(style);

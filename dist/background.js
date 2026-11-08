@@ -924,6 +924,20 @@ Give each with a natural American English translation.`, schema = {
     return out;
   }
 
+  // src/platform/compat.ts
+  function createMenu(props) {
+    browser.menus.create(props);
+  }
+  function onMenuClicked(fn) {
+    browser.menus.onClicked.addListener(fn);
+  }
+  async function injectContent(tabId, frameId) {
+    await browser.tabs.executeScript(tabId, { file: "/content.js", frameId });
+  }
+  async function insertCSS(tabId, frameId, css) {
+    await browser.tabs.insertCSS(tabId, { code: css, frameId });
+  }
+
   // src/background/index.ts
   var dict, dictReady = loadDictionary(), store = new Store(), storeReady = store.load();
   startCaptionCapture();
@@ -965,15 +979,15 @@ Give each with a natural American English translation.`, schema = {
     ]);
     return [{ text, word: text, entries: [{ trad: text, simp: text, py, tw: "", defs: [en || "(not in the dictionary)"], zipf: 0, tocfl: 0, rank: 0 }], phrase: !0 }];
   }
-  browser.menus.create({ id: "cb-lookup", title: "Look up \u201C%s\u201D", contexts: ["selection"] });
-  browser.menus.onClicked.addListener(async (info, tab) => {
+  createMenu({ id: "cb-lookup", title: "Look up \u201C%s\u201D", contexts: ["selection"] });
+  onMenuClicked(async (info, tab) => {
     if (info.menuItemId !== "cb-lookup" || tab?.id == null) return;
     let msg = { type: "lookupSelection", text: info.selectionText ?? "" }, opts = { frameId: info.frameId ?? 0 };
     try {
       await browser.tabs.sendMessage(tab.id, msg, opts);
     } catch {
       try {
-        await browser.tabs.executeScript(tab.id, { file: "/content.js", frameId: opts.frameId });
+        await injectContent(tab.id, opts.frameId);
         for (let i = 0; ; i++) {
           await new Promise((ok) => setTimeout(ok, 200));
           try {
@@ -1057,7 +1071,7 @@ Give each with a natural American English translation.`, schema = {
       case "importWords":
         return storeReady.then(() => store.importWords(any.words, any.mode ?? "merge"));
       case "insertCSS":
-        return sender.tab?.id != null ? browser.tabs.insertCSS(sender.tab.id, { code: any.css, frameId: sender.frameId ?? 0 }).then(() => !0) : void 0;
+        return sender.tab?.id != null ? insertCSS(sender.tab.id, sender.frameId ?? 0, any.css).then(() => !0) : void 0;
       case "importList":
         return Promise.all([dictReady, storeReady]).then(async ([d]) => {
           let recs = [], seen = /* @__PURE__ */ new Set();
@@ -1089,7 +1103,7 @@ Give each with a natural American English translation.`, schema = {
       case "tts":
         return getSettings().then(
           (st) => ttsAudio(any.engine, String(any.text), st).then(
-            (audio) => ({ audio }),
+            (audio) => ({ audio: audio }),
             (e) => ({ error: String(e instanceof Error ? e.message : e) })
           )
         );

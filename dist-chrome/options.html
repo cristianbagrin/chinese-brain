@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings · Chinese Brain</title>
+<link rel="icon" href="icons/icon.svg">
+<link rel="stylesheet" href="pages.css">
+</head>
+<body>
+<header class="plate"><div class="in">
+  <a class="brand" href="vocab.html"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M45.01 21.65 43.44 43.58 20.9 44.2 19.61 23ZM21.07 48.29 47.25 47.5Q48.09 47.45 48.74 47.34Q49.38 47.22 49.38 46.44Q49.38 45.99 48.99 45.32Q48.6 44.64 47.81 43.64L49.66 21.32Q49.72 21.09 49.86 20.79Q50 20.48 50 20.08Q50 19.3 49.05 18.46Q48.09 17.62 46.8 17.62H46.47L19.21 19.02Q16.02 17.62 15.01 17.62Q14 17.62 14 18.51Q14 19.02 14.39 19.69Q14.73 20.36 14.95 21.35Q15.18 22.33 15.23 23.17L16.52 45.49Q16.58 45.77 16.58 46.07Q16.58 46.38 16.58 46.66Q16.58 47.39 16.52 47.93Q16.47 48.46 16.36 49.07Q16.36 49.13 16.33 49.21Q16.3 49.3 16.3 49.47Q16.3 50.53 17.25 51.15Q18.21 51.77 19.1 52.1L20 52.38Q21.23 52.38 21.23 50.64V50.36Z" fill="#fbf1de"/><g transform="rotate(4 32 34)"><path d="M27.2 4h4.6l-1.0999999999999999 56h-2.4z" fill="#1c1a1a"/><path d="M27.2 4h4.6l-.15 9h-4.3z" fill="#e9b44c"/></g><g transform="rotate(11 32 34)"><path d="M32.7 4h4.6l-1.0999999999999999 56h-2.4z" fill="#1c1a1a"/><path d="M32.7 4h4.6l-.15 9h-4.3z" fill="#e9b44c"/></g></svg><span class="name" lang="zh-Hant">中文腦</span></a>
+  <nav><a href="vocab.html">Words</a><a href="options.html" aria-current="page">Settings</a></nav>
+</div></header>
+<main class="settings">
+  <h2>Lookup card</h2>
+  <div class="box">
+    <div class="set">
+      <div class="txt"><label for="hoverMode">Show the card</label></div>
+      <div class="ctl">
+        <select id="hoverMode">
+          <option value="hover">on hover</option>
+          <option value="alt">while holding Option (Alt)</option>
+          <option value="off">never</option>
+        </select>
+      </div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="pinyin">Pinyin</label><small>In the card, hints and subtitles. <kbd>P</kbd> switches it.</small></div>
+      <div class="ctl"><input type="checkbox" id="pinyin"></div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="cardSize">Card size</label></div>
+      <div class="ctl">
+        <select id="cardSize">
+          <option value="normal">normal</option>
+          <option value="large">large</option>
+        </select>
+      </div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="cardColors">Color words in the card</label></div>
+      <div class="ctl"><input type="checkbox" id="cardColors"></div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="pageColors">Color words on every page</label><small>Per site from the toolbar menu.</small></div>
+      <div class="ctl"><input type="checkbox" id="pageColors"></div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="sounds">Stamp sounds</label></div>
+      <div class="ctl"><input type="checkbox" id="sounds"></div>
+    </div>
+    <div class="set block">
+      <div class="txt"><label for="disabledSites">Sites where lookup stays off</label></div>
+      <div class="ctl"><textarea id="disabledSites" rows="2" placeholder="one domain per line, e.g. mail.google.com"></textarea></div>
+    </div>
+  </div>
+
+  <h2>Voice</h2>
+  <div class="box">
+    <div class="set">
+      <div class="txt"><label for="voice">Voice</label></div>
+      <div class="ctl">
+        <select id="voice">
+          <option value="google">Google Taiwan (online, free)</option>
+          <option value="system">System voice (offline)</option>
+          <option value="azure">Azure neural (your own key)</option>
+        </select>
+        <button type="button" id="testVoice">▶ Test</button>
+        <span class="status" id="voiceStatus"></span>
+      </div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="speechRate">Speed</label><small>Google has two: normal and slow.</small></div>
+      <div class="ctl">
+        <select id="speechRate">
+          <option value="0.6">slow</option>
+          <option value="0.8">a little slow</option>
+          <option value="0.9">natural, slightly slow</option>
+          <option value="1">natural</option>
+        </select>
+      </div>
+    </div>
+    <div class="set azure">
+      <div class="txt"><label for="azureKey">Azure key</label><small>"KEY 1" of a free Speech resource (F0).</small></div>
+      <div class="ctl">
+        <input type="password" id="azureKey" autocomplete="off" spellcheck="false">
+        <button type="button" id="checkAzure">Check</button>
+        <span class="status" id="azureStatus"></span>
+      </div>
+    </div>
+    <div class="set azure">
+      <div class="txt"><label for="azureRegion">Azure region</label><small>"Check" finds it for you.</small></div>
+      <div class="ctl"><select id="azureRegion"></select></div>
+    </div>
+    <div class="set azure">
+      <div class="txt"><label for="azureVoice">Azure voice</label></div>
+      <div class="ctl">
+        <select id="azureVoice">
+          <option value="zh-TW-HsiaoChenNeural">HsiaoChen (female)</option>
+          <option value="zh-TW-HsiaoYuNeural">HsiaoYu (female)</option>
+          <option value="zh-TW-YunJheNeural">YunJhe (male)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <h2>YouTube</h2>
+  <div class="box">
+    <div class="set">
+      <div class="txt"><label for="ytEnabled">Chinese Brain subtitles</label><small>Same as the 中 switch in the player.</small></div>
+      <div class="ctl"><input type="checkbox" id="ytEnabled"></div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="translation">English line</label></div>
+      <div class="ctl">
+        <select id="translation">
+          <option value="show">visible</option>
+          <option value="blur">blurred until hovered</option>
+          <option value="hide">hidden</option>
+        </select>
+      </div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="subStyle">Subtitle band</label></div>
+      <div class="ctl">
+        <select id="subStyle">
+          <option value="light">light</option>
+          <option value="dark">dark</option>
+        </select>
+      </div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="pauseOnHover">Pause while hovering the subtitles</label></div>
+      <div class="ctl"><input type="checkbox" id="pauseOnHover"></div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="autoFreshOnClick">Clicking a new word stamps it 新 Fresh</label><small>Click again to undo.</small></div>
+      <div class="ctl"><input type="checkbox" id="autoFreshOnClick"></div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="subFontSize">Subtitle size</label><small>At 720p; scales with the player.</small></div>
+      <div class="ctl"><input type="number" id="subFontSize" min="16" max="60" step="1"></div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="shadowFactor">Shadowing pause</label><small>× the length of the line.</small></div>
+      <div class="ctl"><input type="number" id="shadowFactor" min="0.5" max="4" step="0.25"></div>
+    </div>
+  </div>
+
+  <h2>Gemini (optional)</h2>
+  <div class="box">
+    <div class="set">
+      <div class="txt"><label for="geminiKey">API key</label><small>Free at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>. Used only when you ask (transcripts, example sentences). Free-tier requests may help train Google's models.</small></div>
+      <div class="ctl">
+        <input type="password" id="geminiKey" autocomplete="off" spellcheck="false">
+        <button type="button" id="checkGemini">Check</button>
+        <span class="status" id="geminiStatus"></span>
+      </div>
+    </div>
+    <div class="set">
+      <div class="txt"><label for="geminiModel">Model</label><small>"Check" lists the ones your key can use.</small></div>
+      <div class="ctl"><select id="geminiModel"></select></div>
+    </div>
+  </div>
+
+  <h2>Keys</h2>
+  <div class="keys">
+    <span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span><span>新 · 學 · 熟 (again to clear)</span>
+    <span><kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></span><span>previous · replay · next line</span>
+    <span><kbd>0</kbd></span><span>remove from the list</span>
+    <span><kbd>R</kbd> <kbd>Q</kbd> <kbd>E</kbd></span><span>loop · shadowing · transcript</span>
+    <span><kbd>V</kbd> <kbd>I</kbd></span><span>say it · images</span>
+    <span><kbd>X</kbd></span><span>English line</span>
+    <span><kbd>P</kbd></span><span>pinyin on / off</span>
+    <span><kbd>Esc</kbd></span><span>close the card</span>
+    <span><kbd>←</kbd> <kbd>→</kbd></span><span class="wide">back / forward through words opened in the card · pointing at a word in the card, the keys act on that word</span>
+  </div>
+</main>
+<div class="saved" id="saved" hidden>Saved</div>
+<script src="options.js"></script>
+</body>
+</html>
