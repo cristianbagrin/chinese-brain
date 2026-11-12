@@ -76,7 +76,7 @@ Chinese Brain 中文腦
 **Add-on URL**
 
 ```
-chinese-brain
+chinesebrain
 ```
 
 **Summary** (250 characters max)
