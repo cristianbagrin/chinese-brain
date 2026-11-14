@@ -1,0 +1,7 @@
+// The website at https://chinese.cristianbagrin.com: a Cloudflare Worker that only serves the files in this folder.
+// Deploy after changing a page: run `npx wrangler deploy` from this folder.
+{
+  "name": "chinesebrain",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": ".", "not_found_handling": "404-page" }
+}
