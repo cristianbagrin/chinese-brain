@@ -64,6 +64,17 @@ try {
   );
   ok('context-menu item registered', menu === 'ok', menu);
 
+  // A fresh install opens the welcome page in a tab of its own. Wait for it and close it: left
+  // alone it comes to the front in the middle of the hover checks below.
+  const isWelcome = (p) => /\/brain\/welcome/.test(p.url());
+  let welcome = context.pages().find(isWelcome);
+  for (let i = 0; i < 40 && !welcome; i++) {
+    await sleep(250);
+    welcome = context.pages().find(isWelcome);
+  }
+  ok('a fresh install opens the welcome page', !!welcome, welcome?.url() ?? 'no tab');
+  await welcome?.close();
+
   // Hover lookup and the 1/2/3 shortcuts.
   const page = await context.newPage();
   page.on('console', (m) => m.type() === 'error' && errors.push(`page console: ${m.text()}`));
@@ -85,8 +96,10 @@ try {
     page.evaluate(({ x, y }) => [60, 100, -60, -100].some((dy) => document.elementFromPoint(x, y + dy)?.tagName === 'CHINESE-BRAIN-POPUP'), at);
   let shown = false;
   for (let i = 0; i < 10 && !shown; i++) {
-    await page.mouse.move(10, 10); // blank margin: no other word on the way
-    await page.mouse.move(at.x, at.y, { steps: 5 });
+    await page.mouse.move(10, 10); // blank margin
+    // Straight to the word: a path in steps crosses a word on the line above, whose card then
+    // opens first and (by design) keeps the text between it and its word quiet.
+    await page.mouse.move(at.x, at.y);
     for (let j = 0; j < 10 && !shown; j++) {
       await sleep(200);
       shown = await cardShown();
