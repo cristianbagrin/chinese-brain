@@ -408,15 +408,31 @@
   }
 
   // src/background/store.ts
+  async function storedKeys(prefix) {
+    let local = browser.storage.local;
+    try {
+      if (local.getKeys) return (await local.getKeys()).filter((k) => k.startsWith(prefix));
+    } catch {
+    }
+    return Object.keys(await local.get(null)).filter((k) => k.startsWith(prefix));
+  }
+  async function stored(prefix) {
+    let local = browser.storage.local;
+    if (!local.getKeys) {
+      let all = await local.get(null);
+      return Object.fromEntries(Object.entries(all).filter(([k]) => k.startsWith(prefix)));
+    }
+    let keys = await storedKeys(prefix);
+    return keys.length ? local.get(keys) : {};
+  }
   var Store = class {
     words = /* @__PURE__ */ new Map();
     pendingLog = [];
     logTimer;
     recentLooks = /* @__PURE__ */ new Map();
     async load() {
-      let all = await browser.storage.local.get(null), migrate = {};
+      let all = await stored("w:"), migrate = {};
       for (let [k, v] of Object.entries(all)) {
-        if (!k.startsWith("w:")) continue;
         let rec = v;
         (rec.s === "difficult" || rec.hist.some((h) => h.s === "difficult")) && (rec.s === "difficult" && (rec.s = "learning"), rec.hist = rec.hist.map((h) => h.s === "difficult" ? { ...h, s: "learning" } : h), migrate[k] = rec), this.words.set(k.slice(2), rec);
       }
@@ -466,8 +482,8 @@
     }
     async allLogs() {
       await this.flushLog();
-      let all = await browser.storage.local.get(null);
-      return Object.keys(all).filter((k) => k.startsWith("log:")).sort().flatMap((k) => all[k]);
+      let all = await stored("log:");
+      return Object.keys(all).sort().flatMap((k) => all[k]);
     }
     /** Bulk import (known-words file, backups). Existing records keep their history. */
     async importWords(recs, mode = "merge") {
@@ -491,7 +507,15 @@
     let { azureKey: _a, geminiKey: _g, ...rest } = v;
     return rest;
   }
-  var json = (k, v) => JSON.stringify(travel(k, v) ?? null), ApiError = class extends Error {
+  function stable(v) {
+    if (Array.isArray(v)) return `[${v.map(stable).join(",")}]`;
+    if (v && typeof v == "object") {
+      let o = v;
+      return `{${Object.keys(o).filter((k) => o[k] !== void 0).sort().map((k) => `${JSON.stringify(k)}:${stable(o[k])}`).join(",")}}`;
+    }
+    return JSON.stringify(v ?? null);
+  }
+  var json = (k, v) => stable(travel(k, v)), ApiError = class extends Error {
     code;
     constructor(message, code) {
       super(message), this.code = code;
@@ -529,7 +553,9 @@
         area === "local" && this.ready.then(() => this.note(changes));
       }), browser.alarms.onAlarm.addListener((a) => {
         a.name === "sync" && this.now();
-      }), browser.alarms.create("sync", { periodInMinutes: 20 }), this.now();
+      }), browser.alarms.get("sync").then((a) => a || browser.alarms.create("sync", { periodInMinutes: 20 })), this.ready.then(() => {
+        (Object.keys(this.dirty).length || Date.now() - (this.acct?.at ?? 0) > 9e5) && this.now();
+      });
     }
     note(changes) {
       if (!this.acct?.token) return;
@@ -589,9 +615,19 @@
       if (a?.token)
         try {
           for (let more = !0; more; ) {
-            let keys = Object.keys(this.dirty).slice(0, 400), sent = Object.fromEntries(keys.map((k) => [k, this.dirty[k]])), have = keys.length ? await browser.storage.local.get(keys) : {}, changes = keys.map((k) => ({ k, v: travel(k, have[k]) ?? null, t: sent[k] })), res = await api("sync", { since: a.seq, changes }, a.token);
+            let keys = Object.keys(this.dirty).slice(0, 400), sent = Object.fromEntries(keys.map((k) => [k, this.dirty[k]])), have = keys.length ? await browser.storage.local.get(keys) : {}, changes = [], size = 0;
+            for (let k of keys) {
+              let v = travel(k, have[k]) ?? null, n = JSON.stringify(v).length;
+              if (n > 3e4) {
+                console.warn("[chinese-brain] too large to sync", k), delete this.dirty[k];
+                continue;
+              }
+              if (changes.length && size + n > 4e5) break;
+              size += n, changes.push({ k, v, t: sent[k] });
+            }
+            let res = await api("sync", { since: a.seq, changes }, a.token);
             if (this.acct !== a) return;
-            for (let k of keys) this.dirty[k] === sent[k] && delete this.dirty[k];
+            for (let c of changes) this.dirty[c.k] === sent[c.k] && delete this.dirty[c.k];
             await this.apply(res.changes), a.seq = res.seq, a.at = Date.now(), delete a.error, await browser.storage.local.set({ acct: a, "acct:dirty": this.dirty }), more = res.more || Object.keys(this.dirty).length > 0;
           }
         } catch (e) {
@@ -606,7 +642,7 @@
         !SYNCED.test(c.k) || (this.dirty[c.k] ?? 0) > c.t || (c.k === "settings" ? settings = c.v : c.v == null ? remove.push(c.k) : set[c.k] = c.v);
       if (settings) {
         let mine = (await browser.storage.local.get("settings")).settings ?? {};
-        set.settings = { ...settings, azureKey: mine.azureKey ?? "", geminiKey: mine.geminiKey ?? "" };
+        set.settings = { ...settings, azureKey: mine.azureKey ?? "", geminiKey: mine.geminiKey ?? "" }, settings.voice === "azure" && !mine.azureKey && (set.settings.voice = mine.voice ?? "google");
       }
       for (let [k, v] of Object.entries(set)) this.applied.set(k, json(k, v));
       for (let k of remove) this.applied.set(k, "null");
@@ -781,7 +817,7 @@ Do not summarize, skip or merge lines, and add no commentary. Skip music without
     let cacheKey = "gem:" + videoId, cached = (await browser.storage.local.get(cacheKey))[cacheKey];
     if (cached && (Array.isArray(cached) ? cached.length : cached.lines.length))
       return Array.isArray(cached) ? { lines: cached, translated: !1, model } : { ...cached, model };
-    let n = Number.isFinite(duration) && duration > 300 * 1.25 ? Math.ceil(duration / 300) : 1, clips = Array.from({ length: n }, (_, i) => ({ start: i * 300, end: Math.min(duration, (i + 1) * 300) })), partKey = (i) => `gemc:${videoId}:${i}/${n}`, stored = await browser.storage.local.get(clips.map((_, i) => partKey(i))), parts = clips.map((_, i) => stored[partKey(i)]), errors = [], used = model, reached = clips.map((_, i) => parts[i] ? 1 : 0), pct = () => Number.isFinite(duration) && duration > 0 ? clips.reduce((sum, c, i) => sum + reached[i] * (c.end - c.start), 0) / duration : void 0, report = () => progress({
+    let n = Number.isFinite(duration) && duration > 300 * 1.25 ? Math.ceil(duration / 300) : 1, clips = Array.from({ length: n }, (_, i) => ({ start: i * 300, end: Math.min(duration, (i + 1) * 300) })), partKey = (i) => `gemc:${videoId}:${i}/${n}`, stored2 = await browser.storage.local.get(clips.map((_, i) => partKey(i))), parts = clips.map((_, i) => stored2[partKey(i)]), errors = [], used = model, reached = clips.map((_, i) => parts[i] ? 1 : 0), pct = () => Number.isFinite(duration) && duration > 0 ? clips.reduce((sum, c, i) => sum + reached[i] * (c.end - c.start), 0) / duration : void 0, report = () => progress({
       done: parts.filter(Boolean).length,
       total: n,
       lines: parts.flatMap((p) => p?.lines ?? []).sort((a, b) => a.start - b.start),
@@ -952,8 +988,8 @@ Give each with a natural American English translation.`, schema = {
     /** Sentences written for each word. */
     own = /* @__PURE__ */ new Map();
     pool = [];
-    /** word -> pool sentences that use it (built in the background after start-up). */
-    index = /* @__PURE__ */ new Map();
+    /** The pool sentences found for the last few words asked about (a card asks more than once). */
+    found = /* @__PURE__ */ new Map();
     load(tsv) {
       let seen = /* @__PURE__ */ new Set();
       for (let line of tsv.split(`
@@ -964,20 +1000,20 @@ Give each with a natural American English translation.`, schema = {
         list ? list.push([zh, en ?? ""]) : this.own.set(w, [[zh, en ?? ""]]), seen.has(zh) || (seen.add(zh), this.pool.push([zh, en ?? ""]));
       }
     }
-    /** Split every sentence into words, a few hundred at a time, without hogging the browser. */
-    buildIndex(d, done) {
-      let i = 0, step = () => {
-        let end = Math.min(this.pool.length, i + 400);
-        for (; i < end; i++) {
-          let words = new Set(d.segment(this.pool[i][0]).filter((t) => t.word && CJK.test(t.text)).map((t) => t.word));
-          for (let w of words) {
-            let ids = this.index.get(w);
-            ids ? ids.push(i) : this.index.set(w, [i]);
-          }
-        }
-        i < this.pool.length ? setTimeout(step, 0) : done?.();
-      };
-      step();
+    /**
+     * The first pool sentences that use `word` as a word (not merely as part of a longer one).
+     * Found when asked: sentences containing the characters are split into words and checked.
+     * An index of every sentence took over a second each time the background started, which in
+     * Chrome is after every idle half minute.
+     */
+    using(word, d, max = 80) {
+      let hit = this.found.get(word);
+      if (hit) return hit;
+      let alt = word.includes("\u81FA") ? word.replaceAll("\u81FA", "\u53F0") : "", out = [], tried = 0;
+      for (let s of this.pool)
+        if (!(!s[0].includes(word) && !(alt && s[0].includes(alt))) && (++tried > 1500 || d.segment(s[0]).some((t) => t.word === word) && out.push(s) >= max))
+          break;
+      return this.found.size > 200 && this.found.clear(), this.found.set(word, out), out;
     }
     /**
      * The best two sentences for `word`. `extra` are sentences Gemini wrote for it; `hidden`
@@ -989,7 +1025,7 @@ Give each with a natural American English translation.`, schema = {
       };
       for (let [zh, en] of this.own.get(word) ?? []) add(zh, en, 2);
       for (let [zh, en] of extra) add(zh, en, 2);
-      for (let id of (this.index.get(word) ?? []).slice(0, 80)) add(this.pool[id][0], this.pool[id][1], 0);
+      for (let [zh, en] of this.using(word, d)) add(zh, en, 0);
       let scored = [...cands.values()].map((c) => {
         let toks = d.segment(c.zh);
         return { ...c, toks, score: (saved.has(c.zh) ? 100 : c.base) + readability(toks, word, d, statusOf) };
@@ -1079,7 +1115,7 @@ Give each with a natural American English translation.`, schema = {
     rec ? (store.words.set(rec.w, rec), dict && addOwnWord(dict, rec.w, rec.g)) : store.words.delete(k.slice(2));
   });
   browser.runtime.onInstalled.addListener((d) => {
-    d.reason === "install" && browser.tabs.create({ url: `${SITE}/welcome` });
+    d.reason === "install" && browser.tabs.create({ url: `${SITE}/brain/welcome` });
   });
   startCaptionCapture();
   var examples = new ExampleBank(), examplesReady = loadExamples();
@@ -1087,7 +1123,7 @@ Give each with a natural American English translation.`, schema = {
     try {
       let res = await fetch(browser.runtime.getURL("data/examples.tsv.gz"));
       if (!res.ok) return;
-      examples.load(await new Response(res.body.pipeThrough(new DecompressionStream("gzip"))).text()), dictReady.then((d) => examples.buildIndex(d));
+      examples.load(await new Response(res.body.pipeThrough(new DecompressionStream("gzip"))).text());
     } catch {
     }
   }
@@ -1144,16 +1180,18 @@ Give each with a natural American English translation.`, schema = {
     }
   });
   browser.commands.onCommand.addListener(async (name) => {
-    if (name !== "toggle-colors") return;
+    if (name !== "toggle-colors" && name !== "toggle-colors-all") return;
     let [tab] = await browser.tabs.query({ active: !0, currentWindow: !0 }), host = "";
     try {
       let u = new URL(tab?.url ?? "");
       /^https?:$/.test(u.protocol) && (host = u.hostname);
     } catch {
     }
-    if (!host || tab?.id == null) return;
-    let s = await getSettings(), toast = (text) => browser.tabs.sendMessage(tab.id, { type: "toast", text }).catch(() => {
+    let s = await getSettings(), toast = (text) => tab?.id == null ? void 0 : browser.tabs.sendMessage(tab.id, { type: "toast", text }).catch(() => {
     });
+    if (name === "toggle-colors-all")
+      return await browser.storage.local.set({ settings: { ...s, pageColors: !s.pageColors } }), void toast(`Word colors ${s.pageColors ? "off" : "on"} on every website`);
+    if (!host || tab?.id == null) return;
     if (s.hoverMode === "off" || s.disabledSites.includes(host)) return toast("Chinese Brain is off on this site. Turn it on in the toolbar menu first.");
     let next = !colorsOn(s, host), siteColors = { ...s.siteColors };
     next === s.pageColors ? delete siteColors[host] : siteColors[host] = next, await browser.storage.local.set({ settings: { ...s, siteColors } }), toast(`Word colors ${next ? "on" : "off"} on ${host.replace(/^www\./, "")}`);
@@ -1205,8 +1243,8 @@ Give each with a natural American English translation.`, schema = {
         return Promise.resolve(sender.tab?.id != null ? cachedCaptions(sender.tab.id) : []);
       case "allData":
         return Promise.all([storeReady, dictReady]).then(async ([, d]) => {
-          let all = await browser.storage.local.get(null), saved = {};
-          for (let [k, v] of Object.entries(all)) k.startsWith("sav:") && (saved[k.slice(4)] = v);
+          let saved = {};
+          for (let [k, v] of Object.entries(await stored("sav:"))) saved[k.slice(4)] = v;
           return { words: [...store.words.values()].map((w) => freshen(d, w)), logs: await store.allLogs(), saved };
         });
       case "importWords":
@@ -1331,9 +1369,7 @@ Give each with a natural American English translation.`, schema = {
           }
         });
       case "geminiForget":
-        return browser.storage.local.get(null).then(
-          (all) => browser.storage.local.remove(Object.keys(all).filter((k) => k === "gem:" + any.videoId || k.startsWith(`gemc:${any.videoId}:`))).then(() => !0)
-        );
+        return storedKeys(`gemc:${any.videoId}:`).then((parts) => browser.storage.local.remove(["gem:" + any.videoId, ...parts]).then(() => !0));
       case "geminiCached":
         return browser.storage.local.get("gem:" + any.videoId).then((r) => r["gem:" + any.videoId] ?? null);
       case "entries":

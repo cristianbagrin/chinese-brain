@@ -13,205 +13,218 @@
   <nav><a href="vocab.html">Words</a><a href="options.html" aria-current="page">Settings</a></nav>
 </div></header>
 <main class="settings">
-  <h2 id="account">Account</h2>
-  <div class="box acct" id="acct" hidden>
-    <form class="set" id="signedOut" hidden>
-      <div class="txt"><label for="email">Sync your words</label><small>One word list on every browser you use. Optional.</small></div>
-      <div class="ctl">
-        <input type="email" id="email" placeholder="Email" autocomplete="username" required>
-        <input type="password" id="password" placeholder="Password" autocomplete="current-password" minlength="8" required>
-        <button type="submit" class="primary" id="signIn">Sign in</button>
-        <button type="button" id="signUp">Create account</button>
-        <button type="button" class="link" id="forgot">Forgot password?</button>
-        <span class="status" id="acctStatus"></span>
-      </div>
-    </form>
-    <div class="set" id="signedIn" hidden>
-      <div class="txt"><label id="acctEmail"></label><small id="acctSync"></small></div>
-      <div class="ctl">
-        <button type="button" id="syncNow">Sync now</button>
-        <a class="btn" href="https://chinese.cristianbagrin.com/account" target="_blank">Manage</a>
-        <button type="button" id="signOut">Sign out</button>
-      </div>
-    </div>
-  </div>
-
-  <h2>Lookup card</h2>
-  <div class="box">
-    <div class="set">
-      <div class="txt"><label for="hoverMode">Show the card</label></div>
-      <div class="ctl">
-        <select id="hoverMode">
-          <option value="hover">on hover</option>
-          <option value="alt">while holding Option (Alt)</option>
-          <option value="off">never</option>
-        </select>
+  <section class="wide">
+    <h2 id="account">Account</h2>
+    <div class="box acct" id="acct" hidden>
+      <form class="set" id="signedOut" hidden>
+        <div class="txt"><label for="email">Sync your words</label><small>One word list on every browser, and on the web. Free and optional. <a href="https://chinese.cristianbagrin.com/brain/guide#sync" target="_blank">How it works</a></small></div>
+        <div class="ctl">
+          <input type="email" id="email" placeholder="Email" autocomplete="username" required>
+          <input type="password" id="password" placeholder="Password" autocomplete="current-password" minlength="8" required>
+          <button type="submit" class="primary" id="signIn">Sign in</button>
+          <button type="button" id="signUp">Create account</button>
+          <button type="button" class="link" id="forgot">Forgot password?</button>
+          <span class="status" id="acctStatus"></span>
+        </div>
+      </form>
+      <div class="set" id="signedIn" hidden>
+        <div class="txt"><label id="acctEmail"></label><small id="acctSync"></small></div>
+        <div class="ctl">
+          <button type="button" id="syncNow">Sync now</button>
+          <a class="btn" href="https://chinese.cristianbagrin.com/brain/dashboard" target="_blank">Dashboard</a>
+          <a class="btn" href="https://chinese.cristianbagrin.com/account" target="_blank">Manage</a>
+          <button type="button" id="signOut">Sign out</button>
+        </div>
       </div>
     </div>
-    <div class="set">
-      <div class="txt"><label for="pinyin">Pinyin</label></div>
-      <div class="ctl"><input type="checkbox" id="pinyin"></div>
-    </div>
-    <div class="set">
-      <div class="txt"><label for="cardSize">Card size</label></div>
-      <div class="ctl">
-        <select id="cardSize">
-          <option value="normal">normal</option>
-          <option value="large">large</option>
-        </select>
+  </section>
+  <section>
+    <h2>Lookup card</h2>
+    <div class="box">
+      <div class="set">
+        <div class="txt"><label for="hoverMode">Show the card</label></div>
+        <div class="ctl">
+          <select id="hoverMode">
+            <option value="hover">on hover</option>
+            <option value="alt" id="altOption">while holding Alt</option>
+            <option value="off">never</option>
+          </select>
+        </div>
+      </div>
+      <div class="set">
+        <div class="txt"><label for="pinyin">Pinyin</label></div>
+        <div class="ctl"><input type="checkbox" id="pinyin"></div>
+      </div>
+      <div class="set">
+        <div class="txt"><label for="cardSize">Card size</label></div>
+        <div class="ctl">
+          <select id="cardSize">
+            <option value="normal">normal</option>
+            <option value="large">large</option>
+          </select>
+        </div>
+      </div>
+      <div class="set">
+        <div class="txt"><label for="cardColors">Color words in the card</label></div>
+        <div class="ctl"><input type="checkbox" id="cardColors"></div>
+      </div>
+      <div class="set">
+        <div class="txt"><label for="pageColors">Color words on every website</label><small>Your 新 學 熟 colors on all the Chinese you read. One site only: the toolbar menu.</small></div>
+        <div class="ctl"><input type="checkbox" id="pageColors"></div>
+      </div>
+      <div class="set">
+        <div class="txt"><label for="sounds">Stamp sounds</label></div>
+        <div class="ctl"><input type="checkbox" id="sounds"></div>
+      </div>
+      <div class="set block">
+        <div class="txt"><label for="disabledSites">Sites where lookup stays off</label></div>
+        <div class="ctl"><textarea id="disabledSites" rows="2" placeholder="one domain per line, e.g. mail.google.com"></textarea></div>
       </div>
     </div>
-    <div class="set">
-      <div class="txt"><label for="cardColors">Color words in the card</label></div>
-      <div class="ctl"><input type="checkbox" id="cardColors"></div>
-    </div>
-    <div class="set">
-      <div class="txt"><label for="pageColors">Color words on every page</label></div>
-      <div class="ctl"><input type="checkbox" id="pageColors"></div>
-    </div>
-    <div class="set">
-      <div class="txt"><label for="sounds">Stamp sounds</label></div>
-      <div class="ctl"><input type="checkbox" id="sounds"></div>
-    </div>
-    <div class="set block">
-      <div class="txt"><label for="disabledSites">Sites where lookup stays off</label></div>
-      <div class="ctl"><textarea id="disabledSites" rows="2" placeholder="one domain per line, e.g. mail.google.com"></textarea></div>
-    </div>
-  </div>
-
-  <h2>Voice</h2>
-  <div class="box">
-    <div class="set">
-      <div class="txt"><label for="voice">Voice</label></div>
-      <div class="ctl">
-        <select id="voice">
-          <option value="google">Google Taiwan (online, free)</option>
-          <option value="system">System voice (offline)</option>
-          <option value="azure">Azure neural (your own key)</option>
-        </select>
-        <button type="button" id="testVoice">▶ Test</button>
-        <span class="status" id="voiceStatus"></span>
+  </section>
+  <section>
+    <h2>Voice</h2>
+    <div class="box">
+      <div class="set">
+        <div class="txt"><label for="voice">Voice</label></div>
+        <div class="ctl">
+          <select id="voice">
+            <option value="google">Google Taiwan (online, free)</option>
+            <option value="system">System voice (offline)</option>
+            <option value="azure">Azure neural (your own key)</option>
+          </select>
+          <button type="button" id="testVoice">▶ Test</button>
+          <span class="status" id="voiceStatus"></span>
+        </div>
+      </div>
+      <div class="set">
+        <div class="txt"><label for="speechRate">Speed</label></div>
+        <div class="ctl">
+          <select id="speechRate">
+            <option value="0.6">slow</option>
+            <option value="0.8">a little slow</option>
+            <option value="0.9">natural, slightly slow</option>
+            <option value="1">natural</option>
+          </select>
+        </div>
+      </div>
+      <div class="set azure">
+        <div class="txt"><label for="azureKey">Azure key</label></div>
+        <div class="ctl">
+          <input type="password" id="azureKey" autocomplete="off" spellcheck="false">
+          <button type="button" id="checkAzure">Check</button>
+          <span class="status" id="azureStatus"></span>
+        </div>
+      </div>
+      <div class="set azure">
+        <div class="txt"><label for="azureRegion">Azure region</label></div>
+        <div class="ctl"><select id="azureRegion"></select></div>
+      </div>
+      <div class="set azure">
+        <div class="txt"><label for="azureVoice">Azure voice</label></div>
+        <div class="ctl">
+          <select id="azureVoice">
+            <option value="zh-TW-HsiaoChenNeural">HsiaoChen (female)</option>
+            <option value="zh-TW-HsiaoYuNeural">HsiaoYu (female)</option>
+            <option value="zh-TW-YunJheNeural">YunJhe (male)</option>
+          </select>
+        </div>
       </div>
     </div>
-    <div class="set">
-      <div class="txt"><label for="speechRate">Speed</label></div>
-      <div class="ctl">
-        <select id="speechRate">
-          <option value="0.6">slow</option>
-          <option value="0.8">a little slow</option>
-          <option value="0.9">natural, slightly slow</option>
-          <option value="1">natural</option>
-        </select>
+  </section>
+  <section>
+    <h2>YouTube</h2>
+    <div class="box">
+      <div class="set">
+        <div class="txt"><label for="ytEnabled">Chinese Brain subtitles</label></div>
+        <div class="ctl"><input type="checkbox" id="ytEnabled"></div>
+      </div>
+      <div class="set">
+        <div class="txt"><label for="translation">English line</label></div>
+        <div class="ctl">
+          <select id="translation">
+            <option value="show">visible</option>
+            <option value="blur">blurred until hovered</option>
+            <option value="hide">hidden</option>
+          </select>
+        </div>
+      </div>
+      <div class="set">
+        <div class="txt"><label for="subStyle">Subtitle band</label></div>
+        <div class="ctl">
+          <select id="subStyle">
+            <option value="light">light</option>
+            <option value="dark">dark</option>
+          </select>
+        </div>
+      </div>
+      <div class="set">
+        <div class="txt"><label for="pauseOnHover">Pause while hovering the subtitles</label></div>
+        <div class="ctl"><input type="checkbox" id="pauseOnHover"></div>
+      </div>
+      <div class="set">
+        <div class="txt"><label for="autoFreshOnClick">Clicking a new word stamps it 新 Fresh</label></div>
+        <div class="ctl"><input type="checkbox" id="autoFreshOnClick"></div>
+      </div>
+      <div class="set">
+        <div class="txt"><label for="subFontSize">Subtitle size</label></div>
+        <div class="ctl"><input type="number" id="subFontSize" min="16" max="60" step="1"></div>
+      </div>
+      <div class="set">
+        <div class="txt"><label for="shadowFactor">Shadowing pause</label><small>× the line's length</small></div>
+        <div class="ctl"><input type="number" id="shadowFactor" min="0.5" max="4" step="0.25"></div>
       </div>
     </div>
-    <div class="set azure">
-      <div class="txt"><label for="azureKey">Azure key</label></div>
-      <div class="ctl">
-        <input type="password" id="azureKey" autocomplete="off" spellcheck="false">
-        <button type="button" id="checkAzure">Check</button>
-        <span class="status" id="azureStatus"></span>
+  </section>
+  <section>
+    <h2 id="gemini">Gemini (optional)</h2>
+    <div class="box">
+      <div class="set">
+        <div class="txt"><label for="geminiKey">API key</label><small>AI subtitles for videos without captions, and extra example sentences. <a href="https://aistudio.google.com/apikey" target="_blank">Get a free key</a> · <a href="https://chinese.cristianbagrin.com/brain/guide#gemini" target="_blank">How it works</a></small></div>
+        <div class="ctl">
+          <input type="password" id="geminiKey" autocomplete="off" spellcheck="false">
+          <button type="button" id="checkGemini">Check</button>
+          <span class="status" id="geminiStatus"></span>
+        </div>
+      </div>
+      <div class="set">
+        <div class="txt"><label for="geminiModel">Model</label></div>
+        <div class="ctl"><select id="geminiModel"></select></div>
       </div>
     </div>
-    <div class="set azure">
-      <div class="txt"><label for="azureRegion">Azure region</label></div>
-      <div class="ctl"><select id="azureRegion"></select></div>
-    </div>
-    <div class="set azure">
-      <div class="txt"><label for="azureVoice">Azure voice</label></div>
-      <div class="ctl">
-        <select id="azureVoice">
-          <option value="zh-TW-HsiaoChenNeural">HsiaoChen (female)</option>
-          <option value="zh-TW-HsiaoYuNeural">HsiaoYu (female)</option>
-          <option value="zh-TW-YunJheNeural">YunJhe (male)</option>
-        </select>
+  </section>
+  <section class="wide">
+    <h2 id="shortcuts">Shortcuts</h2>
+    <div class="box">
+      <div class="set">
+        <div class="txt"><label>Click a key to change it</label><small><kbd>Esc</kbd> closes the card · <kbd>←</kbd> <kbd>→</kbd> go back and forward · tap <kbd class="altKey">Alt</kbd> to look up a selection</small></div>
+        <div class="ctl"><button type="button" class="link" id="resetKeys">Reset</button></div>
+      </div>
+      <div class="keygrid" id="keysCard"></div>
+      <div class="keygrid" id="keysYt"></div>
+      <div class="set">
+        <div class="txt"><label>Word colors on this website</label></div>
+        <div class="ctl"><kbd id="colorKey"></kbd><button type="button" class="changeKey">Change</button></div>
+      </div>
+      <div class="set">
+        <div class="txt"><label>Word colors on every website</label></div>
+        <div class="ctl"><kbd id="colorAllKey"></kbd><button type="button" class="changeKey">Change</button></div>
       </div>
     </div>
-  </div>
-
-  <h2>YouTube</h2>
-  <div class="box">
-    <div class="set">
-      <div class="txt"><label for="ytEnabled">Chinese Brain subtitles</label></div>
-      <div class="ctl"><input type="checkbox" id="ytEnabled"></div>
-    </div>
-    <div class="set">
-      <div class="txt"><label for="translation">English line</label></div>
-      <div class="ctl">
-        <select id="translation">
-          <option value="show">visible</option>
-          <option value="blur">blurred until hovered</option>
-          <option value="hide">hidden</option>
-        </select>
+  </section>
+  <section class="wide">
+    <h2 id="help">Help</h2>
+    <div class="box">
+      <div class="set">
+        <div class="txt"><label>Ideas, bugs, questions</label><small>They go straight to Chris, who makes Chinese Brain.</small></div>
+        <div class="ctl"><a class="btn" id="feedback" href="mailto:chris@cristianbagrin.com">Give feedback</a></div>
+      </div>
+      <div class="set">
+        <div class="txt"><label>Chinese Brain <span id="version"></span></label></div>
+        <div class="ctl"><a class="btn" href="https://chinese.cristianbagrin.com/brain/guide" target="_blank">Guide</a><a class="btn" href="https://chinese.cristianbagrin.com/brain/whats-new" target="_blank">What's new</a><a class="btn" href="https://chinese.cristianbagrin.com/brain/privacy" target="_blank">Privacy</a></div>
       </div>
     </div>
-    <div class="set">
-      <div class="txt"><label for="subStyle">Subtitle band</label></div>
-      <div class="ctl">
-        <select id="subStyle">
-          <option value="light">light</option>
-          <option value="dark">dark</option>
-        </select>
-      </div>
-    </div>
-    <div class="set">
-      <div class="txt"><label for="pauseOnHover">Pause while hovering the subtitles</label></div>
-      <div class="ctl"><input type="checkbox" id="pauseOnHover"></div>
-    </div>
-    <div class="set">
-      <div class="txt"><label for="autoFreshOnClick">Clicking a new word stamps it 新 Fresh</label></div>
-      <div class="ctl"><input type="checkbox" id="autoFreshOnClick"></div>
-    </div>
-    <div class="set">
-      <div class="txt"><label for="subFontSize">Subtitle size</label></div>
-      <div class="ctl"><input type="number" id="subFontSize" min="16" max="60" step="1"></div>
-    </div>
-    <div class="set">
-      <div class="txt"><label for="shadowFactor">Shadowing pause</label><small>× the line's length</small></div>
-      <div class="ctl"><input type="number" id="shadowFactor" min="0.5" max="4" step="0.25"></div>
-    </div>
-  </div>
-
-  <h2 id="gemini">Gemini (optional)</h2>
-  <div class="box">
-    <div class="set">
-      <div class="txt"><label for="geminiKey">API key</label><small>For subtitles on videos without captions, and extra example sentences. <a href="https://aistudio.google.com/apikey" target="_blank">Get a free key</a></small></div>
-      <div class="ctl">
-        <input type="password" id="geminiKey" autocomplete="off" spellcheck="false">
-        <button type="button" id="checkGemini">Check</button>
-        <span class="status" id="geminiStatus"></span>
-      </div>
-    </div>
-    <div class="set">
-      <div class="txt"><label for="geminiModel">Model</label></div>
-      <div class="ctl"><select id="geminiModel"></select></div>
-    </div>
-  </div>
-
-  <h2 id="shortcuts">Shortcuts</h2>
-  <div class="box">
-    <div class="set">
-      <div class="txt"><label>Click a key to change it</label><small><kbd>Esc</kbd> closes the card · <kbd>←</kbd> <kbd>→</kbd> go back and forward · tap <kbd id="altKey">Alt</kbd> to look up a selection</small></div>
-      <div class="ctl"><button type="button" class="link" id="resetKeys">Reset</button></div>
-    </div>
-    <div class="keygrid" id="keysCard"></div>
-    <div class="keygrid" id="keysYt"></div>
-    <div class="set">
-      <div class="txt"><label>Word colors on this site</label></div>
-      <div class="ctl"><kbd id="colorKey">Alt+Shift+C</kbd><button type="button" id="changeColorKey">Change</button></div>
-    </div>
-  </div>
-
-  <h2 id="help">Help</h2>
-  <div class="box">
-    <div class="set">
-      <div class="txt"><label>Something broken, or a question?</label><small>It goes straight to Chris, who makes Chinese Brain.</small></div>
-      <div class="ctl"><a class="btn" id="bug" href="mailto:chris@cristianbagrin.com">Report a bug</a><a class="btn" id="ask" href="mailto:chris@cristianbagrin.com">Email support</a></div>
-    </div>
-    <div class="set">
-      <div class="txt"><label>Chinese Brain <span id="version"></span></label></div>
-      <div class="ctl"><a class="btn" href="https://chinese.cristianbagrin.com/welcome" target="_blank">How it works</a><a class="btn" href="https://chinese.cristianbagrin.com/privacy" target="_blank">Privacy</a></div>
-    </div>
-  </div>
+  </section>
 </main>
 <div class="saved" id="saved" hidden>Saved</div>
 <script src="options.js"></script>

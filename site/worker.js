@@ -1,11 +1,12 @@
 // Accounts and sync for Chinese Brain. Every account is its own Durable Object with a small
 // SQLite database (the password hash, sessions, and the synced word list), found by email.
-// Nothing here needs setting up besides the RESEND_API_KEY secret for password-reset emails.
+// Nothing here needs setting up besides the RESEND_API_KEY secret for password-reset emails
+// (and, to see who signed up at /admin, an ADMIN_KEY secret of your choosing).
 import { DurableObject } from 'cloudflare:workers';
 
 const MAX_BODY = 1_500_000;
 const MAX_ITEMS = 60_000;
-const MAX_VALUE = 16_000;
+const MAX_VALUE = 32_000;
 const PAGE = 1000;
 const SYNCED = /^(w:|sav:|exh:|gex:).{1,60}$|^settings$/;
 const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@.]{2,}$/;
@@ -28,16 +29,26 @@ function same(a, b) {
   return d === 0;
 }
 
+/** JSON with object keys in order, so the same data from any browser is the same text. */
+function canon(v) {
+  if (Array.isArray(v)) return `[${v.map(canon).join(',')}]`;
+  if (v && typeof v === 'object') return `{${Object.keys(v).filter((k) => v[k] !== undefined).sort().map((k) => `${JSON.stringify(k)}:${canon(v[k])}`).join(',')}}`;
+  return JSON.stringify(v ?? null);
+}
+
+const list = (x) => (Array.isArray(x) ? x.filter((y) => y && typeof y === 'object') : []);
+
 /**
  * One word, changed in two browsers: the status is the one set last; the history, the
  * sentences it was met in (the newest five) and the lookup count come from both.
  */
 function mergeWord(a, b) {
   const [older, newer] = (a.updated ?? 0) > (b.updated ?? 0) ? [b, a] : [a, b];
-  const hist = [...(a.hist ?? []), ...(b.hist ?? [])].sort((x, y) => x.t - y.t).filter((x, i, all) => !i || x.t !== all[i - 1].t || x.s !== all[i - 1].s);
+  const hist = [...list(a.hist), ...list(b.hist)].sort((x, y) => x.t - y.t).filter((x, i, all) => !i || x.t !== all[i - 1].t || x.s !== all[i - 1].s);
   const seen = new Set();
-  const ctx = [...(a.ctx ?? []), ...(b.ctx ?? [])].sort((x, y) => y.at - x.at).filter((x) => !seen.has(x.text) && seen.add(x.text)).slice(0, 5);
-  return { ...older, ...newer, added: Math.min(a.added ?? Infinity, b.added ?? Infinity) || newer.added, hist, ctx, looks: Math.max(a.looks ?? 0, b.looks ?? 0) };
+  const ctx = [...list(a.ctx), ...list(b.ctx)].sort((x, y) => y.at - x.at).filter((x) => !seen.has(x.text) && seen.add(x.text)).slice(0, 5);
+  const added = Math.min(Number(a.added) || Infinity, Number(b.added) || Infinity);
+  return { ...older, ...newer, added: Number.isFinite(added) ? added : Date.now(), hist, ctx, looks: Math.max(Number(a.looks) || 0, Number(b.looks) || 0) };
 }
 
 /** An error the person can read; `code` lets the pages react to it. */
@@ -54,10 +65,12 @@ export class Account extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
     this.sql = ctx.storage.sql;
-    this.tables();
+    // Tables are made at sign-up: a sign-in try for an email without an account stores nothing.
+    this.made = this.sql.exec("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'meta'").toArray().length > 0;
   }
 
   tables() {
+    this.made = true;
     this.sql.exec(`
       CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);
       CREATE TABLE IF NOT EXISTS sessions (h TEXT PRIMARY KEY, created INTEGER, seen INTEGER);
@@ -68,10 +81,19 @@ export class Account extends DurableObject {
   }
 
   get(k) {
+    if (!this.made) return undefined;
     return this.sql.exec('SELECT v FROM meta WHERE k = ?', k).toArray()[0]?.v;
   }
   set(k, v) {
     this.sql.exec('INSERT INTO meta (k, v) VALUES (?, ?) ON CONFLICT (k) DO UPDATE SET v = excluded.v', k, String(v));
+  }
+
+  /** Tell the directory this account exists and was used today (once a day is enough). */
+  async report() {
+    const day = Math.floor(Date.now() / 86_400_000);
+    if (Number(this.get('reported')) === day) return;
+    this.set('reported', day);
+    await this.env.DIRECTORY.get(this.env.DIRECTORY.idFromName('all')).seen(this.get('email'), Number(this.get('created')), Number(this.get('count') ?? 0));
   }
 
   async newSession() {
@@ -103,10 +125,12 @@ export class Account extends DurableObject {
 
   async signup(email, password) {
     if (this.get('email')) return fail(409, 'exists', 'This email already has an account. Sign in instead.');
+    this.tables();
     this.set('email', email);
     this.set('created', Date.now());
     this.set('seq', 0);
     await this.setPassword(password);
+    await this.report();
     return { token: await this.newSession(), email };
   }
 
@@ -121,7 +145,10 @@ export class Account extends DurableObject {
     const h = await sha(secret);
     const row = this.sql.exec('SELECT seen FROM sessions WHERE h = ?', h).toArray()[0];
     if (!row) return null;
-    if (Date.now() - row.seen > 3_600_000) this.sql.exec('UPDATE sessions SET seen = ? WHERE h = ?', Date.now(), h);
+    if (Date.now() - row.seen > 3_600_000) {
+      this.sql.exec('UPDATE sessions SET seen = ? WHERE h = ?', Date.now(), h);
+      await this.report();
+    }
     return h;
   }
 
@@ -153,8 +180,9 @@ export class Account extends DurableObject {
   async _remove(_h, password) {
     const bad = await this.checkPassword(password);
     if (bad) return bad.fail.code === 'wrong' ? fail(401, 'wrong', 'That password isn’t right.') : bad;
+    await this.env.DIRECTORY.get(this.env.DIRECTORY.idFromName('all')).remove(this.get('email'));
     await this.ctx.storage.deleteAll();
-    this.tables();
+    this.made = false;
     return { ok: true };
   }
 
@@ -167,26 +195,34 @@ export class Account extends DurableObject {
   /** Take this device's changes (the newer one wins, per item) and hand back everyone else's. */
   _sync(_h, since, changes) {
     const now = Date.now();
-    let seq = Number(this.get('seq') ?? 0);
+    const seq0 = Number(this.get('seq') ?? 0);
+    let seq = seq0;
     const mine = new Set();
-    let count = this.sql.exec('SELECT COUNT(*) AS n FROM items').one().n;
+    // How many items the account holds is kept, not counted: counting reads every row.
+    let count = this.get('count');
+    count = count === undefined ? this.sql.exec('SELECT COUNT(*) AS n FROM items').one().n : Number(count);
+    const count0 = count;
     for (const c of changes) {
       if (!c || typeof c.k !== 'string' || !SYNCED.test(c.k)) continue;
-      const v = c.v == null ? null : JSON.stringify(c.v);
+      const word = c.k.startsWith('w:');
+      if (word && c.v != null && (typeof c.v !== 'object' || Array.isArray(c.v))) continue;
+      const v = c.v == null ? null : canon(c.v);
       if (v && v.length > MAX_VALUE) continue;
       const t = Math.min(Number(c.t) || 0, now);
       const old = this.sql.exec('SELECT v, t FROM items WHERE k = ?', c.k).toArray()[0];
-      if (!old && ++count > MAX_ITEMS) return fail(413, 'full', 'This account’s word list is full.');
+      if (!old && count >= MAX_ITEMS) return fail(413, 'full', 'This account’s word list is full.');
       let next = v;
-      if (old?.v && v && c.k.startsWith('w:')) {
+      if (old?.v && v && word) {
         // The same word changed in two browsers: keep both sides (see mergeWord).
-        next = JSON.stringify(mergeWord(JSON.parse(old.v), c.v));
-        if (next === old.v) continue;
+        next = canon(mergeWord(JSON.parse(old.v), c.v));
       } else if (old && old.t > t) continue; // a newer change from another browser stays
-      this.sql.exec('INSERT INTO items (k, v, t, seq) VALUES (?, ?, ?, ?) ON CONFLICT (k) DO UPDATE SET v = excluded.v, t = excluded.t, seq = excluded.seq', c.k, next, Math.max(t, old?.t ?? 0), ++seq);
       if (next === v) mine.add(c.k); // a merged word goes back to the browser that sent it, too
+      if (old && next === old.v) continue; // nothing new: no write, and nothing for the others to fetch
+      if (!old) count++;
+      this.sql.exec('INSERT INTO items (k, v, t, seq) VALUES (?, ?, ?, ?) ON CONFLICT (k) DO UPDATE SET v = excluded.v, t = excluded.t, seq = excluded.seq', c.k, next, Math.max(t, old?.t ?? 0), ++seq);
     }
-    this.set('seq', seq);
+    if (seq !== seq0) this.set('seq', seq);
+    if (count !== count0 || this.get('count') === undefined) this.set('count', count);
     const rows = this.sql.exec('SELECT k, v, t, seq FROM items WHERE seq > ? ORDER BY seq LIMIT ?', Number(since) || 0, PAGE + 1).toArray();
     const more = rows.length > PAGE;
     const page = rows.slice(0, PAGE);
@@ -209,14 +245,38 @@ export class Account extends DurableObject {
 
   async finishReset(secret, password) {
     const h = await sha(secret);
-    const row = this.sql.exec('SELECT exp FROM resets WHERE h = ?', h).toArray()[0];
-    if (!row || row.exp < Date.now() || !this.get('email')) return fail(400, 'expired', 'This link has expired or was already used. Ask for a new one.');
+    const row = this.get('email') && this.sql.exec('SELECT exp FROM resets WHERE h = ?', h).toArray()[0];
+    if (!row || row.exp < Date.now()) return fail(400, 'expired', 'This link has expired or was already used. Ask for a new one.');
     await this.setPassword(password);
     this.sql.exec('DELETE FROM resets');
     this.sql.exec('DELETE FROM sessions');
     this.set('fails', 0);
     this.set('lock', 0);
     return { token: await this.newSession(), email: this.get('email') };
+  }
+}
+
+/**
+ * The one list of who has an account: email, when it was made, when it was last used.
+ * Accounts live in separate databases, so without this there is no way to count them.
+ */
+export class Directory extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.sql = ctx.storage.sql;
+    this.sql.exec('CREATE TABLE IF NOT EXISTS users (email TEXT PRIMARY KEY, created INTEGER, seen INTEGER, words INTEGER)');
+  }
+  seen(email, created, words) {
+    this.sql.exec('INSERT INTO users (email, created, seen, words) VALUES (?, ?, ?, ?) ON CONFLICT (email) DO UPDATE SET seen = excluded.seen, words = excluded.words', email, created, Date.now(), words);
+  }
+  remove(email) {
+    this.sql.exec('DELETE FROM users WHERE email = ?', email);
+  }
+  list() {
+    const week = Date.now() - 7 * 86_400_000;
+    const users = this.sql.exec('SELECT email, created, seen, words FROM users ORDER BY created DESC LIMIT 5000').toArray();
+    const one = (q, ...a) => this.sql.exec(q, ...a).one().n;
+    return { total: one('SELECT COUNT(*) AS n FROM users'), newThisWeek: one('SELECT COUNT(*) AS n FROM users WHERE created > ?', week), activeThisWeek: one('SELECT COUNT(*) AS n FROM users WHERE seen > ?', week), users };
   }
 }
 
@@ -319,7 +379,9 @@ async function api(request, env, path) {
       if (!env.RESEND_API_KEY) throw new Fail(503, 'email_off', `Password reset by email isn’t available right now. Write to ${env.SUPPORT} and we’ll sort it out.`);
       await limit(env, request, 'forgot', 5, 3_600_000);
       const reset = await env.ACCOUNT.get(env.ACCOUNT.idFromName(email)).startReset();
-      if (reset) await sendReset(env, reset.email, reset.token);
+      if (reset && !(await sendReset(env, reset.email, reset.token))) {
+        throw new Fail(502, 'email_failed', `We couldn’t send the email just now. Try again in a few minutes, or write to ${env.SUPPORT}.`);
+      }
       return { ok: true }; // the same answer whether or not the account exists
     }
     case 'POST reset': {
@@ -331,6 +393,11 @@ async function api(request, env, path) {
         throw new Fail(400, 'expired', 'This link has expired or was already used. Ask for a new one.');
       }
       return link.account.finishReset(link.secret, password);
+    }
+    case 'GET admin/users': {
+      // For the owner: set the ADMIN_KEY secret, then open /admin.
+      if (!env.ADMIN_KEY || !same(await sha(bearer), await sha(env.ADMIN_KEY))) throw new Fail(404, 'not_found', 'Not found.');
+      return env.DIRECTORY.get(env.DIRECTORY.idFromName('all')).list();
     }
     case 'GET me':
       return authed('me');
@@ -350,19 +417,31 @@ async function api(request, env, path) {
   throw new Fail(404, 'not_found', 'Not found.');
 }
 
+/** Addresses from before the extension's pages moved under /brain. */
+const MOVED = { '/welcome': '/brain/welcome', '/privacy': '/brain/privacy', '/dashboard': '/brain/dashboard', '/guide': '/brain/guide', '/whats-new': '/brain/whats-new' };
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
-    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
-    try {
-      const out = await api(request, env, url.pathname.slice(5));
-      if (out?.fail) return json({ error: out.fail.message, code: out.fail.code }, out.fail.status);
-      return json(out);
-    } catch (e) {
-      if (e instanceof Fail) return json({ error: e.message, code: e.code }, e.status);
-      console.error(e);
-      return json({ error: 'Something went wrong on our side. Try again in a moment.', code: 'server' }, 500);
+    if (url.pathname.startsWith('/api/')) {
+      if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+      try {
+        const out = await api(request, env, url.pathname.slice(5));
+        if (out?.fail) return json({ error: out.fail.message, code: out.fail.code }, out.fail.status);
+        return json(out);
+      } catch (e) {
+        if (e instanceof Fail) return json({ error: e.message, code: e.code }, e.status);
+        console.error(e);
+        return json({ error: 'Something went wrong on our side. Try again in a moment.', code: 'server' }, 500);
+      }
     }
+    // The front page and the addresses that moved (see run_worker_first in wrangler.jsonc).
+    const path = url.pathname.replace(/\/$/, '');
+    // chinesebrain.cristianbagrin.com is the short address of the extension's pages.
+    const short = url.hostname.startsWith('chinesebrain.');
+    if (short || MOVED[path]) return Response.redirect(`${env.SITE}${MOVED[path] ?? (path || '/brain')}${url.search}`, 301);
+    // Until the main site exists, the front page is Chinese Brain's.
+    if (path === '') return env.ASSETS.fetch(new Request(`${url.origin}/brain`, request));
+    return env.ASSETS.fetch(request);
   },
 };

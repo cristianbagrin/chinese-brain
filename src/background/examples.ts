@@ -20,8 +20,8 @@ export class ExampleBank {
   /** Sentences written for each word. */
   own = new Map<string, [string, string][]>();
   private pool: [string, string][] = [];
-  /** word -> pool sentences that use it (built in the background after start-up). */
-  private index = new Map<string, number[]>();
+  /** The pool sentences found for the last few words asked about (a card asks more than once). */
+  private found = new Map<string, [string, string][]>();
 
   load(tsv: string) {
     const seen = new Set<string>();
@@ -38,23 +38,27 @@ export class ExampleBank {
     }
   }
 
-  /** Split every sentence into words, a few hundred at a time, without hogging the browser. */
-  buildIndex(d: Dictionary, done?: () => void) {
-    let i = 0;
-    const step = () => {
-      const end = Math.min(this.pool.length, i + 400);
-      for (; i < end; i++) {
-        const words = new Set(d.segment(this.pool[i][0]).filter((t) => t.word && CJK.test(t.text)).map((t) => t.word!));
-        for (const w of words) {
-          const ids = this.index.get(w);
-          if (ids) ids.push(i);
-          else this.index.set(w, [i]);
-        }
-      }
-      if (i < this.pool.length) setTimeout(step, 0);
-      else done?.();
-    };
-    step();
+  /**
+   * The first pool sentences that use `word` as a word (not merely as part of a longer one).
+   * Found when asked: sentences containing the characters are split into words and checked.
+   * An index of every sentence took over a second each time the background started, which in
+   * Chrome is after every idle half minute.
+   */
+  using(word: string, d: Dictionary, max = 80): [string, string][] {
+    const hit = this.found.get(word);
+    if (hit) return hit;
+    const alt = word.includes('臺') ? word.replaceAll('臺', '台') : '';
+    const out: [string, string][] = [];
+    let tried = 0;
+    for (const s of this.pool) {
+      if (!s[0].includes(word) && !(alt && s[0].includes(alt))) continue;
+      // A character that is mostly part of longer words (子 in 孩子, 桌子): don't split thousands of sentences for it.
+      if (++tried > 1500) break;
+      if (d.segment(s[0]).some((t) => t.word === word) && out.push(s) >= max) break;
+    }
+    if (this.found.size > 200) this.found.clear();
+    this.found.set(word, out);
+    return out;
   }
 
   /**
@@ -76,7 +80,7 @@ export class ExampleBank {
     };
     for (const [zh, en] of this.own.get(word) ?? []) add(zh, en, 2);
     for (const [zh, en] of extra) add(zh, en, 2);
-    for (const id of (this.index.get(word) ?? []).slice(0, 80)) add(this.pool[id][0], this.pool[id][1], 0);
+    for (const [zh, en] of this.using(word, d)) add(zh, en, 0);
     const scored = [...cands.values()].map((c) => {
       const toks = d.segment(c.zh);
       return { ...c, toks, score: (saved.has(c.zh) ? 100 : c.base) + readability(toks, word, d, statusOf) };

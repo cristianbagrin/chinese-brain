@@ -60,14 +60,14 @@
   <div class="group">
     <h3>Lookup</h3>
     <div class="row"><span>Show card</span>
-      <div class="seg" data-setting="hoverMode"><button data-v="hover">hover</button><button data-v="alt" title="Only while holding Option (Alt)">⌥ Option</button><button data-v="off">off</button></div>
+      <div class="seg" data-setting="hoverMode"><button data-v="hover">hover</button><button data-v="alt" id="altMode">Alt</button><button data-v="off">off</button></div>
     </div>
     <div class="row" id="siteLine" hidden><span>Lookup on <b class="hostname"></b></span><label class="sw"><input type="checkbox" id="siteOn"><i></i></label></div>
     <div class="row"><span>Pinyin</span><label class="sw"><input type="checkbox" data-setting="pinyin"><i></i></label></div>
     <div class="row"><span>Card size</span>
       <div class="seg" data-setting="cardSize"><button data-v="normal">normal</button><button data-v="large">large</button></div>
     </div>
-    <div class="row"><span>Color words on pages</span><label class="sw"><input type="checkbox" data-setting="pageColors"><i></i></label></div>
+    <div class="row"><span>Colors on every website</span><label class="sw"><input type="checkbox" data-setting="pageColors"><i></i></label></div>
     <div class="row" id="colorLine" hidden><span>Colors on <b class="hostname"></b><span class="sub" id="colorKey"></span></span><label class="sw"><input type="checkbox" id="colorsOn"><i></i></label></div>
     <div class="stats" id="pageStats"></div>
     <div class="row"><span>Stamp sounds</span><label class="sw"><input type="checkbox" data-setting="sounds"><i></i></label></div>
@@ -86,7 +86,7 @@
   </div>
 
   <div class="links"><a href="vocab.html" target="_blank">Word list</a><a href="options.html" target="_blank">Settings</a></div>
-  <div class="foot"><a href="options.html#account" target="_blank" id="acctLink">Sign in to sync</a><a id="bug" href="mailto:chris@cristianbagrin.com">Report a bug</a></div>
+  <div class="foot"><a href="options.html#account" target="_blank" id="acctLink">Sign in to sync</a><a id="feedback" href="mailto:chris@cristianbagrin.com">Give feedback</a></div>
 </div>
 <script src="action.js"></script>
 </body>

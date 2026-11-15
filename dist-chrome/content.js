@@ -338,7 +338,7 @@
     if (!isTyping(e)) return !0;
     if (e.isComposing || inOwnBox(e)) return !1;
     let action = e.key === "Escape" ? "esc" : actionFor(state.settings, e, "card");
-    return onCard && action || action && action !== "say" && action !== "images" && shownAgo < Date.now() - typedAt ? !0 : (/^(Shift|Control|Alt|Meta|CapsLock)$/.test(e.key) || (typedAt = Date.now()), !1);
+    return onCard && action || action && /^(\d|Escape)$/.test(e.key) && shownAgo < Date.now() - typedAt ? !0 : (/^(Shift|Control|Alt|Meta|CapsLock)$/.test(e.key) || (typedAt = Date.now()), !1);
   }
   function guardKeys(w2, keys) {
     w2.addEventListener(
@@ -2043,8 +2043,8 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     }
     async scan(roots) {
       if (!this.on) return;
-      let nodes = [], seen = /* @__PURE__ */ new Set(), visit = (t) => {
-        seen.has(t) || !CJK.test(t.data) || t.parentElement?.closest(SKIP) || (seen.add(t), this.segs.get(t)?.data !== t.data && nodes.push(t));
+      let nodes = [], seen = /* @__PURE__ */ new Set(), back = !1, visit = (t) => {
+        seen.has(t) || !CJK.test(t.data) || t.parentElement?.closest(SKIP) || (seen.add(t), this.segs.get(t)?.data !== t.data ? nodes.push(t) : back = !0);
       };
       for (let root of roots) {
         root.nodeType === Node.TEXT_NODE && visit(root);
@@ -2061,7 +2061,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
           this.chars += seg.data.length - (this.segs.get(node)?.data.length ?? 0), this.segs.set(node, seg);
         });
       }
-      this.paint();
+      (nodes.length || back) && this.paint();
     }
     paint() {
       if (!this.on || !CSS.highlights) return;
@@ -2750,9 +2750,10 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     }
     handleKey(e) {
       if (!this.opts || e.ctrlKey || e.metaKey || e.altKey) return !1;
-      let action = actionFor(state.settings, e, "card");
+      let action = e.shiftKey && e.key.toLowerCase() !== e.key.toUpperCase() ? void 0 : actionFor(state.settings, e, "card");
       if (this.hoverWord && this.hovered && action)
         return this.actOnHovered(action, this.hoverWord), !0;
+      if (e.key === "Backspace" && !keyOf(state.settings, "remove")) return !1;
       switch (action ?? e.key) {
         case "fresh":
         case "learning":

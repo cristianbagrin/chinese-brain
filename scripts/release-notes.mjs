@@ -13,7 +13,7 @@ const section = (title) => {
   return md.slice(start, end < 0 ? undefined : end);
 };
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const notes = section('4. Version notes').match(new RegExp(`\\n${esc(version)}:\\s*\\n+\`\`\`\\n([\\s\\S]*?)\\n\`\`\``))?.[1];
+const notes = section('4. Version notes').match(new RegExp(`\\n${esc(version)}(?: \\([^)]*\\))?:\\s*\\n+\`\`\`\\n([\\s\\S]*?)\\n\`\`\``))?.[1];
 if (!notes) {
   console.error(`No version notes for ${version} in store/PUBLISHING.md (section 4). Add them before releasing.`);
   process.exit(1);

@@ -170,25 +170,15 @@
     return el;
   }
   var $ = (id) => document.getElementById(id);
-  var SUPPORT = "chris@cristianbagrin.com";
-  function supportLink(kind) {
-    let v = import_browser_polyfill_min.default.runtime.getManifest().version, subject = kind === "bug" ? `Chinese Brain ${v}: bug report` : "Chinese Brain: question", body = kind === "bug" ? `What happened:
+  var SUPPORT = "chris@cristianbagrin.com", MAC = /Mac|iPhone|iPad/.test(navigator.platform), ALT = MAC ? "\u2325 Option" : "Alt", shortcutLabel = (key) => key ? MAC ? key.replace("Alt", "\u2325 Option").replace("Ctrl", "\u2303 Control").replace("Command", "\u2318") : key : "not set";
+  function feedbackLink() {
+    let body = `
 
 
-What I expected:
-
-
-The page or video it happened on:
-
-
-(A screenshot helps a lot.)
-
+(Reporting a bug? Say what happened and on which page or video. A screenshot helps a lot.)
 --
-Chinese Brain ${v} \xB7 ${navigator.userAgent}` : `
-
---
-Chinese Brain ${v} \xB7 ${navigator.userAgent}`;
-    return `mailto:${SUPPORT}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+Chinese Brain ${import_browser_polyfill_min.default.runtime.getManifest().version} \xB7 ${navigator.userAgent}`;
+    return `mailto:${SUPPORT}?subject=${encodeURIComponent("Chinese Brain feedback")}&body=${encodeURIComponent(body)}`;
   }
 
   // src/pages/action.ts
@@ -213,7 +203,7 @@ Chinese Brain ${v} \xB7 ${navigator.userAgent}`;
           h("b", null, n.toLocaleString("en-US"))
         );
       })
-    ), $("bug").href = supportLink("bug"), import_browser_polyfill_min.default.runtime.sendMessage({ type: "account" }).then((a) => {
+    ), $("feedback").href = feedbackLink(), $("altMode").textContent = ALT, $("altMode").title = `Only while holding ${ALT}`, import_browser_polyfill_min.default.runtime.sendMessage({ type: "account" }).then((a) => {
       a.signedIn && ($("acctLink").textContent = a.error ? "Sync problem" : "\u2713 Synced");
     });
     for (let el of document.querySelectorAll("[data-setting]")) {
@@ -257,8 +247,8 @@ Chinese Brain ${v} \xB7 ${navigator.userAgent}`;
       let siteColors = { ...s.siteColors };
       colors.checked === s.pageColors ? delete siteColors[host] : siteColors[host] = colors.checked, s.siteColors = siteColors, save({ siteColors }), setTimeout(showStats, 1500);
     }), import_browser_polyfill_min.default.commands.getAll().then((cmds) => {
-      let key = cmds.find((c) => c.name === "toggle-colors")?.shortcut, mac = navigator.platform.startsWith("Mac");
-      key && ($("colorKey").textContent = `Shortcut ${mac ? key.replace("Alt", "Option") : key}`);
+      let key = cmds.find((c) => c.name === "toggle-colors")?.shortcut;
+      key && ($("colorKey").textContent = shortcutLabel(key));
     }).catch(() => {
     });
     let box = $("siteOn");

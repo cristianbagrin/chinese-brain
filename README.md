@@ -1,9 +1,9 @@
 # Chinese Brain 中文腦
 
 A browser extension for learning **Taiwan Mandarin** while you read and watch.
-[Website](https://chinese.cristianbagrin.com) ·
+[Website](https://chinese.cristianbagrin.com/brain) · [Guide](https://chinese.cristianbagrin.com/brain/guide) ·
 [Firefox](https://addons.mozilla.org/firefox/addon/chinesebrain/) · Chrome (in review) ·
-[Privacy](https://chinese.cristianbagrin.com/privacy) ·
+[Privacy](https://chinese.cristianbagrin.com/brain/privacy) ·
 Questions and bugs: [chris@cristianbagrin.com](mailto:chris@cristianbagrin.com)
 
 - **Hover any Chinese word** on any page: Traditional characters, Taiwan standard pinyin, how
@@ -17,9 +17,11 @@ Questions and bugs: [chris@cristianbagrin.com](mailto:chris@cristianbagrin.com)
 - **YouTube dual subtitles:** Chinese + English over the video, every word hoverable, the
   video pausing while you read; a transcript with a learn-first list. Videos without Chinese
   captions can get them from Gemini (your own key).
-- **One word list**, with import, export and backup.
+- **One word list**, with import, export and backup, and a ready prompt to practice your
+  words with an AI tutor (Claude, ChatGPT, Gemini).
 - **Optional account:** everything works without one; a free account keeps your words,
-  saved sentences and settings in sync across browsers.
+  saved sentences and settings in sync across browsers, and shows them in a
+  [web dashboard](https://chinese.cristianbagrin.com/brain/dashboard).
 
 ## Install
 
@@ -32,14 +34,14 @@ Add-on…** → `dist/manifest.json`. Chrome → `chrome://extensions` → **Dev
 
 ## Keys
 
-Every key below can be changed in **Settings → Shortcuts**.
+Every key below can be changed in **Settings → Shortcuts**. `Alt` is `⌥ Option` on a Mac.
 
 | Where | Keys |
 | --- | --- |
 | Card open | `1` 新 · `2` 學 · `3` 熟 (again = clear) · `0` remove · `V` say it · `I` images · `←` `→` back / forward · `Esc` close |
 | Pointing at a word inside the card | the same keys act on that word |
-| Text selected | tap `Alt` (`⌥ Option`) |
-| Any website | `Alt`+`Shift`+`C`: word colors on / off for this site |
+| Text selected | tap `Alt` |
+| Any website | `Alt`+`Shift`+`C`: word colors on / off for this site · `Alt`+`Shift`+`A`: for every site |
 | YouTube | `A` previous line · `S` replay · `D` next · `R` loop · `Q` shadowing · `P` pinyin · `X` English line · `E` transcript |
 
 ## Your word list
@@ -106,7 +108,7 @@ src/platform/     what differs on Chrome: polyfill shim, background wrappers, Yo
 static/           HTML/CSS, icon, data/
 static-chrome/    PNG icons for the Chrome manifest
 scripts/          build.mjs (esbuild), build_data.py, build_names.py, build_examples.py
-site/             the website (public/) and the account service (worker.js), one Cloudflare Worker
+site/             the website (public/: /brain pages, dashboard, account) and the account service (worker.js)
 store/            store listings, release notes, screenshots (PUBLISHING.md)
 tests/            unit tests, fixtures, a YouTube player stand-in
 ```

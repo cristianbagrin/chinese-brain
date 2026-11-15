@@ -553,11 +553,14 @@ export class Popup {
   handleKey(e: KeyboardEvent): boolean {
     if (!this.opts || e.ctrlKey || e.metaKey || e.altKey) return false;
     // Pointing at a word inside the card: the card's keys are for that word.
-    const action = actionFor(state.settings, e, 'card');
+    // Shift with a letter is somebody else's shortcut (the page's, the browser's).
+    const action = e.shiftKey && e.key.toLowerCase() !== e.key.toUpperCase() ? undefined : actionFor(state.settings, e, 'card');
     if (this.hoverWord && this.hovered && action) {
       void this.actOnHovered(action, this.hoverWord);
       return true;
     }
+    // Backspace removes too, unless you switched the remove key off.
+    if (e.key === 'Backspace' && !keyOf(state.settings, 'remove')) return false;
     switch (action ?? e.key) {
       case 'fresh':
       case 'learning':

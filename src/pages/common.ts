@@ -76,13 +76,15 @@ export function ago(t: number): string {
 
 export const SUPPORT = 'chris@cristianbagrin.com';
 
+/** On a Mac the Alt key is called Option. */
+export const MAC = /Mac|iPhone|iPad/.test(navigator.platform);
+export const ALT = MAC ? '⌥ Option' : 'Alt';
+/** A browser shortcut ("Alt+Shift+C") in this computer's words. */
+export const shortcutLabel = (key: string | undefined) => (key ? (MAC ? key.replace('Alt', '⌥ Option').replace('Ctrl', '⌃ Control').replace('Command', '⌘') : key) : 'not set');
+
 /** An email to the developer, already saying which version and browser this is. */
-export function supportLink(kind: 'bug' | 'question'): string {
+export function feedbackLink(): string {
   const v = browser.runtime.getManifest().version;
-  const subject = kind === 'bug' ? `Chinese Brain ${v}: bug report` : 'Chinese Brain: question';
-  const body =
-    kind === 'bug'
-      ? `What happened:\n\n\nWhat I expected:\n\n\nThe page or video it happened on:\n\n\n(A screenshot helps a lot.)\n\n--\nChinese Brain ${v} · ${navigator.userAgent}`
-      : `\n\n--\nChinese Brain ${v} · ${navigator.userAgent}`;
-  return `mailto:${SUPPORT}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const body = `\n\n\n(Reporting a bug? Say what happened and on which page or video. A screenshot helps a lot.)\n--\nChinese Brain ${v} · ${navigator.userAgent}`;
+  return `mailto:${SUPPORT}?subject=${encodeURIComponent('Chinese Brain feedback')}&body=${encodeURIComponent(body)}`;
 }

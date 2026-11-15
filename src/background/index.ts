@@ -4,7 +4,7 @@ import type { Entry, LookupMatch, SavedSentence } from '../shared/types.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import { colorsOn, DEFAULT_SETTINGS, normalizeSettings, type Msg, type Settings, type Status, type WordRecord } from '../shared/types.ts';
 import { freshen, isPlaceholder, shortGloss, withSurface } from '../shared/gloss.ts';
-import { Store } from './store.ts';
+import { Store, stored, storedKeys } from './store.ts';
 import { SITE, Sync } from './sync.ts';
 import { geminiExamples, geminiModels, geminiTranscribe } from './gemini.ts';
 import { checkAzure, ttsAudio } from './speech.ts';
@@ -33,7 +33,7 @@ const sync = new Sync((k, v) => {
 
 // First run: a page that shows how it works (with Chinese to try it on).
 browser.runtime.onInstalled.addListener((d) => {
-  if (d.reason === 'install' && !__TEST__) void browser.tabs.create({ url: `${SITE}/welcome` });
+  if (d.reason === 'install' && !__TEST__) void browser.tabs.create({ url: `${SITE}/brain/welcome` });
 });
 
 // Chrome has no filterResponseData: a page hook copies the caption bodies instead.
@@ -49,8 +49,6 @@ async function loadExamples() {
     const res = await fetch(browser.runtime.getURL('data/examples.tsv.gz'));
     if (!res.ok) return;
     examples.load(await new Response(res.body!.pipeThrough(new DecompressionStream('gzip'))).text());
-    // Which sentences use which words: built quietly once the dictionary is there.
-    void dictReady.then((d) => examples.buildIndex(d));
   } catch {
     /* no example file in this build */
   }
@@ -133,9 +131,9 @@ onMenuClicked(async (info, tab) => {
   }
 });
 
-// The shortcut (Alt+Shift+C, Option+Shift+C on a Mac): page colors on or off for this website.
+// The shortcuts: page colors on or off for this website (Alt+Shift+C) or for every website (Alt+Shift+A).
 browser.commands.onCommand.addListener(async (name) => {
-  if (name !== 'toggle-colors') return;
+  if (name !== 'toggle-colors' && name !== 'toggle-colors-all') return;
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   let host = '';
   try {
@@ -144,9 +142,14 @@ browser.commands.onCommand.addListener(async (name) => {
   } catch {
     /* not a web page */
   }
-  if (!host || tab?.id == null) return;
   const s = await getSettings();
-  const toast = (text: string) => browser.tabs.sendMessage(tab.id!, { type: 'toast', text }).catch(() => {});
+  const toast = (text: string) => (tab?.id == null ? undefined : browser.tabs.sendMessage(tab.id, { type: 'toast', text }).catch(() => {}));
+  if (name === 'toggle-colors-all') {
+    // The sites you switched on their own keep their setting.
+    await browser.storage.local.set({ settings: { ...s, pageColors: !s.pageColors } });
+    return void toast(`Word colors ${s.pageColors ? 'off' : 'on'} on every website`);
+  }
+  if (!host || tab?.id == null) return;
   if (s.hoverMode === 'off' || s.disabledSites.includes(host)) return toast('Chinese Brain is off on this site. Turn it on in the toolbar menu first.');
   const next = !colorsOn(s, host);
   const siteColors = { ...s.siteColors };
@@ -223,9 +226,8 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
       return Promise.resolve(sender.tab?.id != null ? cachedCaptions(sender.tab.id) : []);
     case 'allData':
       return Promise.all([storeReady, dictReady]).then(async ([, d]) => {
-        const all = await browser.storage.local.get(null);
         const saved: Record<string, unknown> = {};
-        for (const [k, v] of Object.entries(all)) if (k.startsWith('sav:')) saved[k.slice(4)] = v;
+        for (const [k, v] of Object.entries(await stored('sav:'))) saved[k.slice(4)] = v;
         return { words: [...store.words.values()].map((w) => freshen(d, w)), logs: await store.allLogs(), saved };
       });
     case 'importWords':
@@ -395,9 +397,7 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
       });
     case 'geminiForget':
       // Drop a saved Gemini transcript (and any saved parts) so the next request starts fresh.
-      return browser.storage.local.get(null).then((all) =>
-        browser.storage.local.remove(Object.keys(all).filter((k) => k === 'gem:' + any.videoId || k.startsWith(`gemc:${any.videoId}:`))).then(() => true),
-      );
+      return storedKeys(`gemc:${any.videoId}:`).then((parts) => browser.storage.local.remove(['gem:' + any.videoId, ...parts]).then(() => true));
     case 'geminiCached':
       return browser.storage.local.get('gem:' + any.videoId).then((r) => r['gem:' + any.videoId] ?? null);
     case 'entries':

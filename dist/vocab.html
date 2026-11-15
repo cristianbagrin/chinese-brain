@@ -21,15 +21,23 @@
       <option value="added">Recently added</option>
       <option value="looks">Most looked up</option>
     </select>
-    <a class="jump" href="#export">Export</a>
+    <a class="jump" href="#export">Practice &amp; export</a>
   </div>
   <div class="words" id="rows"></div>
   <div class="more"><span class="muted small" id="more"></span><button id="showMore" hidden>Show more</button></div>
 
-  <h2 id="export">Export &amp; backup</h2>
+  <h2 id="export">Practice, export &amp; backup</h2>
   <div class="tools">
     <div class="tool">
-      <h3>Export for Claude</h3>
+      <h3>Practice with AI</h3>
+      <p>A prompt with the words you're learning. Paste it into Claude, ChatGPT or Gemini for a story and a quiz. <a href="https://chinese.cristianbagrin.com/brain/guide#ai" target="_blank">How it works</a></p>
+      <div class="actions">
+        <button class="primary" id="practice">Copy prompt</button>
+        <span class="ok" id="practiceOk"></span>
+      </div>
+    </div>
+    <div class="tool">
+      <h3>Export</h3>
       <p id="lastExport"></p>
       <div class="actions">
         <button class="primary" id="exportNew" title="Words whose status you changed, plus saved sentences (TSV)">Download new</button>

@@ -3,7 +3,7 @@ import { state } from '../content/state.ts';
 import { DEFAULT_SETTINGS, type Settings } from '../shared/types.ts';
 import { KEY_ACTIONS, keyLabel, keyName, keyOf, type KeyAction } from '../shared/keys.ts';
 import type { AccountInfo } from '../background/sync.ts';
-import { $, ago, supportLink } from './common.ts';
+import { $, ago, ALT, feedbackLink, shortcutLabel } from './common.ts';
 
 type Key = keyof Settings;
 type Field = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
@@ -218,30 +218,32 @@ async function saveKeys(keys: Settings['keys']) {
 
 $('resetKeys').addEventListener('click', () => void saveKeys({}));
 
-const mac = navigator.platform.startsWith('Mac');
-if (mac) $('altKey').textContent = '⌥ Option';
+// Key names as this computer calls them.
+for (const el of document.querySelectorAll('.altKey')) el.textContent = ALT;
+$('altOption').textContent = `while holding ${ALT}`;
 browser.commands
   .getAll()
   .then((cmds) => {
-    const key = cmds.find((c) => c.name === 'toggle-colors')?.shortcut;
-    $('colorKey').textContent = key ? (mac ? key.replace('Alt', '⌥ Option') : key) : 'none';
+    $('colorKey').textContent = shortcutLabel(cmds.find((c) => c.name === 'toggle-colors')?.shortcut);
+    $('colorAllKey').textContent = shortcutLabel(cmds.find((c) => c.name === 'toggle-colors-all')?.shortcut);
   })
   .catch(() => {});
-$('changeColorKey').addEventListener('click', () => {
-  // The browser keeps this one (it works on every page): Chrome has a page for it, Firefox a menu.
-  if (__CHROME__) void browser.tabs.create({ url: 'chrome://extensions/shortcuts' });
-  else {
-    const f = (browser.commands as unknown as Record<string, (() => Promise<void>) | undefined>)[['open', 'ShortcutSettings'].join('')]; // Firefox 137+ (web-ext's linter doesn't know it yet)
-    if (f) void f();
-    else alert('Open about:addons, click the gear, then "Manage Extension Shortcuts".');
-  }
-});
+for (const b of document.querySelectorAll('.changeKey')) {
+  b.addEventListener('click', () => {
+    // The browser keeps these two (they work on every page): Chrome has a page for them, Firefox a menu.
+    if (__CHROME__) void browser.tabs.create({ url: 'chrome://extensions/shortcuts' });
+    else {
+      const f = (browser.commands as unknown as Record<string, (() => Promise<void>) | undefined>)[['open', 'ShortcutSettings'].join('')]; // Firefox 137+ (web-ext's linter doesn't know it yet)
+      if (f) void f();
+      else alert('Open about:addons, click the gear, then "Manage Extension Shortcuts".');
+    }
+  });
+}
 
 // ---------- Help ----------
 
 $('version').textContent = browser.runtime.getManifest().version;
-$<HTMLAnchorElement>('bug').href = supportLink('bug');
-$<HTMLAnchorElement>('ask').href = supportLink('question');
+$<HTMLAnchorElement>('feedback').href = feedbackLink();
 
 $('testVoice').addEventListener('click', async () => {
   setStatus('voiceStatus', 'Playing…');

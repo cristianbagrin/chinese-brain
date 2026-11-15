@@ -9,18 +9,23 @@ import type { Status } from '../src/shared/types.ts';
 const dict = Dictionary.fromTsv(gunzipSync(readFileSync('static/data/dict.tsv.gz')).toString('utf8'));
 const bank = new ExampleBank();
 bank.load(gunzipSync(readFileSync('static/data/examples.tsv.gz')).toString('utf8'));
-const indexed = new Promise<void>((done) => bank.buildIndex(dict, done));
 
 test('words without sentences of their own get real ones from the pool', async () => {
-  await indexed;
   assert.equal(bank.own.get('胡椒'), undefined);
   const ex = bank.pick('胡椒', dict, () => undefined);
   assert.ok(ex.length > 0, 'some sentence uses 胡椒');
   for (const x of ex) assert.ok(x.zh.includes('胡椒'));
 });
 
+test('a word found in the pool is a word there, not part of a longer one; and it is found fast', () => {
+  for (const [zh] of bank.using('子', dict)) assert.ok(dict.segment(zh).some((t) => t.word === '子'), zh);
+  const t0 = performance.now();
+  for (const w of ['的', '子', '颱風', '胡椒', '臺北', '不存在的詞']) bank.using(w, dict);
+  assert.ok(performance.now() - t0 < 1500, `took ${Math.round(performance.now() - t0)} ms`);
+  assert.ok(bank.using('臺北', dict).length > 0);
+});
+
 test('sentences you can read come first; deleted ones never; saved ones always', async () => {
-  await indexed;
   const all = bank.pick('颱風', dict, () => undefined, [], new Set(), new Set(), 20);
   assert.ok(all.length > 2);
   // Know every word of one particular sentence: it moves to the top.

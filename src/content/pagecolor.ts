@@ -94,11 +94,14 @@ export class PageColors {
     if (!this.on) return;
     const nodes: Text[] = [];
     const seen = new Set<Text>();
+    /** Chinese text we already know came back into the page: its highlights need making again. */
+    let back = false;
     // New text, or text whose content changed since it was segmented.
     const visit = (t: Text) => {
       if (seen.has(t) || !CJK.test(t.data) || t.parentElement?.closest(SKIP)) return;
       seen.add(t);
       if (this.segs.get(t)?.data !== t.data) nodes.push(t);
+      else back = true;
     };
     for (const root of roots) {
       // A text node added on its own (a TreeWalker never returns its root).
@@ -122,7 +125,8 @@ export class PageColors {
         this.segs.set(node, seg);
       });
     }
-    this.paint();
+    // A page that keeps changing without any Chinese in the change (a chat, a ticker) is left alone.
+    if (nodes.length || back) this.paint();
   }
 
   private paint() {

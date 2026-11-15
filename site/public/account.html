@@ -9,8 +9,8 @@
 </head>
 <body>
 <header><div class="wrap">
-  <a class="home" href="/"><img src="/icon.png" alt="">Chinese Brain</a>
-  <nav><a href="/welcome">How it works</a><a href="/account">Account</a><a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain">Support</a></nav>
+  <a class="home" href="/brain"><img src="/icon.png" alt="">Chinese Brain</a>
+  <nav><a href="/brain/guide">Guide</a><a href="/brain/whats-new">What's new</a><a href="/brain/dashboard">Dashboard</a><a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain%20feedback">Feedback</a></nav>
 </div></header>
 <main class="wrap narrow">
   <noscript><p>This page needs JavaScript.</p></noscript>
@@ -29,7 +29,7 @@
     <section class="card">
       <h1>Your account</h1>
       <p class="lead"><b id="who"></b><br><span id="stats"></span></p>
-      <div class="rowbtn"><button class="btn secondary" id="download">Download my data</button><button class="btn secondary" id="signout">Sign out</button></div>
+      <div class="rowbtn"><a class="btn primary" href="/brain/dashboard">Open your dashboard</a><button class="btn secondary" id="download">Download my data</button><button class="btn secondary" id="signout">Sign out</button></div>
     </section>
     <form class="card" id="pwForm">
       <h2>Change password</h2>
@@ -47,12 +47,14 @@
     </form>
   </div>
 </main>
+<script src="/cb.js"></script>
 <script src="/account.js"></script>
 <footer><div class="wrap">
   <span>© 2026 Cristian Bagrin</span>
-  <a href="/privacy">Privacy</a>
+  <a href="/brain/privacy">Privacy</a>
   <a href="/account">Account</a>
-  <a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain">chris@cristianbagrin.com</a>
+  <a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain%20feedback">chris@cristianbagrin.com</a>
 </div></footer>
+<script src="/keys.js"></script>
 </body>
 </html>

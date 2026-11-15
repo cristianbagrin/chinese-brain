@@ -257,14 +257,16 @@ h2 { font: 700 19px/1.3 var(--ui); margin: 44px 0 14px; letter-spacing: -0.01em;
 .tool textarea { font-size: 13px; }
 
 /* ---------- Settings: one row per setting, label left, control right ---------- */
-.settings > * { max-width: 760px; }
-.settings h2 { font-size: 15px; font-weight: 650; color: var(--ink2); margin: 32px 0 8px 4px; }
-.settings h2:first-child { margin-top: 0; }
-.box { background: var(--paper); border: 1px solid var(--rule); border-radius: 14px; padding: 0 20px; }
-.set { display: flex; align-items: center; justify-content: space-between; gap: 8px 24px; padding: 13px 0; border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
+/* Sections side by side when there is room: the page is half as long. */
+.settings { max-width: 1240px; columns: 2 400px; column-gap: 24px; }
+.settings section { break-inside: avoid; margin-bottom: 18px; }
+.settings section.wide { column-span: all; }
+.settings h2 { font-size: 13px; font-weight: 650; color: var(--ink2); margin: 0 0 6px 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+.box { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 0 16px; }
+.set { display: flex; align-items: center; justify-content: space-between; gap: 6px 20px; padding: 7px 0; min-height: 46px; box-sizing: border-box; border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
 /* The last visible row (hidden Azure rows may follow it). */
 .set:not(:has(~ .set:not([hidden]))) { border-bottom: 0; }
-.set .txt { flex: 1 1 260px; min-width: 0; }
+.set .txt { flex: 1 1 200px; min-width: 0; }
 .set .txt label { font-weight: 500; }
 .set .txt small { display: block; font-size: 13px; color: var(--ink2); margin-top: 1px; }
 .set .ctl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
@@ -280,7 +282,7 @@ h2 { font: 700 19px/1.3 var(--ui); margin: 44px 0 14px; letter-spacing: -0.01em;
 a.btn { display: inline-block; text-decoration: none; color: var(--ink); background: var(--paper); border: 1px solid var(--rule2); border-radius: 8px; padding: 6px 14px; }
 a.btn:hover { border-color: var(--ink3); }
 /* Shortcuts: each action with its key; click the key to record another. */
-.keygrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 4px 24px; padding: 12px 0; border-bottom: 1px solid var(--rule); }
+.keygrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0 28px; padding: 6px 0; border-bottom: 1px solid var(--rule); }
 .keygrid > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 34px; font-size: 14px; }
 .keygrid button { min-width: 44px; padding: 3px 9px; font: 600 12.5px var(--ui); background: var(--ground); border-bottom-width: 2px; }
 .keygrid button.rec { background: var(--red); border-color: var(--red); color: #fff; }

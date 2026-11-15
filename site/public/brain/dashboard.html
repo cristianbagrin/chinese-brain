@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard · Chinese Brain</title>
+<link rel="icon" href="/icon.png">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header><div class="wrap">
+  <a class="home" href="/brain"><img src="/icon.png" alt="">Chinese Brain</a>
+  <nav><a href="/brain/guide">Guide</a><a href="/brain/whats-new">What's new</a><a href="/brain/dashboard">Dashboard</a><a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain%20feedback">Feedback</a></nav>
+</div></header>
+<main class="wrap dash">
+  <p class="hint" id="loading">Loading your words…</p>
+  <div id="app" hidden>
+    <section class="tiles" id="tiles"></section>
+    <section class="card chartcard"><h2>Words stamped, last 12 weeks</h2><div class="chart" id="chart"></div></section>
+    <div class="dashbar">
+      <div class="tabs" id="tabs"></div>
+      <input type="search" id="q" placeholder="Search" aria-label="Search words, pinyin or meanings">
+      <button class="btn secondary small" id="practice" title="A prompt with the words you're learning, for Claude, ChatGPT or Gemini">Practice with AI</button>
+    </div>
+    <p class="msg" id="msg" role="status"></p>
+    <div class="list" id="list"></div>
+    <p class="hint" id="more"></p>
+  </div>
+  <section class="card" id="empty" hidden><h1>No words yet</h1><p class="lead">Stamp words with the extension, signed in to this account (Settings → Account), and they appear here.</p><a class="btn primary" href="/brain/guide#sync">How sync works</a></section>
+</main>
+<script src="/cb.js"></script>
+<script src="/brain/dashboard.js"></script>
+<footer><div class="wrap">
+  <span>© 2026 Cristian Bagrin</span>
+  <a href="/brain/privacy">Privacy</a>
+  <a href="/account">Account</a>
+  <a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain%20feedback">chris@cristianbagrin.com</a>
+</div></footer>
+<script src="/keys.js"></script>
+</body>
+</html>

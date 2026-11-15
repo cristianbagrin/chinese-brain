@@ -82,7 +82,13 @@
       "suggested_key": {
         "default": "Alt+Shift+C"
       },
-      "description": "Turn word colors on or off for this website"
+      "description": "Word colors on or off for this website"
+    },
+    "toggle-colors-all": {
+      "suggested_key": {
+        "default": "Alt+Shift+A"
+      },
+      "description": "Word colors on or off for every website"
     }
   },
   "homepage_url": "https://chinese.cristianbagrin.com"

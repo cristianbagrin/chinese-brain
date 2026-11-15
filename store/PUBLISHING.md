@@ -146,7 +146,7 @@ chinese, mandarin, taiwan, traditional chinese, pinyin, dictionary, language lea
 **Homepage**
 
 ```
-https://chinese.cristianbagrin.com
+https://chinese.cristianbagrin.com/brain
 ```
 
 **Support email**
@@ -161,7 +161,7 @@ chris@cristianbagrin.com
 
 ## 3. Privacy policy
 
-The policy lives at https://chinese.cristianbagrin.com/privacy (`site/public/privacy.html`).
+The policy lives at https://chinese.cristianbagrin.com/brain/privacy (`site/public/brain/privacy.html`).
 Link it on both stores. AMO also wants the text: tick "This add-on has a privacy policy" and
 paste the page's text.
 
@@ -178,7 +178,23 @@ Since 1.5.0 (optional accounts) the stores' data questions have new answers:
 
 ## 4. Version notes
 
-1.5.0:
+`npm run build` turns these into the website's What's new page. A date in brackets after the
+version is shown there.
+
+1.6.0 (November 15, 2026):
+
+```
+• Your words on the web: a dashboard at chinese.cristianbagrin.com/brain/dashboard, with your three piles, what you stamped each week, and your word list to search, restamp and tidy. Works on a phone too. Needs the free account.
+• Practice with AI: Word list → Copy prompt gives a ready prompt with the words you're learning. Paste it into Claude, ChatGPT or Gemini for a story and a quiz.
+• Word colors on every website, with its own shortcut (Alt+Shift+A; Option+Shift+A on a Mac).
+• Settings fit on one screen: the sections sit side by side. Key names match your computer (Alt on Windows, Option on a Mac).
+• Give feedback, from Settings and the toolbar menu. A guide and a What's new page on the website.
+• Sync fixes: Chrome no longer sends back what it just received, and no longer asks the server every time it wakes up. A backup file no longer carries your sign-in.
+• Faster start: example sentences are searched when a card needs them, not indexed every time the extension starts.
+• A letter you chose as a shortcut no longer swallows the first letter you type into a page; Shift with a letter is left to the page.
+```
+
+1.5.0 (November 15, 2026):
 
 ```
 • Optional free account: sign in from Settings and your word list, saved sentences and settings stay in sync across your browsers (Firefox and Chrome). Forgot your password? Reset it by email. Everything still works without an account.
@@ -281,7 +297,7 @@ Permissions:
     script was not already running in, tabs.executeScript injects the add-on's own content.js there.
   downloads: the word-list export is saved with downloads.download({ saveAs: true }) so the user picks
     the folder; it only ever downloads a blob the page just built.
-  commands: one keyboard shortcut (Alt+Shift+C) that toggles page colors for the current site.
+  commands: two keyboard shortcuts that toggle page colors: Alt+Shift+C for the current site, Alt+Shift+A for every site.
   alarms: one alarm, every 20 minutes, that syncs the word list when the user is signed in.
 
 Remote requests (all user-facing features, listed in the privacy policy): translate.google.com (TTS),
@@ -310,7 +326,13 @@ The files in `store/screenshots/` are these shots in the red-and-paper frame (12
 
 ## Chrome Web Store (first upload)
 
-1. `npm run zip:chrome` → `release/chinese_brain-<version>-chrome.zip`.
+1. Get the file to upload: GitHub → the repository → **Releases** → the newest version →
+   download `chinese_brain-<version>-chrome.zip` (the Release workflow attaches it; nothing to
+   run). Developers can build it with `npm run zip:chrome`.
+
+   While a version is still **pending review**, the dashboard won't take a new upload. Either
+   wait for the approval and then upload the newest zip as an update (Package → Upload new
+   package), or press **Cancel review**, upload the newest zip and submit again.
 2. [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole)
    (one-time $5 registration) → **New item** → upload the zip.
 3. **Store listing**: the same name, summary, description, category (Education or
@@ -325,25 +347,42 @@ The files in `store/screenshots/` are these shots in the red-and-paper frame (12
      while ours show.
    - downloads: saves the word-list export where the user chooses.
    - Remote code: No. Data usage: see section 3.
-   - Privacy policy URL: https://chinese.cristianbagrin.com/privacy
-   - Homepage: https://chinese.cristianbagrin.com · Support email: chris@cristianbagrin.com
+   - Privacy policy URL: https://chinese.cristianbagrin.com/brain/privacy
+   - Homepage: https://chinese.cristianbagrin.com/brain · Support email: chris@cristianbagrin.com
 5. Submit for review. Then set up the `CWS_*` secrets ("Automatic releases") so later
    versions go out on their own.
 
 
 ## Website and accounts (Cloudflare)
 
-`site/` is one Cloudflare Worker, `chinesebrain`, at https://chinese.cristianbagrin.com:
-the pages in `site/public/` and the account service in `site/worker.js` (`/api/*`). Pushing
-`main` deploys it (Workers & Pages → chinesebrain → Settings → Builds: production branch
-`main`, root directory `site`).
+`site/` is one Cloudflare Worker, `chinesebrain`, at https://chinese.cristianbagrin.com.
+Pushing `main` deploys it (Workers & Pages → chinesebrain → Settings → Builds: production
+branch `main`).
+
+| Address | What |
+| --- | --- |
+| `/brain`, `/brain/guide`, `/brain/whats-new`, `/brain/welcome`, `/brain/privacy` | the extension's pages (`site/public/brain*`) |
+| `/brain/dashboard` | your word list on the web (needs the account) |
+| `/account`, `/reset` | sign in, password, delete: one login for everything on this site |
+| `/admin` | who signed up (owner only, see below) |
+| `/api/*` | the account service (`site/worker.js`) |
+| `/` | shows `/brain` until the main site exists |
+| `chinesebrain.cristianbagrin.com` | short address, forwards to `/brain` |
+
+The layout leaves room for more products on the same site and the same login: another one
+goes in its own folder (`/tocfl/...`), and `/` becomes the page that presents them all.
 
 Accounts need no database to set up: every account is a Durable Object with its own small
-SQLite database, created by the deploy. All of it fits Cloudflare's free plan (100,000
-requests a day, 5 GB of storage).
+SQLite database, created by the deploy, plus one list of all accounts (`Directory`).
+
+**Limits (Cloudflare free plan, per day):** 100,000 requests, 5 million rows read, 100,000
+rows written, 5 GB stored in total. Past a limit the account service answers with an error
+until midnight UTC; the extension keeps working and syncs later. The Workers Paid plan
+($5 a month) lifts all of them far beyond what this needs; switch in Cloudflare →
+Workers & Pages → Plans. Nothing in the code changes.
 
 **Password-reset emails** go through [Resend](https://resend.com) (free: 3,000 emails a
-month). Once:
+month, 100 a day). Once:
 
 1. Sign up at resend.com → **Domains** → add `cristianbagrin.com` → **Auto configure** with
    Cloudflare (or add the DNS records it shows) → wait for "Verified".
@@ -354,5 +393,6 @@ month). Once:
 `https://chinese.cristianbagrin.com/api/health` then answers `"email": true`. Until then,
 "Forgot password?" tells people to write to chris@cristianbagrin.com.
 
-To look at an account's data or count accounts: Cloudflare dashboard → Durable Objects →
-`chinesebrain_Account`.
+**Who signed up:** add a second secret the same way, name `ADMIN_KEY`, any long password you
+make up. Then https://chinese.cristianbagrin.com/admin asks for it and shows the number of
+accounts, new and active this week, and each account's email, join date and last use.

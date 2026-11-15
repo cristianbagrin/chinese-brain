@@ -1,6 +1,6 @@
 import { colorsOn, type Settings, type Status } from '../shared/types.ts';
 import type { AccountInfo } from '../background/sync.ts';
-import { $, h, supportLink } from './common.ts';
+import { $, ALT, feedbackLink, h, shortcutLabel } from './common.ts';
 
 const save = (settings: Partial<Settings>) => browser.runtime.sendMessage({ type: 'saveSettings', settings });
 
@@ -28,7 +28,9 @@ async function init() {
     }),
   );
 
-  $<HTMLAnchorElement>('bug').href = supportLink('bug');
+  $<HTMLAnchorElement>('feedback').href = feedbackLink();
+  $('altMode').textContent = ALT;
+  $('altMode').title = `Only while holding ${ALT}`;
   void browser.runtime.sendMessage({ type: 'account' }).then((a: AccountInfo) => {
     if (a.signedIn) $('acctLink').textContent = a.error ? 'Sync problem' : '✓ Synced';
   });
@@ -102,8 +104,7 @@ async function init() {
     .getAll()
     .then((cmds) => {
       const key = cmds.find((c) => c.name === 'toggle-colors')?.shortcut;
-      const mac = navigator.platform.startsWith('Mac');
-      if (key) $('colorKey').textContent = `Shortcut ${mac ? key.replace('Alt', 'Option') : key}`;
+      if (key) $('colorKey').textContent = shortcutLabel(key);
     })
     .catch(() => {});
   const box = $<HTMLInputElement>('siteOn');

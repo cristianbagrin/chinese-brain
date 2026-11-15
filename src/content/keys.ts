@@ -23,7 +23,7 @@ let typedAt = 0;
 
 /**
  * Should the open card take this key? Not while typing in a page's text box, except the
- * card's digits and Esc when nothing was typed there since the card appeared, or while the
+ * card's digit keys and Esc when nothing was typed there since the card appeared, or while the
  * pointer is on the card: pointing at a word and pressing 2 means the card, not a "2" in
  * the Notion page or the YouTube description. Never inside the card's own text box, nor
  * while composing.
@@ -33,7 +33,8 @@ export function cardTakes(e: KeyboardEvent, shownAgo: number, onCard = false): b
   if (e.isComposing || inOwnBox(e)) return false;
   const action = e.key === 'Escape' ? 'esc' : actionFor(state.settings, e, 'card');
   if (onCard && action) return true;
-  if (action && action !== 'say' && action !== 'images' && shownAgo < Date.now() - typedAt) return true;
+  // Only digits and Esc: a letter you chose for a stamp is still a letter of the word you're typing.
+  if (action && /^(\d|Escape)$/.test(e.key) && shownAgo < Date.now() - typedAt) return true;
   if (!/^(Shift|Control|Alt|Meta|CapsLock)$/.test(e.key)) typedAt = Date.now();
   return false;
 }

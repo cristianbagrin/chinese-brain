@@ -179,25 +179,15 @@
     let d = new Date(t);
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric", ...d.getFullYear() === (/* @__PURE__ */ new Date()).getFullYear() ? {} : { year: "numeric" } });
   }
-  var SUPPORT = "chris@cristianbagrin.com";
-  function supportLink(kind) {
-    let v = browser.runtime.getManifest().version, subject = kind === "bug" ? `Chinese Brain ${v}: bug report` : "Chinese Brain: question", body = kind === "bug" ? `What happened:
+  var SUPPORT = "chris@cristianbagrin.com", MAC = /Mac|iPhone|iPad/.test(navigator.platform), ALT = MAC ? "\u2325 Option" : "Alt", shortcutLabel = (key) => key ? MAC ? key.replace("Alt", "\u2325 Option").replace("Ctrl", "\u2303 Control").replace("Command", "\u2318") : key : "not set";
+  function feedbackLink() {
+    let body = `
 
 
-What I expected:
-
-
-The page or video it happened on:
-
-
-(A screenshot helps a lot.)
-
+(Reporting a bug? Say what happened and on which page or video. A screenshot helps a lot.)
 --
-Chinese Brain ${v} \xB7 ${navigator.userAgent}` : `
-
---
-Chinese Brain ${v} \xB7 ${navigator.userAgent}`;
-    return `mailto:${SUPPORT}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+Chinese Brain ${browser.runtime.getManifest().version} \xB7 ${navigator.userAgent}`;
+    return `mailto:${SUPPORT}?subject=${encodeURIComponent("Chinese Brain feedback")}&body=${encodeURIComponent(body)}`;
   }
 
   // src/pages/options.ts
@@ -339,22 +329,21 @@ Chinese Brain ${v} \xB7 ${navigator.userAgent}`;
     settings = { ...settings, keys }, state.settings = settings, await browser.runtime.sendMessage({ type: "saveSettings", settings: { keys } }), showKeys();
   }
   $("resetKeys").addEventListener("click", () => void saveKeys({}));
-  var mac = navigator.platform.startsWith("Mac");
-  mac && ($("altKey").textContent = "\u2325 Option");
+  for (let el of document.querySelectorAll(".altKey")) el.textContent = ALT;
+  $("altOption").textContent = `while holding ${ALT}`;
   browser.commands.getAll().then((cmds) => {
-    let key = cmds.find((c) => c.name === "toggle-colors")?.shortcut;
-    $("colorKey").textContent = key ? mac ? key.replace("Alt", "\u2325 Option") : key : "none";
+    $("colorKey").textContent = shortcutLabel(cmds.find((c) => c.name === "toggle-colors")?.shortcut), $("colorAllKey").textContent = shortcutLabel(cmds.find((c) => c.name === "toggle-colors-all")?.shortcut);
   }).catch(() => {
   });
-  $("changeColorKey").addEventListener("click", () => {
-    {
-      let f = browser.commands[["open", "ShortcutSettings"].join("")];
-      f ? f() : alert('Open about:addons, click the gear, then "Manage Extension Shortcuts".');
-    }
-  });
+  for (let b of document.querySelectorAll(".changeKey"))
+    b.addEventListener("click", () => {
+      {
+        let f = browser.commands[["open", "ShortcutSettings"].join("")];
+        f ? f() : alert('Open about:addons, click the gear, then "Manage Extension Shortcuts".');
+      }
+    });
   $("version").textContent = browser.runtime.getManifest().version;
-  $("bug").href = supportLink("bug");
-  $("ask").href = supportLink("question");
+  $("feedback").href = feedbackLink();
   $("testVoice").addEventListener("click", async () => {
     setStatus("voiceStatus", "Playing\u2026");
     let res = await speak("\u4F60\u597D\uFF0C\u5F88\u9AD8\u8208\u8A8D\u8B58\u4F60"), names = { google: "Google voice", azure: "Azure voice", system: "system voice" };

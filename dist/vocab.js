@@ -350,6 +350,28 @@
     }
     return out;
   }
+  function buildPracticePrompt(words2, saved2 = {}, max = 40) {
+    let mine = words2.filter((w) => w.s !== "known").sort((a, b) => b.updated - a.updated).slice(0, max), known = words2.filter((w) => w.s === "known").length, rows = mine.map((w) => {
+      let met = shownSentence(w.ctx ?? [], w.w, saved2[w.w]);
+      return [w.w, w.p?.toLowerCase(), w.g, met?.text].map((x) => clean(x)).filter(Boolean).join(" \xB7 ");
+    });
+    return [
+      "I am learning Taiwan Mandarin. Please be my tutor for a short practice session.",
+      "",
+      `Below are ${mine.length} words I am studying right now (word \xB7 pinyin \xB7 meaning \xB7 the sentence I met it in). I already know about ${known.toLocaleString("en-US")} other words, so keep everything else simple.`,
+      "",
+      "Rules: Traditional characters and Taiwan usage only (no \u5152\u5316, Taiwan vocabulary and readings). Add pinyin only when I ask.",
+      "",
+      "1. Write a short story or dialogue (about 150 characters) that uses as many of these words as fit naturally. Mark each of my words in **bold**.",
+      "2. Then quiz me on 8 of the words, one question at a time: a new sentence with a blank, and wait for my answer. Tell me if I was right, explain briefly in English, and move on.",
+      "3. At the end, list the words I got wrong.",
+      "",
+      "My words:",
+      ...rows,
+      ""
+    ].join(`
+`);
+  }
 
   // src/pages/common.ts
   function download(name, content, type = "text/plain;charset=utf-8") {
@@ -389,6 +411,7 @@
     let d = new Date(t);
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric", ...d.getFullYear() === (/* @__PURE__ */ new Date()).getFullYear() ? {} : { year: "numeric" } });
   }
+  var MAC = /Mac|iPhone|iPad/.test(navigator.platform);
 
   // src/pages/vocab.ts
   var STAMPS = [
@@ -517,6 +540,10 @@
     let { lastExportAt } = await browser.storage.local.get("lastExportAt"), text = buildClaudeExport(words, logs, lastExportAt ?? 0, saved);
     await deliver(text) && (await browser.storage.local.set({ lastExportAt: at }), render(), renderExportInfo());
   }
+  $("practice").addEventListener("click", async () => {
+    let data = await browser.runtime.sendMessage({ type: "allData" }), learning = data.words.some((w) => w.s !== "known");
+    learning && await navigator.clipboard.writeText(buildPracticePrompt(data.words, data.saved ?? {})), $("practiceOk").textContent = learning ? "Copied. Paste it into your AI chat." : "Stamp some words \u65B0 or \u5B78 first.";
+  });
   var TSV = "text/tab-separated-values;charset=utf-8";
   $("exportNew").addEventListener("click", () => exportNew((text) => saveAs(`chinese-brain-${today()}.tsv`, text, TSV)));
   $("copyNew").addEventListener(
@@ -529,7 +556,7 @@
   });
   $("backup").addEventListener("click", async () => {
     let all = await browser.storage.local.get(null);
-    download(`chinese-brain-backup-${today()}.json`, JSON.stringify({ app: "chinese-brain", v: 1, at: Date.now(), data: all }), "application/json");
+    delete all.acct, delete all["acct:dirty"], download(`chinese-brain-backup-${today()}.json`, JSON.stringify({ app: "chinese-brain", v: 1, at: Date.now(), data: all }), "application/json");
   });
   $("restore").addEventListener("change", async (e) => {
     let f = e.target.files?.[0];
@@ -537,7 +564,7 @@
     let json = JSON.parse(await f.text());
     if (json.app !== "chinese-brain") return alert("Not a Chinese Brain backup.");
     let recs = Object.entries(json.data).filter(([k]) => k.startsWith("w:")).map(([, v]) => v), n = await browser.runtime.sendMessage({ type: "importWords", words: recs, mode: "merge" }), existing = await browser.storage.local.get(null), extra = {};
-    for (let [k, v] of Object.entries(json.data)) !k.startsWith("w:") && !(k in existing) && (extra[k] = v);
+    for (let [k, v] of Object.entries(json.data)) !k.startsWith("w:") && !k.startsWith("acct") && !(k in existing) && (extra[k] = v);
     await browser.storage.local.set(extra), alert(`Restored ${n} words.`), load();
   });
   $("knownFile").addEventListener("change", async (e) => {

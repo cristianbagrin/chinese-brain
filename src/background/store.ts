@@ -4,6 +4,34 @@ import { numberedToMarked } from '../shared/pinyin.ts';
 import { dayKeyLocal } from '../shared/time.ts';
 import type { Context, Entry, LogEvent, Status, WordRecord } from '../shared/types.ts';
 
+type Local = typeof browser.storage.local & { getKeys?: () => Promise<string[]> };
+
+/** The stored keys that start with `prefix`, without reading everything else (newer browsers). */
+export async function storedKeys(prefix: string): Promise<string[]> {
+  const local = browser.storage.local as Local;
+  try {
+    if (local.getKeys) return (await local.getKeys()).filter((k) => k.startsWith(prefix));
+  } catch {
+    /* fall through to the full read */
+  }
+  return Object.keys(await local.get(null)).filter((k) => k.startsWith(prefix));
+}
+
+/**
+ * The stored items whose key starts with `prefix`. The word list is read every time the
+ * background starts (in Chrome, after every idle half minute): saved transcripts and logs,
+ * which can be megabytes, are left alone.
+ */
+export async function stored(prefix: string): Promise<Record<string, unknown>> {
+  const local = browser.storage.local as Local;
+  if (!local.getKeys) {
+    const all = await local.get(null);
+    return Object.fromEntries(Object.entries(all).filter(([k]) => k.startsWith(prefix)));
+  }
+  const keys = await storedKeys(prefix);
+  return keys.length ? local.get(keys) : {};
+}
+
 /**
  * The single word list shared by every page. Each word lives under its own
  * storage key ("w:<word>") so writes stay small; content scripts watch
@@ -16,10 +44,9 @@ export class Store {
   private recentLooks = new Map<string, number>();
 
   async load() {
-    const all = await browser.storage.local.get(null);
+    const all = await stored('w:');
     const migrate: Record<string, WordRecord> = {};
     for (const [k, v] of Object.entries(all)) {
-      if (!k.startsWith('w:')) continue;
       const rec = v as WordRecord;
       // "Difficult" was renamed "Learning".
       if ((rec.s as string) === 'difficult' || rec.hist.some((h) => (h.s as string) === 'difficult')) {
@@ -106,9 +133,8 @@ export class Store {
 
   async allLogs(): Promise<LogEvent[]> {
     await this.flushLog();
-    const all = await browser.storage.local.get(null);
+    const all = await stored('log:');
     return Object.keys(all)
-      .filter((k) => k.startsWith('log:'))
       .sort()
       .flatMap((k) => all[k] as LogEvent[]);
   }

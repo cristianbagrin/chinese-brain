@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accounts · Chinese Brain</title>
+<link rel="icon" href="/icon.png">
+<link rel="stylesheet" href="/style.css">
+<meta name="robots" content="noindex">
+</head>
+<body>
+<header><div class="wrap">
+  <a class="home" href="/brain"><img src="/icon.png" alt="">Chinese Brain</a>
+  <nav><a href="/brain/guide">Guide</a><a href="/brain/whats-new">What's new</a><a href="/brain/dashboard">Dashboard</a><a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain%20feedback">Feedback</a></nav>
+</div></header>
+<main class="wrap">
+  <form class="card" id="gate" style="max-width:420px;margin:48px auto"><h1>Accounts</h1><p class="lead">For the owner. Enter the admin key (the ADMIN_KEY secret in Cloudflare).</p><label>Admin key<input type="password" id="key" required></label><p class="msg" id="msg"></p><button class="btn primary">Show</button></form>
+  <div id="out" hidden><section class="tiles" id="tiles"></section><div class="list" id="users"></div></div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const day = (t) => new Date(t).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+$('gate').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const res = await fetch('/api/admin/users', { headers: { Authorization: 'Bearer ' + $('key').value } });
+  if (!res.ok) return ($('msg').textContent = 'That key isn\u2019t right (or ADMIN_KEY isn\u2019t set yet).');
+  const d = await res.json();
+  $('gate').hidden = true; $('out').hidden = false;
+  for (const [n, label] of [[d.total, 'accounts'], [d.newThisWeek, 'new this week'], [d.activeThisWeek, 'active this week']]) {
+    const t = document.createElement('div'); t.className = 'tile'; const b = document.createElement('b'); b.textContent = n.toLocaleString('en-US'); t.append(b, label); $('tiles').append(t);
+  }
+  for (const u of d.users) {
+    const r = document.createElement('div'); r.className = 'urow';
+    for (const x of [u.email, 'joined ' + day(u.created), 'last used ' + day(u.seen), (u.words || 0) + ' items']) { const c = document.createElement('span'); c.textContent = x; r.append(c); }
+    $('users').append(r);
+  }
+});
+</script>
+<footer><div class="wrap">
+  <span>© 2026 Cristian Bagrin</span>
+  <a href="/brain/privacy">Privacy</a>
+  <a href="/account">Account</a>
+  <a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain%20feedback">chris@cristianbagrin.com</a>
+</div></footer>
+<script src="/keys.js"></script>
+</body>
+</html>

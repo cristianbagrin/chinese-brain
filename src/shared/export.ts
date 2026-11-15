@@ -148,3 +148,34 @@ export function parseWordList(text: string): { w: string; s: Status; t: number }
   }
   return out;
 }
+
+/**
+ * A ready prompt for an AI tutor (Claude, ChatGPT, Gemini): the words you are learning, the
+ * newest first, each with its reading, meaning and the sentence you met it in.
+ */
+export function buildPracticePrompt(words: WordRecord[], saved: Record<string, SavedSentence[]> = {}, max = 40): string {
+  const mine = words
+    .filter((w) => w.s !== 'known')
+    .sort((a, b) => b.updated - a.updated)
+    .slice(0, max);
+  const known = words.filter((w) => w.s === 'known').length;
+  const rows = mine.map((w) => {
+    const met = shownSentence(w.ctx ?? [], w.w, saved[w.w]);
+    return [w.w, w.p?.toLowerCase(), w.g, met?.text].map((x) => clean(x)).filter(Boolean).join(' · ');
+  });
+  return [
+    'I am learning Taiwan Mandarin. Please be my tutor for a short practice session.',
+    '',
+    `Below are ${mine.length} words I am studying right now (word · pinyin · meaning · the sentence I met it in). I already know about ${known.toLocaleString('en-US')} other words, so keep everything else simple.`,
+    '',
+    'Rules: Traditional characters and Taiwan usage only (no 兒化, Taiwan vocabulary and readings). Add pinyin only when I ask.',
+    '',
+    '1. Write a short story or dialogue (about 150 characters) that uses as many of these words as fit naturally. Mark each of my words in **bold**.',
+    '2. Then quiz me on 8 of the words, one question at a time: a new sentence with a blank, and wait for my answer. Tell me if I was right, explain briefly in English, and move on.',
+    '3. At the end, list the words I got wrong.',
+    '',
+    'My words:',
+    ...rows,
+    '',
+  ].join('\n');
+}

@@ -3,7 +3,8 @@
 # Runs when package.json changes on main (a version bump) or by hand
 # (Actions → Release → Run workflow; "chrome" sends an already released version to Chrome
 # only, for when its upload failed, e.g. while the item was still in review). A version is released once: the run tags it
-# v<version>, and later runs skip versions that already have a tag. Each store is
+# v<version> and makes a GitHub release with both zips attached (the files to upload to a
+# store by hand), and later runs skip versions that already have a tag. Each store is
 # skipped while its secrets are missing (see store/PUBLISHING.md, "Automatic releases").
 name: Release
 
@@ -93,3 +94,16 @@ jobs:
         run: |
           git tag "v${{ steps.v.outputs.version }}"
           git push origin "v${{ steps.v.outputs.version }}"
+
+      # The two zips, downloadable from the repository's Releases page: the Chrome one is the
+      # file to upload in the Chrome Web Store dashboard when that is done by hand.
+      - name: GitHub release
+        if: steps.v.outputs.skip != 'true' && inputs.store != 'chrome'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v="${{ steps.v.outputs.version }}"
+          npm run zip
+          npm run zip:chrome
+          node scripts/release-notes.mjs "$v" --text > release-notes.txt
+          gh release create "v$v" "release/chinese_brain-$v.zip" "release/chinese_brain-$v-chrome.zip" --target "${{ github.sha }}" --title "Chinese Brain $v" --notes-file release-notes.txt

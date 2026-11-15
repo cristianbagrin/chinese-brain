@@ -1,5 +1,6 @@
 // The website and account service at https://chinese.cristianbagrin.com.
-//   public/    the pages (served as they are)
+//   public/    the pages (served as they are): /brain/* is the Chinese Brain extension, /account the login
+//              shared by everything on this site
 //   worker.js  /api/*: accounts and word-list sync, one small SQLite database per account
 // Pushing to main deploys it (Cloudflare Workers Builds); by hand: `npx wrangler deploy` here.
 // Password-reset emails need one secret: `npx wrangler secret put RESEND_API_KEY` (resend.com, free).
@@ -7,14 +8,23 @@
   "name": "chinesebrain",
   "main": "worker.js",
   "compatibility_date": "2026-11-01",
-  "assets": { "directory": "./public", "binding": "ASSETS", "not_found_handling": "404-page", "run_worker_first": ["/api/*"] },
+  "assets": { "directory": "./public", "binding": "ASSETS", "not_found_handling": "404-page", "run_worker_first": ["/api/*", "/", "/welcome", "/privacy", "/dashboard", "/guide", "/whats-new"] },
   "durable_objects": {
     "bindings": [
       { "name": "ACCOUNT", "class_name": "Account" },
-      { "name": "LIMITER", "class_name": "Limiter" }
+      { "name": "LIMITER", "class_name": "Limiter" },
+      { "name": "DIRECTORY", "class_name": "Directory" }
     ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Account", "Limiter"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Account", "Limiter"] },
+    { "tag": "v2", "new_sqlite_classes": ["Directory"] }
+  ],
+  // chinesebrain.cristianbagrin.com is a short address that forwards to /brain.
+  "routes": [
+    { "pattern": "chinese.cristianbagrin.com", "custom_domain": true },
+    { "pattern": "chinesebrain.cristianbagrin.com", "custom_domain": true }
+  ],
   "vars": {
     "SITE": "https://chinese.cristianbagrin.com",
     "MAIL_FROM": "Chinese Brain <noreply@cristianbagrin.com>",

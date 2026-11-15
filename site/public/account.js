@@ -1,28 +1,4 @@
-// The account and reset pages. The session token lives in this browser's localStorage.
-const $ = (id) => document.getElementById(id);
-const token = () => localStorage.getItem('cb-token') ?? '';
-
-async function api(path, body) {
-  let res;
-  try {
-    res = await fetch(`/api/${path}`, {
-      method: body === undefined ? 'GET' : 'POST',
-      headers: { 'Content-Type': 'application/json', ...(token() ? { Authorization: `Bearer ${token()}` } : {}) },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-  } catch {
-    throw Object.assign(new Error('Can’t reach the server. Check your connection.'), { code: 'offline' });
-  }
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw Object.assign(new Error(data.error ?? 'Something went wrong. Try again in a moment.'), { code: data.code });
-  return data;
-}
-
-function say(id, text, ok = false) {
-  $(id).textContent = text;
-  $(id).className = ok ? 'msg ok' : 'msg';
-}
-
+// The account and reset pages (cb.js has the session token and the API).
 /** Run a form's request with its button disabled; errors land in the form's message line. */
 function onSubmit(form, msg, run) {
   form.addEventListener('submit', async (e) => {
@@ -108,6 +84,9 @@ if ($('enter')) {
     const res = await api(mode === 'signup' ? 'signup' : 'login', { email, password: $('password').value });
     localStorage.setItem('cb-token', res.token);
     $('password').value = '';
+    // Sent here by a page that needs you signed in: back to it (same site only).
+    const next = new URLSearchParams(location.search).get('next');
+    if (next && /^\/[a-z]/.test(next)) return void (location.href = next);
     await show();
   });
   onSubmit($('pwForm'), 'pwMsg', async () => {
@@ -131,6 +110,7 @@ if ($('enter')) {
     a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
     a.download = 'chinese-brain-account.json';
     a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
   });
   show();
 }

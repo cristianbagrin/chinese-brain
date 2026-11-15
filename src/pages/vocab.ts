@@ -1,6 +1,6 @@
 import { stampSound } from '../content/audio.ts';
 import { shownSentence } from '../shared/context.ts';
-import { buildClaudeExport, exportCount, parseWordList, sourceName } from '../shared/export.ts';
+import { buildClaudeExport, buildPracticePrompt, exportCount, parseWordList, sourceName } from '../shared/export.ts';
 import { clock } from '../shared/time.ts';
 import type { LogEvent, SavedSentence, Status, WordRecord } from '../shared/types.ts';
 import { $, ago, download, h, saveAs, today } from './common.ts';
@@ -259,6 +259,13 @@ async function exportNew(deliver: (text: string) => Promise<boolean>): Promise<v
   renderExportInfo();
 }
 
+$('practice').addEventListener('click', async () => {
+  const data = await browser.runtime.sendMessage({ type: 'allData' });
+  const learning = (data.words as WordRecord[]).some((w) => w.s !== 'known');
+  if (learning) await navigator.clipboard.writeText(buildPracticePrompt(data.words, data.saved ?? {}));
+  $('practiceOk').textContent = learning ? 'Copied. Paste it into your AI chat.' : 'Stamp some words 新 or 學 first.';
+});
+
 const TSV = 'text/tab-separated-values;charset=utf-8';
 $('exportNew').addEventListener('click', () => exportNew((text) => saveAs(`chinese-brain-${today()}.tsv`, text, TSV)));
 $('copyNew').addEventListener('click', () =>
@@ -275,6 +282,9 @@ $('exportAll').addEventListener('click', async () => {
 
 $('backup').addEventListener('click', async () => {
   const all = await browser.storage.local.get(null);
+  // Not the account's session: a backup file must not sign anyone in.
+  delete all.acct;
+  delete all['acct:dirty'];
   download(`chinese-brain-backup-${today()}.json`, JSON.stringify({ app: 'chinese-brain', v: 1, at: Date.now(), data: all }), 'application/json');
 });
 $('restore').addEventListener('change', async (e) => {
@@ -288,7 +298,7 @@ $('restore').addEventListener('change', async (e) => {
   const n = await browser.runtime.sendMessage({ type: 'importWords', words: recs, mode: 'merge' });
   const existing = await browser.storage.local.get(null);
   const extra: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(json.data as Record<string, unknown>)) if (!k.startsWith('w:') && !(k in existing)) extra[k] = v;
+  for (const [k, v] of Object.entries(json.data as Record<string, unknown>)) if (!k.startsWith('w:') && !k.startsWith('acct') && !(k in existing)) extra[k] = v;
   await browser.storage.local.set(extra);
   alert(`Restored ${n} words.`);
   load();
