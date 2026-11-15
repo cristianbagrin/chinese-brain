@@ -1,3 +1,5 @@
+import type { KeyAction } from './keys.ts';
+
 export type Status = 'fresh' | 'learning' | 'known';
 export const STATUSES: Status[] = ['fresh', 'learning', 'known'];
 /** Codes used in known-words.txt and the Claude export. */
@@ -129,6 +131,8 @@ export interface Settings {
   /** Optional Gemini key for transcribing caption-less videos (opt-in per video). */
   geminiKey: string;
   geminiModel: string;
+  /** Your own keys for the shortcuts (action -> key); the ones you didn't change aren't listed. */
+  keys: Partial<Record<KeyAction, string>>;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -154,6 +158,7 @@ export const DEFAULT_SETTINGS: Settings = {
   azureVoice: 'zh-TW-HsiaoChenNeural',
   geminiKey: '',
   geminiModel: 'gemini-3.8-flash',
+  keys: {},
 };
 
 /** Stored settings (possibly from an older version) merged over the defaults. */

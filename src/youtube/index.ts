@@ -3,6 +3,7 @@ import { numberedToMarked } from '../shared/pinyin.ts';
 import { TRANS_LANG, type Status, type Token } from '../shared/types.ts';
 import { lookupText } from '../content/lookup.ts';
 import { cardTakes, isTyping, onKeydown } from '../content/keys.ts';
+import { actionFor } from '../shared/keys.ts';
 import type { Popup } from '../content/popup.ts';
 import { state } from '../content/state.ts';
 import { alignTranslation, cueAt, cueBefore, parseTimedText, pickChinese, pickTranslation, splitNote, stripNote, urlInfo, type Cue, type TrackInfo } from './captions.ts';
@@ -769,7 +770,7 @@ export class YouTubeSubs {
     v.play();
   }
 
-  private seekLine(delta: number) {
+  seekLine(delta: number) {
     const v = this.video();
     if (!v || !this.cues.length) return;
     const base = this.idx >= 0 ? this.idx : cueBefore(this.cues, v.currentTime);
@@ -790,42 +791,40 @@ export class YouTubeSubs {
     // Shift+P / Shift+N etc. stay YouTube's.
     if (!state.settings.ytEnabled || !this.cues.length || this.live || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
     const s = state.settings;
-    let handled = true;
-    switch (e.key.toLowerCase()) {
-      case 'a':
+    const action = actionFor(s, e, 'yt');
+    switch (action) {
+      case 'prev':
         this.seekLine(-1);
         break;
-      case 's':
+      case 'replay':
         this.seekLine(0);
         break;
-      case 'd':
+      case 'next':
         this.seekLine(1);
         break;
-      case 'r':
+      case 'loop':
         this.toggleLoop();
         break;
-      case 'q':
+      case 'shadow':
         this.toggleShadow();
         break;
-      case 'e':
+      case 'transcript':
         this.transcript.toggle();
         break;
-      case 'p':
+      case 'pinyin':
         browser.runtime.sendMessage({ type: 'saveSettings', settings: { pinyin: !s.pinyin } });
         break;
-      case 'x': {
+      case 'english': {
         const next = TRANSLATION_MODES[(TRANSLATION_MODES.indexOf(s.translation) + 1) % 3];
         browser.runtime.sendMessage({ type: 'saveSettings', settings: { translation: next } });
         break;
       }
       default:
-        handled = false;
+        return;
     }
-    if (handled) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      this.controls.flash(e.key.toLowerCase());
-    }
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    this.controls.flash(action);
   }
 
   private flushWatch() {

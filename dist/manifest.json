@@ -11,6 +11,10 @@
         "required": [
           "websiteContent",
           "browsingActivity"
+        ],
+        "optional": [
+          "personallyIdentifyingInfo",
+          "authenticationInfo"
         ]
       }
     },
@@ -25,6 +29,7 @@
   "permissions": [
     "storage",
     "unlimitedStorage",
+    "alarms",
     "menus",
     "downloads",
     "webRequest",
@@ -79,5 +84,6 @@
       },
       "description": "Turn word colors on or off for this website"
     }
-  }
+  },
+  "homepage_url": "https://chinese.cristianbagrin.com"
 }

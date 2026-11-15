@@ -73,3 +73,16 @@ export function ago(t: number): string {
   const d = new Date(t);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(d.getFullYear() === new Date().getFullYear() ? {} : { year: 'numeric' }) });
 }
+
+export const SUPPORT = 'chris@cristianbagrin.com';
+
+/** An email to the developer, already saying which version and browser this is. */
+export function supportLink(kind: 'bug' | 'question'): string {
+  const v = browser.runtime.getManifest().version;
+  const subject = kind === 'bug' ? `Chinese Brain ${v}: bug report` : 'Chinese Brain: question';
+  const body =
+    kind === 'bug'
+      ? `What happened:\n\n\nWhat I expected:\n\n\nThe page or video it happened on:\n\n\n(A screenshot helps a lot.)\n\n--\nChinese Brain ${v} · ${navigator.userAgent}`
+      : `\n\n--\nChinese Brain ${v} · ${navigator.userAgent}`;
+  return `mailto:${SUPPORT}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}

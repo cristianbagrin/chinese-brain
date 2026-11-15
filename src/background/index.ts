@@ -5,6 +5,7 @@ import { numberedToMarked } from '../shared/pinyin.ts';
 import { colorsOn, DEFAULT_SETTINGS, normalizeSettings, type Msg, type Settings, type Status, type WordRecord } from '../shared/types.ts';
 import { freshen, isPlaceholder, shortGloss, withSurface } from '../shared/gloss.ts';
 import { Store } from './store.ts';
+import { SITE, Sync } from './sync.ts';
 import { geminiExamples, geminiModels, geminiTranscribe } from './gemini.ts';
 import { checkAzure, ttsAudio } from './speech.ts';
 import { translateLines } from './translate.ts';
@@ -19,6 +20,21 @@ let dict: Dictionary | undefined;
 const dictReady = loadDictionary();
 const store = new Store();
 const storeReady = store.load();
+
+// The optional account: a word stamped in another browser lands in this one's list too.
+const sync = new Sync((k, v) => {
+  if (!k.startsWith('w:')) return;
+  const rec = v as WordRecord | undefined;
+  if (rec) {
+    store.words.set(rec.w, rec);
+    if (dict) addOwnWord(dict, rec.w, rec.g);
+  } else store.words.delete(k.slice(2));
+});
+
+// First run: a page that shows how it works (with Chinese to try it on).
+browser.runtime.onInstalled.addListener((d) => {
+  if (d.reason === 'install' && !__TEST__) void browser.tabs.create({ url: `${SITE}/welcome` });
+});
 
 // Chrome has no filterResponseData: a page hook copies the caption bodies instead.
 if (__CHROME__) startHookCapture();
@@ -244,6 +260,18 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
         for (const r of recs) store.log({ at: Date.now(), k: 'status', w: r.w, s: r.s, from: store.words.get(r.w)?.s ?? null });
         return store.importWords(recs, 'replace');
       });
+    case 'account':
+      return sync.info();
+    case 'signIn':
+      return storeReady.then(() => sync.signIn(String(any.email), String(any.password), !!any.create));
+    case 'signOut':
+      return sync.signOut();
+    case 'forgot':
+      return sync.forgot(String(any.email));
+    case 'syncNow':
+      return sync.now().then(() => sync.info());
+    case 'openOptions':
+      return browser.tabs.create({ url: browser.runtime.getURL('options.html' + (any.hash ? '#' + any.hash : '')) }).then(() => true);
     case 'testSet':
       if (!__TEST__) return undefined;
       return browser.storage.local.set(any.data as Record<string, unknown>).then(() => true);

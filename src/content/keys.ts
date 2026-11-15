@@ -1,3 +1,6 @@
+import { actionFor } from '../shared/keys.ts';
+import { state } from './state.ts';
+
 /** True while the user is typing (also inside shadow-DOM inputs, and during IME composition). */
 export function isTyping(e: KeyboardEvent): boolean {
   if (e.isComposing) return true;
@@ -28,8 +31,9 @@ let typedAt = 0;
 export function cardTakes(e: KeyboardEvent, shownAgo: number, onCard = false): boolean {
   if (!isTyping(e)) return true;
   if (e.isComposing || inOwnBox(e)) return false;
-  if (onCard && /^([0-3]|[vi]|Escape)$/.test(e.key)) return true;
-  if (/^([0-3]|Escape)$/.test(e.key) && shownAgo < Date.now() - typedAt) return true;
+  const action = e.key === 'Escape' ? 'esc' : actionFor(state.settings, e, 'card');
+  if (onCard && action) return true;
+  if (action && action !== 'say' && action !== 'images' && shownAgo < Date.now() - typedAt) return true;
   if (!/^(Shift|Control|Alt|Meta|CapsLock)$/.test(e.key)) typedAt = Date.now();
   return false;
 }

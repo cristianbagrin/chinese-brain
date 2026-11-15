@@ -477,7 +477,8 @@
     azureRegion: "eastasia",
     azureVoice: "zh-TW-HsiaoChenNeural",
     geminiKey: "",
-    geminiModel: "gemini-3.8-flash"
+    geminiModel: "gemini-3.8-flash",
+    keys: {}
   };
   function normalizeSettings(raw) {
     let r = { ...raw ?? {} };
@@ -647,6 +648,140 @@
     !text || rec.ctx.some((c) => c.text === text) || (rec.ctx.unshift({ ...ctx, text }), rec.ctx = rec.ctx.slice(0, 5));
   }
 
+  // src/background/sync.ts
+  init_browser_shim();
+  var SITE = "https://chinese.cristianbagrin.com", SYNCED = /^(w:|sav:|exh:|gex:)|^settings$/;
+  function travel(k, v) {
+    if (k !== "settings" || !v) return v;
+    let { azureKey: _a, geminiKey: _g, ...rest } = v;
+    return rest;
+  }
+  var json = (k, v) => JSON.stringify(travel(k, v) ?? null), ApiError = class extends Error {
+    code;
+    constructor(message, code) {
+      super(message), this.code = code;
+    }
+  };
+  async function api(path, body, token) {
+    let res;
+    try {
+      res = await fetch(`${SITE}/api/${path}`, {
+        method: body === void 0 ? "GET" : "POST",
+        headers: { "Content-Type": "application/json", ...token ? { Authorization: `Bearer ${token}` } : {} },
+        body: body === void 0 ? void 0 : JSON.stringify(body)
+      });
+    } catch {
+      throw new ApiError("Can\u2019t reach Chinese Brain. Check your connection.", "offline");
+    }
+    let data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new ApiError(data.error ?? "Something went wrong. Try again in a moment.", data.code ?? "server");
+    return data;
+  }
+  var Sync = class {
+    acct = null;
+    dirty = {};
+    /** What sync itself just wrote, so those writes aren't sent back up. */
+    applied = /* @__PURE__ */ new Map();
+    timer;
+    running = null;
+    ready;
+    /** A change from another browser landed in storage. */
+    onRemote;
+    constructor(onRemote) {
+      this.onRemote = onRemote, this.ready = import_browser_polyfill_min.default.storage.local.get(["acct", "acct:dirty"]).then((got) => {
+        this.acct = got.acct ?? null, this.dirty = got["acct:dirty"] ?? {};
+      }), import_browser_polyfill_min.default.storage.onChanged.addListener((changes, area) => {
+        area === "local" && this.ready.then(() => this.note(changes));
+      }), import_browser_polyfill_min.default.alarms.onAlarm.addListener((a) => {
+        a.name === "sync" && this.now();
+      }), import_browser_polyfill_min.default.alarms.create("sync", { periodInMinutes: 20 }), this.now();
+    }
+    note(changes) {
+      if (!this.acct?.token) return;
+      let any = !1;
+      for (let [k, ch] of Object.entries(changes)) {
+        if (!SYNCED.test(k)) continue;
+        let now = json(k, ch.newValue);
+        if (this.applied.get(k) === now) {
+          this.applied.delete(k);
+          continue;
+        }
+        json(k, ch.oldValue) !== now && (this.dirty[k] = Date.now(), any = !0);
+      }
+      any && (import_browser_polyfill_min.default.storage.local.set({ "acct:dirty": this.dirty }), clearTimeout(this.timer), this.timer = setTimeout(() => void this.now(), 4e3));
+    }
+    async info() {
+      await this.ready;
+      let a = this.acct;
+      return { email: a?.email ?? "", signedIn: !!a?.token, at: a?.at, error: a?.error, pending: Object.keys(this.dirty).length };
+    }
+    saveAcct() {
+      return this.acct ? import_browser_polyfill_min.default.storage.local.set({ acct: this.acct }) : import_browser_polyfill_min.default.storage.local.remove(["acct", "acct:dirty"]);
+    }
+    /** Sign in or create the account, then merge this browser's list with the account's. */
+    async signIn(email, password, create) {
+      await this.ready;
+      try {
+        let res = await api(create ? "signup" : "login", { email, password });
+        this.acct = { email: res.email, token: res.token, seq: 0 };
+      } catch (e) {
+        return { ...await this.info(), error: e.message };
+      }
+      let all = await import_browser_polyfill_min.default.storage.local.get(null);
+      this.dirty = {};
+      for (let [k, v] of Object.entries(all))
+        SYNCED.test(k) && (k.startsWith("w:") ? this.dirty[k] = v.updated || 1 : k.startsWith("sav:") ? this.dirty[k] = Math.max(1, ...v.map((x) => x.at || 0)) : this.dirty[k] = 1);
+      return await import_browser_polyfill_min.default.storage.local.set({ acct: this.acct, "acct:dirty": this.dirty }), await this.now(), this.info();
+    }
+    async signOut() {
+      await this.ready;
+      let token = this.acct?.token;
+      return this.acct = null, this.dirty = {}, await this.saveAcct(), token && await api("logout", {}, token).catch(() => {
+      }), this.info();
+    }
+    async forgot(email) {
+      return api("forgot", { email }).then(
+        () => ({ ok: !0 }),
+        (e) => ({ error: e.message })
+      );
+    }
+    /** Send what changed here, take what changed elsewhere. One run at a time. */
+    now() {
+      return this.running ??= this.ready.then(() => this.run()).finally(() => this.running = null), this.running;
+    }
+    async run() {
+      let a = this.acct;
+      if (a?.token)
+        try {
+          for (let more = !0; more; ) {
+            let keys = Object.keys(this.dirty).slice(0, 400), sent = Object.fromEntries(keys.map((k) => [k, this.dirty[k]])), have = keys.length ? await import_browser_polyfill_min.default.storage.local.get(keys) : {}, changes = keys.map((k) => ({ k, v: travel(k, have[k]) ?? null, t: sent[k] })), res = await api("sync", { since: a.seq, changes }, a.token);
+            if (this.acct !== a) return;
+            for (let k of keys) this.dirty[k] === sent[k] && delete this.dirty[k];
+            await this.apply(res.changes), a.seq = res.seq, a.at = Date.now(), delete a.error, await import_browser_polyfill_min.default.storage.local.set({ acct: a, "acct:dirty": this.dirty }), more = res.more || Object.keys(this.dirty).length > 0;
+          }
+        } catch (e) {
+          if (this.acct !== a) return;
+          let err = e;
+          err.code === "signed_out" && (a.token = "", this.dirty = {}), a.error = err.message, await import_browser_polyfill_min.default.storage.local.set({ acct: a, "acct:dirty": this.dirty });
+        }
+    }
+    async apply(changes) {
+      let set = {}, remove = [], settings;
+      for (let c of changes)
+        !SYNCED.test(c.k) || (this.dirty[c.k] ?? 0) > c.t || (c.k === "settings" ? settings = c.v : c.v == null ? remove.push(c.k) : set[c.k] = c.v);
+      if (settings) {
+        let mine = (await import_browser_polyfill_min.default.storage.local.get("settings")).settings ?? {};
+        set.settings = { ...settings, azureKey: mine.azureKey ?? "", geminiKey: mine.geminiKey ?? "" };
+      }
+      for (let [k, v] of Object.entries(set)) this.applied.set(k, json(k, v));
+      for (let k of remove) this.applied.set(k, "null");
+      Object.keys(set).length && await import_browser_polyfill_min.default.storage.local.set(set), remove.length && await import_browser_polyfill_min.default.storage.local.remove(remove);
+      for (let [k, v] of Object.entries(set)) this.onRemote(k, v);
+      for (let k of remove) this.onRemote(k, void 0);
+      setTimeout(() => this.applied.clear(), 2e3);
+    }
+  };
+
   // src/background/gemini.ts
   init_browser_shim();
   var API = "https://generativelanguage.googleapis.com/v1beta";
@@ -788,8 +923,8 @@ Do not summarize, skip or merge lines, and add no commentary. Skip music without
   function parseReply(text) {
     let body = text.trim().replace(/^```(?:json)?\s*|\s*```$/g, ""), raw = [], spoken = "";
     try {
-      let json = JSON.parse(body);
-      Array.isArray(json) ? raw = json : (raw = json.lines ?? [], spoken = String(json.spoken ?? ""));
+      let json2 = JSON.parse(body);
+      Array.isArray(json2) ? raw = json2 : (raw = json2.lines ?? [], spoken = String(json2.spoken ?? ""));
     } catch {
       for (let m of body.matchAll(/\{[^{}]*\}/g))
         try {
@@ -1125,7 +1260,14 @@ Give each with a natural American English translation.`, schema = {
   }
 
   // src/background/index.ts
-  var dict, dictReady = loadDictionary(), store = new Store(), storeReady = store.load();
+  var dict, dictReady = loadDictionary(), store = new Store(), storeReady = store.load(), sync = new Sync((k, v) => {
+    if (!k.startsWith("w:")) return;
+    let rec = v;
+    rec ? (store.words.set(rec.w, rec), dict && addOwnWord(dict, rec.w, rec.g)) : store.words.delete(k.slice(2));
+  });
+  import_browser_polyfill_min.default.runtime.onInstalled.addListener((d) => {
+    d.reason === "install" && import_browser_polyfill_min.default.tabs.create({ url: `${SITE}/welcome` });
+  });
   startHookCapture();
   var examples = new ExampleBank(), examplesReady = loadExamples();
   async function loadExamples() {
@@ -1280,6 +1422,18 @@ Give each with a natural American English translation.`, schema = {
           for (let r of recs) store.log({ at: Date.now(), k: "status", w: r.w, s: r.s, from: store.words.get(r.w)?.s ?? null });
           return store.importWords(recs, "replace");
         });
+      case "account":
+        return sync.info();
+      case "signIn":
+        return storeReady.then(() => sync.signIn(String(any.email), String(any.password), !!any.create));
+      case "signOut":
+        return sync.signOut();
+      case "forgot":
+        return sync.forgot(String(any.email));
+      case "syncNow":
+        return sync.now().then(() => sync.info());
+      case "openOptions":
+        return import_browser_polyfill_min.default.tabs.create({ url: import_browser_polyfill_min.default.runtime.getURL("options.html" + (any.hash ? "#" + any.hash : "")) }).then(() => !0);
       case "testSet":
         return;
       case "openPage":

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Account · Chinese Brain</title>
+<link rel="icon" href="/icon.png">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header><div class="wrap">
+  <a class="home" href="/"><img src="/icon.png" alt="">Chinese Brain</a>
+  <nav><a href="/welcome">How it works</a><a href="/account">Account</a><a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain">Support</a></nav>
+</div></header>
+<main class="wrap narrow">
+  <noscript><p>This page needs JavaScript.</p></noscript>
+
+  <form class="card" id="enter" hidden>
+    <h1 id="enterTitle">Sign in</h1>
+    <p class="lead" id="enterLead">Your word list, on every browser you use.</p>
+    <label>Email<input type="email" id="email" autocomplete="username" required></label>
+    <label id="pwLabel">Password<input type="password" id="password" autocomplete="current-password" minlength="8" required></label>
+    <p class="msg" id="enterMsg" role="status"></p>
+    <button class="btn primary" id="enterGo">Sign in</button>
+    <p class="alt"><a href="#signup" id="toSignup">Create an account</a><a href="#forgot" id="toForgot">Forgot password?</a><a href="#" id="toSignin" hidden>Back to sign in</a></p>
+  </form>
+
+  <div id="manage" hidden>
+    <section class="card">
+      <h1>Your account</h1>
+      <p class="lead"><b id="who"></b><br><span id="stats"></span></p>
+      <div class="rowbtn"><button class="btn secondary" id="download">Download my data</button><button class="btn secondary" id="signout">Sign out</button></div>
+    </section>
+    <form class="card" id="pwForm">
+      <h2>Change password</h2>
+      <label>Current password<input type="password" id="old" autocomplete="current-password" required></label>
+      <label>New password<input type="password" id="next" autocomplete="new-password" minlength="8" required></label>
+      <p class="msg" id="pwMsg" role="status"></p>
+      <button class="btn primary">Change password</button>
+    </form>
+    <form class="card" id="delForm">
+      <h2>Delete account</h2>
+      <p class="lead">Removes your account and its synced word list from our server for good. Words already in your browsers stay there.</p>
+      <label>Password<input type="password" id="delPw" autocomplete="current-password" required></label>
+      <p class="msg" id="delMsg" role="status"></p>
+      <button class="btn danger">Delete my account</button>
+    </form>
+  </div>
+</main>
+<script src="/account.js"></script>
+<footer><div class="wrap">
+  <span>© 2026 Cristian Bagrin</span>
+  <a href="/privacy">Privacy</a>
+  <a href="/account">Account</a>
+  <a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain">chris@cristianbagrin.com</a>
+</div></footer>
+</body>
+</html>

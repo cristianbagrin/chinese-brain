@@ -1,16 +1,23 @@
 # Publishes each new version to Firefox Add-ons (AMO) and the Chrome Web Store.
 #
-# Runs when package.json changes on the default branch (a version bump) or by hand
-# (Actions → Release → Run workflow). A version is released once: the run tags it
+# Runs when package.json changes on main (a version bump) or by hand
+# (Actions → Release → Run workflow; "chrome" sends an already released version to Chrome
+# only, for when its upload failed, e.g. while the item was still in review). A version is released once: the run tags it
 # v<version>, and later runs skip versions that already have a tag. Each store is
 # skipped while its secrets are missing (see store/PUBLISHING.md, "Automatic releases").
 name: Release
 
 on:
   push:
-    branches: [claude/chinese-brain-extension-drtq0h]
+    branches: [main]
     paths: [package.json]
   workflow_dispatch:
+    inputs:
+      store:
+        description: Which store
+        type: choice
+        options: [all, chrome]
+        default: all
 
 permissions:
   contents: write
@@ -38,7 +45,7 @@ jobs:
         run: |
           version=$(node -p "require('./package.json').version")
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null; then
+          if [ "${{ inputs.store }}" != chrome ] && git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null; then
             echo "v$version is already released; nothing to do."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
@@ -60,13 +67,16 @@ jobs:
           node scripts/release-notes.mjs "${{ steps.v.outputs.version }}" > amo-metadata.json
 
       - name: Firefox Add-ons
-        if: steps.v.outputs.skip != 'true' && env.AMO_JWT_ISSUER != ''
+        if: steps.v.outputs.skip != 'true' && env.AMO_JWT_ISSUER != '' && inputs.store != 'chrome'
         run: >
           npx web-ext sign --source-dir dist --artifacts-dir release
           --channel listed --amo-metadata amo-metadata.json --approval-timeout 0
           --api-key "$AMO_JWT_ISSUER" --api-secret "$AMO_JWT_SECRET"
 
+      # Chrome refuses an upload while an earlier version is in review: the run goes on, and
+      # "Run workflow" with store = chrome sends it later.
       - name: Chrome Web Store
+        continue-on-error: true
         if: steps.v.outputs.skip != 'true' && env.CWS_REFRESH_TOKEN != ''
         env:
           EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
@@ -79,7 +89,7 @@ jobs:
           npx --yes chrome-webstore-upload-cli@4.0.2 --source "release/chinese_brain-${{ steps.v.outputs.version }}-chrome.zip"
 
       - name: Tag the release
-        if: steps.v.outputs.skip != 'true' && (env.AMO_JWT_ISSUER != '' || env.CWS_REFRESH_TOKEN != '')
+        if: steps.v.outputs.skip != 'true' && inputs.store != 'chrome' && (env.AMO_JWT_ISSUER != '' || env.CWS_REFRESH_TOKEN != '')
         run: |
           git tag "v${{ steps.v.outputs.version }}"
           git push origin "v${{ steps.v.outputs.version }}"

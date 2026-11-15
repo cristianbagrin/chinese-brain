@@ -35,7 +35,12 @@ const common = {
   minifySyntax: true, // drops the test-only branches from release builds
 };
 // Test builds (CB_TEST=1) add a hook so the browser tests can open extension pages.
-const define = (chrome) => ({ __TEST__: JSON.stringify(!!process.env.CB_TEST), __CHROME__: JSON.stringify(chrome) });
+// CB_SITE points a test build at a local copy of the website and account service (site/).
+const define = (chrome) => ({
+  __TEST__: JSON.stringify(!!process.env.CB_TEST),
+  __CHROME__: JSON.stringify(chrome),
+  __SITE__: JSON.stringify(process.env.CB_SITE || 'https://chinese.cristianbagrin.com'),
+});
 
 // Firefox.
 prepare('dist');

@@ -54,7 +54,7 @@
   right: 12px;
   bottom: 60px;
   z-index: 71;
-  width: 320px;
+  width: 322px;
   box-sizing: border-box;
   padding: 12px 14px 12px;
   background: var(--bg);
@@ -66,23 +66,23 @@
 }
 .panel[hidden], .toast[hidden] { display: none; }
 .big { font-size: 13px; color: var(--text2); }
-.big b { font-size: 26px; font-weight: 600; color: var(--known); margin-right: 4px; }
-.bar { display: flex; height: 6px; margin: 8px 0 6px; border-radius: 3px; overflow: hidden; background: var(--line); }
+.big b { font-size: 26px; font-weight: 600; color: var(--known); margin-right: 5px; }
+.gear { all: unset; position: absolute; top: 8px; right: 10px; cursor: pointer; font-size: 15px; line-height: 1; padding: 4px; border-radius: 6px; color: var(--text3); }
+.gear:hover { color: var(--text); background: var(--line); }
+.bar { display: flex; height: 6px; margin: 8px 0 2px; border-radius: 3px; overflow: hidden; background: var(--line); }
 .seg { display: block; flex-basis: 0; }
 .seg.known { background: var(--known); }
 .seg.learning { background: var(--learning); }
 .seg.fresh { background: var(--fresh); }
 .seg.new { background: #d6cec5; }
-.legend { display: flex; gap: 12px; font-size: 12px; color: var(--text2); }
-.legend .k { color: var(--known); }
-.legend .l { color: #a37b00; }
-.legend .f { color: var(--fresh); }
-.track { margin-top: 8px; font-size: 12px; color: var(--text3); }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.chips + .chips { margin-top: 6px; }
+.chip:hover { border-color: var(--text3); color: var(--text); }
+.chip.on:hover { color: #fff; }
 .chip {
   all: unset;
   cursor: pointer;
-  padding: 3px 9px;
+  padding: 3px 8px;
   border-radius: 999px;
   border: 1px solid var(--line);
   color: var(--text2);
@@ -91,7 +91,6 @@
 .chip.on { color: #fff; border-color: var(--text); background: var(--text); }
 .chip.on kbd { color: #d6cec5; }
 .chip kbd { font: 600 10px var(--sans); color: var(--text3); margin-left: 5px; }
-.keys { margin-top: 10px; font-size: 11.5px; color: var(--text3); }
 
 .toast {
   position: absolute;

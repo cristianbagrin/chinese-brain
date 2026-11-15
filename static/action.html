@@ -48,6 +48,9 @@
   .links { display: flex; gap: 8px; margin-top: 10px; }
   .links a { flex: 1; text-align: center; text-decoration: none; padding: 6px 0; border-radius: 8px; background: var(--ground); color: var(--ink); font-size: 13px; }
   .links a:hover { background: var(--rule); }
+  .foot { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; }
+  .foot a { color: var(--ink2); text-decoration: none; }
+  .foot a:hover { color: var(--red-deep); text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -60,7 +63,7 @@
       <div class="seg" data-setting="hoverMode"><button data-v="hover">hover</button><button data-v="alt" title="Only while holding Option (Alt)">⌥ Option</button><button data-v="off">off</button></div>
     </div>
     <div class="row" id="siteLine" hidden><span>Lookup on <b class="hostname"></b></span><label class="sw"><input type="checkbox" id="siteOn"><i></i></label></div>
-    <div class="row"><span>Pinyin <kbd>P</kbd></span><label class="sw"><input type="checkbox" data-setting="pinyin"><i></i></label></div>
+    <div class="row"><span>Pinyin</span><label class="sw"><input type="checkbox" data-setting="pinyin"><i></i></label></div>
     <div class="row"><span>Card size</span>
       <div class="seg" data-setting="cardSize"><button data-v="normal">normal</button><button data-v="large">large</button></div>
     </div>
@@ -73,7 +76,7 @@
   <div class="group">
     <h3>YouTube</h3>
     <div class="row"><span>Chinese Brain subtitles</span><label class="sw"><input type="checkbox" data-setting="ytEnabled"><i></i></label></div>
-    <div class="row"><span>English line <kbd>X</kbd></span>
+    <div class="row"><span>English line</span>
       <div class="seg" data-setting="translation"><button data-v="show">show</button><button data-v="blur">blur</button><button data-v="hide">hide</button></div>
     </div>
     <div class="row"><span>Pause on hover</span><label class="sw"><input type="checkbox" data-setting="pauseOnHover"><i></i></label></div>
@@ -82,7 +85,8 @@
     </div>
   </div>
 
-  <div class="links"><a href="vocab.html" target="_blank">Word list &amp; export</a><a href="options.html" target="_blank">All settings</a></div>
+  <div class="links"><a href="vocab.html" target="_blank">Word list</a><a href="options.html" target="_blank">Settings</a></div>
+  <div class="foot"><a href="options.html#account" target="_blank" id="acctLink">Sign in to sync</a><a id="bug" href="mailto:chris@cristianbagrin.com">Report a bug</a></div>
 </div>
 <script src="action.js"></script>
 </body>

@@ -1,12 +1,11 @@
-# Publishing Chinese Brain on addons.mozilla.org
+# Publishing Chinese Brain
 
-Copy each block into the matching field of the AMO Developer Hub.
+Firefox Add-ons (AMO) and the Chrome Web Store. Copy each block into the matching field.
 
 ## Automatic releases (Firefox and Chrome)
 
 Once the secrets below are in place, you never upload by hand again. When a new version
-lands on the default branch (`claude/chinese-brain-extension-drtq0h`, `package.json`
-changed), the **Release** workflow (`.github/workflows/release.yml`) builds and checks it,
+lands on `main` (`package.json` changed), the **Release** workflow (`.github/workflows/release.yml`) builds and checks it,
 uploads it to Firefox Add-ons with its version notes (section 4) and notes to reviewer
 (section 5), uploads and publishes it on the Chrome Web Store, and tags it `v<version>`.
 A version is released once; a run for a version that already has a tag does nothing. You can
@@ -14,6 +13,8 @@ also start it by hand: GitHub → Actions → Release → Run workflow.
 
 Every version needs its notes in section 4 (`1.4.0:` and a fenced block), or the run stops.
 Don't also upload the same version by hand: the store refuses a version it already has.
+Chrome refuses an upload while an earlier version is still in review; the run carries on, and
+once the review is done you send it with Run workflow → store: **chrome**.
 
 Each store is skipped until its secrets exist (GitHub → the repository → Settings →
 Secrets and variables → Actions → New repository secret):
@@ -120,7 +121,16 @@ OPTIONAL, WITH YOUR OWN KEYS
 • Gemini: subtitles for videos without Chinese captions (Mandarin is transcribed; other languages are translated into Taiwan Mandarin), and new example sentences
 • Azure: a Taiwan neural voice
 
-Copyright © Cristian Bagrin. All rights reserved. No account and no server of ours; your word list stays in your browser.
+SYNC (OPTIONAL)
+• Works without an account: your word list stays in your browser
+• A free account keeps your words in sync across your browsers; reset your password or delete the account any time
+
+MAKE IT YOURS
+• Change any shortcut in Settings
+
+Questions or bugs: chris@cristianbagrin.com
+
+Copyright © Cristian Bagrin. All rights reserved.
 
 Data: CC-CEDICT (CC BY-SA 4.0); Taiwan readings from the MOE Revised Mandarin Dictionary via g0v/moedict-data (CC BY-ND 3.0 TW, pinyin only); word frequencies from wordfreq (CC BY-SA 4.0); names and foods from Wikidata (CC0). Font: LXGW WenKai TC (SIL Open Font License 1.1).
 ```
@@ -136,12 +146,14 @@ chinese, mandarin, taiwan, traditional chinese, pinyin, dictionary, language lea
 **Homepage**
 
 ```
-https://github.com/cristianbagrin/chinese-brain
+https://chinese.cristianbagrin.com
 ```
 
-(Only if the repository is public; otherwise leave it empty.)
+**Support email**
 
-**Support email or website**: your choice.
+```
+chris@cristianbagrin.com
+```
 
 **License**: All Rights Reserved
 
@@ -149,24 +161,32 @@ https://github.com/cristianbagrin/chinese-brain
 
 ## 3. Privacy policy
 
-Tick "This add-on has a privacy policy" and paste:
+The policy lives at https://chinese.cristianbagrin.com/privacy (`site/public/privacy.html`).
+Link it on both stores. AMO also wants the text: tick "This add-on has a privacy policy" and
+paste the page's text.
 
-```
-Chinese Brain keeps your data in your browser. It has no account, no analytics, and no server of its own. Your word list, settings and API keys are stored locally (browser storage) and are never sent to the developer.
+Since 1.5.0 (optional accounts) the stores' data questions have new answers:
 
-Some features send data to third-party services, only to perform the feature:
-
-• Reading words and sentences aloud (default voice): the text is sent to Google's text-to-speech service (translate.google.com) when you press V or a play button.
-• English subtitle line on YouTube: when YouTube does not provide an English translation, the video's Chinese caption lines are sent to Google Translate (translate.googleapis.com).
-• Looking up a selection: when you select Chinese text and ask for its card (Option key or right-click menu) and it is not a single dictionary word, the selected text is sent to Google Translate (translate.googleapis.com) for its English translation.
-• Azure voice (optional, your own key): the text you play is sent to Microsoft Azure Speech in the region you choose.
-• Gemini (optional, your own key): when you press "Subtitles with Gemini", the YouTube video's link is sent to the Google Gemini API; when you press "Write example sentences", the word and its short meaning are sent. On Google's free tier, Google may use these requests to improve its models.
-• Image search: pressing I opens a DuckDuckGo image search for the word in a new tab.
-
-Nothing else leaves your browser. Uninstalling the add-on deletes its data.
-```
+- **AMO**: nothing to fill in; the manifest declares it (`data_collection_permissions`:
+  required `websiteContent`, `browsingActivity`; optional `personallyIdentifyingInfo`,
+  `authenticationInfo`, asked for when someone signs in).
+- **Chrome** → Privacy practices → Data usage: tick **Personally identifiable information**
+  (email address), **Authentication information** (password), **Website content** and
+  **Web history** (the page address saved with a sentence you met a word in, synced when
+  signed in). Keep the three certifications ticked (not sold, not used for unrelated
+  purposes, not used for creditworthiness).
 
 ## 4. Version notes
+
+1.5.0:
+
+```
+• Optional free account: sign in from Settings and your word list, saved sentences and settings stay in sync across your browsers (Firefox and Chrome). Forgot your password? Reset it by email. Everything still works without an account.
+• Change any shortcut: Settings → Shortcuts. Click a key, press the new one.
+• A simpler panel on YouTube (hover the 中 switch): how much you know, previous / replay / next line buttons and the switches. Nothing else.
+• Settings and the toolbar menu say less. New: Report a bug and Email support, straight to the developer.
+• A welcome page after installing, with Chinese to try the card on.
+```
 
 1.4.0:
 
@@ -262,13 +282,18 @@ Permissions:
   downloads: the word-list export is saved with downloads.download({ saveAs: true }) so the user picks
     the folder; it only ever downloads a blob the page just built.
   commands: one keyboard shortcut (Alt+Shift+C) that toggles page colors for the current site.
+  alarms: one alarm, every 20 minutes, that syncs the word list when the user is signed in.
 
 Remote requests (all user-facing features, listed in the privacy policy): translate.google.com (TTS),
 translate.googleapis.com (caption translation fallback; translation of a selection the user looks up), *.tts.speech.microsoft.com (optional, user key),
-generativelanguage.googleapis.com (optional, user key). No remote code is loaded; no eval, no innerHTML.
+generativelanguage.googleapis.com (optional, user key), chinese.cristianbagrin.com/api (optional account:
+sign-in and word-list sync, src/background/sync.ts; its server code is site/worker.js). No remote code is
+loaded; no eval, no innerHTML.
 
 Data collection permissions: websiteContent (words and caption lines sent for speech and translation)
-and browsingActivity (the YouTube link sent to Gemini when the user asks for it).
+and browsingActivity (the YouTube link sent to Gemini when the user asks for it). Optional, requested with
+permissions.request when the user signs in (src/pages/options.ts): personallyIdentifyingInfo (email) and
+authenticationInfo (password). Test account for review: create one in Settings → Account with any email.
 ```
 
 ## 6. Screenshots (1280 × 800)
@@ -294,13 +319,40 @@ The files in `store/screenshots/` are these shots in the red-and-paper frame (12
    subtitles to learn Taiwan Mandarin." Permission justifications:
    - host permissions / content scripts: hover lookup on any page the user reads.
    - storage, unlimitedStorage: the word list and settings, kept locally.
+   - alarms: syncs the word list every 20 minutes when signed in to the optional account.
    - contextMenus: the "Look up" item on selected text.
    - scripting: starts the lookup in a frame from the menu, and hides YouTube's own captions
      while ours show.
    - downloads: saves the word-list export where the user chooses.
-   - Remote code: No. Data usage: website content (text sent for speech and translation, as
-     in the privacy policy, section 3); not sold, not used for anything else.
-   - Privacy policy URL: host section 3 somewhere public (a GitHub gist works) and link it.
+   - Remote code: No. Data usage: see section 3.
+   - Privacy policy URL: https://chinese.cristianbagrin.com/privacy
+   - Homepage: https://chinese.cristianbagrin.com · Support email: chris@cristianbagrin.com
 5. Submit for review. Then set up the `CWS_*` secrets ("Automatic releases") so later
    versions go out on their own.
 
+
+## Website and accounts (Cloudflare)
+
+`site/` is one Cloudflare Worker, `chinesebrain`, at https://chinese.cristianbagrin.com:
+the pages in `site/public/` and the account service in `site/worker.js` (`/api/*`). Pushing
+`main` deploys it (Workers & Pages → chinesebrain → Settings → Builds: production branch
+`main`, root directory `site`).
+
+Accounts need no database to set up: every account is a Durable Object with its own small
+SQLite database, created by the deploy. All of it fits Cloudflare's free plan (100,000
+requests a day, 5 GB of storage).
+
+**Password-reset emails** go through [Resend](https://resend.com) (free: 3,000 emails a
+month). Once:
+
+1. Sign up at resend.com → **Domains** → add `cristianbagrin.com` → **Auto configure** with
+   Cloudflare (or add the DNS records it shows) → wait for "Verified".
+2. **API Keys** → Create (Sending access) → copy it.
+3. Cloudflare dashboard → Workers & Pages → chinesebrain → Settings → Variables and Secrets →
+   Add → type **Secret**, name `RESEND_API_KEY`, the key as its value → Deploy.
+
+`https://chinese.cristianbagrin.com/api/health` then answers `"email": true`. Until then,
+"Forgot password?" tells people to write to chris@cristianbagrin.com.
+
+To look at an account's data or count accounts: Cloudflare dashboard → Durable Objects →
+`chinesebrain_Account`.

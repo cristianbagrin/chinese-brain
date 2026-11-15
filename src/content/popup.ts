@@ -3,15 +3,16 @@ import { CJK } from '../shared/dict.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import type { Context, Entry, LookupMatch, Status, Token } from '../shared/types.ts';
 import { saveSound, speak, stampSound } from './audio.ts';
+import { actionFor, keyLabel, keyOf, type KeyAction } from '../shared/keys.ts';
 import { inOwnBox } from './keys.ts';
 import { lookupText } from './lookup.ts';
 import css from './popup.css';
 import { state } from './state.ts';
 
-export const STAMPS: { s: Status; zh: string; key: string; label: string }[] = [
-  { s: 'fresh', zh: '新', key: '1', label: 'Fresh' },
-  { s: 'learning', zh: '學', key: '2', label: 'Learning' },
-  { s: 'known', zh: '熟', key: '3', label: 'Known' },
+export const STAMPS: { s: Status; zh: string; label: string }[] = [
+  { s: 'fresh', zh: '新', label: 'Fresh' },
+  { s: 'learning', zh: '學', label: 'Learning' },
+  { s: 'known', zh: '熟', label: 'Known' },
 ];
 
 interface Sentence {
@@ -551,29 +552,26 @@ export class Popup {
 
   handleKey(e: KeyboardEvent): boolean {
     if (!this.opts || e.ctrlKey || e.metaKey || e.altKey) return false;
-    // Pointing at a word inside the card: 1 2 3 0 V I are for that word.
-    if (this.hoverWord && this.hovered && /^[1230vi]$/.test(e.key)) {
-      void this.actOnHovered(e.key, this.hoverWord);
+    // Pointing at a word inside the card: the card's keys are for that word.
+    const action = actionFor(state.settings, e, 'card');
+    if (this.hoverWord && this.hovered && action) {
+      void this.actOnHovered(action, this.hoverWord);
       return true;
     }
-    switch (e.key) {
-      case '1':
-        this.setStatus('fresh');
+    switch (action ?? e.key) {
+      case 'fresh':
+      case 'learning':
+      case 'known':
+        this.setStatus(action as Status);
         return true;
-      case '2':
-        this.setStatus('learning');
-        return true;
-      case '3':
-        this.setStatus('known');
-        return true;
-      case '0':
+      case 'remove':
       case 'Backspace':
         this.setStatus(null, false);
         return true;
-      case 'v':
+      case 'say':
         this.speak();
         return true;
-      case 'i':
+      case 'images':
         this.images();
         return true;
       case 'ArrowLeft':
@@ -588,13 +586,13 @@ export class Popup {
   }
 
   /** A shortcut for the word under the pointer inside the card. */
-  private async actOnHovered(key: string, target: { q: string; sentence: string }) {
+  private async actOnHovered(key: KeyAction, target: { q: string; sentence: string }) {
     const matches = await lookupText(target.q);
     const m = matches.find((x) => x.text === target.q) ?? matches[0];
     if (!m || !this.opts) return;
-    if (key === 'v') return void speak(m.word);
-    if (key === 'i') return this.images(m.word);
-    const want: Status | null = key === '1' ? 'fresh' : key === '2' ? 'learning' : key === '3' ? 'known' : null;
+    if (key === 'say') return void speak(m.word);
+    if (key === 'images') return this.images(m.word);
+    const want: Status | null = key === 'fresh' || key === 'learning' || key === 'known' ? key : null;
     const cur = state.status(m.word);
     const next = want && cur === want ? null : want;
     if (next === cur) return;
@@ -1102,16 +1100,16 @@ export class Popup {
     const stamps = STAMPS.map((st) => {
       const b = h(
         'button',
-        { class: `stamp ${st.s}${status === st.s ? ' on' : ''}${stamped === st.s ? ' pop' : ''}`, title: `${st.label} (${st.key})` },
+        { class: `stamp ${st.s}${status === st.s ? ' on' : ''}${stamped === st.s ? ' pop' : ''}`, title: st.label },
         st.zh,
-        h('small', null, st.key),
+        h('small', null, keyLabel(keyOf(state.settings, st.s))),
       );
       b.addEventListener('click', () => this.setStatus(st.s));
       return b;
     });
-    const say = h('button', null, 'say', h('kbd', null, 'v'));
+    const say = h('button', null, 'say', h('kbd', null, keyLabel(keyOf(state.settings, 'say')).toLowerCase()));
     say.addEventListener('click', () => this.speak());
-    const img = h('button', null, 'images', h('kbd', null, 'i'));
+    const img = h('button', null, 'images', h('kbd', null, keyLabel(keyOf(state.settings, 'images')).toLowerCase()));
     img.addEventListener('click', () => this.images());
     card.append(h('div', { class: 'foot' }, stampable(m) ? h('div', { class: 'stamps' }, ...stamps) : null, h('div', { class: 'tools' }, say, long ? null : img)));
     card.hidden = false;

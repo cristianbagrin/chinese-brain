@@ -216,7 +216,8 @@
     azureRegion: "eastasia",
     azureVoice: "zh-TW-HsiaoChenNeural",
     geminiKey: "",
-    geminiModel: "gemini-3.8-flash"
+    geminiModel: "gemini-3.8-flash",
+    keys: {}
   };
   function normalizeSettings(raw) {
     let r = { ...raw ?? {} };
@@ -239,36 +240,38 @@
 
   // src/content/keys.ts
   init_browser_shim();
-  function isTyping(e) {
-    if (e.isComposing) return !0;
-    let t = target(e);
-    return !!t && (t.isContentEditable || !!t.hasAttribute?.("data-typing") || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName ?? ""));
+
+  // src/shared/keys.ts
+  init_browser_shim();
+  var KEY_ACTIONS = {
+    fresh: { label: "\u65B0 Fresh", group: "card", key: "1" },
+    learning: { label: "\u5B78 Learning", group: "card", key: "2" },
+    known: { label: "\u719F Known", group: "card", key: "3" },
+    remove: { label: "Remove from your list", group: "card", key: "0" },
+    say: { label: "Say it", group: "card", key: "v" },
+    images: { label: "Images", group: "card", key: "i" },
+    prev: { label: "Previous line", group: "yt", key: "a" },
+    replay: { label: "Replay line", group: "yt", key: "s" },
+    next: { label: "Next line", group: "yt", key: "d" },
+    loop: { label: "Loop line", group: "yt", key: "r" },
+    shadow: { label: "Shadowing", group: "yt", key: "q" },
+    pinyin: { label: "Pinyin", group: "yt", key: "p" },
+    english: { label: "English line", group: "yt", key: "x" },
+    transcript: { label: "Transcript", group: "yt", key: "e" }
+  };
+  function keyOf(s, action) {
+    return s.keys?.[action] ?? KEY_ACTIONS[action].key;
   }
-  function target(e) {
-    return e.composedPath?.()[0] ?? e.target;
+  function keyLabel(key) {
+    return key === " " ? "Space" : key.length === 1 ? key.toUpperCase() : key.replace(/^Arrow/, "");
   }
-  function inOwnBox(e) {
-    return !!target(e)?.hasAttribute?.("data-typing");
+  function keyName(e) {
+    return e.key.length === 1 ? e.key.toLowerCase() : e.key;
   }
-  var typedAt = 0;
-  function cardTakes(e, shownAgo, onCard = !1) {
-    return isTyping(e) ? e.isComposing || inOwnBox(e) ? !1 : onCard && /^([0-3]|[vi]|Escape)$/.test(e.key) || /^([0-3]|Escape)$/.test(e.key) && shownAgo < Date.now() - typedAt ? !0 : (/^(Shift|Control|Alt|Meta|CapsLock)$/.test(e.key) || (typedAt = Date.now()), !1) : !0;
-  }
-  function guardKeys(w2, keys) {
-    w2.addEventListener(
-      "keydown",
-      (e) => {
-        let own = inOwnBox(e);
-        keys.fn?.(e), own && e.stopImmediatePropagation();
-      },
-      !0
-    );
-    for (let t of ["keyup", "keypress"])
-      w2.addEventListener(t, (e) => inOwnBox(e) && e.stopImmediatePropagation(), !0);
-  }
-  function onKeydown(fn) {
-    let w2 = window;
-    w2.__cbKeys || (w2.__cbKeys = {}, guardKeys(window, w2.__cbKeys)), w2.__cbKeys.fn = fn;
+  function actionFor(s, e, group) {
+    let k = keyName(e);
+    for (let a of Object.keys(KEY_ACTIONS))
+      if (KEY_ACTIONS[a].group === group && keyOf(s, a) === k) return a;
   }
 
   // src/content/state.ts
@@ -317,6 +320,42 @@
       return this.settings.hoverMode !== "off" && !this.settings.disabledSites.includes(location.hostname);
     }
   }, state = new State();
+
+  // src/content/keys.ts
+  function isTyping(e) {
+    if (e.isComposing) return !0;
+    let t = target(e);
+    return !!t && (t.isContentEditable || !!t.hasAttribute?.("data-typing") || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName ?? ""));
+  }
+  function target(e) {
+    return e.composedPath?.()[0] ?? e.target;
+  }
+  function inOwnBox(e) {
+    return !!target(e)?.hasAttribute?.("data-typing");
+  }
+  var typedAt = 0;
+  function cardTakes(e, shownAgo, onCard = !1) {
+    if (!isTyping(e)) return !0;
+    if (e.isComposing || inOwnBox(e)) return !1;
+    let action = e.key === "Escape" ? "esc" : actionFor(state.settings, e, "card");
+    return onCard && action || action && action !== "say" && action !== "images" && shownAgo < Date.now() - typedAt ? !0 : (/^(Shift|Control|Alt|Meta|CapsLock)$/.test(e.key) || (typedAt = Date.now()), !1);
+  }
+  function guardKeys(w2, keys) {
+    w2.addEventListener(
+      "keydown",
+      (e) => {
+        let own = inOwnBox(e);
+        keys.fn?.(e), own && e.stopImmediatePropagation();
+      },
+      !0
+    );
+    for (let t of ["keyup", "keypress"])
+      w2.addEventListener(t, (e) => inOwnBox(e) && e.stopImmediatePropagation(), !0);
+  }
+  function onKeydown(fn) {
+    let w2 = window;
+    w2.__cbKeys || (w2.__cbKeys = {}, guardKeys(window, w2.__cbKeys)), w2.__cbKeys.fn = fn;
+  }
 
   // src/youtube/captions.ts
   init_browser_shim();
@@ -508,7 +547,7 @@
   right: 12px;
   bottom: 60px;
   z-index: 71;
-  width: 320px;
+  width: 322px;
   box-sizing: border-box;
   padding: 12px 14px 12px;
   background: var(--bg);
@@ -520,23 +559,23 @@
 }
 .panel[hidden], .toast[hidden] { display: none; }
 .big { font-size: 13px; color: var(--text2); }
-.big b { font-size: 26px; font-weight: 600; color: var(--known); margin-right: 4px; }
-.bar { display: flex; height: 6px; margin: 8px 0 6px; border-radius: 3px; overflow: hidden; background: var(--line); }
+.big b { font-size: 26px; font-weight: 600; color: var(--known); margin-right: 5px; }
+.gear { all: unset; position: absolute; top: 8px; right: 10px; cursor: pointer; font-size: 15px; line-height: 1; padding: 4px; border-radius: 6px; color: var(--text3); }
+.gear:hover { color: var(--text); background: var(--line); }
+.bar { display: flex; height: 6px; margin: 8px 0 2px; border-radius: 3px; overflow: hidden; background: var(--line); }
 .seg { display: block; flex-basis: 0; }
 .seg.known { background: var(--known); }
 .seg.learning { background: var(--learning); }
 .seg.fresh { background: var(--fresh); }
 .seg.new { background: #d6cec5; }
-.legend { display: flex; gap: 12px; font-size: 12px; color: var(--text2); }
-.legend .k { color: var(--known); }
-.legend .l { color: #a37b00; }
-.legend .f { color: var(--fresh); }
-.track { margin-top: 8px; font-size: 12px; color: var(--text3); }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.chips + .chips { margin-top: 6px; }
+.chip:hover { border-color: var(--text3); color: var(--text); }
+.chip.on:hover { color: #fff; }
 .chip {
   all: unset;
   cursor: pointer;
-  padding: 3px 9px;
+  padding: 3px 8px;
   border-radius: 999px;
   border: 1px solid var(--line);
   color: var(--text2);
@@ -545,7 +584,6 @@
 .chip.on { color: #fff; border-color: var(--text); background: var(--text); }
 .chip.on kbd { color: #d6cec5; }
 .chip kbd { font: 600 10px var(--sans); color: var(--text3); margin-left: 5px; }
-.keys { margin-top: 10px; font-size: 11.5px; color: var(--text3); }
 
 .toast {
   position: absolute;
@@ -585,14 +623,14 @@
 
   // src/youtube/controls.ts
   var MODES = ["show", "blur", "hide"], TOAST = {
-    a: () => "\u25C0 previous line",
-    s: () => "\u21BA replay line",
-    d: () => "next line \u25B6",
-    r: (s) => s.looping ? "\u21BB looping this line" : "loop off",
-    q: (s) => s.shadowing ? "shadowing on: pause after each line" : "shadowing off",
-    p: () => state.settings.pinyin ? "pinyin on" : "pinyin off",
-    e: (s) => s.transcript.open ? "transcript open" : "transcript closed",
-    x: () => `English: ${state.settings.translation === "show" ? "shown" : state.settings.translation === "blur" ? "blurred until hover" : "hidden"}`
+    prev: () => "\u25C0 previous line",
+    replay: () => "\u21BA replay line",
+    next: () => "next line \u25B6",
+    loop: (s) => s.looping ? "\u21BB looping this line" : "loop off",
+    shadow: (s) => s.shadowing ? "shadowing on" : "shadowing off",
+    pinyin: () => state.settings.pinyin ? "pinyin on" : "pinyin off",
+    transcript: (s) => s.transcript.open ? "transcript open" : "transcript closed",
+    english: () => `English ${state.settings.translation === "show" ? "shown" : state.settings.translation === "blur" ? "blurred" : "hidden"}`
   };
   function el(tag, cls, ...kids) {
     let e = document.createElement(tag);
@@ -643,80 +681,62 @@
     render() {
       let s = state.settings;
       if (this.switchHost.hidden = !this.subs.videoActive, this.switchRoot.querySelector(".switch")?.classList.toggle("on", s.ytEnabled), this.updatePill(), this.panel.hidden) return;
-      let key = JSON.stringify([s, this.subs.counts, this.subs.looping, this.subs.shadowing, this.subs.trackName, this.subs.hasTranslation, this.subs.transcript.open, this.subs.gemini, this.subs.captionState]);
+      let key = JSON.stringify([s, this.subs.counts, this.subs.looping, this.subs.shadowing, this.subs.trackName, this.subs.transcript.open, this.subs.gemini, this.subs.captionState]);
       if (key === this.lastKey) return;
       this.lastKey = key;
       let c = this.subs.counts, total = c.known + c.learning + c.fresh + c.new, pct = (n) => total ? Math.round(n / total * 100) : 0, seg = (k, label) => {
         let b = el("i", `seg ${k}`);
         return b.style.flexGrow = String(c[k]), b.title = `${label}: ${pct(c[k])}%`, b;
-      }, chip = (label, key2, on, act) => {
-        let b = el("button", `chip${on ? " on" : ""}`, label, el("kbd", "", key2));
-        return b.addEventListener("click", () => {
+      }, chip = (label, action, on, act, tip = "") => {
+        let key2 = action && keyOf(s, action), b = el("button", `chip${on ? " on" : ""}`, label, key2 ? el("kbd", "", keyLabel(key2)) : null);
+        return tip && (b.title = tip), b.addEventListener("click", () => {
           act(), setTimeout(() => this.render(), 50);
         }), b;
-      }, save = (settings) => import_browser_polyfill_min.default.runtime.sendMessage({ type: "saveSettings", settings });
-      this.panel.replaceChildren(
+      }, save = (settings) => import_browser_polyfill_min.default.runtime.sendMessage({ type: "saveSettings", settings }), gear = el("button", "gear", "\u2699");
+      gear.title = "Settings", gear.addEventListener("click", () => void import_browser_polyfill_min.default.runtime.sendMessage({ type: "openOptions" })), this.panel.replaceChildren(
+        gear,
         total ? el(
           "div",
           "cov",
-          el("div", "big", el("b", "", `${pct(c.known)}%`), " of the words in this video are \u719F known"),
-          el("div", "bar", seg("known", "\u719F known"), seg("learning", "\u5B78 learning"), seg("fresh", "\u65B0 fresh"), seg("new", "not in your list")),
-          el(
-            "div",
-            "legend",
-            el("span", "k", `\u719F ${pct(c.known)}%`),
-            el("span", "l", `\u5B78 ${pct(c.learning)}%`),
-            el("span", "f", `\u65B0 ${pct(c.fresh)}%`),
-            el("span", "n", `new ${pct(c.new)}%`)
-          )
+          el("div", "big", el("b", "", `${pct(c.known)}%`), "known"),
+          el("div", "bar", seg("known", "\u719F Known"), seg("learning", "\u5B78 Learning"), seg("fresh", "\u65B0 Fresh"), seg("new", "Not in your list"))
         ) : this.noCaptions(),
         total && this.geminiStatus() || "",
-        this.subs.trackName ? el("div", "track", this.subs.trackName, this.subs.hasTranslation ? " + English" : "") : "",
         el(
           "div",
           "chips",
-          chip("Pinyin", "P", s.pinyin, () => save({ pinyin: !s.pinyin })),
-          chip(`English: ${{ show: "shown", blur: "blurred", hide: "hidden" }[s.translation]}`, "X", s.translation !== "hide", () => save({ translation: MODES[(MODES.indexOf(s.translation) + 1) % 3] })),
-          chip("Loop line", "R", this.subs.looping, () => this.subs.toggleLoop()),
-          chip("Shadowing", "Q", this.subs.shadowing, () => this.subs.toggleShadow()),
-          chip("Pause on hover", "", s.pauseOnHover, () => save({ pauseOnHover: !s.pauseOnHover })),
-          chip("Transcript", "E", this.subs.transcript.open, () => this.subs.transcript.toggle())
+          chip("\u25C0", "prev", !1, () => this.subs.seekLine(-1), "Previous line"),
+          chip("\u21BA", "replay", !1, () => this.subs.seekLine(0), "Replay line"),
+          chip("\u25B6", "next", !1, () => this.subs.seekLine(1), "Next line"),
+          chip("Loop", "loop", this.subs.looping, () => this.subs.toggleLoop(), "Repeat this line"),
+          chip("Shadow", "shadow", this.subs.shadowing, () => this.subs.toggleShadow(), "Pause after each line so you can repeat it")
         ),
-        el("div", "keys", "A \u25C0 previous line \xB7 S replay \xB7 D next line \u25B6")
+        el(
+          "div",
+          "chips",
+          chip("Pinyin", "pinyin", s.pinyin, () => save({ pinyin: !s.pinyin })),
+          chip(s.translation === "blur" ? "English (blur)" : "English", "english", s.translation !== "hide", () => save({ translation: MODES[(MODES.indexOf(s.translation) + 1) % 3] }), "Shown, blurred until you hover, or hidden"),
+          chip("Transcript", "transcript", this.subs.transcript.open, () => this.subs.transcript.toggle())
+        )
       );
     }
     /** Captions not here (yet): say which, and offer Gemini when the video has none. */
     noCaptions() {
       let g = this.subs.gemini, cs = this.subs.captionState;
       if (g.state !== "working" && (cs === "finding" || cs === "loading"))
-        return el("div", "cov", el("div", "note", cs === "finding" ? "Looking for captions\u2026" : `Loading the Chinese captions (${this.subs.trackName})\u2026`));
-      let box2 = el("div", "cov", el("div", "", "No Chinese captions for this video."));
-      if (!state.settings.geminiKey)
-        return box2.append(el("div", "note", "Add a Gemini API key in Settings to get subtitles for videos like this one.")), box2;
+        return el("div", "cov", el("div", "note", cs === "finding" ? "Looking for captions\u2026" : "Loading captions\u2026"));
+      let box2 = el("div", "cov", el("div", "", "No Chinese captions."));
       if (g.state === "working")
         return box2.append(el("div", "note", this.progressText())), box2;
-      let b = el("button", "chip on", "Subtitles with Gemini");
-      return b.addEventListener("click", () => void this.subs.transcribeWithGemini()), box2.append(
-        el("div", "gem", b),
-        el(
-          "div",
-          "note",
-          "Mandarin is transcribed; any other language is translated into Taiwan Mandarin. Sends this video's link to Google. On the free tier Google may use the request to improve its models."
-        )
-      ), g.state === "error" && box2.append(el("div", "note err", g.error ?? "Something went wrong.")), box2;
+      let b = el("button", "chip on", state.settings.geminiKey ? "Make subtitles with Gemini" : "Add a Gemini key to make them");
+      return state.settings.geminiKey ? (b.title = "Sends this video's link to Google Gemini", b.addEventListener("click", () => void this.subs.transcribeWithGemini())) : b.addEventListener("click", () => void import_browser_polyfill_min.default.runtime.sendMessage({ type: "openOptions", hash: "gemini" })), box2.append(el("div", "gem", b)), g.state === "error" && box2.append(el("div", "note err", g.error ?? "Something went wrong.")), box2;
     }
     /** Gemini's progress, from the timestamps it has written so far (so the percentage is real). */
     progressText() {
       let g = this.subs.gemini;
       if (g.pct == null) return el("div", "", "Making subtitles with Gemini\u2026");
       let pct = Math.round(g.pct * 100), bar = el("div", "gbar", el("i"));
-      return bar.firstChild.style.width = `${pct}%`, el(
-        "div",
-        "",
-        el("div", "", pct ? `Making subtitles with Gemini: ${pct}%` : "Gemini is listening to the video\u2026"),
-        bar,
-        g.total && g.total > 1 ? el("div", "", `Long video: ${g.total} parts, lines appear as each part finishes.`) : null
-      );
+      return bar.firstChild.style.width = `${pct}%`, el("div", "", el("div", "", pct ? `Gemini subtitles: ${pct}%` : "Gemini is listening\u2026"), bar);
     }
     /** A small pill on the video while Gemini works, so progress shows without opening the panel. */
     updatePill() {
@@ -729,15 +749,16 @@
       if (g.state === "working") return el("div", "note", this.progressText());
       if (g.state !== "error") {
         if (!this.subs.trackName.startsWith("Gemini")) return null;
-        let redo = el("button", "chip", "Redo with Gemini");
+        let redo = el("button", "chip", "Redo subtitles");
         return redo.title = "Throw these subtitles away and make new ones (for example with another model)", redo.addEventListener("click", () => void this.subs.redoGemini()), el("div", "gem", redo);
       }
-      let b = el("button", "chip", "Try the missing parts again");
+      let b = el("button", "chip", "Retry missing parts");
       return b.addEventListener("click", () => void this.subs.transcribeWithGemini()), el("div", "", el("div", "note err", g.error ?? "Something went wrong."), el("div", "gem", b));
     }
     flash(key) {
-      TOAST[key]?.(this.subs) && setTimeout(() => {
-        this.toast.textContent = TOAST[key](this.subs), this.toast.hidden = !1, clearTimeout(this.toastTimer), this.toastTimer = setTimeout(() => this.toast.hidden = !0, 1300), this.render();
+      let msg = TOAST[key];
+      msg && setTimeout(() => {
+        this.toast.textContent = msg(this.subs), this.toast.hidden = !1, clearTimeout(this.toastTimer), this.toastTimer = setTimeout(() => this.toast.hidden = !0, 1300), this.render();
       }, 60);
     }
   };
@@ -849,7 +870,7 @@
       let style = document.createElement("style");
       style.textContent = transcript_default, this.tabs = el2("div", "tabs"), this.body = el2("div", "body");
       let close = el2("button", "close", "\xD7");
-      close.title = "Close (E)", close.addEventListener("click", () => this.toggle(!1)), this.box = el2("div", "box", el2("div", "top", this.tabs, close), this.body), this.root.append(style, this.box);
+      close.title = "Close", close.addEventListener("click", () => this.toggle(!1)), this.box = el2("div", "box", el2("div", "top", this.tabs, close), this.body), this.root.append(style, this.box);
       for (let t of ["click", "mousedown", "mouseup", "dblclick", "pointerdown", "pointerup", "wheel"])
         this.host.addEventListener(t, (e) => e.stopPropagation());
       this.body.addEventListener("wheel", () => this.userScrollAt = Date.now(), { passive: !0 }), this.body.addEventListener("mouseover", (e) => {
@@ -1559,38 +1580,38 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         return;
       }
       if (isTyping(e) || !state.settings.ytEnabled || !this.cues.length || this.live || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-      let s = state.settings, handled = !0;
-      switch (e.key.toLowerCase()) {
-        case "a":
+      let s = state.settings, action = actionFor(s, e, "yt");
+      switch (action) {
+        case "prev":
           this.seekLine(-1);
           break;
-        case "s":
+        case "replay":
           this.seekLine(0);
           break;
-        case "d":
+        case "next":
           this.seekLine(1);
           break;
-        case "r":
+        case "loop":
           this.toggleLoop();
           break;
-        case "q":
+        case "shadow":
           this.toggleShadow();
           break;
-        case "e":
+        case "transcript":
           this.transcript.toggle();
           break;
-        case "p":
+        case "pinyin":
           import_browser_polyfill_min.default.runtime.sendMessage({ type: "saveSettings", settings: { pinyin: !s.pinyin } });
           break;
-        case "x": {
+        case "english": {
           let next = TRANSLATION_MODES[(TRANSLATION_MODES.indexOf(s.translation) + 1) % 3];
           import_browser_polyfill_min.default.runtime.sendMessage({ type: "saveSettings", settings: { translation: next } });
           break;
         }
         default:
-          handled = !1;
+          return;
       }
-      handled && (e.preventDefault(), e.stopImmediatePropagation(), this.controls.flash(e.key.toLowerCase()));
+      e.preventDefault(), e.stopImmediatePropagation(), this.controls.flash(action);
     }
     flushWatch() {
       this.watchSecs > 30 && this.videoId && import_browser_polyfill_min.default.runtime.sendMessage({
@@ -2414,9 +2435,9 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 
   // src/content/popup.ts
   var STAMPS = [
-    { s: "fresh", zh: "\u65B0", key: "1", label: "Fresh" },
-    { s: "learning", zh: "\u5B78", key: "2", label: "Learning" },
-    { s: "known", zh: "\u719F", key: "3", label: "Known" }
+    { s: "fresh", zh: "\u65B0", label: "Fresh" },
+    { s: "learning", zh: "\u5B78", label: "Learning" },
+    { s: "known", zh: "\u719F", label: "Known" }
   ];
   function h(tag, attrs, ...kids) {
     let el3 = document.createElement(tag);
@@ -2729,21 +2750,20 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     }
     handleKey(e) {
       if (!this.opts || e.ctrlKey || e.metaKey || e.altKey) return !1;
-      if (this.hoverWord && this.hovered && /^[1230vi]$/.test(e.key))
-        return this.actOnHovered(e.key, this.hoverWord), !0;
-      switch (e.key) {
-        case "1":
-          return this.setStatus("fresh"), !0;
-        case "2":
-          return this.setStatus("learning"), !0;
-        case "3":
-          return this.setStatus("known"), !0;
-        case "0":
+      let action = actionFor(state.settings, e, "card");
+      if (this.hoverWord && this.hovered && action)
+        return this.actOnHovered(action, this.hoverWord), !0;
+      switch (action ?? e.key) {
+        case "fresh":
+        case "learning":
+        case "known":
+          return this.setStatus(action), !0;
+        case "remove":
         case "Backspace":
           return this.setStatus(null, !1), !0;
-        case "v":
+        case "say":
           return this.speak(), !0;
-        case "i":
+        case "images":
           return this.images(), !0;
         case "ArrowLeft":
           return this.back();
@@ -2758,9 +2778,9 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     async actOnHovered(key, target2) {
       let matches = await lookupText(target2.q), m = matches.find((x) => x.text === target2.q) ?? matches[0];
       if (!m || !this.opts) return;
-      if (key === "v") return void speak(m.word);
-      if (key === "i") return this.images(m.word);
-      let want = key === "1" ? "fresh" : key === "2" ? "learning" : key === "3" ? "known" : null, cur = state.status(m.word), next = want && cur === want ? null : want;
+      if (key === "say") return void speak(m.word);
+      if (key === "images") return this.images(m.word);
+      let want = key === "fresh" || key === "learning" || key === "known" ? key : null, cur = state.status(m.word), next = want && cur === want ? null : want;
       if (next === cur) return;
       next ? state.statuses.set(m.word, next) : state.statuses.delete(m.word), stampSound(next);
       let ctx2 = target2.sentence ? this.ctxFor(m, { text: target2.sentence, url: location.href, title: document.title, at: Date.now(), src: this.opts.src }) : void 0;
@@ -3069,14 +3089,14 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       let stamps = STAMPS.map((st) => {
         let b = h(
           "button",
-          { class: `stamp ${st.s}${status === st.s ? " on" : ""}${stamped === st.s ? " pop" : ""}`, title: `${st.label} (${st.key})` },
+          { class: `stamp ${st.s}${status === st.s ? " on" : ""}${stamped === st.s ? " pop" : ""}`, title: st.label },
           st.zh,
-          h("small", null, st.key)
+          h("small", null, keyLabel(keyOf(state.settings, st.s)))
         );
         return b.addEventListener("click", () => this.setStatus(st.s)), b;
-      }), say = h("button", null, "say", h("kbd", null, "v"));
+      }), say = h("button", null, "say", h("kbd", null, keyLabel(keyOf(state.settings, "say")).toLowerCase()));
       say.addEventListener("click", () => this.speak());
-      let img = h("button", null, "images", h("kbd", null, "i"));
+      let img = h("button", null, "images", h("kbd", null, keyLabel(keyOf(state.settings, "images")).toLowerCase()));
       img.addEventListener("click", () => this.images()), card.append(h("div", { class: "foot" }, stampable(m) ? h("div", { class: "stamps" }, ...stamps) : null, h("div", { class: "tools" }, say, long ? null : img))), card.hidden = !1;
       for (let b of card.querySelectorAll(".editbox")) fitBox(b);
       let box2 = card.querySelector(".editbox");

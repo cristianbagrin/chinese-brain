@@ -188,7 +188,8 @@
     azureRegion: "eastasia",
     azureVoice: "zh-TW-HsiaoChenNeural",
     geminiKey: "",
-    geminiModel: "gemini-3.8-flash"
+    geminiModel: "gemini-3.8-flash",
+    keys: {}
   };
   function normalizeSettings(raw) {
     let r = { ...raw ?? {} };

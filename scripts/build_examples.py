@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate and pack the example sentences into static/data/examples.tsv.gz.
 
-Input: data-src/examples/out-*.tsv (word, sentence, English), written by
+Input: data-src/examples/all-numbered.tsv (number, word, sentence, English), written by
 language models from data-src/examples/PROMPT.md and spot-checked.
 Checks: the headword appears, Traditional characters only (no character that
 exists only as a Simplified form in CC-CEDICT), no 兒化, sane length.

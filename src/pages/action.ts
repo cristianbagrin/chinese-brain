@@ -1,5 +1,6 @@
 import { colorsOn, type Settings, type Status } from '../shared/types.ts';
-import { $, h } from './common.ts';
+import type { AccountInfo } from '../background/sync.ts';
+import { $, h, supportLink } from './common.ts';
 
 const save = (settings: Partial<Settings>) => browser.runtime.sendMessage({ type: 'saveSettings', settings });
 
@@ -26,6 +27,11 @@ async function init() {
       );
     }),
   );
+
+  $<HTMLAnchorElement>('bug').href = supportLink('bug');
+  void browser.runtime.sendMessage({ type: 'account' }).then((a: AccountInfo) => {
+    if (a.signedIn) $('acctLink').textContent = a.error ? 'Sync problem' : '✓ Synced';
+  });
 
   // Switches and segmented choices, each bound to one setting.
   for (const el of document.querySelectorAll<HTMLElement>('[data-setting]')) {

@@ -1,124 +1,60 @@
 # Chinese Brain 中文腦
 
-A Firefox (and Zen) extension for learning **Taiwan Mandarin**, with one brain
-shared by everything:
+A browser extension for learning **Taiwan Mandarin** while you read and watch.
+[Website](https://chinese.cristianbagrin.com) ·
+[Firefox](https://addons.mozilla.org/firefox/addon/chinesebrain/) · Chrome (in review) ·
+[Privacy](https://chinese.cristianbagrin.com/privacy) ·
+Questions and bugs: [chris@cristianbagrin.com](mailto:chris@cristianbagrin.com)
 
-- **Hover lookup on any page.** Point at Chinese text and a card opens just
-  under the pointer. It shows Traditional characters, **Taiwan standard
-  pinyin**, how common the word is (essential → rare, with what that means for
-  you), the meanings on one line, a top-down breakdown (臺北市 → 臺北 → 臺, 北;
-  then 市), two natural Taiwan-Mandarin example sentences, the sentence you are
-  reading now, and the last two sentences you met the word in (page-title clutter
-  trimmed). Every sentence has a play button and a copy button; examples and met
-  sentences have a × to delete them. The bookmark saves a sentence for your
-  export, and the pencil on any sentence, examples included, lets you edit the
-  Chinese and its English first (Enter saves, Esc cancels): the edited version
-  shows under **Saved** in place of the original. Gemini can
-  write new examples on request.
-  The card never covers the word or the pointer (below, above, or beside it),
-  waits while the pointer travels to it, and stays put while you scroll. Hover
-  any word inside it for a small hint with its meaning; the card's shortcuts
-  then act on that word.
-- **Lookup for anything you select.** Select Chinese text anywhere (on a page,
-  in a search box, in a text field like Google Translate's) and tap `⌥ Option`
-  (`Alt`), or right-click it and pick **Look up “…”**. A word gets its usual
-  card. A name, phrase or whole sentence gets a card of its own: the text, its
-  pinyin, a machine translation and the words inside it. Short ones (names,
-  dishes, up to 8 characters) can be stamped like words, and from then on pages
-  color them and hover finds them.
-- **Names and foods.** Besides CC-CEDICT, the dictionary knows places, sights
-  and dishes from Wikidata: things in Taiwan with a Chinese Wikipedia article
-  (野柳, 清境, 綠島…) and foods and drinks (滷肉飯, 薑母鴨…). Words written
-  with 台 are found under 臺 too (台東, 台中).- **Three statuses everywhere:** 新 Fresh (red), 學 Learning (yellow),
-  熟 Known (green). Press `1` `2` `3` in the card. The same colors appear in
-  the card, the YouTube subtitles, the transcript, the word list, and
-  optionally on every page you read (editors like Notion included). Turn them
-  on or off for one website with `Alt`+`Shift`+`C` (`⌥ Option`+`Shift`+`C` on
-  a Mac) or the switch in the toolbar menu.
-- **YouTube dual subtitles.** Our own Chinese + English lines over the video.
-  Every word is hoverable and clickable, and the video pauses while you read.
-  A 中 switch in the player turns them on or off. Hover the switch to see how
-  much of the video you know, toggles, keys, and the **transcript** with a
-  **learn-first list**. English notes that uploaders put inside the Chinese
-  captions ("(Note: …)") get their own line. Videos without Chinese captions
-  can get subtitles from Gemini: Mandarin is transcribed, any other language is
-  translated into Taiwan Mandarin. Long videos go in 5-minute parts that appear
-  as they finish; busy Google servers are retried, then another model is used.
-- **Weekly export for Claude** in the same K / L format as `known-words.txt`,
-  with only what changed since the last export.
-
-Free and local. No accounts, no servers. Gemini and Azure are optional, and
-only used with your own keys.
+- **Hover any Chinese word** on any page: Traditional characters, Taiwan standard pinyin, how
+  common it is, its meaning, a breakdown into parts (臺北市 → 臺北 → 臺, 北; then 市) and two
+  natural example sentences. Play, copy, edit and save sentences.
+- **Select anything** (a name, a phrase, a sentence) and tap `Alt` (`⌥ Option`), or
+  right-click → **Look up**: pinyin, a translation and the words inside it. Taiwan places and
+  dishes (野柳, 滷肉飯…) are in the dictionary.
+- **Three stamps everywhere:** 新 Fresh, 學 Learning, 熟 Known (`1` `2` `3`). The same colors
+  in the card, the subtitles, your word list and, if you like, on every page.
+- **YouTube dual subtitles:** Chinese + English over the video, every word hoverable, the
+  video pausing while you read; a transcript with a learn-first list. Videos without Chinese
+  captions can get them from Gemini (your own key).
+- **One word list**, with import, export and backup.
+- **Optional account:** everything works without one; a free account keeps your words,
+  saved sentences and settings in sync across browsers.
 
 ## Install
 
-From Firefox Add-ons (once the listing is live): search for **Chinese Brain**
-and click *Add to Firefox*. It needs Firefox 140 or newer (or Zen).
+**Firefox** (140+) and Zen: [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/chinesebrain/).
+**Chrome** (128+): the Chrome Web Store listing is in review.
 
-To try a version from this repository instead: download it (green **Code**
-button → *Download ZIP*, then unzip) or `git clone` it, open
-`about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and
-pick `dist/manifest.json`. A temporary add-on stays until the browser restarts.
-
-**Chrome** (and other Chromium browsers, version 128 or newer): open
-`chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick
-the `dist-chrome` folder. Change the color shortcut at `chrome://extensions/shortcuts`.
+From this repository: Firefox → `about:debugging#/runtime/this-firefox` → **Load Temporary
+Add-on…** → `dist/manifest.json`. Chrome → `chrome://extensions` → **Developer mode** →
+**Load unpacked** → the `dist-chrome` folder.
 
 ## Keys
 
+Every key below can be changed in **Settings → Shortcuts**.
+
 | Where | Keys |
 | --- | --- |
-| Card open | `1` 新 Fresh · `2` 學 Learning · `3` 熟 Known (again = clear) · `0` remove · `V` say it · `I` images · `←` `→` back / forward through words opened in the card · `Esc` close |
-| Pointing at a word inside the card | `1` `2` `3` `0` `V` `I` act on that word (the card stays on its own word) |
-| Text selected | Tap `⌥ Option` (`Alt`): the card for exactly that text. Or right-click → **Look up “…”** |
-| Any website | `Alt`+`Shift`+`C` (`⌥ Option`+`Shift`+`C` on a Mac): word colors on / off for this site. Change it in `about:addons` → ⚙ → **Manage Extension Shortcuts** |
-| YouTube | `A` previous line · `S` replay line · `D` next line · `R` loop line · `Q` shadowing · `P` pinyin · `X` English line (show / blur / hide) · `E` transcript |
-
-On YouTube, click a new word to stamp it Fresh. Click it again to undo.
-
-`P` toggles pinyin in the subtitles only. The card and word hints always show
-pinyin, since opening one means you are learning that word.
-
-## Settings
-
-The toolbar button opens quick settings (lookup mode: on hover, only while
-holding `⌥ Option`, or off; pinyin, card size, page colors for all sites and
-for this one, YouTube subtitles); it fits without scrolling. **All settings** has the rest:
-
-- **Voice.** Google's Taiwan voice (online, free; the default), the system
-  voice, or an Azure neural voice with your own key. Google and Azure audio is
-  faded in and out, so words end cleanly. **Test** plays a sample and says which
-  voice answered; **Check** tests an Azure key and finds its region.
-- **Gemini.** Paste a free key from aistudio.google.com/apikey and press
-  **Check** to pick a model from the ones the key can use.
+| Card open | `1` 新 · `2` 學 · `3` 熟 (again = clear) · `0` remove · `V` say it · `I` images · `←` `→` back / forward · `Esc` close |
+| Pointing at a word inside the card | the same keys act on that word |
+| Text selected | tap `Alt` (`⌥ Option`) |
+| Any website | `Alt`+`Shift`+`C`: word colors on / off for this site |
+| YouTube | `A` previous line · `S` replay · `D` next · `R` loop · `Q` shadowing · `P` pinyin · `X` English line · `E` transcript |
 
 ## Your word list
 
-Toolbar button → **Word list & export**.
+Toolbar button → **Word list**. Filter by stamp, search, sort, restamp, remove (with Undo).
+**Import** a `word⇥K|L⇥date` list; **Download new** exports what changed since the last
+export as a small TSV; **Backup / restore** saves everything as JSON.
 
-- It opens on your 新 Fresh words; the bar at the top (it stays on screen) switches
-  to Learning, Known or All, searches and sorts. Each word is written in 田字格
-  squares like a practice book, each character's pinyin above it, with its
-  meaning and the sentence you met it in (and where: Notion, YouTube, a video
-  time). Hover a word for its full card. Restamp it with 新 學 熟 or remove it
-  with × (Undo brings it back); words you change stay where they are until you
-  switch filters. A search that finds nothing in this list offers the matches
-  in your other lists.
-- Meanings are short and whole (never cut mid-word), and the sentence is the
-  one the word is in. Sentences that don't contain the word, or that are really
-  English notes, aren't shown or exported.
-- **Import** your `known-words.txt` (`word⇥K|L⇥date`). K → Known, L → Learning,
-  and the dates are kept.
-- **Download new** (or **Copy**) gives one small TSV: words
-  whose status you changed since the last export, plus every word you saved a
-  sentence for (`saved` column, several joined with ` ‖ `). Only your own
-  stamps count; lookups don't. It opens the save-as dialog in the folder you
-  used last (`chinese-brain-YYYY-MM-DD.tsv`); cancel it and nothing is marked
-  as exported. The `sentence` column is the one sentence the word appears in
-  (「你好嗎？」他問。 is one sentence), trimmed to about 80 characters around it, or empty when the captured text
-  doesn't contain the word.
-- **Backup / restore** saves everything as JSON, for moving to another
-  browser or computer.
+## Account and sync
+
+Settings → **Account**. Create an account with an email and a password; sign in on your
+other browsers and the lists merge (for a word changed in two places, the later stamp wins
+and both keep every sentence). API keys never leave the browser. Forgot the password:
+**Forgot password?** emails a link. Change the password, download your data or delete the
+account at [chinese.cristianbagrin.com/account](https://chinese.cristianbagrin.com/account).
 
 ## Development
 
@@ -126,12 +62,13 @@ Toolbar button → **Word list & export**.
 npm install
 npm run build        # bundles src/ + static/ into dist/ (Firefox) and dist-chrome/ (Chrome)
 npm run watch        # rebuild on change
-npm test             # dictionary, segmenter, captions, export tests
+npm test             # dictionary, segmenter, captions, export, shortcut tests
 npm run typecheck
 npm run lint:ext     # web-ext lint on dist/
 npm run zip          # release/chinese_brain-<version>.zip for Firefox
 npm run zip:chrome   # release/chinese_brain-<version>-chrome.zip for the Chrome Web Store
 node scripts/chrome-smoke.mjs   # loads dist-chrome in headless Chromium (Playwright) and checks it
+node scripts/sync-check.mjs     # accounts and sync between two browsers, against a local site (see the file)
 ```
 
 The Chrome build is the same source with `__CHROME__` set at build time: a Manifest V3
@@ -148,7 +85,7 @@ Data (only needed to refresh it):
 ```bash
 pip install wordfreq
 npm run data                      # CC-CEDICT + MOE readings + frequencies -> static/data/dict.tsv.gz
-python3 scripts/build_examples.py # data-src/examples/out-*.tsv -> static/data/examples.tsv.gz
+python3 scripts/build_examples.py # data-src/examples/ -> static/data/examples.tsv.gz
 python3 scripts/build_names.py    # Wikidata names + foods -> static/data/names.tsv.gz (slow when Wikidata rate-limits)
 pip install fonttools brotli
 python3 scripts/build_fonts.py    # LXGW WenKai TC, 7,000 most common characters -> static/fonts/zh.woff2
@@ -160,17 +97,27 @@ the subtitle overlay without YouTube (`python3 tests/youtube-mock/server.py`).
 ### Layout
 
 ```
-src/background/   dictionary service, word store, caption capture, translate + Gemini fallbacks
+src/background/   dictionary service, word store, account sync, caption capture, translate + Gemini
 src/content/      lookup card, hover lookup, page coloring, sounds and speech
 src/youtube/      caption parsing, subtitle overlay, player switch + panel, transcript
 src/pages/        word list, settings, toolbar menu
-src/shared/       types, dictionary + segmenter, pinyin, export/import formats
+src/shared/       types, dictionary + segmenter, pinyin, shortcuts, export/import formats
 src/platform/     what differs on Chrome: polyfill shim, background wrappers, YouTube page hook
 static/           HTML/CSS, icon, data/
 static-chrome/    PNG icons for the Chrome manifest
 scripts/          build.mjs (esbuild), build_data.py, build_names.py, build_examples.py
-docs/             Step 0 assessment, Explore verdicts
+site/             the website (public/) and the account service (worker.js), one Cloudflare Worker
+store/            store listings, release notes, screenshots (PUBLISHING.md)
+tests/            unit tests, fixtures, a YouTube player stand-in
 ```
+
+### How accounts work
+
+`site/worker.js` runs on Cloudflare's free plan. Each account is a Durable Object with its
+own SQLite database: a salted PBKDF2 password hash, hashed session and reset tokens, and the
+synced items. The extension (`src/background/sync.ts`) notes every change to a synced
+storage key and sends it with its time; the same request brings back what changed elsewhere.
+Password-reset emails go through Resend. Setup is in `store/PUBLISHING.md`.
 
 ### How the YouTube part works
 

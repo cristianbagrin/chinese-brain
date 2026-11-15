@@ -23,7 +23,8 @@
     azureRegion: "eastasia",
     azureVoice: "zh-TW-HsiaoChenNeural",
     geminiKey: "",
-    geminiModel: "gemini-3.8-flash"
+    geminiModel: "gemini-3.8-flash",
+    keys: {}
   };
   function normalizeSettings(raw) {
     let r = { ...raw ?? {} };
@@ -140,8 +141,64 @@
     u.lang = "zh-TW", voice && (u.voice = voice), u.rate = state.settings.speechRate, speechSynthesis.speak(u);
   }
 
+  // src/shared/keys.ts
+  var KEY_ACTIONS = {
+    fresh: { label: "\u65B0 Fresh", group: "card", key: "1" },
+    learning: { label: "\u5B78 Learning", group: "card", key: "2" },
+    known: { label: "\u719F Known", group: "card", key: "3" },
+    remove: { label: "Remove from your list", group: "card", key: "0" },
+    say: { label: "Say it", group: "card", key: "v" },
+    images: { label: "Images", group: "card", key: "i" },
+    prev: { label: "Previous line", group: "yt", key: "a" },
+    replay: { label: "Replay line", group: "yt", key: "s" },
+    next: { label: "Next line", group: "yt", key: "d" },
+    loop: { label: "Loop line", group: "yt", key: "r" },
+    shadow: { label: "Shadowing", group: "yt", key: "q" },
+    pinyin: { label: "Pinyin", group: "yt", key: "p" },
+    english: { label: "English line", group: "yt", key: "x" },
+    transcript: { label: "Transcript", group: "yt", key: "e" }
+  };
+  function keyOf(s, action) {
+    return s.keys?.[action] ?? KEY_ACTIONS[action].key;
+  }
+  function keyLabel(key) {
+    return key === " " ? "Space" : key.length === 1 ? key.toUpperCase() : key.replace(/^Arrow/, "");
+  }
+  function keyName(e) {
+    return e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  }
+
   // src/pages/common.ts
   var $ = (id) => document.getElementById(id);
+  function ago(t) {
+    let s = (Date.now() - t) / 1e3;
+    if (s < 90) return "just now";
+    if (s < 3600) return `${Math.round(s / 60)} min ago`;
+    if (s < 86400 * 2) return `${Math.round(s / 3600)} h ago`;
+    if (s < 86400 * 30) return `${Math.round(s / 86400)} days ago`;
+    let d = new Date(t);
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", ...d.getFullYear() === (/* @__PURE__ */ new Date()).getFullYear() ? {} : { year: "numeric" } });
+  }
+  var SUPPORT = "chris@cristianbagrin.com";
+  function supportLink(kind) {
+    let v = browser.runtime.getManifest().version, subject = kind === "bug" ? `Chinese Brain ${v}: bug report` : "Chinese Brain: question", body = kind === "bug" ? `What happened:
+
+
+What I expected:
+
+
+The page or video it happened on:
+
+
+(A screenshot helps a lot.)
+
+--
+Chinese Brain ${v} \xB7 ${navigator.userAgent}` : `
+
+--
+Chinese Brain ${v} \xB7 ${navigator.userAgent}`;
+    return `mailto:${SUPPORT}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  }
 
   // src/pages/options.ts
   var AZURE_REGIONS = [
@@ -213,8 +270,91 @@
         });
       }
     }
-    showAzure(), settings.geminiKey && loadModels(!1);
+    showAzure(), showKeys(), showAccount(), settings.geminiKey && loadModels(!1), location.hash && document.getElementById(location.hash.slice(1))?.scrollIntoView();
   }
+  function renderAccount(a, note = "") {
+    if ($("acct").hidden = !1, $("signedOut").hidden = a.signedIn, $("signedIn").hidden = !a.signedIn, a.signedIn) {
+      $("acctEmail").textContent = a.email;
+      let el = $("acctSync");
+      el.textContent = a.error ?? (a.at ? `Synced ${ago(a.at)}` : "Syncing\u2026"), el.className = a.error ? "status err" : "";
+    } else
+      a.email && !$("email").value && ($("email").value = a.email), setStatus("acctStatus", note || a.error || "", note ? "ok" : "err");
+  }
+  async function showAccount() {
+    renderAccount(await browser.runtime.sendMessage({ type: "account" }));
+  }
+  async function signIn(create) {
+    if (!$("signedOut").reportValidity()) return;
+    try {
+      if (!await browser.permissions.request({ data_collection: ["personallyIdentifyingInfo", "authenticationInfo"] })) return setStatus("acctStatus", "An account needs that permission.", "err");
+    } catch {
+    }
+    setStatus("acctStatus", create ? "Creating your account\u2026" : "Signing in\u2026");
+    let a = await browser.runtime.sendMessage({ type: "signIn", email: $("email").value, password: $("password").value, create });
+    $("password").value = "", renderAccount(a);
+  }
+  $("signedOut").addEventListener("submit", (e) => {
+    e.preventDefault(), signIn(!1);
+  });
+  $("signUp").addEventListener("click", () => void signIn(!0));
+  $("forgot").addEventListener("click", async () => {
+    let email = $("email");
+    if (!email.value || !email.checkValidity())
+      return email.focus(), setStatus("acctStatus", "Type your email first.", "err");
+    setStatus("acctStatus", "Sending\u2026");
+    let res = await browser.runtime.sendMessage({ type: "forgot", email: email.value });
+    setStatus("acctStatus", res.ok ? "Check your inbox for a link to set a new password." : res.error ?? "That didn\u2019t work.", res.ok ? "ok" : "err");
+  });
+  $("syncNow").addEventListener("click", async () => {
+    $("acctSync").textContent = "Syncing\u2026", renderAccount(await browser.runtime.sendMessage({ type: "syncNow" }));
+  });
+  $("signOut").addEventListener("click", async () => renderAccount(await browser.runtime.sendMessage({ type: "signOut" }), "Signed out. Your words stay in this browser."));
+  var recording;
+  function showKeys() {
+    for (let [id, group] of [["keysCard", "card"], ["keysYt", "yt"]])
+      $(id).replaceChildren(
+        ...Object.keys(KEY_ACTIONS).filter((a) => KEY_ACTIONS[a].group === group).map((a) => {
+          let key = keyOf(settings, a), b = document.createElement("button");
+          b.type = "button", b.textContent = key ? keyLabel(key) : "\u2014", b.className = key ? "" : "none", b.title = "Click, then press the new key (Backspace: no key)", b.addEventListener("click", () => record(a, b));
+          let row = document.createElement("div");
+          return row.append(KEY_ACTIONS[a].label, b), row;
+        })
+      );
+  }
+  function record(action, b) {
+    recording?.(), b.textContent = "Press a key", b.className = "rec";
+    let onKey = (e) => {
+      if (/^(Shift|Control|Alt|Meta|CapsLock)$/.test(e.key) || (e.preventDefault(), e.stopPropagation(), recording?.(), e.key === "Escape")) return;
+      let clear = e.key === "Backspace" || e.key === "Delete";
+      if (!clear && (e.ctrlKey || e.metaKey || e.altKey || /^(Enter|Tab|Arrow|F\d|Page|Home|End)/.test(e.key))) return;
+      let k = clear ? "" : keyName(e), keys = { ...settings.keys };
+      if (k) for (let other of Object.keys(KEY_ACTIONS)) other !== action && keyOf(settings, other) === k && (keys[other] = "");
+      k === KEY_ACTIONS[action].key ? delete keys[action] : keys[action] = k, saveKeys(keys);
+    };
+    recording = () => {
+      window.removeEventListener("keydown", onKey, !0), recording = void 0, showKeys();
+    }, window.addEventListener("keydown", onKey, !0);
+  }
+  async function saveKeys(keys) {
+    settings = { ...settings, keys }, state.settings = settings, await browser.runtime.sendMessage({ type: "saveSettings", settings: { keys } }), showKeys();
+  }
+  $("resetKeys").addEventListener("click", () => void saveKeys({}));
+  var mac = navigator.platform.startsWith("Mac");
+  mac && ($("altKey").textContent = "\u2325 Option");
+  browser.commands.getAll().then((cmds) => {
+    let key = cmds.find((c) => c.name === "toggle-colors")?.shortcut;
+    $("colorKey").textContent = key ? mac ? key.replace("Alt", "\u2325 Option") : key : "none";
+  }).catch(() => {
+  });
+  $("changeColorKey").addEventListener("click", () => {
+    {
+      let f = browser.commands[["open", "ShortcutSettings"].join("")];
+      f ? f() : alert('Open about:addons, click the gear, then "Manage Extension Shortcuts".');
+    }
+  });
+  $("version").textContent = browser.runtime.getManifest().version;
+  $("bug").href = supportLink("bug");
+  $("ask").href = supportLink("question");
   $("testVoice").addEventListener("click", async () => {
     setStatus("voiceStatus", "Playing\u2026");
     let res = await speak("\u4F60\u597D\uFF0C\u5F88\u9AD8\u8208\u8A8D\u8B58\u4F60"), names = { google: "Google voice", azure: "Azure voice", system: "system voice" };

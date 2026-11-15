@@ -5,3 +5,5 @@ declare module 'webextension-polyfill/dist/browser-polyfill.min.js' {
   const browserApi: typeof browser;
   export default browserApi;
 }
+/** The website and account service; scripts/build.mjs sets it (CB_SITE for a local copy). */
+declare const __SITE__: string;

@@ -170,6 +170,26 @@
     return el;
   }
   var $ = (id) => document.getElementById(id);
+  var SUPPORT = "chris@cristianbagrin.com";
+  function supportLink(kind) {
+    let v = import_browser_polyfill_min.default.runtime.getManifest().version, subject = kind === "bug" ? `Chinese Brain ${v}: bug report` : "Chinese Brain: question", body = kind === "bug" ? `What happened:
+
+
+What I expected:
+
+
+The page or video it happened on:
+
+
+(A screenshot helps a lot.)
+
+--
+Chinese Brain ${v} \xB7 ${navigator.userAgent}` : `
+
+--
+Chinese Brain ${v} \xB7 ${navigator.userAgent}`;
+    return `mailto:${SUPPORT}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  }
 
   // src/pages/action.ts
   var save = (settings) => import_browser_polyfill_min.default.runtime.sendMessage({ type: "saveSettings", settings });
@@ -193,7 +213,9 @@
           h("b", null, n.toLocaleString("en-US"))
         );
       })
-    );
+    ), $("bug").href = supportLink("bug"), import_browser_polyfill_min.default.runtime.sendMessage({ type: "account" }).then((a) => {
+      a.signedIn && ($("acctLink").textContent = a.error ? "Sync problem" : "\u2713 Synced");
+    });
     for (let el of document.querySelectorAll("[data-setting]")) {
       let key = el.dataset.setting;
       if (el instanceof HTMLInputElement) {

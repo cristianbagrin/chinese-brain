@@ -1,4 +1,5 @@
 import { state } from '../content/state.ts';
+import { keyLabel, keyOf, type KeyAction } from '../shared/keys.ts';
 import type { Status } from '../shared/types.ts';
 import type { YouTubeSubs } from './index.ts';
 import css from './controls.css';
@@ -6,15 +7,15 @@ import css from './controls.css';
 declare const __TEST__: boolean;
 
 const MODES = ['show', 'blur', 'hide'] as const;
-const TOAST: Record<string, (s: YouTubeSubs) => string> = {
-  a: () => '◀ previous line',
-  s: () => '↺ replay line',
-  d: () => 'next line ▶',
-  r: (s) => (s.looping ? '↻ looping this line' : 'loop off'),
-  q: (s) => (s.shadowing ? 'shadowing on: pause after each line' : 'shadowing off'),
-  p: () => (state.settings.pinyin ? 'pinyin on' : 'pinyin off'),
-  e: (s) => (s.transcript.open ? 'transcript open' : 'transcript closed'),
-  x: () => `English: ${state.settings.translation === 'show' ? 'shown' : state.settings.translation === 'blur' ? 'blurred until hover' : 'hidden'}`,
+const TOAST: Partial<Record<KeyAction, (s: YouTubeSubs) => string>> = {
+  prev: () => '◀ previous line',
+  replay: () => '↺ replay line',
+  next: () => 'next line ▶',
+  loop: (s) => (s.looping ? '↻ looping this line' : 'loop off'),
+  shadow: (s) => (s.shadowing ? 'shadowing on' : 'shadowing off'),
+  pinyin: () => (state.settings.pinyin ? 'pinyin on' : 'pinyin off'),
+  transcript: (s) => (s.transcript.open ? 'transcript open' : 'transcript closed'),
+  english: () => `English ${state.settings.translation === 'show' ? 'shown' : state.settings.translation === 'blur' ? 'blurred' : 'hidden'}`,
 };
 
 function el(tag: string, cls?: string, ...kids: (Node | string | null | false | undefined)[]) {
@@ -112,7 +113,7 @@ export class Controls {
     this.updatePill();
     if (this.panel.hidden) return;
     // Rebuild only when something shown changed (a rebuild mid-click would swallow the click).
-    const key = JSON.stringify([s, this.subs.counts, this.subs.looping, this.subs.shadowing, this.subs.trackName, this.subs.hasTranslation, this.subs.transcript.open, this.subs.gemini, this.subs.captionState]);
+    const key = JSON.stringify([s, this.subs.counts, this.subs.looping, this.subs.shadowing, this.subs.trackName, this.subs.transcript.open, this.subs.gemini, this.subs.captionState]);
     if (key === this.lastKey) return;
     this.lastKey = key;
 
@@ -125,8 +126,10 @@ export class Controls {
       b.title = `${label}: ${pct(c[k])}%`;
       return b;
     };
-    const chip = (label: string, key: string, on: boolean, act: () => void) => {
-      const b = el('button', `chip${on ? ' on' : ''}`, label, el('kbd', '', key));
+    const chip = (label: string, action: KeyAction | '', on: boolean, act: () => void, tip = '') => {
+      const key = action && keyOf(s, action);
+      const b = el('button', `chip${on ? ' on' : ''}`, label, key ? el('kbd', '', keyLabel(key)) : null);
+      if (tip) b.title = tip;
       b.addEventListener('click', () => {
         act();
         setTimeout(() => this.render(), 50);
@@ -134,37 +137,37 @@ export class Controls {
       return b;
     };
     const save = (settings: Record<string, unknown>) => browser.runtime.sendMessage({ type: 'saveSettings', settings });
+    const gear = el('button', 'gear', '⚙');
+    gear.title = 'Settings';
+    gear.addEventListener('click', () => void browser.runtime.sendMessage({ type: 'openOptions' }));
 
     this.panel.replaceChildren(
+      gear,
       total
         ? el(
             'div',
             'cov',
-            el('div', 'big', el('b', '', `${pct(c.known)}%`), ' of the words in this video are 熟 known'),
-            el('div', 'bar', seg('known', '熟 known'), seg('learning', '學 learning'), seg('fresh', '新 fresh'), seg('new', 'not in your list')),
-            el(
-              'div',
-              'legend',
-              el('span', 'k', `熟 ${pct(c.known)}%`),
-              el('span', 'l', `學 ${pct(c.learning)}%`),
-              el('span', 'f', `新 ${pct(c.fresh)}%`),
-              el('span', 'n', `new ${pct(c.new)}%`),
-            ),
+            el('div', 'big', el('b', '', `${pct(c.known)}%`), 'known'),
+            el('div', 'bar', seg('known', '熟 Known'), seg('learning', '學 Learning'), seg('fresh', '新 Fresh'), seg('new', 'Not in your list')),
           )
         : this.noCaptions(),
-      (total && this.geminiStatus()) || "",
-      this.subs.trackName ? el('div', 'track', this.subs.trackName, this.subs.hasTranslation ? ' + English' : '') : '',
+      (total && this.geminiStatus()) || '',
       el(
         'div',
         'chips',
-        chip('Pinyin', 'P', s.pinyin, () => save({ pinyin: !s.pinyin })),
-        chip(`English: ${{ show: 'shown', blur: 'blurred', hide: 'hidden' }[s.translation]}`, 'X', s.translation !== 'hide', () => save({ translation: MODES[(MODES.indexOf(s.translation) + 1) % 3] })),
-        chip('Loop line', 'R', this.subs.looping, () => this.subs.toggleLoop()),
-        chip('Shadowing', 'Q', this.subs.shadowing, () => this.subs.toggleShadow()),
-        chip('Pause on hover', '', s.pauseOnHover, () => save({ pauseOnHover: !s.pauseOnHover })),
-        chip('Transcript', 'E', this.subs.transcript.open, () => this.subs.transcript.toggle()),
+        chip('◀', 'prev', false, () => this.subs.seekLine(-1), 'Previous line'),
+        chip('↺', 'replay', false, () => this.subs.seekLine(0), 'Replay line'),
+        chip('▶', 'next', false, () => this.subs.seekLine(1), 'Next line'),
+        chip('Loop', 'loop', this.subs.looping, () => this.subs.toggleLoop(), 'Repeat this line'),
+        chip('Shadow', 'shadow', this.subs.shadowing, () => this.subs.toggleShadow(), 'Pause after each line so you can repeat it'),
       ),
-      el('div', 'keys', 'A ◀ previous line · S replay · D next line ▶'),
+      el(
+        'div',
+        'chips',
+        chip('Pinyin', 'pinyin', s.pinyin, () => save({ pinyin: !s.pinyin })),
+        chip(s.translation === 'blur' ? 'English (blur)' : 'English', 'english', s.translation !== 'hide', () => save({ translation: MODES[(MODES.indexOf(s.translation) + 1) % 3] }), 'Shown, blurred until you hover, or hidden'),
+        chip('Transcript', 'transcript', this.subs.transcript.open, () => this.subs.transcript.toggle()),
+      ),
     );
   }
 
@@ -173,27 +176,19 @@ export class Controls {
     const g = this.subs.gemini;
     const cs = this.subs.captionState;
     if (g.state !== 'working' && (cs === 'finding' || cs === 'loading')) {
-      return el('div', 'cov', el('div', 'note', cs === 'finding' ? 'Looking for captions…' : `Loading the Chinese captions (${this.subs.trackName})…`));
+      return el('div', 'cov', el('div', 'note', cs === 'finding' ? 'Looking for captions…' : 'Loading captions…'));
     }
-    const box = el('div', 'cov', el('div', '', 'No Chinese captions for this video.'));
-    if (!state.settings.geminiKey) {
-      box.append(el('div', 'note', 'Add a Gemini API key in Settings to get subtitles for videos like this one.'));
-      return box;
-    }
+    const box = el('div', 'cov', el('div', '', 'No Chinese captions.'));
     if (g.state === 'working') {
       box.append(el('div', 'note', this.progressText()));
       return box;
     }
-    const b = el('button', 'chip on', 'Subtitles with Gemini');
-    b.addEventListener('click', () => void this.subs.transcribeWithGemini());
-    box.append(
-      el('div', 'gem', b),
-      el(
-        'div',
-        'note',
-        "Mandarin is transcribed; any other language is translated into Taiwan Mandarin. Sends this video's link to Google. On the free tier Google may use the request to improve its models.",
-      ),
-    );
+    const b = el('button', 'chip on', state.settings.geminiKey ? 'Make subtitles with Gemini' : 'Add a Gemini key to make them');
+    if (state.settings.geminiKey) {
+      b.title = "Sends this video's link to Google Gemini";
+      b.addEventListener('click', () => void this.subs.transcribeWithGemini());
+    } else b.addEventListener('click', () => void browser.runtime.sendMessage({ type: 'openOptions', hash: 'gemini' }));
+    box.append(el('div', 'gem', b));
     if (g.state === 'error') box.append(el('div', 'note err', g.error ?? 'Something went wrong.'));
     return box;
   }
@@ -205,13 +200,7 @@ export class Controls {
     const pct = Math.round(g.pct * 100);
     const bar = el('div', 'gbar', el('i'));
     (bar.firstChild as HTMLElement).style.width = `${pct}%`;
-    return el(
-      'div',
-      '',
-      el('div', '', pct ? `Making subtitles with Gemini: ${pct}%` : 'Gemini is listening to the video…'),
-      bar,
-      g.total && g.total > 1 ? el('div', '', `Long video: ${g.total} parts, lines appear as each part finishes.`) : null,
-    );
+    return el('div', '', el('div', '', pct ? `Gemini subtitles: ${pct}%` : 'Gemini is listening…'), bar);
   }
 
   /** A small pill on the video while Gemini works, so progress shows without opening the panel. */
@@ -228,21 +217,21 @@ export class Controls {
     if (g.state === 'working') return el('div', 'note', this.progressText());
     if (g.state !== 'error') {
       if (!this.subs.trackName.startsWith('Gemini')) return null;
-      const redo = el('button', 'chip', 'Redo with Gemini');
+      const redo = el('button', 'chip', 'Redo subtitles');
       redo.title = 'Throw these subtitles away and make new ones (for example with another model)';
       redo.addEventListener('click', () => void this.subs.redoGemini());
       return el('div', 'gem', redo);
     }
-    const b = el('button', 'chip', 'Try the missing parts again');
+    const b = el('button', 'chip', 'Retry missing parts');
     b.addEventListener('click', () => void this.subs.transcribeWithGemini());
     return el('div', '', el('div', 'note err', g.error ?? 'Something went wrong.'), el('div', 'gem', b));
   }
 
-  flash(key: string) {
-    const msg = TOAST[key]?.(this.subs);
+  flash(key: KeyAction) {
+    const msg = TOAST[key];
     if (!msg) return;
     setTimeout(() => {
-      this.toast.textContent = TOAST[key](this.subs);
+      this.toast.textContent = msg(this.subs);
       this.toast.hidden = false;
       clearTimeout(this.toastTimer);
       this.toastTimer = setTimeout(() => (this.toast.hidden = true), 1300);

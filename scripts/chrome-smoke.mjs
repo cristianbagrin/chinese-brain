@@ -178,6 +178,10 @@ try {
   const trFetched = /TIMEDTEXT .*tlang=en/.test(ytLog);
   ok('YouTube mock: English translation track fetched', trFetched);
   if (shots) await ytPage.screenshot({ path: join(shots, 'youtube.png') });
+  // The panel behind the 中 switch.
+  await ytPage.hover('#movie_player [data-cb-own]');
+  await sleep(300);
+  if (shots) await ytPage.screenshot({ path: join(shots, 'youtube-panel.png') });
 
   ok('no service-worker errors', !swErrors.length, swErrors.join(' | '));
   ok('no page errors', !errors.length, errors.join(' | '));

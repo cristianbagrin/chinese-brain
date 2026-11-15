@@ -13,6 +13,29 @@
   <nav><a href="vocab.html">Words</a><a href="options.html" aria-current="page">Settings</a></nav>
 </div></header>
 <main class="settings">
+  <h2 id="account">Account</h2>
+  <div class="box acct" id="acct" hidden>
+    <form class="set" id="signedOut" hidden>
+      <div class="txt"><label for="email">Sync your words</label><small>One word list on every browser you use. Optional.</small></div>
+      <div class="ctl">
+        <input type="email" id="email" placeholder="Email" autocomplete="username" required>
+        <input type="password" id="password" placeholder="Password" autocomplete="current-password" minlength="8" required>
+        <button type="submit" class="primary" id="signIn">Sign in</button>
+        <button type="button" id="signUp">Create account</button>
+        <button type="button" class="link" id="forgot">Forgot password?</button>
+        <span class="status" id="acctStatus"></span>
+      </div>
+    </form>
+    <div class="set" id="signedIn" hidden>
+      <div class="txt"><label id="acctEmail"></label><small id="acctSync"></small></div>
+      <div class="ctl">
+        <button type="button" id="syncNow">Sync now</button>
+        <a class="btn" href="https://chinese.cristianbagrin.com/account" target="_blank">Manage</a>
+        <button type="button" id="signOut">Sign out</button>
+      </div>
+    </div>
+  </div>
+
   <h2>Lookup card</h2>
   <div class="box">
     <div class="set">
@@ -26,7 +49,7 @@
       </div>
     </div>
     <div class="set">
-      <div class="txt"><label for="pinyin">Pinyin</label><small>In the card, hints and subtitles. <kbd>P</kbd> switches it.</small></div>
+      <div class="txt"><label for="pinyin">Pinyin</label></div>
       <div class="ctl"><input type="checkbox" id="pinyin"></div>
     </div>
     <div class="set">
@@ -43,7 +66,7 @@
       <div class="ctl"><input type="checkbox" id="cardColors"></div>
     </div>
     <div class="set">
-      <div class="txt"><label for="pageColors">Color words on every page</label><small>Per site from the toolbar menu.</small></div>
+      <div class="txt"><label for="pageColors">Color words on every page</label></div>
       <div class="ctl"><input type="checkbox" id="pageColors"></div>
     </div>
     <div class="set">
@@ -71,7 +94,7 @@
       </div>
     </div>
     <div class="set">
-      <div class="txt"><label for="speechRate">Speed</label><small>Google has two: normal and slow.</small></div>
+      <div class="txt"><label for="speechRate">Speed</label></div>
       <div class="ctl">
         <select id="speechRate">
           <option value="0.6">slow</option>
@@ -82,7 +105,7 @@
       </div>
     </div>
     <div class="set azure">
-      <div class="txt"><label for="azureKey">Azure key</label><small>"KEY 1" of a free Speech resource (F0).</small></div>
+      <div class="txt"><label for="azureKey">Azure key</label></div>
       <div class="ctl">
         <input type="password" id="azureKey" autocomplete="off" spellcheck="false">
         <button type="button" id="checkAzure">Check</button>
@@ -90,7 +113,7 @@
       </div>
     </div>
     <div class="set azure">
-      <div class="txt"><label for="azureRegion">Azure region</label><small>"Check" finds it for you.</small></div>
+      <div class="txt"><label for="azureRegion">Azure region</label></div>
       <div class="ctl"><select id="azureRegion"></select></div>
     </div>
     <div class="set azure">
@@ -108,7 +131,7 @@
   <h2>YouTube</h2>
   <div class="box">
     <div class="set">
-      <div class="txt"><label for="ytEnabled">Chinese Brain subtitles</label><small>Same as the 中 switch in the player.</small></div>
+      <div class="txt"><label for="ytEnabled">Chinese Brain subtitles</label></div>
       <div class="ctl"><input type="checkbox" id="ytEnabled"></div>
     </div>
     <div class="set">
@@ -135,23 +158,23 @@
       <div class="ctl"><input type="checkbox" id="pauseOnHover"></div>
     </div>
     <div class="set">
-      <div class="txt"><label for="autoFreshOnClick">Clicking a new word stamps it 新 Fresh</label><small>Click again to undo.</small></div>
+      <div class="txt"><label for="autoFreshOnClick">Clicking a new word stamps it 新 Fresh</label></div>
       <div class="ctl"><input type="checkbox" id="autoFreshOnClick"></div>
     </div>
     <div class="set">
-      <div class="txt"><label for="subFontSize">Subtitle size</label><small>At 720p; scales with the player.</small></div>
+      <div class="txt"><label for="subFontSize">Subtitle size</label></div>
       <div class="ctl"><input type="number" id="subFontSize" min="16" max="60" step="1"></div>
     </div>
     <div class="set">
-      <div class="txt"><label for="shadowFactor">Shadowing pause</label><small>× the length of the line.</small></div>
+      <div class="txt"><label for="shadowFactor">Shadowing pause</label><small>× the line's length</small></div>
       <div class="ctl"><input type="number" id="shadowFactor" min="0.5" max="4" step="0.25"></div>
     </div>
   </div>
 
-  <h2>Gemini (optional)</h2>
+  <h2 id="gemini">Gemini (optional)</h2>
   <div class="box">
     <div class="set">
-      <div class="txt"><label for="geminiKey">API key</label><small>Free at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>. Used only when you ask (transcripts, example sentences). Free-tier requests may help train Google's models.</small></div>
+      <div class="txt"><label for="geminiKey">API key</label><small>For subtitles on videos without captions, and extra example sentences. <a href="https://aistudio.google.com/apikey" target="_blank">Get a free key</a></small></div>
       <div class="ctl">
         <input type="password" id="geminiKey" autocomplete="off" spellcheck="false">
         <button type="button" id="checkGemini">Check</button>
@@ -159,22 +182,35 @@
       </div>
     </div>
     <div class="set">
-      <div class="txt"><label for="geminiModel">Model</label><small>"Check" lists the ones your key can use.</small></div>
+      <div class="txt"><label for="geminiModel">Model</label></div>
       <div class="ctl"><select id="geminiModel"></select></div>
     </div>
   </div>
 
-  <h2>Keys</h2>
-  <div class="keys">
-    <span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span><span>新 · 學 · 熟 (again to clear)</span>
-    <span><kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></span><span>previous · replay · next line</span>
-    <span><kbd>0</kbd></span><span>remove from the list</span>
-    <span><kbd>R</kbd> <kbd>Q</kbd> <kbd>E</kbd></span><span>loop · shadowing · transcript</span>
-    <span><kbd>V</kbd> <kbd>I</kbd></span><span>say it · images</span>
-    <span><kbd>X</kbd></span><span>English line</span>
-    <span><kbd>P</kbd></span><span>pinyin on / off</span>
-    <span><kbd>Esc</kbd></span><span>close the card</span>
-    <span><kbd>←</kbd> <kbd>→</kbd></span><span class="wide">back / forward through words opened in the card · pointing at a word in the card, the keys act on that word</span>
+  <h2 id="shortcuts">Shortcuts</h2>
+  <div class="box">
+    <div class="set">
+      <div class="txt"><label>Click a key to change it</label><small><kbd>Esc</kbd> closes the card · <kbd>←</kbd> <kbd>→</kbd> go back and forward · tap <kbd id="altKey">Alt</kbd> to look up a selection</small></div>
+      <div class="ctl"><button type="button" class="link" id="resetKeys">Reset</button></div>
+    </div>
+    <div class="keygrid" id="keysCard"></div>
+    <div class="keygrid" id="keysYt"></div>
+    <div class="set">
+      <div class="txt"><label>Word colors on this site</label></div>
+      <div class="ctl"><kbd id="colorKey">Alt+Shift+C</kbd><button type="button" id="changeColorKey">Change</button></div>
+    </div>
+  </div>
+
+  <h2 id="help">Help</h2>
+  <div class="box">
+    <div class="set">
+      <div class="txt"><label>Something broken, or a question?</label><small>It goes straight to Chris, who makes Chinese Brain.</small></div>
+      <div class="ctl"><a class="btn" id="bug" href="mailto:chris@cristianbagrin.com">Report a bug</a><a class="btn" id="ask" href="mailto:chris@cristianbagrin.com">Email support</a></div>
+    </div>
+    <div class="set">
+      <div class="txt"><label>Chinese Brain <span id="version"></span></label></div>
+      <div class="ctl"><a class="btn" href="https://chinese.cristianbagrin.com/welcome" target="_blank">How it works</a><a class="btn" href="https://chinese.cristianbagrin.com/privacy" target="_blank">Privacy</a></div>
+    </div>
   </div>
 </main>
 <div class="saved" id="saved" hidden>Saved</div>

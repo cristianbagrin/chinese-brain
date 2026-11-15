@@ -56,7 +56,7 @@ export class Transcript {
     this.tabs = el('div', 'tabs');
     this.body = el('div', 'body');
     const close = el('button', 'close', '×');
-    close.title = 'Close (E)';
+    close.title = 'Close';
     close.addEventListener('click', () => this.toggle(false));
     this.box = el('div', 'box', el('div', 'top', this.tabs, close), this.body);
     this.root.append(style, this.box);
