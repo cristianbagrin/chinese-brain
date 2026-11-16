@@ -49,6 +49,13 @@ Chinese Brain ${browser.runtime.getManifest().version} \xB7 ${navigator.userAgen
     ), $("feedback").href = feedbackLink(), $("words").href = DASHBOARD, $("altMode").textContent = ALT, $("altMode").title = `Only while holding ${ALT}`, browser.runtime.sendMessage({ type: "account" }).then((a) => {
       a.signedIn && ($("acctLink").textContent = a.error ? "Sync problem" : "\u2713 Synced");
     });
+    let dl = $("dlNew"), newCount = async () => {
+      let n = await browser.runtime.sendMessage({ type: "newCount" });
+      $("newN").textContent = n ? n.toLocaleString("en-US") : "", dl.disabled = !n, dl.title = n ? `Download the ${n} word${n === 1 ? "" : "s"} you changed since the last download (TSV)` : "Nothing new since your last download";
+    };
+    newCount(), dl.addEventListener("click", async () => {
+      dl.disabled = !0, await browser.runtime.sendMessage({ type: "downloadNew" }), $("newN").textContent = "\u2713", setTimeout(newCount, 1500);
+    });
     for (let el of document.querySelectorAll("[data-setting]")) {
       let key = el.dataset.setting;
       if (el instanceof HTMLInputElement) {

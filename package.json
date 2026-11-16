@@ -6,7 +6,7 @@
   "license": "UNLICENSED",
   "type": "module",
   "scripts": {
-    "build": "node scripts/build.mjs && node scripts/whats-new.mjs",
+    "build": "node scripts/build.mjs",
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/*.test.ts",

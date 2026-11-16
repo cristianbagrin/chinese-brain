@@ -3,6 +3,7 @@ import { CJK } from '../shared/dict.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import type { Context, Entry, LookupMatch, Status, Token } from '../shared/types.ts';
 import { saveSound, speak, stampSound } from './audio.ts';
+import { signal } from './bridge.ts';
 import { actionFor, keyLabel, keyOf, type KeyAction } from '../shared/keys.ts';
 import { inOwnBox } from './keys.ts';
 import { lookupText } from './lookup.ts';
@@ -481,6 +482,7 @@ export class Popup {
     if (next) state.statuses.set(m.word, next);
     else state.statuses.delete(m.word);
     stampSound(next);
+    if (next) signal('stamp');
     this.infoCache.delete(m.word);
     this.render(next ?? undefined);
     browser.runtime.sendMessage({ type: 'setStatus', word: m.word, status: next, entry: m.entries[0], ctx: this.ctxFor(m) });
@@ -602,6 +604,7 @@ export class Popup {
     if (next) state.statuses.set(m.word, next);
     else state.statuses.delete(m.word);
     stampSound(next);
+    if (next) signal('stamp');
     const ctx = target.sentence
       ? this.ctxFor(m, { text: target.sentence, url: location.href, title: document.title, at: Date.now(), src: this.opts.src })
       : undefined;

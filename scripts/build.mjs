@@ -62,12 +62,15 @@ const chrome = {
 // The YouTube page hook runs in the page's own world: no extension APIs, no polyfill.
 const chromeHook = { ...common, entryPoints: { ythook: 'src/platform/yt-hook.ts' }, outdir: 'dist-chrome', target: 'chrome128', define: define(true) };
 
-// The website's dashboard shares the extension's code (export formats, sentences, sounds), so it
-// is bundled here too. Its output is committed: Cloudflare deploys site/ as it is.
+// The website's scripts share the extension's code (export formats, sentences, sounds), so they
+// are bundled here too: the word list (dashboard.js) and every page's site.js, with the demo card.
+// Their output is committed: Cloudflare deploys site/ as it is.
 cpSync('static/fonts', 'site/public/fonts', { recursive: true });
 const site = { ...common, entryPoints: { dashboard: 'site/src/dashboard.ts' }, outdir: 'site/public/brain', target: 'es2020', define: define(false) };
 
-const builds = [firefox, chrome, chromeHook, site];
+const pages = { ...site, entryPoints: { site: 'site/src/site.ts' }, outdir: 'site/public' };
+
+const builds = [firefox, chrome, chromeHook, site, pages];
 if (watch) {
   for (const opts of builds) await (await esbuild.context(opts)).watch();
 } else {

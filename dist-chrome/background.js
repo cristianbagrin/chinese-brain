@@ -242,6 +242,17 @@
     let out = trimAround(one, at.i, at.len, max), english = en.join(" \u2014 ").replace(CUES, " ").replace(/\s+/g, " ").trim();
     return english && out === cleanSentence(zh, word, c.q) ? `${out} \u2014 ${english}` : out;
   }
+  function shownSentence(ctx, word, saved = [], max = 80) {
+    let newest = [...saved].sort((a, b) => b.at - a.at);
+    for (let c of ctx) {
+      let inCard = metSentence(c, word, 120).split(" \u2014 ")[0], mine = inCard ? newest.find((s) => s.from === inCard || s.zh === inCard) : void 0;
+      if (mine) return { c, text: mine.en ? `${mine.zh} \u2014 ${mine.en}` : mine.zh, edited: !0 };
+    }
+    for (let c of ctx) {
+      let text = metSentence(c, word, max);
+      if (text) return { c, text };
+    }
+  }
 
   // src/shared/dict.ts
   init_browser_shim();
@@ -453,9 +464,23 @@
     return joined ? sylls.reduce((acc, s, i) => i > 0 && /^[aeoāáǎàēéěèōóǒò]/i.test(s) ? acc + "'" + s : acc + s, "") : sylls.join(" ");
   }
 
+  // src/shared/export.ts
+  init_browser_shim();
+
+  // src/shared/time.ts
+  init_browser_shim();
+  function dayKeyLocal(t) {
+    let d = new Date(t);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+  function today() {
+    let d = /* @__PURE__ */ new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
   // src/shared/types.ts
   init_browser_shim();
-  var DEFAULT_SETTINGS = {
+  var STATUS_CODE = { fresh: "F", learning: "L", known: "K" }, DEFAULT_SETTINGS = {
     hoverMode: "hover",
     disabledSites: [],
     ytEnabled: !0,
@@ -486,6 +511,78 @@
   }
   function colorsOn(s, host) {
     return s.siteColors[host] ?? s.pageColors;
+  }
+
+  // src/shared/export.ts
+  var clean = (s) => (s ?? "").replace(/[\t\r\n]+/g, " ").trim(), stamp = (t) => {
+    let d = new Date(t);
+    return `${dayKeyLocal(t)} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  }, code = (s) => s ? STATUS_CODE[s] : "-";
+  function shortSource(url, t) {
+    try {
+      let u = new URL(url);
+      return u.hostname.endsWith("youtube.com") && u.searchParams.get("v") ? `youtu.be/${u.searchParams.get("v")}${t != null ? `?t=${Math.floor(t)}` : ""}` : u.hostname.replace(/^www\./, "");
+    } catch {
+      return "";
+    }
+  }
+  function duration(secs) {
+    let m = Math.round(secs / 60);
+    return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min` : `${m} min`;
+  }
+  function buildClaudeExport(words, logs, since = 0, saved = {}) {
+    let now = Date.now(), { rows, savedNow, watches } = exportRows(words, logs, since, saved), lines = [
+      `# Chinese Brain export \xB7 ${stamp(now)} \xB7 ${since ? `since ${stamp(since)}` : "everything so far"}`,
+      "# Codes as in known-words.txt: K known, L learning, F fresh (met, not studied yet), - not in the list.",
+      '# date = the day I set this status \xB7 sentence = where I met the word \xB7 saved = sentences I saved for a card, several joined with " \u2016 "',
+      "# was = status before this period (- = new). Only status changes I made are listed.",
+      `# ${rows.length} words \xB7 ${[...savedNow.values()].flat().length} saved sentences \xB7 ${watches.length} videos with subtitles (${duration(watches.reduce((n, e) => n + e.secs, 0))})`,
+      ["word", "now", "was", "date", "pinyin", "meaning", "sentence", "source", "saved"].join("	")
+    ];
+    for (let r of rows) {
+      let met = shownSentence(r.rec?.ctx ?? [], r.w, saved[r.w]);
+      lines.push(
+        [
+          r.w,
+          code(r.now),
+          code(r.was),
+          dayKeyLocal(r.date),
+          r.rec?.p?.toLowerCase(),
+          r.rec?.g,
+          met?.text,
+          met ? shortSource(met.c.url, met.c.t) : "",
+          (savedNow.get(r.w) ?? []).map((x) => x.en ? `${x.zh} \u2014 ${x.en}` : x.zh).join(" \u2016 ")
+        ].map((x) => clean(x)).join("	")
+      );
+    }
+    return lines.join(`
+`) + `
+`;
+  }
+  function exportCount(words, logs, since = 0, saved = {}) {
+    return exportRows(words, logs, since, saved).rows.length;
+  }
+  function exportRows(words, logs, since, saved) {
+    let now = Date.now(), evs = logs.filter((e) => e.at > since), watches = evs.filter((e) => e.k === "watch"), byWord = new Map(words.map((w) => [w.w, w])), before = /* @__PURE__ */ new Map();
+    for (let e of evs) e.k === "status" && !before.has(e.w) && before.set(e.w, e.from ?? null);
+    let rows = [];
+    if (since)
+      for (let [w, was] of before) {
+        let rec = byWord.get(w), cur = rec?.s ?? null;
+        was !== cur && rows.push({ w, now: cur, was, date: rec?.updated ?? now, rec });
+      }
+    else
+      for (let w of words) rows.push({ w: w.w, now: w.s, was: null, date: w.updated, rec: w });
+    let savedNow = /* @__PURE__ */ new Map(), listed = new Set(rows.map((r) => r.w));
+    for (let [w, list] of Object.entries(saved)) {
+      let fresh2 = list.filter((x) => x.at > since);
+      if (fresh2.length && (savedNow.set(w, fresh2), !listed.has(w))) {
+        let rec = byWord.get(w);
+        rows.push({ w, now: rec?.s ?? null, was: rec?.s ?? null, date: rec?.updated ?? Math.max(...fresh2.map((x) => x.at)), rec });
+      }
+    }
+    let order = { K: 0, L: 1, F: 2, "-": 3 };
+    return rows.sort((a, b) => order[code(a.now)] - order[code(b.now)] || a.date - b.date), { rows, savedNow, watches };
   }
 
   // src/shared/gloss.ts
@@ -563,15 +660,6 @@
 
   // src/background/store.ts
   init_browser_shim();
-
-  // src/shared/time.ts
-  init_browser_shim();
-  function dayKeyLocal(t) {
-    let d = new Date(t);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  }
-
-  // src/background/store.ts
   async function storedKeys(prefix) {
     let local = import_browser_polyfill_min.default.storage.local;
     try {
@@ -682,8 +770,8 @@
   }
   var json = (k, v) => stable(travel(k, v)), ApiError = class extends Error {
     code;
-    constructor(message, code) {
-      super(message), this.code = code;
+    constructor(message, code2) {
+      super(message), this.code = code2;
     }
   };
   async function api(path, body, token) {
@@ -979,11 +1067,11 @@ Do not summarize, skip or merge lines, and add no commentary. Skip music without
     let median = lines[Math.floor(lines.length / 2)].start, shift = clip.start > 0 && median < clip.start - 5 ? clip.start : 0;
     return lines.map((l) => ({ ...l, start: l.start + shift, end: l.end + shift })).filter((l) => l.start >= clip.start - 3 && l.start <= clip.end + 3);
   }
-  async function geminiTranscribe(videoId, key, model, duration, progress) {
+  async function geminiTranscribe(videoId, key, model, duration2, progress) {
     let cacheKey = "gem:" + videoId, cached = (await import_browser_polyfill_min.default.storage.local.get(cacheKey))[cacheKey];
     if (cached && (Array.isArray(cached) ? cached.length : cached.lines.length))
       return Array.isArray(cached) ? { lines: cached, translated: !1, model } : { ...cached, model };
-    let n = Number.isFinite(duration) && duration > 300 * 1.25 ? Math.ceil(duration / 300) : 1, clips = Array.from({ length: n }, (_, i) => ({ start: i * 300, end: Math.min(duration, (i + 1) * 300) })), partKey = (i) => `gemc:${videoId}:${i}/${n}`, stored2 = await import_browser_polyfill_min.default.storage.local.get(clips.map((_, i) => partKey(i))), parts = clips.map((_, i) => stored2[partKey(i)]), errors = [], used = model, reached = clips.map((_, i) => parts[i] ? 1 : 0), pct = () => Number.isFinite(duration) && duration > 0 ? clips.reduce((sum, c, i) => sum + reached[i] * (c.end - c.start), 0) / duration : void 0, report = () => progress({
+    let n = Number.isFinite(duration2) && duration2 > 300 * 1.25 ? Math.ceil(duration2 / 300) : 1, clips = Array.from({ length: n }, (_, i) => ({ start: i * 300, end: Math.min(duration2, (i + 1) * 300) })), partKey = (i) => `gemc:${videoId}:${i}/${n}`, stored2 = await import_browser_polyfill_min.default.storage.local.get(clips.map((_, i) => partKey(i))), parts = clips.map((_, i) => stored2[partKey(i)]), errors = [], used = model, reached = clips.map((_, i) => parts[i] ? 1 : 0), pct = () => Number.isFinite(duration2) && duration2 > 0 ? clips.reduce((sum, c, i) => sum + reached[i] * (c.end - c.start), 0) / duration2 : void 0, report = () => progress({
       done: parts.filter(Boolean).length,
       total: n,
       lines: parts.flatMap((p) => p?.lines ?? []).sort((a, b) => a.start - b.start),
@@ -1433,6 +1521,17 @@ Give each with a natural American English translation.`, schema = {
           let saved = {};
           for (let [k, v] of Object.entries(await stored("sav:"))) saved[k.slice(4)] = v;
           return { words: [...store.words.values()].map((w) => freshen(d, w)), logs: await store.allLogs(), saved };
+        });
+      case "newCount":
+      case "downloadNew":
+        let count = any.type === "newCount";
+        return Promise.all([storeReady, dictReady]).then(async ([, d]) => {
+          let at = Date.now(), since = (await import_browser_polyfill_min.default.storage.local.get("lastExportAt")).lastExportAt ?? 0, saved = {};
+          for (let [k, v] of Object.entries(await stored("sav:"))) saved[k.slice(4)] = v;
+          let words = [...store.words.values()].map((w) => freshen(d, w)), logs = await store.allLogs();
+          if (count) return exportCount(words, logs, since, saved);
+          let text = buildClaudeExport(words, logs, since, saved), url = `data:text/tab-separated-values;charset=utf-8,${encodeURIComponent(text)}`;
+          return await import_browser_polyfill_min.default.downloads.download({ url, filename: `chinese-brain-${today()}.tsv` }), await import_browser_polyfill_min.default.storage.local.set({ lastExportAt: at }), !0;
         });
       case "importWords":
         return storeReady.then(() => store.importWords(any.words, any.mode ?? "merge"));

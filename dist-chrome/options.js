@@ -345,15 +345,20 @@
 
   // src/pages/common.ts
   init_browser_shim();
+
+  // src/shared/time.ts
+  init_browser_shim();
+  function today() {
+    let d = /* @__PURE__ */ new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  // src/pages/common.ts
   function download(name, content, type = "text/plain;charset=utf-8") {
     let url = URL.createObjectURL(new Blob([content], { type })), a = document.createElement("a");
     a.href = url, a.download = name, document.body.append(a), a.click(), a.remove(), setTimeout(() => URL.revokeObjectURL(url), 1e4);
   }
   var $ = (id) => document.getElementById(id);
-  function today() {
-    let d = /* @__PURE__ */ new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  }
   function ago(t) {
     let s = (Date.now() - t) / 1e3;
     if (s < 90) return "just now";

@@ -52,6 +52,7 @@ With the extension installed it reads the list straight from the browser (nothin
 uploaded, no account needed); anywhere else it shows your account's list. Filter, search,
 sort, restamp, remove (with Undo), **Practice with AI**, **Download new** (what changed since
 the last export, as a small TSV) and **Import** a `word⇥K|L⇥date` list.
+The toolbar menu's **↓ New** downloads the same export in one click.
 **Backup / restore** (everything as JSON) is in Settings.
 
 ## Account and sync

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How it works · Chinese Brain</title>
-<meta name="description" content="Chinese Brain in one page: hover, stamp, select, YouTube subtitles, AI subtitles, practice with AI, sync.">
+<meta name="description" content="Try Chinese Brain right on the page: hover a word, stamp it, select a phrase. Then YouTube, line by line.">
 <link rel="canonical" href="https://chinese.cristianbagrin.com/brain/guide">
 <link rel="icon" href="/icon.png">
 <link rel="stylesheet" href="/style.css">
@@ -14,29 +14,59 @@
   <a class="home" href="/brain"><img src="/icon.png" alt="">Chinese Brain</a>
   <nav><a href="/brain/guide">How it works</a><a href="/brain/whats-new">What's new</a><a href="/brain/dashboard">Your words</a><a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain%20feedback">Feedback</a></nav>
 </div></header>
-<main class="wrap doc">
-  <h1 id="title">How it works</h1>
-  <p class="updated">Move your pointer over any word.</p>
-  <section class="try" lang="zh-Hant">
-    <p>今天天氣很好，我們一起去夜市吃晚餐吧。</p>
-    <p>臺北的捷運很方便，從車站走路五分鐘就到了。</p>
+<main class="wrap doc guide">
+  <h1 data-welcome="You're set. 你好!">How it works</h1>
+  <p class="updated" data-welcome="Three moves, right here.">Three moves. Try them here.</p>
+  <section class="play" data-quests>
+    <span class="mode" data-noext title="Without the extension: a few words to try">Demo</span>
+    <span class="mode live" data-ext title="Your Chinese Brain is on this page">Live</span>
+    <ol class="quests">
+      <li data-q="card"><i></i><span class="mouse">Hover a word</span><span class="touch">Tap a word</span></li>
+      <li data-q="stamp"><i></i>Stamp it <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></li>
+      <li data-q="select"><i></i>Select a phrase, tap <kbd class="alt">Alt</kbd></li>
+    </ol>
+    <div class="try" data-demo lang="zh-Hant">
+      <p>今天天氣很好，我們一起去夜市吃晚餐吧。</p>
+      <p>臺北的捷運很方便，從車站走路五分鐘就到了。</p>
+    </div>
+    <div class="bravo" aria-live="polite"><b class="seal big" lang="zh-Hant">讚</b><span>That's it. Every website works like this.</span></div>
   </section>
-  <p class="hint" id="noext">Nothing? <a href="https://addons.mozilla.org/firefox/addon/chinesebrain/">Install Chinese Brain</a>, then reload.</p>
-  <section class="hows">
-    <div class="how" id="card"><h3>Hover</h3><p>Pinyin, meaning, parts, two examples.</p></div>
-    <div class="how" id="stamps"><h3>Stamp</h3><p><kbd>1</kbd> 新 <kbd>2</kbd> 學 <kbd>3</kbd> 熟<br><kbd>0</kbd> removes</p></div>
-    <div class="how" id="select"><h3>Select</h3><p>Any phrase, then <kbd class="alt">Alt</kbd></p></div>
-    <div class="how" id="colors"><h3>Color</h3><p>Every website<br><kbd class="alt">Alt</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd></p></div>
-    <div class="how" id="youtube"><h3>YouTube</h3><p><kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> lines, <kbd>R</kbd> loop<br><kbd>E</kbd> transcript</p></div>
-    <div class="how" id="gemini"><h3>AI subtitles</h3><p>Paste a free <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Gemini key</a> in Settings.</p></div>
-    <div class="how" id="ai"><h3>Practice with AI</h3><p><a href="/brain/dashboard#export">Your words</a> → Copy prompt → any chatbot.</p></div>
-    <div class="how" id="sync"><h3>Sync</h3><p>Settings → Account. Free, optional.</p></div>
+
+  <section class="topic yt">
+    <h2>YouTube, line by line</h2>
+    <div class="ytsim">
+      <div class="screen">
+        <span class="badge pause" aria-hidden="true">❚❚</span>
+        <span class="badge loopon" aria-hidden="true">⟲ loop</span>
+        <div class="band"><p class="zh" lang="zh-Hant" data-demo></p><p class="en"></p></div>
+        <div class="track"><div class="bar"></div></div>
+      </div>
+      <ol class="script" lang="zh-Hant">
+        <li data-zh="你好，歡迎來臺北！" data-en="Hi, welcome to Taipei!">你好，歡迎來臺北！</li>
+        <li data-zh="我們去夜市吧。" data-en="Let's go to the night market.">我們去夜市吧。</li>
+        <li data-zh="這個很好吃！" data-en="This is delicious!">這個很好吃！</li>
+        <li data-zh="明天見！" data-en="See you tomorrow!">明天見！</li>
+      </ol>
+      <div class="ytkeys">
+        <button type="button" data-k="a"><kbd>A</kbd>back</button>
+        <button type="button" data-k="s"><kbd>S</kbd>again</button>
+        <button type="button" data-k="d"><kbd>D</kbd>next</button>
+        <button type="button" data-k="r"><kbd>R</kbd>loop</button>
+        <button type="button" data-k="e"><kbd>E</kbd>transcript</button>
+      </div>
+    </div>
   </section>
-  <button class="video" type="button" data-video="rJeqKHkXHmo" aria-label="Play the video: Why Chinese Brain is so good">
-    <img src="/brain/video.jpg" width="1280" height="720" alt="" loading="lazy">
-    <span class="play" aria-hidden="true"></span>
-  </button>
-  <p class="hint">Every key can be changed in Settings. Stuck? <a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain%20feedback">Ask me</a>.</p>
+
+  <section class="more">
+    <a class="tile" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener"><b class="seal" lang="zh-Hant">幕</b><span><strong>No subtitles?</strong>Gemini writes them. Free key →</span></a>
+    <a class="tile" href="/brain/dashboard"><b class="seal" lang="zh-Hant">詞</b><span><strong>Your words</strong>Every stamp, and an AI prompt →</span></a>
+    <a class="tile" href="/account"><b class="seal" lang="zh-Hant">同</b><span><strong>Every browser</strong>Free sync, if you want it →</span></a>
+  </section>
+
+  <section class="cta" data-noext>
+    <h2>Now on every website.</h2>
+    <a class="btn primary" href="https://addons.mozilla.org/firefox/addon/chinesebrain/">Add to Firefox</a>
+  </section>
 </main>
 <footer><div class="wrap">
   <span>© 2026 <a class="maker" href="https://cristianbagrin.com" title="Who made this">Cristian Bagrin</a></span>

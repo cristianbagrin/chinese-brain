@@ -185,3 +185,9 @@ body:has(.dash) { background: #f6f2ed; }
 .dash .muted { color: var(--ink2); }
 .dash .small { font-size: 13px; }
 .dash #welcome { max-width: 460px; margin: 40px auto; }
+.dash #welcome { text-align: center; }
+.dash #welcome .rowbtn { justify-content: center; }
+.dash #welcome .ghost { margin: 0 0 22px; padding: 16px; border-radius: 12px; background: var(--paper2, #f6f2ed); }
+.dash #welcome .ghost .piles { justify-content: center; }
+.dash #welcome .ghost p { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 14px 0 0; font-size: 22px; }
+.dash #welcome .ghost .w { padding: 0 6px; border-radius: 6px; }

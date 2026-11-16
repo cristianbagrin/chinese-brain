@@ -2,6 +2,8 @@ import { metSentence, saveInList } from '../shared/context.ts';
 import { CJK, Dictionary } from '../shared/dict.ts';
 import type { Entry, LookupMatch, SavedSentence } from '../shared/types.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
+import { buildClaudeExport, exportCount } from '../shared/export.ts';
+import { today } from '../shared/time.ts';
 import { colorsOn, DEFAULT_SETTINGS, normalizeSettings, type Msg, type Settings, type Status, type WordRecord } from '../shared/types.ts';
 import { freshen, isPlaceholder, shortGloss, withSurface } from '../shared/gloss.ts';
 import { Store, stored, storedKeys } from './store.ts';
@@ -227,6 +229,28 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
         const saved: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(await stored('sav:'))) saved[k.slice(4)] = v;
         return { words: [...store.words.values()].map((w) => freshen(d, w)), logs: await store.allLogs(), saved };
+      });
+    case 'newCount':
+    case 'downloadNew':
+      // The toolbar menu's "Download new": what changed since the last export, as a file. Done here,
+      // not in the menu, so closing the menu can't cut it short. Not passed to the website.
+      const count = any.type === 'newCount';
+      return Promise.all([storeReady, dictReady]).then(async ([, d]) => {
+        const at = Date.now();
+        const since = ((await browser.storage.local.get('lastExportAt')).lastExportAt as number | undefined) ?? 0;
+        const saved: Record<string, SavedSentence[]> = {};
+        for (const [k, v] of Object.entries(await stored('sav:'))) saved[k.slice(4)] = v as SavedSentence[];
+        const words = [...store.words.values()].map((w) => freshen(d, w));
+        const logs = await store.allLogs();
+        if (count) return exportCount(words, logs, since, saved);
+        const text = buildClaudeExport(words, logs, since, saved);
+        const type = 'text/tab-separated-values;charset=utf-8';
+        // A service worker (Chrome) has no blob URLs; Firefox refuses data: URLs here.
+        const url = __CHROME__ ? `data:${type},${encodeURIComponent(text)}` : URL.createObjectURL(new Blob([text], { type }));
+        await browser.downloads.download({ url, filename: `chinese-brain-${today()}.tsv` });
+        if (!__CHROME__) setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        await browser.storage.local.set({ lastExportAt: at });
+        return true;
       });
     case 'importWords':
       return storeReady.then(() => store.importWords(any.words as never, (any.mode as 'merge' | 'replace') ?? 'merge'));
