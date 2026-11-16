@@ -15,7 +15,6 @@
     "unlimitedStorage",
     "alarms",
     "contextMenus",
-    "downloads",
     "scripting"
   ],
   "host_permissions": [

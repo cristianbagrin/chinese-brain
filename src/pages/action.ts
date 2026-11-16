@@ -1,6 +1,6 @@
 import { colorsOn, type Settings, type Status } from '../shared/types.ts';
 import type { AccountInfo } from '../background/sync.ts';
-import { $, ALT, feedbackLink, h, shortcutLabel } from './common.ts';
+import { $, ALT, DASHBOARD, feedbackLink, h, shortcutLabel } from './common.ts';
 
 const save = (settings: Partial<Settings>) => browser.runtime.sendMessage({ type: 'saveSettings', settings });
 
@@ -21,7 +21,7 @@ async function init() {
       const n = vals.filter((v) => v === k).length;
       return h(
         'a',
-        { class: k, href: `vocab.html#${k}`, target: '_blank', title: `Open your ${label.toLowerCase()} words`, 'aria-label': `${n} ${label.toLowerCase()} words` },
+        { class: k, href: `${DASHBOARD}#${k}`, target: '_blank', title: `Open your ${label.toLowerCase()} words`, 'aria-label': `${n} ${label.toLowerCase()} words` },
         h('span', { class: 'seal', lang: 'zh-Hant' }, zh),
         h('b', null, n.toLocaleString('en-US')),
       );
@@ -29,6 +29,7 @@ async function init() {
   );
 
   $<HTMLAnchorElement>('feedback').href = feedbackLink();
+  $<HTMLAnchorElement>('words').href = DASHBOARD;
   $('altMode').textContent = ALT;
   $('altMode').title = `Only while holding ${ALT}`;
   void browser.runtime.sendMessage({ type: 'account' }).then((a: AccountInfo) => {
@@ -93,9 +94,8 @@ async function init() {
   syncColors = () => (colors.checked = colorsOn(s, host));
   syncColors();
   colors.addEventListener('change', () => {
-    const siteColors = { ...s.siteColors };
-    if (colors.checked === s.pageColors) delete siteColors[host];
-    else siteColors[host] = colors.checked;
+    // Remembered for this website, whatever "every website" is set to later.
+    const siteColors = { ...s.siteColors, [host]: colors.checked };
     s.siteColors = siteColors;
     void save({ siteColors });
     setTimeout(showStats, 1500);

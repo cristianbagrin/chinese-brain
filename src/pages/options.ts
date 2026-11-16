@@ -3,7 +3,8 @@ import { state } from '../content/state.ts';
 import { DEFAULT_SETTINGS, type Settings } from '../shared/types.ts';
 import { KEY_ACTIONS, keyLabel, keyName, keyOf, type KeyAction } from '../shared/keys.ts';
 import type { AccountInfo } from '../background/sync.ts';
-import { $, ago, ALT, feedbackLink, shortcutLabel } from './common.ts';
+import type { WordRecord } from '../shared/types.ts';
+import { $, ago, ALT, DASHBOARD, download, feedbackLink, shortcutLabel, today } from './common.ts';
 
 type Key = keyof Settings;
 type Field = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
@@ -63,6 +64,34 @@ async function save(key: Key, el: Field) {
   if (key === 'geminiKey') setStatus('geminiStatus', '');
 }
 
+/** Websites whose word colors you switched on their own: click one to let it follow "every website" again. */
+function showSites() {
+  const sites = Object.entries(settings.siteColors).sort(([a], [b]) => a.localeCompare(b));
+  $('siteColorsRow').hidden = !sites.length;
+  $('siteColors').replaceChildren(
+    ...sites.map(([host, on]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = on ? 'on' : 'off';
+      b.title = 'Forget this website’s own setting';
+      const flag = document.createElement('b');
+      flag.textContent = on ? 'on' : 'off';
+      const x = document.createElement('i');
+      x.textContent = '×';
+      b.append(host.replace(/^www\./, ''), flag, x);
+      b.addEventListener('click', async () => {
+        const siteColors = { ...settings.siteColors };
+        delete siteColors[host];
+        settings = { ...settings, siteColors };
+        state.settings = settings;
+        await browser.runtime.sendMessage({ type: 'saveSettings', settings: { siteColors } });
+        showSites();
+      });
+      return b;
+    }),
+  );
+}
+
 function showAzure() {
   document.querySelectorAll<HTMLElement>('.azure').forEach((el) => (el.hidden = settings.voice !== 'azure'));
 }
@@ -90,6 +119,7 @@ async function init() {
     }
   }
   showAzure();
+  showSites();
   showKeys();
   void showAccount();
   if (settings.geminiKey) void loadModels(false);
@@ -240,7 +270,40 @@ for (const b of document.querySelectorAll('.changeKey')) {
   });
 }
 
-// ---------- Help ----------
+// ---------- Data and help ----------
+
+for (const a of document.querySelectorAll<HTMLAnchorElement>('a.words')) a.href = DASHBOARD;
+
+$('backup').addEventListener('click', async () => {
+  const all = await browser.storage.local.get(null);
+  // Not the account's session: a backup file must not sign anyone in.
+  delete all.acct;
+  delete all['acct:dirty'];
+  download(`chinese-brain-backup-${today()}.json`, JSON.stringify({ app: 'chinese-brain', v: 1, at: Date.now(), data: all }), 'application/json');
+});
+$('restore').addEventListener('change', async (e) => {
+  const f = (e.target as HTMLInputElement).files?.[0];
+  if (!f) return;
+  let data: Record<string, unknown> | undefined;
+  try {
+    const json = JSON.parse(await f.text());
+    if (json.app === 'chinese-brain') data = json.data;
+  } catch {
+    /* not JSON */
+  }
+  if (!data) return setStatus('backupStatus', 'That isn’t a Chinese Brain backup.', 'err');
+  const recs = Object.entries(data)
+    .filter(([k]) => k.startsWith('w:'))
+    .map(([, v]) => v as WordRecord);
+  const n: number = await browser.runtime.sendMessage({ type: 'importWords', words: recs, mode: 'merge' });
+  // Everything else (saved sentences, settings) comes back where this browser has nothing of its own.
+  const existing = await browser.storage.local.get(null);
+  const extra: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(data)) if (!k.startsWith('w:') && !k.startsWith('acct') && !(k in existing)) extra[k] = v;
+  await browser.storage.local.set(extra);
+  setStatus('backupStatus', `✓ Restored ${n} word${n === 1 ? '' : 's'}.`, 'ok');
+});
+
 
 $('version').textContent = browser.runtime.getManifest().version;
 $<HTMLAnchorElement>('feedback').href = feedbackLink();

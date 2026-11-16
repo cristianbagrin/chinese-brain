@@ -1,5 +1,5 @@
 /*
- * Chinese Brain pages: the word list, settings and the toolbar menu.
+ * Chinese Brain pages: settings and the toolbar menu (the word list is on the website).
  * The colors come from the logo: a red tile, a paper-white 口, ink chopsticks with gold bands.
  * Status colors (新 學 熟) are the ones words wear on every page you read.
  */
@@ -110,151 +110,12 @@ kbd { font: 600 12px var(--ui); background: var(--ground); border: 1px solid var
 
 main { max-width: 1080px; margin: 0 auto; padding: 24px 28px 72px; }
 h2 { font: 700 19px/1.3 var(--ui); margin: 44px 0 14px; letter-spacing: -0.01em; }
-/* Jumping to a section lands below the sticky bar. */
-#export { scroll-margin-top: 76px; }
-
-/* ---------- Word list ---------- */
-
-/* The bar stays on screen while the list scrolls under it. */
-.bar {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 12px;
-  align-items: center;
-  margin: -8px -12px 10px;
-  padding: 10px 12px;
-  background: rgba(246, 242, 237, 0.86);
-  backdrop-filter: blur(14px) saturate(160%);
-}
-.bar::after { content: ''; position: absolute; left: 0; right: 0; bottom: -10px; height: 10px; background: linear-gradient(rgba(246, 242, 237, 0.86), rgba(246, 242, 237, 0)); pointer-events: none; }
-@media (prefers-reduced-transparency: reduce) { .bar { background: var(--ground); backdrop-filter: none; } }
-.bar input[type='search'] { flex: 1 1 200px; min-width: 0; height: 38px; }
-.bar select { height: 38px; }
-.bar .jump { font-size: 14px; font-weight: 500; text-decoration: none; padding: 0 2px; }
-.bar .jump:hover { text-decoration: underline; }
-
-/* The filter: one seal per status, with its count. */
-.filter { display: inline-flex; gap: 2px; padding: 3px; border-radius: 11px; background: #ebe4dc; }
-.filter button { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px 0 6px; border: 0; border-radius: 8px; background: transparent; color: var(--ink2); white-space: nowrap; }
-.filter button:hover { color: var(--ink); }
-.filter button:active { transform: none; }
-.filter button[aria-pressed='true'] { background: var(--paper); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(30, 26, 24, 0.12), 0 0 0 1px rgba(30, 26, 24, 0.04); }
-.filter button.all { padding-left: 12px; }
-.filter b { font-weight: 600; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink3); }
-.filter button[aria-pressed='true'] b { color: var(--ink2); }
-
-/* A seal: a small square stamp with the status character. Empty until set. */
+/* A seal: a small square stamp with the status character (the toolbar menu's three piles). */
 .seal { display: inline-grid; place-items: center; width: 24px; height: 24px; border: 1.5px solid var(--c, var(--ink3)); border-radius: 5px; color: var(--c, var(--ink3)); font: 600 13px/1 var(--zh); }
 .fresh { --c: var(--fresh-ink); --fill: var(--fresh); --on: #fff; }
 .learning { --c: var(--learning-ink); --fill: var(--learning); --on: var(--ink); }
 .known { --c: var(--known-ink); --fill: var(--known); --on: #fff; }
-.filter button[aria-pressed='true'] .seal { background: var(--fill); border-color: var(--fill); color: var(--on); }
-
-/* The list: each word on its own line of the exercise book. */
-.words { background: var(--paper); border: 1px solid var(--rule); border-radius: 14px; overflow: hidden; }
-.word { position: relative; display: grid; grid-template-columns: 200px minmax(0, 1fr) auto; gap: 6px 28px; align-items: center; padding: 12px 22px 14px; border-top: 1px solid var(--rule); transition: opacity 0.2s; }
-.word:first-child { border-top: 0; }
-.word:hover { background: #fffaf3; }
-
-/* The headword in 田字格 squares, each character's pinyin above it, like a practice book. */
-.hw { --box: 44px; min-width: 0; }
-/* Inline boxes, not flex or grid items: the hover lookup reads the characters as one word. */
-.chars { display: block; line-height: 0; }
-.ch { display: inline-block; width: var(--box); margin: 0 0 6px -1.5px; vertical-align: top; text-align: center; }
-.ch:first-child { margin-left: 0; }
-.ch::before, .pyline { content: attr(data-py); display: block; height: 19px; font: 500 13px/19px var(--ui); color: var(--ink2); white-space: nowrap; }
-.nopy .ch::before { display: none; }
-.ch b {
-  display: inline-grid;
-  place-items: center;
-  box-sizing: border-box;
-  width: var(--box);
-  height: var(--box);
-  border: 1.5px solid rgba(200, 32, 47, 0.55);
-  background:
-    repeating-linear-gradient(to bottom, var(--grid) 0 3px, transparent 3px 6px) center / 1px 100% no-repeat,
-    repeating-linear-gradient(to right, var(--grid) 0 3px, transparent 3px 6px) center / 100% 1px no-repeat;
-  font: var(--hw-weight, 400) 30px/1 var(--zh);
-  color: var(--ink);
-}
-
-.txt { min-width: 0; }
-.gl { margin: 0; font-size: 16px; line-height: 1.4; }
-.gl.none { color: var(--ink3); font-style: italic; font-size: 14px; }
-.ctx { margin: 6px 0 0; font-size: 15px; line-height: 1.55; color: var(--ink2); }
-.ctx u { text-decoration: none; color: var(--ink); box-shadow: inset 0 -2px 0 rgba(200, 32, 47, 0.6); }
-.src { margin-left: 10px; font: 500 12.5px var(--ui); color: var(--ink3); text-decoration: none; white-space: nowrap; }
-.src:hover { color: var(--red-deep); text-decoration: underline; }
-
-/* Stamps with the remove button beside them; when it last changed, under the stamps. */
-.act { display: grid; grid-template-columns: auto 26px; align-items: center; gap: 6px 4px; margin-right: -8px; }
-.act .when { grid-column: 1; justify-self: end; }
-.stamps { display: flex; gap: 6px; }
-.stamps button {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: 1.5px dashed var(--rule2);
-  border-radius: 7px;
-  background: transparent;
-  color: var(--ink3);
-  font: 600 16px/1 var(--zh);
-  transition: color 0.12s, border-color 0.12s;
-}
-.stamps button:hover { border-style: solid; border-color: var(--c); color: var(--c); }
-.stamps button:active { transform: scale(0.9); }
-.stamps button[aria-pressed='true']:active { transform: rotate(-5deg) scale(0.9); }
-.stamps button[aria-pressed='true'] {
-  border: 1.5px solid var(--fill);
-  background: var(--fill);
-  color: var(--on);
-  box-shadow: inset 0 0 0 2px var(--fill), inset 0 0 0 3px rgba(255, 255, 255, 0.6);
-  transform: rotate(-5deg);
-}
-/* Setting a status lands like a stamp, as in the card: flat on the first frame (with the thud), then it springs back in a ring of ink. */
-.stamps button.press { animation: press 0.34s cubic-bezier(0.2, 0.8, 0.3, 1); }
-.stamps button.press::after { content: ''; position: absolute; inset: -1.5px; border-radius: inherit; border: 2px solid var(--fill); pointer-events: none; animation: ink 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
-@keyframes press { 0% { transform: rotate(-8deg) scale(0.86); } 40% { transform: rotate(-4deg) scale(1.05); } 100% { transform: rotate(-5deg); } }
-@keyframes ink { from { opacity: 0.6; transform: scale(1); } to { opacity: 0; transform: scale(1.4); } }
-@media (prefers-reduced-motion: reduce) { .stamps button.press { animation: none; } .stamps button.press::after { display: none; } }
-.when { font-size: 12px; color: var(--ink3); white-space: nowrap; }
-
-.word .x { width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--ink3); font-size: 18px; line-height: 1; opacity: 0; transition: opacity 0.12s; }
-.word:hover .x, .word .x:focus-visible { opacity: 1; }
-.word .x:hover { background: var(--ground); color: var(--fresh-ink); }
-@media (hover: none) { .word .x { opacity: 0.6; } }
-.word.gone > :not(.act) { opacity: 0.45; }
-.word.gone .ch b { text-decoration: line-through; }
-.word .undo { padding: 5px 14px; font-size: 13px; font-weight: 600; }
-
-.empty { margin: 0; padding: 48px 20px; text-align: center; color: var(--ink2); }
-.more { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; }
-
-@media (max-width: 760px) {
-  .plate .in, main { padding-left: 16px; padding-right: 16px; }
-  .filter { width: 100%; }
-  .filter button { flex: 1; justify-content: center; padding: 0 6px; gap: 6px; }
-  .filter button .en { display: none; }
-  .bar input[type='search'] { flex-basis: 0; }
-  .bar .jump { display: none; }
-  .word { grid-template-columns: minmax(0, 1fr) auto; padding: 14px 16px; }
-  .word .txt { grid-column: 1 / -1; grid-row: 2; }
-  .hw { --box: 42px; }
-}
-
-/* ---------- Export, import, backup ---------- */
-.tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
-.tool { background: var(--paper); border: 1px solid var(--rule); border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
-.tool h3 { margin: 0; font-size: 16px; }
-.tool p { margin: -6px 0 0; font-size: 13.5px; color: var(--ink2); }
-.tool .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: auto; }
-.tool textarea { font-size: 13px; }
+@media (max-width: 760px) { .plate .in, main { padding-left: 16px; padding-right: 16px; } }
 
 /* ---------- Settings: one row per setting, label left, control right ---------- */
 /* Sections side by side when there is room: the page is half as long. */
@@ -279,6 +140,13 @@ h2 { font: 700 19px/1.3 var(--ui); margin: 44px 0 14px; letter-spacing: -0.01em;
 .status.err { color: var(--fresh-ink); }
 .set input[type='email'] { width: 220px; max-width: 100%; }
 .acct .set input[type='password'] { width: 170px; }
+.sites { justify-content: flex-start; gap: 6px; }
+.sites button { display: inline-flex; align-items: center; gap: 6px; padding: 3px 6px 3px 10px; border-radius: 999px; font-size: 13px; }
+.sites button b { font-weight: 600; }
+.sites button.on b { color: var(--known-ink); }
+.sites button.off b { color: var(--ink3); }
+.sites button i { font-style: normal; color: var(--ink3); font-size: 15px; line-height: 1; }
+.sites button:hover i { color: var(--fresh-ink); }
 a.btn { display: inline-block; text-decoration: none; color: var(--ink); background: var(--paper); border: 1px solid var(--rule2); border-radius: 8px; padding: 6px 14px; }
 a.btn:hover { border-color: var(--ink3); }
 /* Shortcuts: each action with its key; click the key to record another. */

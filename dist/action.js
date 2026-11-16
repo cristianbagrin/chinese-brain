@@ -13,7 +13,7 @@
     return el;
   }
   var $ = (id) => document.getElementById(id);
-  var SUPPORT = "chris@cristianbagrin.com", MAC = /Mac|iPhone|iPad/.test(navigator.platform), ALT = MAC ? "\u2325 Option" : "Alt", shortcutLabel = (key) => key ? MAC ? key.replace("Alt", "\u2325 Option").replace("Ctrl", "\u2303 Control").replace("Command", "\u2318") : key : "not set";
+  var SUPPORT = "chris@cristianbagrin.com", DASHBOARD = "https://chinese.cristianbagrin.com/brain/dashboard", MAC = /Mac|iPhone|iPad/.test(navigator.platform), ALT = MAC ? "\u2325 Option" : "Alt", shortcutLabel = (key) => key ? MAC ? key.replace("Alt", "\u2325 Option").replace("Ctrl", "\u2303 Control").replace("Command", "\u2318") : key : "not set";
   function feedbackLink() {
     let body = `
 
@@ -41,12 +41,12 @@ Chinese Brain ${browser.runtime.getManifest().version} \xB7 ${navigator.userAgen
         let n = vals.filter((v) => v === k).length;
         return h(
           "a",
-          { class: k, href: `vocab.html#${k}`, target: "_blank", title: `Open your ${label.toLowerCase()} words`, "aria-label": `${n} ${label.toLowerCase()} words` },
+          { class: k, href: `${DASHBOARD}#${k}`, target: "_blank", title: `Open your ${label.toLowerCase()} words`, "aria-label": `${n} ${label.toLowerCase()} words` },
           h("span", { class: "seal", lang: "zh-Hant" }, zh),
           h("b", null, n.toLocaleString("en-US"))
         );
       })
-    ), $("feedback").href = feedbackLink(), $("altMode").textContent = ALT, $("altMode").title = `Only while holding ${ALT}`, browser.runtime.sendMessage({ type: "account" }).then((a) => {
+    ), $("feedback").href = feedbackLink(), $("words").href = DASHBOARD, $("altMode").textContent = ALT, $("altMode").title = `Only while holding ${ALT}`, browser.runtime.sendMessage({ type: "account" }).then((a) => {
       a.signedIn && ($("acctLink").textContent = a.error ? "Sync problem" : "\u2713 Synced");
     });
     for (let el of document.querySelectorAll("[data-setting]")) {
@@ -87,8 +87,8 @@ Chinese Brain ${browser.runtime.getManifest().version} \xB7 ${navigator.userAgen
     $("colorLine").hidden = !1;
     let colors = $("colorsOn");
     syncColors = () => colors.checked = colorsOn(s, host), syncColors(), colors.addEventListener("change", () => {
-      let siteColors = { ...s.siteColors };
-      colors.checked === s.pageColors ? delete siteColors[host] : siteColors[host] = colors.checked, s.siteColors = siteColors, save({ siteColors }), setTimeout(showStats, 1500);
+      let siteColors = { ...s.siteColors, [host]: colors.checked };
+      s.siteColors = siteColors, save({ siteColors }), setTimeout(showStats, 1500);
     }), browser.commands.getAll().then((cmds) => {
       let key = cmds.find((c) => c.name === "toggle-colors")?.shortcut;
       key && ($("colorKey").textContent = shortcutLabel(key));

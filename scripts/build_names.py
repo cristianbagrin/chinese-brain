@@ -33,7 +33,7 @@ CACHE = os.path.join(ROOT, ".cache")
 DICT = os.path.join(ROOT, "static", "data", "dict.tsv.gz")
 OUT = os.path.join(ROOT, "static", "data", "names.tsv.gz")
 ENDPOINT = "https://query.wikidata.org/sparql"
-UA = "chinese-brain-build/1.0 (https://github.com/cristianbagrin/chinese-brain)"
+UA = "chinese-brain-build/1.0 (https://github.com/cristianbagrin/chinesebrain)"
 
 ZHWIKI = "?a schema:about ?item ; schema:isPartOf <https://zh.wikipedia.org/> ."
 SETS = {

@@ -1,4 +1,5 @@
 import { YouTubeSubs } from '../youtube/index.ts';
+import { startBridge } from './bridge.ts';
 import { HoverLookup } from './hover.ts';
 import { cardTakes, onKeydown } from './keys.ts';
 import { PageColors } from './pagecolor.ts';
@@ -22,6 +23,7 @@ if (!w.__chineseBrain) {
     return undefined;
   });
   state.ready().then(() => {
+    startBridge();
     const popup = new Popup();
     new HoverLookup(popup);
     new PageColors();

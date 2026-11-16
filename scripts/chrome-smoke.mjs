@@ -1,12 +1,13 @@
 // Smoke test of the Chrome build in headless Chromium (Playwright):
 //   node scripts/chrome-smoke.mjs [dist-chrome] [screenshot-dir]
 // Checks: the service worker starts without errors, the context-menu item exists, hover
-// lookup opens the card on tests/fixtures/page.html and 1/2/3 stamp the word, the options,
-// word-list and toolbar pages load, and the YouTube mock (tests/youtube-mock) gets our
+// lookup opens the card on tests/fixtures/page.html and 1/2/3 stamp the word, the options and
+// toolbar pages load, the website's word list (site/public, served under the CSP in _headers)
+// reads the list from the extension, and the YouTube mock (tests/youtube-mock) gets our
 // subtitles through the MAIN-world caption hook.
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -64,15 +65,15 @@ try {
   );
   ok('context-menu item registered', menu === 'ok', menu);
 
-  // A fresh install opens the welcome page in a tab of its own. Wait for it and close it: left
+  // A fresh install opens How it works (#welcome) in a tab of its own. Wait for it and close it: left
   // alone it comes to the front in the middle of the hover checks below.
-  const isWelcome = (p) => /\/brain\/welcome/.test(p.url());
+  const isWelcome = (p) => /\/brain\/guide#welcome/.test(p.url());
   let welcome = context.pages().find(isWelcome);
   for (let i = 0; i < 40 && !welcome; i++) {
     await sleep(250);
     welcome = context.pages().find(isWelcome);
   }
-  ok('a fresh install opens the welcome page', !!welcome, welcome?.url() ?? 'no tab');
+  ok('a fresh install opens How it works', !!welcome, welcome?.url() ?? 'no tab');
   await welcome?.close();
 
   // Hover lookup and the 1/2/3 shortcuts.
@@ -119,8 +120,35 @@ try {
   }
   if (shots) await page.screenshot({ path: join(shots, 'stamped.png') });
 
+  // The website's word list, from site/public with the site's headers, talking to the extension.
+  const site = 'https://chinese.cristianbagrin.com';
+  const csp = readFileSync('site/public/_headers', 'utf8').match(/Content-Security-Policy: (.*)/)[1];
+  const types = { html: 'text/html; charset=utf-8', css: 'text/css', js: 'text/javascript', png: 'image/png', jpg: 'image/jpeg', woff2: 'font/woff2' };
+  await context.route(`${site}/**`, (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const file = ['', '.html'].map((x) => join('site/public', path + x)).find((f) => existsSync(f) && !f.endsWith('/'));
+    if (!file || path.startsWith('/api/')) return route.fulfill({ status: 404, contentType: 'application/json', body: '{"error":"not_found"}' });
+    route.fulfill({ status: 200, headers: { 'Content-Type': types[file.split('.').pop()] ?? 'application/octet-stream', 'Content-Security-Policy': csp }, body: readFileSync(file) });
+  });
+  {
+    const p = await context.newPage();
+    const pageErrors = [];
+    p.on('pageerror', (e) => pageErrors.push(e.message));
+    p.on('console', (m) => /Content Security Policy/.test(m.text()) && pageErrors.push(m.text()));
+    await p.goto(`${site}/brain/dashboard`);
+    await p.waitForSelector('#app:not([hidden])', { timeout: 8000 }).catch(() => {});
+    const source = await p.evaluate(() => document.getElementById('source')?.textContent ?? '');
+    ok('website word list reads the extension', /This browser/.test(source), source || 'no source');
+    await p.getByText('Known', { exact: true }).first().click().catch(() => {});
+    await sleep(500);
+    ok(`website word list shows ${word} under Known`, (await p.evaluate(() => document.body.innerText)).includes(word));
+    if (shots) await p.screenshot({ path: join(shots, 'dashboard.png'), fullPage: true });
+    ok('website pages run under their CSP', !pageErrors.length, pageErrors.join('; '));
+    await p.close();
+  }
+
   // Extension pages.
-  for (const name of ['options', 'vocab', 'action']) {
+  for (const name of ['options', 'action']) {
     const p = await context.newPage();
     const pageErrors = [];
     p.on('pageerror', (e) => pageErrors.push(e.message));
@@ -129,11 +157,6 @@ try {
     const text = (await p.evaluate(() => document.body.innerText)).trim();
     if (shots) await p.screenshot({ path: join(shots, `${name}.png`), fullPage: name !== 'action' });
     ok(`${name} page opens`, !pageErrors.length && text.length > 20, pageErrors.join('; ') || `${text.length} chars`);
-    if (name === 'vocab') {
-      await p.getByText('Known', { exact: true }).first().click();
-      await sleep(500);
-      ok(`word list shows ${word} under Known`, (await p.evaluate(() => document.body.innerText)).includes(word));
-    }
     if (name === 'options') {
       // Audio comes back as base64 on Chrome (its messages are JSON); needs translate.google.com.
       const tts = await p.evaluate(() => chrome.runtime.sendMessage({ type: 'tts', engine: 'google', text: '你好' }));

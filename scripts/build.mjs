@@ -1,6 +1,7 @@
 // Bundles the extension twice from the same sources:
 //   dist/         Firefox (MV2): load dist/manifest.json in about:debugging.
 //   dist-chrome/  Chrome (MV3): chrome://extensions -> Developer mode -> Load unpacked.
+// and the website's dashboard script (site/public/brain/dashboard.js) from site/src/.
 // `__CHROME__` is a build-time constant, so each bundle keeps only its own code paths.
 import * as esbuild from 'esbuild';
 import { cpSync, mkdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
@@ -11,7 +12,6 @@ const entries = {
   content: 'src/content/index.ts',
   early: 'src/content/early.ts',
   options: 'src/pages/options.ts',
-  vocab: 'src/pages/vocab.ts',
   action: 'src/pages/action.ts',
 };
 
@@ -62,7 +62,12 @@ const chrome = {
 // The YouTube page hook runs in the page's own world: no extension APIs, no polyfill.
 const chromeHook = { ...common, entryPoints: { ythook: 'src/platform/yt-hook.ts' }, outdir: 'dist-chrome', target: 'chrome128', define: define(true) };
 
-const builds = [firefox, chrome, chromeHook];
+// The website's dashboard shares the extension's code (export formats, sentences, sounds), so it
+// is bundled here too. Its output is committed: Cloudflare deploys site/ as it is.
+cpSync('static/fonts', 'site/public/fonts', { recursive: true });
+const site = { ...common, entryPoints: { dashboard: 'site/src/dashboard.ts' }, outdir: 'site/public/brain', target: 'es2020', define: define(false) };
+
+const builds = [firefox, chrome, chromeHook, site];
 if (watch) {
   for (const opts of builds) await (await esbuild.context(opts)).watch();
 } else {

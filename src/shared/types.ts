@@ -119,7 +119,7 @@ export interface Settings {
   sounds: boolean;
   /** Color words by status on every page (highlighter style). */
   pageColors: boolean;
-  /** Per-site exceptions to pageColors (hostname -> on/off), set with the shortcut or the toolbar menu. */
+  /** A website's own choice (hostname -> on/off), set with the shortcut or the toolbar menu; it wins over pageColors. */
   siteColors: Record<string, boolean>;
   speechRate: number;
   /** Who reads words aloud: Google's online voice, the system voice, or Azure (own key). */

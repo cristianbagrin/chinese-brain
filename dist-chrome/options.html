@@ -9,8 +9,8 @@
 </head>
 <body>
 <header class="plate"><div class="in">
-  <a class="brand" href="vocab.html"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M45.01 21.65 43.44 43.58 20.9 44.2 19.61 23ZM21.07 48.29 47.25 47.5Q48.09 47.45 48.74 47.34Q49.38 47.22 49.38 46.44Q49.38 45.99 48.99 45.32Q48.6 44.64 47.81 43.64L49.66 21.32Q49.72 21.09 49.86 20.79Q50 20.48 50 20.08Q50 19.3 49.05 18.46Q48.09 17.62 46.8 17.62H46.47L19.21 19.02Q16.02 17.62 15.01 17.62Q14 17.62 14 18.51Q14 19.02 14.39 19.69Q14.73 20.36 14.95 21.35Q15.18 22.33 15.23 23.17L16.52 45.49Q16.58 45.77 16.58 46.07Q16.58 46.38 16.58 46.66Q16.58 47.39 16.52 47.93Q16.47 48.46 16.36 49.07Q16.36 49.13 16.33 49.21Q16.3 49.3 16.3 49.47Q16.3 50.53 17.25 51.15Q18.21 51.77 19.1 52.1L20 52.38Q21.23 52.38 21.23 50.64V50.36Z" fill="#fbf1de"/><g transform="rotate(4 32 34)"><path d="M27.2 4h4.6l-1.0999999999999999 56h-2.4z" fill="#1c1a1a"/><path d="M27.2 4h4.6l-.15 9h-4.3z" fill="#e9b44c"/></g><g transform="rotate(11 32 34)"><path d="M32.7 4h4.6l-1.0999999999999999 56h-2.4z" fill="#1c1a1a"/><path d="M32.7 4h4.6l-.15 9h-4.3z" fill="#e9b44c"/></g></svg><span class="name" lang="zh-Hant">中文腦</span></a>
-  <nav><a href="vocab.html">Words</a><a href="options.html" aria-current="page">Settings</a></nav>
+  <a class="brand words" href="https://chinese.cristianbagrin.com/brain/dashboard"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M45.01 21.65 43.44 43.58 20.9 44.2 19.61 23ZM21.07 48.29 47.25 47.5Q48.09 47.45 48.74 47.34Q49.38 47.22 49.38 46.44Q49.38 45.99 48.99 45.32Q48.6 44.64 47.81 43.64L49.66 21.32Q49.72 21.09 49.86 20.79Q50 20.48 50 20.08Q50 19.3 49.05 18.46Q48.09 17.62 46.8 17.62H46.47L19.21 19.02Q16.02 17.62 15.01 17.62Q14 17.62 14 18.51Q14 19.02 14.39 19.69Q14.73 20.36 14.95 21.35Q15.18 22.33 15.23 23.17L16.52 45.49Q16.58 45.77 16.58 46.07Q16.58 46.38 16.58 46.66Q16.58 47.39 16.52 47.93Q16.47 48.46 16.36 49.07Q16.36 49.13 16.33 49.21Q16.3 49.3 16.3 49.47Q16.3 50.53 17.25 51.15Q18.21 51.77 19.1 52.1L20 52.38Q21.23 52.38 21.23 50.64V50.36Z" fill="#fbf1de"/><g transform="rotate(4 32 34)"><path d="M27.2 4h4.6l-1.0999999999999999 56h-2.4z" fill="#1c1a1a"/><path d="M27.2 4h4.6l-.15 9h-4.3z" fill="#e9b44c"/></g><g transform="rotate(11 32 34)"><path d="M32.7 4h4.6l-1.0999999999999999 56h-2.4z" fill="#1c1a1a"/><path d="M32.7 4h4.6l-.15 9h-4.3z" fill="#e9b44c"/></g></svg><span class="name" lang="zh-Hant">中文腦</span></a>
+  <nav><a class="words" href="https://chinese.cristianbagrin.com/brain/dashboard">Words</a><a href="options.html" aria-current="page">Settings</a></nav>
 </div></header>
 <main class="settings">
   <section class="wide">
@@ -69,8 +69,12 @@
         <div class="ctl"><input type="checkbox" id="cardColors"></div>
       </div>
       <div class="set">
-        <div class="txt"><label for="pageColors">Color words on every website</label><small>Your 新 學 熟 colors on all the Chinese you read. One site only: the toolbar menu.</small></div>
+        <div class="txt"><label for="pageColors">Color words on every website</label><small>A website you switch on its own (toolbar menu) keeps its setting.</small></div>
         <div class="ctl"><input type="checkbox" id="pageColors"></div>
+      </div>
+      <div class="set block" id="siteColorsRow" hidden>
+        <div class="txt"><label>Websites with their own setting</label></div>
+        <div class="ctl sites" id="siteColors"></div>
       </div>
       <div class="set">
         <div class="txt"><label for="sounds">Stamp sounds</label></div>
@@ -213,15 +217,19 @@
     </div>
   </section>
   <section class="wide">
-    <h2 id="help">Help</h2>
+    <h2 id="help">Data and help</h2>
     <div class="box">
+      <div class="set">
+        <div class="txt"><label>Backup</label><small>Everything in this browser, in one file.</small></div>
+        <div class="ctl"><button type="button" id="backup">Download</button><label class="filebtn">Restore…<input type="file" id="restore" accept=".json"></label><span class="status" id="backupStatus"></span></div>
+      </div>
       <div class="set">
         <div class="txt"><label>Ideas, bugs, questions</label><small>They go straight to Chris, who makes Chinese Brain.</small></div>
         <div class="ctl"><a class="btn" id="feedback" href="mailto:chris@cristianbagrin.com">Give feedback</a></div>
       </div>
       <div class="set">
         <div class="txt"><label>Chinese Brain <span id="version"></span></label></div>
-        <div class="ctl"><a class="btn" href="https://chinese.cristianbagrin.com/brain/guide" target="_blank">Guide</a><a class="btn" href="https://chinese.cristianbagrin.com/brain/whats-new" target="_blank">What's new</a><a class="btn" href="https://chinese.cristianbagrin.com/brain/privacy" target="_blank">Privacy</a></div>
+        <div class="ctl"><a class="btn" href="https://chinese.cristianbagrin.com/brain/guide" target="_blank">How it works</a><a class="btn" href="https://chinese.cristianbagrin.com/brain/whats-new" target="_blank">What's new</a><a class="btn" href="https://chinese.cristianbagrin.com/brain/privacy" target="_blank">Privacy</a></div>
       </div>
     </div>
   </section>

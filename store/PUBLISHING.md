@@ -181,6 +181,15 @@ Since 1.5.0 (optional accounts) the stores' data questions have new answers:
 `npm run build` turns these into the website's What's new page. A date in brackets after the
 version is shown there.
 
+1.7.0 (November 16, 2026):
+
+```
+• One word list, on the website: Word list opens chinese.cristianbagrin.com/brain/dashboard. With the extension it reads the list straight from your browser: no account, nothing uploaded. Signed in, it works on any device too.
+• A website you switch colors on or off keeps that choice, even with Colors on every website on. Settings lists those sites; click one to forget it.
+• A new How it works page, one line per feature, with a video.
+• Backup and restore moved to Settings. The extension no longer asks for the downloads permission.
+```
+
 1.6.0 (November 15, 2026):
 
 ```
@@ -295,10 +304,14 @@ Permissions:
   storage + unlimitedStorage: the word list, logs and caches stay local.
   menus: one context-menu item, "Look up" on selected text. If the selection is in a frame the content
     script was not already running in, tabs.executeScript injects the add-on's own content.js there.
-  downloads: the word-list export is saved with downloads.download({ saveAs: true }) so the user picks
-    the folder; it only ever downloads a blob the page just built.
   commands: two keyboard shortcuts that toggle page colors: Alt+Shift+C for the current site, Alt+Shift+A for every site.
   alarms: one alarm, every 20 minutes, that syncs the word list when the user is signed in.
+
+The word list page is on the developer's website (chinese.cristianbagrin.com/brain/dashboard, source in
+site/src/dashboard.ts). On that origin only, and only in the top frame, the content script answers
+window.postMessage requests from the page (src/content/bridge.ts): a fixed list of message types
+(read the list, set a status, import a list, account status), checked against e.origin and e.source.
+The list is read in the browser; nothing is uploaded by this.
 
 Remote requests (all user-facing features, listed in the privacy policy): translate.google.com (TTS),
 translate.googleapis.com (caption translation fallback; translation of a selection the user looks up), *.tts.speech.microsoft.com (optional, user key),
@@ -345,10 +358,10 @@ The files in `store/screenshots/` are these shots in the red-and-paper frame (12
    - contextMenus: the "Look up" item on selected text.
    - scripting: starts the lookup in a frame from the menu, and hides YouTube's own captions
      while ours show.
-   - downloads: saves the word-list export where the user chooses.
    - Remote code: No. Data usage: see section 3.
    - Privacy policy URL: https://chinese.cristianbagrin.com/brain/privacy
    - Homepage: https://chinese.cristianbagrin.com/brain · Support email: chris@cristianbagrin.com
+   - Store listing → **YouTube video**: https://youtu.be/rJeqKHkXHmo
 5. Submit for review. Then set up the `CWS_*` secrets ("Automatic releases") so later
    versions go out on their own.
 
@@ -361,8 +374,8 @@ branch `main`).
 
 | Address | What |
 | --- | --- |
-| `/brain`, `/brain/guide`, `/brain/whats-new`, `/brain/welcome`, `/brain/privacy` | the extension's pages (`site/public/brain*`) |
-| `/brain/dashboard` | your word list on the web (needs the account) |
+| `/brain`, `/brain/guide` (How it works; `#welcome` after installing), `/brain/whats-new`, `/brain/privacy` | the extension's pages (`site/public/brain*`) |
+| `/brain/dashboard` | the word list: from the extension in this browser, or from the account |
 | `/account`, `/reset` | sign in, password, delete: one login for everything on this site |
 | `/admin` | who signed up (owner only, see below) |
 | `/api/*` | the account service (`site/worker.js`) |

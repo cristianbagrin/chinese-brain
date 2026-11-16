@@ -46,9 +46,13 @@ Every key below can be changed in **Settings → Shortcuts**. `Alt` is `⌥ Opti
 
 ## Your word list
 
-Toolbar button → **Word list**. Filter by stamp, search, sort, restamp, remove (with Undo).
-**Import** a `word⇥K|L⇥date` list; **Download new** exports what changed since the last
-export as a small TSV; **Backup / restore** saves everything as JSON.
+Toolbar button → **Word list** opens
+[chinese.cristianbagrin.com/brain/dashboard](https://chinese.cristianbagrin.com/brain/dashboard).
+With the extension installed it reads the list straight from the browser (nothing is
+uploaded, no account needed); anywhere else it shows your account's list. Filter, search,
+sort, restamp, remove (with Undo), **Practice with AI**, **Download new** (what changed since
+the last export, as a small TSV) and **Import** a `word⇥K|L⇥date` list.
+**Backup / restore** (everything as JSON) is in Settings.
 
 ## Account and sync
 
@@ -102,13 +106,14 @@ the subtitle overlay without YouTube (`python3 tests/youtube-mock/server.py`).
 src/background/   dictionary service, word store, account sync, caption capture, translate + Gemini
 src/content/      lookup card, hover lookup, page coloring, sounds and speech
 src/youtube/      caption parsing, subtitle overlay, player switch + panel, transcript
-src/pages/        word list, settings, toolbar menu
+src/pages/        settings, toolbar menu
 src/shared/       types, dictionary + segmenter, pinyin, shortcuts, export/import formats
 src/platform/     what differs on Chrome: polyfill shim, background wrappers, YouTube page hook
 static/           HTML/CSS, icon, data/
 static-chrome/    PNG icons for the Chrome manifest
 scripts/          build.mjs (esbuild), build_data.py, build_names.py, build_examples.py
-site/             the website (public/: /brain pages, dashboard, account) and the account service (worker.js)
+site/             the website (public/: /brain pages, word list, account), the account service (worker.js),
+                  and src/dashboard.ts (built to public/brain/dashboard.js; talks to the extension via src/content/bridge.ts)
 store/            store listings, release notes, screenshots (PUBLISHING.md)
 tests/            unit tests, fixtures, a YouTube player stand-in
 ```

@@ -8,7 +8,7 @@
   "name": "chinesebrain",
   "main": "worker.js",
   "compatibility_date": "2026-11-01",
-  "assets": { "directory": "./public", "binding": "ASSETS", "not_found_handling": "404-page", "run_worker_first": ["/api/*", "/", "/welcome", "/privacy", "/dashboard", "/guide", "/whats-new"] },
+  "assets": { "directory": "./public", "binding": "ASSETS", "not_found_handling": "404-page", "run_worker_first": ["/api/*", "/", "/welcome", "/brain/welcome", "/privacy", "/dashboard", "/guide", "/whats-new"] },
   "durable_objects": {
     "bindings": [
       { "name": "ACCOUNT", "class_name": "Account" },

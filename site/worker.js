@@ -418,7 +418,7 @@ async function api(request, env, path) {
 }
 
 /** Addresses from before the extension's pages moved under /brain. */
-const MOVED = { '/welcome': '/brain/welcome', '/privacy': '/brain/privacy', '/dashboard': '/brain/dashboard', '/guide': '/brain/guide', '/whats-new': '/brain/whats-new' };
+const MOVED = { '/welcome': '/brain/guide#welcome', '/brain/welcome': '/brain/guide#welcome', '/privacy': '/brain/privacy', '/dashboard': '/brain/dashboard', '/guide': '/brain/guide', '/whats-new': '/brain/whats-new' };
 
 export default {
   async fetch(request, env) {
@@ -439,7 +439,10 @@ export default {
     const path = url.pathname.replace(/\/$/, '');
     // chinesebrain.cristianbagrin.com is the short address of the extension's pages.
     const short = url.hostname.startsWith('chinesebrain.');
-    if (short || MOVED[path]) return Response.redirect(`${env.SITE}${MOVED[path] ?? (path || '/brain')}${url.search}`, 301);
+    if (short || MOVED[path]) {
+      const [to, hash] = (MOVED[path] ?? (path || '/brain')).split('#');
+      return Response.redirect(`${env.SITE}${to}${url.search}${hash ? `#${hash}` : ''}`, 301);
+    }
     // Until the main site exists, the front page is Chinese Brain's.
     if (path === '') return env.ASSETS.fetch(new Request(`${url.origin}/brain`, request));
     return env.ASSETS.fetch(request);

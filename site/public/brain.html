@@ -6,6 +6,11 @@
 <title>Chinese Brain: learn Taiwan Mandarin while you read and watch</title>
 <meta name="description" content="A free browser extension for Taiwan Mandarin learners: hover any Chinese word for Taiwan pinyin and examples, dual subtitles on YouTube, one word list.">
 <link rel="canonical" href="https://chinese.cristianbagrin.com/brain">
+<meta property="og:title" content="Chinese Brain">
+<meta property="og:description" content="Learn Taiwan Mandarin while you read and watch. Free browser extension.">
+<meta property="og:image" content="https://chinese.cristianbagrin.com/brain/card.png">
+<meta property="og:url" content="https://chinese.cristianbagrin.com/brain">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="google-site-verification" content="XkalxKh1ST8TrGJ7AT6Ldx0okrE9qo3B-C5rjy-zNwI">
 <link rel="icon" href="/icon.png">
 <link rel="stylesheet" href="/style.css">
@@ -13,26 +18,46 @@
 <body>
 <header><div class="wrap">
   <a class="home" href="/brain"><img src="/icon.png" alt="">Chinese Brain</a>
-  <nav><a href="/brain/guide">Guide</a><a href="/brain/whats-new">What's new</a><a href="/brain/dashboard">Dashboard</a><a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain%20feedback">Feedback</a></nav>
+  <nav><a href="/brain/guide">How it works</a><a href="/brain/whats-new">What's new</a><a href="/brain/dashboard">Your words</a><a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain%20feedback">Feedback</a></nav>
 </div></header>
 <main class="wrap">
   <section class="hero">
     <h1>Learn <span>Taiwan Mandarin</span> while you read and watch</h1>
-    <p>Hover any Chinese word on any page for its Taiwan pinyin, meaning and natural example sentences. Get Chinese and English subtitles together on YouTube. Keep one word list for everything you meet. Free.</p>
+    <p>Hover any word. Stamp what you know. Watch YouTube with two subtitles.</p>
     <div class="buttons">
-      <a class="btn primary" href="https://addons.mozilla.org/firefox/addon/chinesebrain/">Get it for Firefox</a>
-      <a class="btn secondary" href="#chrome">Chrome: coming soon</a>
-      <a class="btn quiet" href="/brain/guide">See how it works</a>
+      <a class="btn primary" href="https://addons.mozilla.org/firefox/addon/chinesebrain/">Add to Firefox</a>
+      <span class="btn secondary" aria-disabled="true" title="Waiting for the Chrome Web Store">Chrome: in review</span>
     </div>
+    <p class="fine">Free. No account needed.</p>
   </section>
-  <img class="shot" src="/brain/card.png" width="1280" height="800" alt="The Chinese Brain card over a Chinese web page, showing a word's pinyin, meaning and example sentences">
+  <button class="video" type="button" data-video="rJeqKHkXHmo" aria-label="Play the video: Why Chinese Brain is so good">
+    <img src="/brain/video.jpg" width="1280" height="720" alt="">
+    <span class="play" aria-hidden="true"></span>
+  </button>
+  <section class="cycle" lang="zh-Hant" aria-label="Every word you meet moves from Fresh to Learning to Known">
+    <span><b class="seal fresh">新</b><span lang="en">Fresh</span></span>
+    <i aria-hidden="true">→</i>
+    <span><b class="seal learning">學</b><span lang="en">Learning</span></span>
+    <i aria-hidden="true">→</i>
+    <span><b class="seal known">熟</b><span lang="en">Known</span></span>
+  </section>
+  <section class="split">
+    <div><h2>Every word, explained</h2><p>Taiwan pinyin, meaning, parts and two example sentences you can read. Press <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> to stamp it.</p></div>
+    <img src="/brain/card.png" width="1280" height="800" alt="The word card over a Chinese web page">
+  </section>
+  <section class="split flip">
+    <div><h2>YouTube, line by line</h2><p>Chinese and English together. Hover a word and the video waits. No captions? Gemini writes them.</p></div>
+    <img src="/brain/youtube.png" width="1280" height="800" alt="A YouTube video with Chinese and English subtitles and the word card">
+  </section>
   <section class="features">
-    <div class="feature"><h3>Hover any word</h3><p>Traditional characters, Taiwan standard pinyin, how common the word is, a breakdown into parts, and two natural example sentences.</p></div>
-    <div class="feature"><h3>YouTube dual subtitles</h3><p>Chinese and English lines over the video. Every word is hoverable; the video pauses while you read.</p></div>
-    <div class="feature"><h3>One word list</h3><p>新 Fresh · 學 Learning · 熟 Known. Press 1, 2 or 3. The same colors in the card, the subtitles and your list.</p></div>
-    <div class="feature"><h3>Yours, everywhere</h3><p>Works without an account. A free one keeps your word list in sync across browsers.</p></div>
+    <div class="feature"><h3>One word list</h3><p>Everything you stamped, colored on every page you read.</p></div>
+    <div class="feature"><h3>Practice with AI</h3><p>One click turns your list into a story and a quiz for any chatbot.</p></div>
+    <div class="feature"><h3>Yours everywhere</h3><p>A free account syncs your words across browsers.</p></div>
   </section>
-  <img class="shot" src="/brain/youtube.png" width="1280" height="800" alt="A YouTube video with Chinese and English subtitles and the word card" id="chrome">
+  <section class="cta">
+    <h2>Start with the next thing you read.</h2>
+    <a class="btn primary" href="https://addons.mozilla.org/firefox/addon/chinesebrain/">Add to Firefox</a>
+  </section>
 </main>
 <footer><div class="wrap">
   <span>© 2026 Cristian Bagrin</span>
@@ -40,6 +65,6 @@
   <a href="/account">Account</a>
   <a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain%20feedback">chris@cristianbagrin.com</a>
 </div></footer>
-<script src="/keys.js"></script>
+<script src="/site.js"></script>
 </body>
 </html>

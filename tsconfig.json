@@ -10,5 +10,5 @@
     "allowImportingTsExtensions": true,
     "types": ["firefox-webext-browser", "node"]
   },
-  "include": ["src", "tests"]
+  "include": ["src", "tests", "site/src"]
 }

@@ -1302,7 +1302,7 @@ Give each with a natural American English translation.`, schema = {
     rec ? (store.words.set(rec.w, rec), dict && addOwnWord(dict, rec.w, rec.g)) : store.words.delete(k.slice(2));
   });
   import_browser_polyfill_min.default.runtime.onInstalled.addListener((d) => {
-    d.reason === "install" && import_browser_polyfill_min.default.tabs.create({ url: `${SITE}/brain/welcome` });
+    d.reason === "install" && import_browser_polyfill_min.default.tabs.create({ url: `${SITE}/brain/guide#welcome` });
   });
   startHookCapture();
   var examples = new ExampleBank(), examplesReady = loadExamples();
@@ -1380,8 +1380,8 @@ Give each with a natural American English translation.`, schema = {
       return await import_browser_polyfill_min.default.storage.local.set({ settings: { ...s, pageColors: !s.pageColors } }), void toast(`Word colors ${s.pageColors ? "off" : "on"} on every website`);
     if (!host || tab?.id == null) return;
     if (s.hoverMode === "off" || s.disabledSites.includes(host)) return toast("Chinese Brain is off on this site. Turn it on in the toolbar menu first.");
-    let next = !colorsOn(s, host), siteColors = { ...s.siteColors };
-    next === s.pageColors ? delete siteColors[host] : siteColors[host] = next, await import_browser_polyfill_min.default.storage.local.set({ settings: { ...s, siteColors } }), toast(`Word colors ${next ? "on" : "off"} on ${host.replace(/^www\./, "")}`);
+    let next = !colorsOn(s, host), siteColors = { ...s.siteColors, [host]: next };
+    await import_browser_polyfill_min.default.storage.local.set({ settings: { ...s, siteColors } }), toast(`Word colors ${next ? "on" : "off"} on ${host.replace(/^www\./, "")}`);
   });
   function breakdown(d, word, sylls, depth = 0, out = []) {
     let aligned = sylls.length === [...word].length, i = 0;

@@ -1631,6 +1631,23 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     return a.length === b.length && a[0]?.text === b[0]?.text && a[a.length - 1]?.text === b[b.length - 1]?.text;
   }
 
+  // src/content/bridge.ts
+  init_browser_shim();
+  var PASSED = /* @__PURE__ */ new Set(["allData", "setStatus", "getWord", "importWords", "importList", "account", "syncNow"]);
+  function startBridge() {
+    location.origin !== "https://chinese.cristianbagrin.com" || window !== window.top || (window.addEventListener("message", async (e) => {
+      let d = e.data;
+      if (e.source !== window || e.origin !== location.origin || d?.cb !== "req" || typeof d.id != "number") return;
+      let reply = (result, error) => window.postMessage({ cb: "res", id: d.id, result, error }, location.origin);
+      try {
+        let m = d.msg;
+        m?.type === "prefs" ? reply({ sounds: state.settings.sounds, version: import_browser_polyfill_min.default.runtime.getManifest().version }) : m?.type === "mark" ? (typeof m.at == "number" && await import_browser_polyfill_min.default.storage.local.set({ lastExportAt: m.at }), reply((await import_browser_polyfill_min.default.storage.local.get("lastExportAt")).lastExportAt ?? 0)) : m?.type && PASSED.has(m.type) ? reply(await import_browser_polyfill_min.default.runtime.sendMessage(m)) : reply(void 0, "Not something the page can ask for.");
+      } catch (err) {
+        reply(void 0, String(err instanceof Error ? err.message : err));
+      }
+    }), document.documentElement.dataset.cbExt = import_browser_polyfill_min.default.runtime.getManifest().version, window.postMessage({ cb: "ready" }, location.origin));
+  }
+
   // src/content/hover.ts
   init_browser_shim();
 
@@ -2105,7 +2122,8 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     return bytes.buffer;
   }
 
-  // src/content/audio.ts
+  // src/shared/sounds.ts
+  init_browser_shim();
   var ctx;
   function audio() {
     return ctx ??= new AudioContext(), ctx.state === "suspended" && ctx.resume(), ctx;
@@ -2138,26 +2156,32 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     note(ac, freq, at, len, gain, "sine", freq * 0.42, len * 0.55), note(ac, freq * 2, at, len * 0.55, gain * 0.35, "sine", freq * 0.84, len * 0.4);
   }
   var STAMP = { fresh: [190, 1320], learning: [160, 880], known: [135, 660] };
-  function stampSound(status) {
-    if (state.settings.sounds)
-      try {
-        let ac = audio(), t = ac.currentTime + 5e-3;
-        if (!status) {
-          noise(ac, t, 0.03, 0.2, "bandpass", 1800, 0.9), thump(ac, t, 120, 0.25, 0.09);
-          return;
-        }
-        let [thud, tick] = STAMP[status];
-        noise(ac, t, 0.035, 0.5, "bandpass", 1100, 0.9), noise(ac, t, 0.07, 0.35, "lowpass", 420), thump(ac, t, thud, 0.75, 0.15), note(ac, tick, t + 0.03, 0.12, 0.07, "triangle"), status === "known" && note(ac, tick * 1.5, t + 0.03, 0.16, 0.05, "triangle");
-      } catch {
+  function playStamp(status) {
+    try {
+      let ac = audio(), t = ac.currentTime + 5e-3;
+      if (!status) {
+        noise(ac, t, 0.03, 0.2, "bandpass", 1800, 0.9), thump(ac, t, 120, 0.25, 0.09);
+        return;
       }
+      let [thud, tick] = STAMP[status];
+      noise(ac, t, 0.035, 0.5, "bandpass", 1100, 0.9), noise(ac, t, 0.07, 0.35, "lowpass", 420), thump(ac, t, thud, 0.75, 0.15), note(ac, tick, t + 0.03, 0.12, 0.07, "triangle"), status === "known" && note(ac, tick * 1.5, t + 0.03, 0.16, 0.05, "triangle");
+    } catch {
+    }
+  }
+  function playSave() {
+    try {
+      let ac = audio(), t = ac.currentTime + 5e-3;
+      noise(ac, t, 0.02, 0.18, "bandpass", 2400, 1), note(ac, 1320, t, 0.1, 0.06, "triangle"), note(ac, 1980, t + 0.045, 0.12, 0.04, "triangle");
+    } catch {
+    }
+  }
+
+  // src/content/audio.ts
+  function stampSound(status) {
+    state.settings.sounds && playStamp(status);
   }
   function saveSound() {
-    if (state.settings.sounds)
-      try {
-        let ac = audio(), t = ac.currentTime + 5e-3;
-        noise(ac, t, 0.02, 0.18, "bandpass", 2400, 1), note(ac, 1320, t, 0.1, 0.06, "triangle"), note(ac, 1980, t + 0.045, 0.12, 0.04, "triangle");
-      } catch {
-      }
+    state.settings.sounds && playSave();
   }
   var clipCache = /* @__PURE__ */ new Map(), playing;
   async function speak(text) {
@@ -3129,6 +3153,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
   w.__chineseBrain || (w.__chineseBrain = !0, import_browser_polyfill_min.default.runtime.onMessage.addListener((msg) => {
     msg.type === "toast" && window === window.top && toast(msg.text ?? "");
   }), state.ready().then(() => {
+    startBridge();
     let popup = new Popup();
     new HoverLookup(popup), new PageColors(), window === window.top && /(^|\.)youtube\.com$/.test(location.hostname) ? new YouTubeSubs(popup) : onKeydown((e) => {
       popup.editKey(e) || popup.visible && cardTakes(e, popup.age(), popup.isHovered) && popup.handleKey(e) && (e.preventDefault(), e.stopImmediatePropagation());

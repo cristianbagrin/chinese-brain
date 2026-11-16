@@ -167,6 +167,13 @@
     return bytes.buffer;
   }
 
+  // src/shared/sounds.ts
+  init_browser_shim();
+  var ctx;
+  function audio() {
+    return ctx ??= new AudioContext(), ctx.state === "suspended" && ctx.resume(), ctx;
+  }
+
   // src/content/state.ts
   init_browser_shim();
 
@@ -252,10 +259,6 @@
   }, state = new State();
 
   // src/content/audio.ts
-  var ctx;
-  function audio() {
-    return ctx ??= new AudioContext(), ctx.state === "suspended" && ctx.resume(), ctx;
-  }
   var clipCache = /* @__PURE__ */ new Map(), playing;
   async function speak(text) {
     let s = state.settings, order = s.voice === "azure" ? ["azure", "google", "system"] : s.voice === "google" ? ["google", "system"] : ["system"], errors = [];
@@ -342,7 +345,15 @@
 
   // src/pages/common.ts
   init_browser_shim();
+  function download(name, content, type = "text/plain;charset=utf-8") {
+    let url = URL.createObjectURL(new Blob([content], { type })), a = document.createElement("a");
+    a.href = url, a.download = name, document.body.append(a), a.click(), a.remove(), setTimeout(() => URL.revokeObjectURL(url), 1e4);
+  }
   var $ = (id) => document.getElementById(id);
+  function today() {
+    let d = /* @__PURE__ */ new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
   function ago(t) {
     let s = (Date.now() - t) / 1e3;
     if (s < 90) return "just now";
@@ -352,7 +363,7 @@
     let d = new Date(t);
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric", ...d.getFullYear() === (/* @__PURE__ */ new Date()).getFullYear() ? {} : { year: "numeric" } });
   }
-  var SUPPORT = "chris@cristianbagrin.com", MAC = /Mac|iPhone|iPad/.test(navigator.platform), ALT = MAC ? "\u2325 Option" : "Alt", shortcutLabel = (key) => key ? MAC ? key.replace("Alt", "\u2325 Option").replace("Ctrl", "\u2303 Control").replace("Command", "\u2318") : key : "not set";
+  var SUPPORT = "chris@cristianbagrin.com", DASHBOARD = "https://chinese.cristianbagrin.com/brain/dashboard", MAC = /Mac|iPhone|iPad/.test(navigator.platform), ALT = MAC ? "\u2325 Option" : "Alt", shortcutLabel = (key) => key ? MAC ? key.replace("Alt", "\u2325 Option").replace("Ctrl", "\u2303 Control").replace("Command", "\u2318") : key : "not set";
   function feedbackLink() {
     let body = `
 
@@ -415,6 +426,22 @@ Chinese Brain ${import_browser_polyfill_min.default.runtime.getManifest().versio
     let tag = $("saved");
     tag.hidden = !1, clearTimeout(savedTimer), savedTimer = setTimeout(() => tag.hidden = !0, 1200), key === "voice" && showAzure(), key === "azureKey" && setStatus("azureStatus", ""), key === "geminiKey" && setStatus("geminiStatus", "");
   }
+  function showSites() {
+    let sites = Object.entries(settings.siteColors).sort(([a], [b]) => a.localeCompare(b));
+    $("siteColorsRow").hidden = !sites.length, $("siteColors").replaceChildren(
+      ...sites.map(([host, on]) => {
+        let b = document.createElement("button");
+        b.type = "button", b.className = on ? "on" : "off", b.title = "Forget this website\u2019s own setting";
+        let flag = document.createElement("b");
+        flag.textContent = on ? "on" : "off";
+        let x = document.createElement("i");
+        return x.textContent = "\xD7", b.append(host.replace(/^www\./, ""), flag, x), b.addEventListener("click", async () => {
+          let siteColors = { ...settings.siteColors };
+          delete siteColors[host], settings = { ...settings, siteColors }, state.settings = settings, await import_browser_polyfill_min.default.runtime.sendMessage({ type: "saveSettings", settings: { siteColors } }), showSites();
+        }), b;
+      })
+    );
+  }
   function showAzure() {
     document.querySelectorAll(".azure").forEach((el) => el.hidden = settings.voice !== "azure");
   }
@@ -433,7 +460,7 @@ Chinese Brain ${import_browser_polyfill_min.default.runtime.getManifest().versio
         });
       }
     }
-    showAzure(), showKeys(), showAccount(), settings.geminiKey && loadModels(!1), location.hash && document.getElementById(location.hash.slice(1))?.scrollIntoView();
+    showAzure(), showSites(), showKeys(), showAccount(), settings.geminiKey && loadModels(!1), location.hash && document.getElementById(location.hash.slice(1))?.scrollIntoView();
   }
   function renderAccount(a, note = "") {
     if ($("acct").hidden = !1, $("signedOut").hidden = a.signedIn, $("signedIn").hidden = !a.signedIn, a.signedIn) {
@@ -512,6 +539,25 @@ Chinese Brain ${import_browser_polyfill_min.default.runtime.getManifest().versio
     b.addEventListener("click", () => {
       import_browser_polyfill_min.default.tabs.create({ url: "chrome://extensions/shortcuts" });
     });
+  for (let a of document.querySelectorAll("a.words")) a.href = DASHBOARD;
+  $("backup").addEventListener("click", async () => {
+    let all = await import_browser_polyfill_min.default.storage.local.get(null);
+    delete all.acct, delete all["acct:dirty"], download(`chinese-brain-backup-${today()}.json`, JSON.stringify({ app: "chinese-brain", v: 1, at: Date.now(), data: all }), "application/json");
+  });
+  $("restore").addEventListener("change", async (e) => {
+    let f = e.target.files?.[0];
+    if (!f) return;
+    let data;
+    try {
+      let json = JSON.parse(await f.text());
+      json.app === "chinese-brain" && (data = json.data);
+    } catch {
+    }
+    if (!data) return setStatus("backupStatus", "That isn\u2019t a Chinese Brain backup.", "err");
+    let recs = Object.entries(data).filter(([k]) => k.startsWith("w:")).map(([, v]) => v), n = await import_browser_polyfill_min.default.runtime.sendMessage({ type: "importWords", words: recs, mode: "merge" }), existing = await import_browser_polyfill_min.default.storage.local.get(null), extra = {};
+    for (let [k, v] of Object.entries(data)) !k.startsWith("w:") && !k.startsWith("acct") && !(k in existing) && (extra[k] = v);
+    await import_browser_polyfill_min.default.storage.local.set(extra), setStatus("backupStatus", `\u2713 Restored ${n} word${n === 1 ? "" : "s"}.`, "ok");
+  });
   $("version").textContent = import_browser_polyfill_min.default.runtime.getManifest().version;
   $("feedback").href = feedbackLink();
   $("testVoice").addEventListener("click", async () => {

@@ -33,7 +33,7 @@ const sync = new Sync((k, v) => {
 
 // First run: a page that shows how it works (with Chinese to try it on).
 browser.runtime.onInstalled.addListener((d) => {
-  if (d.reason === 'install' && !__TEST__) void browser.tabs.create({ url: `${SITE}/brain/welcome` });
+  if (d.reason === 'install' && !__TEST__) void browser.tabs.create({ url: `${SITE}/brain/guide#welcome` });
 });
 
 // Chrome has no filterResponseData: a page hook copies the caption bodies instead.
@@ -152,10 +152,8 @@ browser.commands.onCommand.addListener(async (name) => {
   if (!host || tab?.id == null) return;
   if (s.hoverMode === 'off' || s.disabledSites.includes(host)) return toast('Chinese Brain is off on this site. Turn it on in the toolbar menu first.');
   const next = !colorsOn(s, host);
-  const siteColors = { ...s.siteColors };
-  // Same as the global switch: no exception needed.
-  if (next === s.pageColors) delete siteColors[host];
-  else siteColors[host] = next;
+  // A website's own choice is remembered, whatever "every website" is set to later.
+  const siteColors = { ...s.siteColors, [host]: next };
   await browser.storage.local.set({ settings: { ...s, siteColors } });
   void toast(`Word colors ${next ? 'on' : 'off'} on ${host.replace(/^www\./, '')}`);
 });

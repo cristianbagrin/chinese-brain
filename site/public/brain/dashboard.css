@@ -1,0 +1,187 @@
+/* The word list (the same look the extension's own page had): 田字格 squares, seals, stamps. */
+@font-face { font-family: 'CB Zh'; src: url('/fonts/zh.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'CB Zh'; src: url('/fonts/zh-bold.woff2') format('woff2'); font-weight: 600 900; font-display: swap; unicode-range: U+4E2D, U+6587, U+8166, U+65B0, U+5B78, U+719F; }
+.dash {
+  --red: #c8202f; --red-deep: #a3192a; --ink: #1e1a18; --ink2: #5e5650; --ink3: #958c85;
+  --paper: #fffdf9; --ground: #f6f2ed; --rule: #e9e1d7; --rule2: #d9cfc3; --grid: rgba(200, 32, 47, 0.2);
+  --fresh: #ef2f42; --learning: #ffc81f; --known: #1fae4f;
+  --fresh-ink: #d11e33; --learning-ink: #a87800; --known-ink: #138a3d;
+  --ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --zh: 'CB Zh', 'Kaiti TC', 'BiauKai', 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', serif;
+  max-width: 1080px; padding-top: 20px; padding-bottom: 64px; font-size: 15px; line-height: 1.5;
+}
+body:has(.dash) { background: #f6f2ed; }
+.dash :lang(zh-Hant) { font-family: var(--zh), var(--ui); }
+.dash button, .dash select, .dash input, .dash textarea { font: inherit; color: inherit; }
+.dash button { cursor: pointer; background: var(--paper); border: 1px solid var(--rule2); border-radius: 8px; padding: 6px 14px; }
+.dash button:hover { border-color: var(--ink3); }
+.dash button:active { transform: translateY(1px); }
+.dash button.primary { background: var(--red); border-color: var(--red); color: #fff; font-weight: 600; }
+.dash button.primary:hover { background: var(--red-deep); border-color: var(--red-deep); }
+.dash button.link { border: 0; background: none; padding: 6px 4px; color: var(--red-deep); }
+.dash button.link:hover { text-decoration: underline; }
+.dash input[type='search'], .dash select, .dash textarea { border: 1px solid var(--rule2); border-radius: 8px; background: var(--paper); padding: 6px 10px; }
+.dash select { appearance: none; padding-right: 30px; cursor: pointer; background: var(--paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%23958c85' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") right 9px center / 12px no-repeat; }
+.dash textarea { width: 100%; font-size: 13px; resize: vertical; }
+.dash :focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+.dash [hidden] { display: none !important; }
+.dash .ok { color: var(--known-ink); font-size: 13px; }
+.dash h2 { font: 700 19px/1.3 var(--ui); margin: 40px 0 14px; scroll-margin-top: 76px; }
+.filebtn { display: inline-block; cursor: pointer; background: var(--paper); border: 1px solid var(--rule2); border-radius: 8px; padding: 6px 14px; }
+.filebtn:hover { border-color: var(--ink3); }
+.filebtn input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+/* Where the list comes from, and how steadily you stamp: one quiet line above the list. */
+.meta { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 0 2px 6px; font-size: 13px; color: var(--ink2); }
+.pace { display: flex; align-items: center; gap: 10px; }
+.weeks { display: flex; align-items: flex-end; gap: 3px; height: 26px; }
+.weeks span { display: flex; align-items: flex-end; width: 9px; height: 100%; }
+.weeks i { display: block; width: 100%; border-radius: 2px; background: var(--red); }
+.weeks .none i { background: var(--rule2); }
+.note { margin: 0 2px 8px; font-size: 14px; color: var(--fresh-ink); }
+.note:empty { display: none; }
+
+/* ---------- Word list ---------- */
+
+/* The bar stays on screen while the list scrolls under it. */
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  align-items: center;
+  margin: -8px -12px 10px;
+  padding: 10px 12px;
+  background: rgba(246, 242, 237, 0.86);
+  backdrop-filter: blur(14px) saturate(160%);
+}
+.bar::after { content: ''; position: absolute; left: 0; right: 0; bottom: -10px; height: 10px; background: linear-gradient(rgba(246, 242, 237, 0.86), rgba(246, 242, 237, 0)); pointer-events: none; }
+@media (prefers-reduced-transparency: reduce) { .bar { background: var(--ground); backdrop-filter: none; } }
+.bar input[type='search'] { flex: 1 1 200px; min-width: 0; height: 38px; }
+.bar select { height: 38px; }
+.bar .jump { font-size: 14px; font-weight: 500; text-decoration: none; padding: 0 2px; }
+.bar .jump:hover { text-decoration: underline; }
+
+/* The filter: one seal per status, with its count. */
+.filter { display: inline-flex; gap: 2px; padding: 3px; border-radius: 11px; background: #ebe4dc; }
+.filter button { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px 0 6px; border: 0; border-radius: 8px; background: transparent; color: var(--ink2); white-space: nowrap; }
+.filter button:hover { color: var(--ink); }
+.filter button:active { transform: none; }
+.filter button[aria-pressed='true'] { background: var(--paper); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(30, 26, 24, 0.12), 0 0 0 1px rgba(30, 26, 24, 0.04); }
+.filter button.all { padding-left: 12px; }
+.filter b { font-weight: 600; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink3); }
+.filter button[aria-pressed='true'] b { color: var(--ink2); }
+
+/* A seal: a small square stamp with the status character. Empty until set. */
+.seal { display: inline-grid; place-items: center; width: 24px; height: 24px; border: 1.5px solid var(--c, var(--ink3)); border-radius: 5px; color: var(--c, var(--ink3)); font: 600 13px/1 var(--zh); }
+.fresh { --c: var(--fresh-ink); --fill: var(--fresh); --on: #fff; }
+.learning { --c: var(--learning-ink); --fill: var(--learning); --on: var(--ink); }
+.known { --c: var(--known-ink); --fill: var(--known); --on: #fff; }
+.filter button[aria-pressed='true'] .seal { background: var(--fill); border-color: var(--fill); color: var(--on); }
+
+/* The list: each word on its own line of the exercise book. */
+.words { background: var(--paper); border: 1px solid var(--rule); border-radius: 14px; overflow: hidden; }
+.word { position: relative; display: grid; grid-template-columns: 200px minmax(0, 1fr) auto; gap: 6px 28px; align-items: center; padding: 12px 22px 14px; border-top: 1px solid var(--rule); transition: opacity 0.2s; }
+.word:first-child { border-top: 0; }
+.word:hover { background: #fffaf3; }
+
+/* The headword in 田字格 squares, each character's pinyin above it, like a practice book. */
+.hw { --box: 44px; min-width: 0; }
+/* Inline boxes, not flex or grid items: the hover lookup reads the characters as one word. */
+.chars { display: block; line-height: 0; }
+.ch { display: inline-block; width: var(--box); margin: 0 0 6px -1.5px; vertical-align: top; text-align: center; }
+.ch:first-child { margin-left: 0; }
+.ch::before, .pyline { content: attr(data-py); display: block; height: 19px; font: 500 13px/19px var(--ui); color: var(--ink2); white-space: nowrap; }
+.nopy .ch::before { display: none; }
+.ch b {
+  display: inline-grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: var(--box);
+  height: var(--box);
+  border: 1.5px solid rgba(200, 32, 47, 0.55);
+  background:
+    repeating-linear-gradient(to bottom, var(--grid) 0 3px, transparent 3px 6px) center / 1px 100% no-repeat,
+    repeating-linear-gradient(to right, var(--grid) 0 3px, transparent 3px 6px) center / 100% 1px no-repeat;
+  font: var(--hw-weight, 400) 30px/1 var(--zh);
+  color: var(--ink);
+}
+
+.txt { min-width: 0; }
+.gl { margin: 0; font-size: 16px; line-height: 1.4; }
+.gl.none { color: var(--ink3); font-style: italic; font-size: 14px; }
+.ctx { margin: 6px 0 0; font-size: 15px; line-height: 1.55; color: var(--ink2); }
+.ctx u { text-decoration: none; color: var(--ink); box-shadow: inset 0 -2px 0 rgba(200, 32, 47, 0.6); }
+.src { margin-left: 10px; font: 500 12.5px var(--ui); color: var(--ink3); text-decoration: none; white-space: nowrap; }
+.src:hover { color: var(--red-deep); text-decoration: underline; }
+
+/* Stamps with the remove button beside them; when it last changed, under the stamps. */
+.act { display: grid; grid-template-columns: auto 26px; align-items: center; gap: 6px 4px; margin-right: -8px; }
+.act .when { grid-column: 1; justify-self: end; }
+.stamps { display: flex; gap: 6px; }
+.stamps button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1.5px dashed var(--rule2);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink3);
+  font: 600 16px/1 var(--zh);
+  transition: color 0.12s, border-color 0.12s;
+}
+.stamps button:hover { border-style: solid; border-color: var(--c); color: var(--c); }
+.stamps button:active { transform: scale(0.9); }
+.stamps button[aria-pressed='true']:active { transform: rotate(-5deg) scale(0.9); }
+.stamps button[aria-pressed='true'] {
+  border: 1.5px solid var(--fill);
+  background: var(--fill);
+  color: var(--on);
+  box-shadow: inset 0 0 0 2px var(--fill), inset 0 0 0 3px rgba(255, 255, 255, 0.6);
+  transform: rotate(-5deg);
+}
+/* Setting a status lands like a stamp, as in the card: flat on the first frame (with the thud), then it springs back in a ring of ink. */
+.stamps button.press { animation: press 0.34s cubic-bezier(0.2, 0.8, 0.3, 1); }
+.stamps button.press::after { content: ''; position: absolute; inset: -1.5px; border-radius: inherit; border: 2px solid var(--fill); pointer-events: none; animation: ink 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
+@keyframes press { 0% { transform: rotate(-8deg) scale(0.86); } 40% { transform: rotate(-4deg) scale(1.05); } 100% { transform: rotate(-5deg); } }
+@keyframes ink { from { opacity: 0.6; transform: scale(1); } to { opacity: 0; transform: scale(1.4); } }
+@media (prefers-reduced-motion: reduce) { .stamps button.press { animation: none; } .stamps button.press::after { display: none; } }
+.when { font-size: 12px; color: var(--ink3); white-space: nowrap; }
+
+.word .x { width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--ink3); font-size: 18px; line-height: 1; opacity: 0; transition: opacity 0.12s; }
+.word:hover .x, .word .x:focus-visible { opacity: 1; }
+.word .x:hover { background: var(--ground); color: var(--fresh-ink); }
+@media (hover: none) { .word .x { opacity: 0.6; } }
+.word.gone > :not(.act) { opacity: 0.45; }
+.word.gone .ch b { text-decoration: line-through; }
+.word .undo { padding: 5px 14px; font-size: 13px; font-weight: 600; }
+
+.empty { margin: 0; padding: 48px 20px; text-align: center; color: var(--ink2); }
+.more { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; }
+
+@media (max-width: 760px) {
+  .filter { width: 100%; }
+  .filter button { flex: 1; justify-content: center; padding: 0 6px; gap: 6px; }
+  .filter button .en { display: none; }
+  .bar input[type='search'] { flex-basis: 0; }
+  .bar .jump { display: none; }
+  .word { grid-template-columns: minmax(0, 1fr) auto; padding: 14px 16px; }
+  .word .txt { grid-column: 1 / -1; grid-row: 2; }
+  .hw { --box: 42px; }
+}
+
+/* ---------- Export, import, backup ---------- */
+.tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.tool { background: var(--paper); border: 1px solid var(--rule); border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+.tool h3 { margin: 0; font-size: 16px; }
+.tool p { margin: -6px 0 0; font-size: 13.5px; color: var(--ink2); }
+.tool .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: auto; }
+.tool textarea { font-size: 13px; }
+
+.dash .muted { color: var(--ink2); }
+.dash .small { font-size: 13px; }
+.dash #welcome { max-width: 460px; margin: 40px auto; }
