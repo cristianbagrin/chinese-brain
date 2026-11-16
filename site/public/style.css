@@ -105,3 +105,4 @@ header a.home { white-space: nowrap; }
 .doc .video { margin: 0 0 16px; }
 @media (max-width: 640px) { .split { grid-template-columns: 1fr; gap: 16px; } .split.flip { grid-template-columns: 1fr; } .split.flip > div { order: 0; } .split h2 { font-size: 22px; } .cycle { gap: 10px 18px; } .cycle i { display: none; } .seal { width: 30px; height: 30px; font-size: 17px; } }
 .wide header .wrap, .wide footer .wrap { max-width: 1080px; }
+footer a.maker { color: inherit; }
