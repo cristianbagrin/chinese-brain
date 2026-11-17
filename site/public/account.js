@@ -37,7 +37,7 @@ let mode = 'signin';
 function setMode(m) {
   mode = m;
   $('enterTitle').textContent = { signin: 'Sign in', signup: 'Create your account', forgot: 'Reset your password' }[m];
-  $('enterLead').textContent = { signin: 'Your word list, on every browser you use.', signup: 'Free. Keeps your word list in sync across browsers.', forgot: 'We’ll email you a link to set a new one.' }[m];
+  $('enterLead').textContent = { signin: 'One account for Chinese Brain, At Peace, Money in Order and Ten Dollar Words.', signup: 'Free. Keeps each app in step across your browsers and devices.', forgot: 'We’ll email you a link to set a new one.' }[m];
   $('enterGo').textContent = { signin: 'Sign in', signup: 'Create account', forgot: 'Email me a link' }[m];
   $('pwLabel').hidden = m === 'forgot';
   $('password').required = m !== 'forgot';
@@ -46,6 +46,21 @@ function setMode(m) {
   $('toForgot').hidden = m !== 'signin';
   $('toSignin').hidden = m === 'signin';
   say('enterMsg', '');
+}
+
+/** Opened from the link in a confirm-your-new-email message. */
+async function confirmEmail() {
+  const m = location.hash.match(/^#confirm=(.+)$/);
+  if (!m) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  try {
+    const res = await api('email/confirm', { token: m[1] });
+    say('confirmMsg', `Done: your email is now ${res.email}.`, true);
+    say('enterMsg', `Done: your email is now ${res.email}. Sign in with it.`, true);
+  } catch (err) {
+    say('confirmMsg', err.message);
+    say('enterMsg', err.message);
+  }
 }
 
 async function show() {
@@ -58,7 +73,13 @@ async function show() {
   try {
     const me = await api('me');
     $('who').textContent = me.email;
-    $('stats').textContent = `${me.words.toLocaleString('en-US')} synced ${me.words === 1 ? 'word' : 'words'} · since ${new Date(me.created).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
+    $('stats').textContent = `Since ${new Date(me.created).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
+    const apps = me.apps ?? { brain: me.words };
+    $('n-brain').textContent = apps.brain ? `${apps.brain.toLocaleString('en-US')} ${apps.brain === 1 ? 'word' : 'words'}` : 'Not used yet';
+    for (const app of ['ap', 'mio', 'tdw']) $(`n-${app}`).textContent = apps[app] ? 'Synced' : 'Not used yet';
+    $('emailLead').textContent = me.pendingEmail
+      ? `A link is waiting at ${me.pendingEmail}. Open it to finish, or send a new one.`
+      : 'We’ll send a link to the new address. Your email changes once you open it.';
     $('enter').hidden = true;
     $('manage').hidden = false;
   } catch (err) {
@@ -94,8 +115,13 @@ if ($('enter')) {
     $('old').value = $('next').value = '';
     say('pwMsg', 'Password changed. Your other browsers are signed out; sign in there with the new one.', true);
   });
+  onSubmit($('emailForm'), 'emailMsg', async () => {
+    const res = await api('email', { email: $('newEmail').value, password: $('emailPw').value });
+    $('emailPw').value = '';
+    say('emailMsg', `Check ${res.email} and open the link there. Until then, you sign in with your current email.`, true);
+  });
   onSubmit($('delForm'), 'delMsg', async () => {
-    if (!confirm('Delete your account and its synced word list for good?')) return;
+    if (!confirm('Delete your account and everything synced to it, in every app, for good?')) return;
     await api('delete', { password: $('delPw').value });
     signedOut();
     say('enterMsg', 'Your account is deleted.', true);
@@ -108,9 +134,9 @@ if ($('enter')) {
     const data = await api('export');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
-    a.download = 'chinese-brain-account.json';
+    a.download = 'account.json';
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
   });
-  show();
+  confirmEmail().then(show);
 }

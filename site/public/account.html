@@ -3,21 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Account · Chinese Brain</title>
+<title>Your account</title>
 <link rel="icon" href="/icon.png">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <header><div class="wrap">
-  <a class="home" href="/brain"><img src="/icon.png" alt="">Chinese Brain</a>
-  <nav><a href="/brain/guide">How it works</a><a href="/brain/whats-new">What's new</a><a href="/brain/dashboard">Your words</a><a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain%20feedback">Feedback</a></nav>
+  <a class="home" href="/account">Your account</a>
+  <nav><a href="https://cristianbagrin.com">Cristian Bagrin</a><a href="mailto:chris@cristianbagrin.com?subject=Account">Help</a></nav>
 </div></header>
 <main class="wrap narrow">
   <noscript><p>This page needs JavaScript.</p></noscript>
 
   <form class="card" id="enter" hidden>
     <h1 id="enterTitle">Sign in</h1>
-    <p class="lead" id="enterLead">Your word list, on every browser you use.</p>
+    <p class="lead" id="enterLead">One account for Chinese Brain, At Peace, Money in Order and Ten Dollar Words.</p>
     <label>Email<input type="email" id="email" autocomplete="username" required></label>
     <label id="pwLabel">Password<input type="password" id="password" autocomplete="current-password" minlength="8" required></label>
     <p class="msg" id="enterMsg" role="status"></p>
@@ -29,8 +29,26 @@
     <section class="card">
       <h1>Your account</h1>
       <p class="lead"><b id="who"></b><br><span id="stats"></span></p>
-      <div class="rowbtn"><a class="btn primary" href="/brain/dashboard">Open your dashboard</a><button class="btn secondary" id="download">Download my data</button><button class="btn secondary" id="signout">Sign out</button></div>
+      <p class="msg ok" id="confirmMsg" role="status"></p>
+      <div class="rowbtn"><button class="btn secondary" id="download">Download my data</button><button class="btn secondary" id="signout">Sign out</button></div>
     </section>
+    <section class="card">
+      <h2>Your apps</h2>
+      <ul class="apps">
+        <li><a href="https://chinese.cristianbagrin.com/brain/dashboard">Chinese Brain</a><span id="n-brain"></span></li>
+        <li><a href="https://addons.mozilla.org/firefox/addon/at-peace/">At Peace</a><span id="n-ap"></span></li>
+        <li><a href="https://moneyinorder.cristianbagrin.com">Money in Order</a><span id="n-mio"></span></li>
+        <li><a href="https://tendollarwords.cristianbagrin.com">Ten Dollar Words</a><span id="n-tdw"></span></li>
+      </ul>
+    </section>
+    <form class="card" id="emailForm">
+      <h2>Change email</h2>
+      <p class="lead" id="emailLead">We’ll send a link to the new address. Your email changes once you open it.</p>
+      <label>New email<input type="email" id="newEmail" autocomplete="email" required></label>
+      <label>Password<input type="password" id="emailPw" autocomplete="current-password" required></label>
+      <p class="msg" id="emailMsg" role="status"></p>
+      <button class="btn primary">Send confirmation link</button>
+    </form>
     <form class="card" id="pwForm">
       <h2>Change password</h2>
       <label>Current password<input type="password" id="old" autocomplete="current-password" required></label>
@@ -40,7 +58,7 @@
     </form>
     <form class="card" id="delForm">
       <h2>Delete account</h2>
-      <p class="lead">Removes your account and its synced word list from our server for good. Words already in your browsers stay there.</p>
+      <p class="lead">Removes your account and everything synced to it, in every app, from the server for good. What’s already in your browsers stays there.</p>
       <label>Password<input type="password" id="delPw" autocomplete="current-password" required></label>
       <p class="msg" id="delMsg" role="status"></p>
       <button class="btn danger">Delete my account</button>
@@ -51,9 +69,8 @@
 <script src="/account.js"></script>
 <footer><div class="wrap">
   <span>© 2026 <a class="maker" href="https://cristianbagrin.com" title="Who made this">Cristian Bagrin</a></span>
-  <a href="/brain/privacy">Privacy</a>
-  <a href="/account">Account</a>
-  <a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain%20feedback">chris@cristianbagrin.com</a>
+  <a href="https://chinese.cristianbagrin.com/brain/privacy">Privacy</a>
+  <a href="mailto:chris@cristianbagrin.com?subject=Account">chris@cristianbagrin.com</a>
 </div></footer>
 <script src="/site.js"></script>
 </body>

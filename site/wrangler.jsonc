@@ -1,4 +1,4 @@
-// The website and account service at https://chinese.cristianbagrin.com.
+// The website and the account service for all of Chris's apps: https://chinese.cristianbagrin.com and https://account.cristianbagrin.com.
 //   public/    the pages (served as they are): /brain/* is the Chinese Brain extension, /account the login
 //              shared by everything on this site
 //   worker.js  /api/*: accounts and word-list sync, one small SQLite database per account
@@ -23,11 +23,13 @@
   // chinesebrain.cristianbagrin.com is a short address that forwards to /brain.
   "routes": [
     { "pattern": "chinese.cristianbagrin.com", "custom_domain": true },
-    { "pattern": "chinesebrain.cristianbagrin.com", "custom_domain": true }
+    { "pattern": "chinesebrain.cristianbagrin.com", "custom_domain": true },
+    { "pattern": "account.cristianbagrin.com", "custom_domain": true }
   ],
   "vars": {
     "SITE": "https://chinese.cristianbagrin.com",
-    "MAIL_FROM": "Chinese Brain <noreply@cristianbagrin.com>",
+    "ACCOUNT_SITE": "https://account.cristianbagrin.com",
+    "MAIL_FROM": "Cristian Bagrin <noreply@cristianbagrin.com>",
     "SUPPORT": "chris@cristianbagrin.com"
   }
 }

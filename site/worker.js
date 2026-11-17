@@ -1,5 +1,8 @@
-// Accounts and sync for Chinese Brain. Every account is its own Durable Object with a small
-// SQLite database (the password hash, sessions, and the synced word list), found by email.
+// One account for all of Chris's apps (Chinese Brain, At Peace, Money in Order, Ten Dollar Words), and
+// Chinese Brain's website. Every account is its own Durable Object with a small SQLite database (the
+// password hash, sessions, and each app's synced items), found by email. Each app syncs its own keys:
+// Chinese Brain's have no prefix, the others' start with @<app>/ (see APPS), and an app only ever reads
+// and writes its own. After an email change the new address is an alias that points at the account.
 // Nothing here needs setting up besides the RESEND_API_KEY secret for password-reset emails
 // (and, to see who signed up at /admin, an ADMIN_KEY secret of your choosing).
 import { DurableObject } from 'cloudflare:workers';
@@ -9,6 +12,11 @@ const MAX_ITEMS = 60_000;
 const MAX_VALUE = 32_000;
 const PAGE = 1000;
 const SYNCED = /^(w:|sav:|exh:|gex:).{1,60}$|^settings$/;
+/** The other apps and what they're called in emails. Chinese Brain is the default (no prefix). */
+const APPS = { ap: 'At Peace', mio: 'Money in Order', tdw: 'Ten Dollar Words' };
+const APP_KEY = /^@([a-z]{2,4})\/[^\0]{1,200}$/;
+/** Which keys belong to `app`: '' is Chinese Brain. */
+const keyOf = (app, k) => (app ? APP_KEY.test(k) && k.startsWith(`@${app}/`) : SYNCED.test(k));
 const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@.]{2,}$/;
 
 const enc = new TextEncoder();
@@ -75,6 +83,7 @@ export class Account extends DurableObject {
       CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);
       CREATE TABLE IF NOT EXISTS sessions (h TEXT PRIMARY KEY, created INTEGER, seen INTEGER);
       CREATE TABLE IF NOT EXISTS resets (h TEXT PRIMARY KEY, exp INTEGER);
+      CREATE TABLE IF NOT EXISTS emails (h TEXT PRIMARY KEY, email TEXT, exp INTEGER);
       CREATE TABLE IF NOT EXISTS items (k TEXT PRIMARY KEY, v TEXT, t INTEGER, seq INTEGER);
       CREATE INDEX IF NOT EXISTS items_seq ON items (seq);
     `);
@@ -123,8 +132,30 @@ export class Account extends DurableObject {
     return fail(401, 'wrong', 'That email and password don’t match.');
   }
 
+  /** An account lives here (its own, not an alias). */
+  taken() {
+    return !!this.get('email');
+  }
+  /** This address belongs to an account elsewhere (an email change): that account's id. */
+  alias() {
+    return this.get('alias') || null;
+  }
+  /** Hold this address for the account `id` (it changed its email to this one). */
+  claim(id) {
+    if (this.get('email') || (this.alias() && this.alias() !== id)) return false;
+    this.tables();
+    this.set('alias', id);
+    return true;
+  }
+  /** The account `id` left this address. */
+  async release(id) {
+    if (this.alias() !== id) return;
+    await this.ctx.storage.deleteAll();
+    this.made = false;
+  }
+
   async signup(email, password) {
-    if (this.get('email')) return fail(409, 'exists', 'This email already has an account. Sign in instead.');
+    if (this.get('email') || this.alias()) return fail(409, 'exists', 'This email already has an account. Sign in instead.');
     this.tables();
     this.set('email', email);
     this.set('created', Date.now());
@@ -134,8 +165,9 @@ export class Account extends DurableObject {
     return { token: await this.newSession(), email };
   }
 
-  async login(password) {
-    if (!this.get('email')) return fail(401, 'wrong', 'That email and password don’t match.');
+  /** `email` is the address typed: after an email change the old one no longer signs in. */
+  async login(password, email) {
+    if (!this.get('email') || (email && email !== this.get('email'))) return fail(401, 'wrong', 'That email and password don’t match.');
     return (await this.checkPassword(password)) ?? { token: await this.newSession(), email: this.get('email') };
   }
 
@@ -160,7 +192,49 @@ export class Account extends DurableObject {
 
   _me() {
     const n = this.sql.exec("SELECT COUNT(*) AS n FROM items WHERE v IS NOT NULL AND k LIKE 'w:%'").one().n;
-    return { email: this.get('email'), created: Number(this.get('created')), words: n };
+    const apps = { brain: n };
+    for (const app of Object.keys(APPS)) apps[app] = this.sql.exec('SELECT COUNT(*) AS n FROM items WHERE v IS NOT NULL AND k LIKE ?', `@${app}/%`).one().n;
+    const pending = this.made ? this.sql.exec('SELECT email FROM emails WHERE exp > ? ORDER BY exp DESC LIMIT 1', Date.now()).toArray()[0]?.email : undefined;
+    return { email: this.get('email'), created: Number(this.get('created')), words: n, apps, pendingEmail: pending ?? null };
+  }
+
+  /** Ask to move the account to a new address: a one-day link goes to that address. */
+  async _email(_h, password, email) {
+    const bad = await this.checkPassword(password);
+    if (bad) return bad.fail.code === 'wrong' ? fail(401, 'wrong', 'That password isn’t right.') : bad;
+    if (email === this.get('email')) return fail(400, 'same', 'That’s already your email.');
+    if (email !== (this.get('home') || this.get('email'))) {
+      const there = this.env.ACCOUNT.get(this.env.ACCOUNT.idFromName(email));
+      const alias = await there.alias();
+      if ((alias && alias !== this.ctx.id.toString()) || (await there.taken())) return fail(409, 'exists', 'That email already has an account.');
+    }
+    this.sql.exec('DELETE FROM emails WHERE exp < ?', Date.now());
+    if (this.sql.exec('SELECT COUNT(*) AS n FROM emails').one().n >= 3) return fail(429, 'slow', 'Too many open requests. Use a link you were sent, or try again tomorrow.');
+    const secret = random(32);
+    this.sql.exec('INSERT INTO emails (h, email, exp) VALUES (?, ?, ?)', await sha(secret), email, Date.now() + 86_400_000);
+    return { email, old: this.get('email'), token: `${this.ctx.id.toString()}.${secret}` };
+  }
+
+  /** The link from the new address was opened: the account answers to it from now on. */
+  async finishEmail(secret) {
+    const row = this.get('email') && this.sql.exec('SELECT email, exp FROM emails WHERE h = ?', await sha(secret)).toArray()[0];
+    if (!row || row.exp < Date.now()) return fail(400, 'expired', 'This link has expired or was already used. Ask for a new one on your account page.');
+    const id = this.ctx.id.toString();
+    const old = this.get('email');
+    const home = this.get('home') || old; // the address this account's database is named after
+    const next = row.email;
+    if (next !== home) {
+      const ok = await this.env.ACCOUNT.get(this.env.ACCOUNT.idFromName(next)).claim(id);
+      if (!ok) return fail(409, 'exists', 'That email already has an account.');
+    }
+    if (old !== home) await this.env.ACCOUNT.get(this.env.ACCOUNT.idFromName(old)).release(id);
+    this.set('home', home);
+    this.set('email', next);
+    this.sql.exec('DELETE FROM emails');
+    const dir = this.env.DIRECTORY.get(this.env.DIRECTORY.idFromName('all'));
+    await dir.remove(old);
+    await dir.seen(next, Number(this.get('created')), Number(this.get('count') ?? 0));
+    return { email: next, old };
   }
 
   _logout(h) {
@@ -181,19 +255,21 @@ export class Account extends DurableObject {
     const bad = await this.checkPassword(password);
     if (bad) return bad.fail.code === 'wrong' ? fail(401, 'wrong', 'That password isn’t right.') : bad;
     await this.env.DIRECTORY.get(this.env.DIRECTORY.idFromName('all')).remove(this.get('email'));
+    const home = this.get('home');
+    if (home && home !== this.get('email')) await this.env.ACCOUNT.get(this.env.ACCOUNT.idFromName(this.get('email'))).release(this.ctx.id.toString());
     await this.ctx.storage.deleteAll();
     this.made = false;
     return { ok: true };
   }
 
-  _export() {
+  _export(_h, app) {
     const items = {};
-    for (const r of this.sql.exec('SELECT k, v FROM items WHERE v IS NOT NULL')) items[r.k] = JSON.parse(r.v);
+    for (const r of this.sql.exec('SELECT k, v FROM items WHERE v IS NOT NULL')) if (app === undefined || keyOf(app, r.k)) items[r.k] = JSON.parse(r.v);
     return { email: this.get('email'), exported: new Date().toISOString(), items };
   }
 
   /** Take this device's changes (the newer one wins, per item) and hand back everyone else's. */
-  _sync(_h, since, changes) {
+  _sync(_h, since, changes, app = '') {
     const now = Date.now();
     const seq0 = Number(this.get('seq') ?? 0);
     let seq = seq0;
@@ -203,7 +279,7 @@ export class Account extends DurableObject {
     count = count === undefined ? this.sql.exec('SELECT COUNT(*) AS n FROM items').one().n : Number(count);
     const count0 = count;
     for (const c of changes) {
-      if (!c || typeof c.k !== 'string' || !SYNCED.test(c.k)) continue;
+      if (!c || typeof c.k !== 'string' || !keyOf(app, c.k)) continue;
       const word = c.k.startsWith('w:');
       if (word && c.v != null && (typeof c.v !== 'object' || Array.isArray(c.v))) continue;
       const v = c.v == null ? null : canon(c.v);
@@ -223,7 +299,9 @@ export class Account extends DurableObject {
     }
     if (seq !== seq0) this.set('seq', seq);
     if (count !== count0 || this.get('count') === undefined) this.set('count', count);
-    const rows = this.sql.exec('SELECT k, v, t, seq FROM items WHERE seq > ? ORDER BY seq LIMIT ?', Number(since) || 0, PAGE + 1).toArray();
+    // Only this app's items come back; the others' are skipped over.
+    const mineOnly = app ? "k LIKE ? || '/%'" : "substr(k, 1, 1) != ?";
+    const rows = this.sql.exec(`SELECT k, v, t, seq FROM items WHERE seq > ? AND ${mineOnly} ORDER BY seq LIMIT ?`, Number(since) || 0, app ? `@${app}` : '@', PAGE + 1).toArray();
     const more = rows.length > PAGE;
     const page = rows.slice(0, PAGE);
     return {
@@ -234,8 +312,8 @@ export class Account extends DurableObject {
   }
 
   /** A one-hour link to set a new password; null when there is no such account. */
-  async startReset() {
-    if (!this.get('email')) return null;
+  async startReset(email) {
+    if (!this.get('email') || (email && email !== this.get('email'))) return null;
     this.sql.exec('DELETE FROM resets WHERE exp < ?', Date.now());
     if (this.sql.exec('SELECT COUNT(*) AS n FROM resets').one().n >= 3) return null; // three open links are plenty
     const secret = random(32);
@@ -326,22 +404,46 @@ function byToken(env, token) {
   }
 }
 
-async function sendReset(env, email, token) {
-  const link = `${env.SITE}/reset#${token}`;
+/** The page with the link: the shared account site, else this one. */
+const accountSite = (env) => env.ACCOUNT_SITE ?? env.SITE;
+const appName = (app) => APPS[app] ?? (app === 'brain' ? 'Chinese Brain' : null);
+
+async function mail(env, to, subject, lines, button) {
+  const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const text = [...lines, ...(button ? [`${button.label}: ${button.href}`] : []), '', 'cristianbagrin.com'].join('\n\n');
+  const p = (t) => `<p>${esc(t)}</p>`;
+  const html = `<div style="font:16px/1.6 -apple-system,Segoe UI,sans-serif;color:#1e1a18;max-width:480px">${p(lines[0])}${button ? `<p><a href="${button.href}" style="display:inline-block;padding:11px 20px;border-radius:8px;background:#1e1a18;color:#fff;font-weight:600;text-decoration:none">${esc(button.label)}</a></p>` : ''}${lines.slice(1).map((l) => `<p style="color:#5e5650;font-size:14px">${esc(l)}</p>`).join('')}<p style="color:#5e5650;font-size:14px"><a href="https://cristianbagrin.com" style="color:#5e5650">cristianbagrin.com</a></p></div>`;
   const res = await fetch(env.MAIL_API ?? 'https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: env.MAIL_FROM,
-      to: [email],
-      reply_to: env.SUPPORT,
-      subject: 'Reset your Chinese Brain password',
-      text: `Someone asked to reset the password for your Chinese Brain account.\n\nSet a new one here (the link works for one hour):\n${link}\n\nIf that wasn't you, ignore this email: your password stays as it is.\n\nChinese Brain 中文腦`,
-      html: `<div style="font:16px/1.6 -apple-system,Segoe UI,sans-serif;color:#1e1a18;max-width:480px"><p>Someone asked to reset the password for your Chinese Brain account.</p><p><a href="${link}" style="display:inline-block;padding:11px 20px;border-radius:8px;background:#c8102e;color:#fff;font-weight:600;text-decoration:none">Set a new password</a></p><p style="color:#5e5650;font-size:14px">The link works for one hour. If that wasn’t you, ignore this email: your password stays as it is.</p><p style="color:#5e5650;font-size:14px">Chinese Brain 中文腦</p></div>`,
-    }),
+    body: JSON.stringify({ from: env.MAIL_FROM, to: [to], reply_to: env.SUPPORT, subject, text, html }),
   });
-  if (!res.ok) console.error('reset email failed', res.status, await res.text());
+  if (!res.ok) console.error('email failed', subject, res.status, await res.text());
   return res.ok;
+}
+
+const sendReset = (env, email, token, app) =>
+  mail(env, email, 'Reset your password', [`Someone asked to reset the password for your account${appName(app) ? ` (used in ${appName(app)})` : ''}.`, 'The link works for one hour. If that wasn’t you, ignore this email: your password stays as it is.'], { label: 'Set a new password', href: `${accountSite(env)}/reset#${token}` });
+
+const sendEmailConfirm = (env, email, token) =>
+  mail(env, email, 'Confirm your new email', ['Confirm this address to make it your account’s email. You’ll sign in with it from then on, in every app.', 'The link works for one day. If you didn’t ask for this, ignore this email: nothing changes.'], { label: 'Confirm my new email', href: `${accountSite(env)}/account#confirm=${token}` });
+
+const sendEmailChanged = (env, old, next) =>
+  mail(env, old, 'Your account email changed', [`Your account now uses ${next}. This address no longer signs in.`, `If you didn’t do this, write to ${env.SUPPORT} right away.`]);
+
+/** The account an email signs in to: its own database, or the account it was moved to. */
+async function byEmail(env, email) {
+  const own = env.ACCOUNT.get(env.ACCOUNT.idFromName(email));
+  const alias = await own.alias();
+  return alias ? env.ACCOUNT.get(env.ACCOUNT.idFromString(alias)) : own;
+}
+
+/** `app` from a request: one of APPS, or '' for Chinese Brain. */
+function appOf(v) {
+  const app = String(v ?? '');
+  if (app === '' || app === 'brain') return '';
+  if (!Object.hasOwn(APPS, app)) throw new Fail(400, 'app', 'Unknown app.');
+  return app;
 }
 
 async function api(request, env, path) {
@@ -371,15 +473,15 @@ async function api(request, env, path) {
       const email = String(body.email ?? '').trim().toLowerCase();
       if (!EMAIL.test(email)) throw new Fail(400, 'email', 'That doesn’t look like an email address.');
       await limit(env, request, 'login', 30, 600_000);
-      return env.ACCOUNT.get(env.ACCOUNT.idFromName(email)).login(String(body.password ?? ''));
+      return (await byEmail(env, email)).login(String(body.password ?? ''), email);
     }
     case 'POST forgot': {
       const email = String(body.email ?? '').trim().toLowerCase();
       if (!EMAIL.test(email)) throw new Fail(400, 'email', 'That doesn’t look like an email address.');
       if (!env.RESEND_API_KEY) throw new Fail(503, 'email_off', `Password reset by email isn’t available right now. Write to ${env.SUPPORT} and we’ll sort it out.`);
       await limit(env, request, 'forgot', 5, 3_600_000);
-      const reset = await env.ACCOUNT.get(env.ACCOUNT.idFromName(email)).startReset();
-      if (reset && !(await sendReset(env, reset.email, reset.token))) {
+      const reset = await (await byEmail(env, email)).startReset(email);
+      if (reset && !(await sendReset(env, reset.email, reset.token, String(body.app ?? '')))) {
         throw new Fail(502, 'email_failed', `We couldn’t send the email just now. Try again in a few minutes, or write to ${env.SUPPORT}.`);
       }
       return { ok: true }; // the same answer whether or not the account exists
@@ -402,7 +504,29 @@ async function api(request, env, path) {
     case 'GET me':
       return authed('me');
     case 'GET export':
-      return authed('export');
+      return authed('export', new URL(request.url).searchParams.has('app') ? appOf(new URL(request.url).searchParams.get('app')) : undefined);
+    case 'POST email': {
+      const email = String(body.email ?? '').trim().toLowerCase();
+      if (!EMAIL.test(email)) throw new Fail(400, 'email', 'That doesn’t look like an email address.');
+      if (!env.RESEND_API_KEY) throw new Fail(503, 'email_off', `Changing your email isn’t available right now. Write to ${env.SUPPORT} and we’ll sort it out.`);
+      await limit(env, request, 'email', 5, 3_600_000);
+      const out = await authed('email', String(body.password ?? ''), email);
+      if (out?.fail) return out;
+      if (!(await sendEmailConfirm(env, out.email, out.token))) throw new Fail(502, 'email_failed', `We couldn’t send the email just now. Try again in a few minutes, or write to ${env.SUPPORT}.`);
+      return { ok: true, email: out.email };
+    }
+    case 'POST email/confirm': {
+      let link;
+      try {
+        link = byToken(env, body.token);
+      } catch {
+        throw new Fail(400, 'expired', 'This link has expired or was already used. Ask for a new one on your account page.');
+      }
+      const out = await link.account.finishEmail(link.secret);
+      if (out?.fail) return out;
+      await sendEmailChanged(env, out.old, out.email);
+      return { ok: true, email: out.email };
+    }
     case 'POST logout':
       return authed('logout');
     case 'POST password': {
@@ -412,7 +536,7 @@ async function api(request, env, path) {
     case 'POST delete':
       return authed('remove', String(body.password ?? ''));
     case 'POST sync':
-      return authed('sync', body.since, Array.isArray(body.changes) ? body.changes.slice(0, 2000) : []);
+      return authed('sync', body.since, Array.isArray(body.changes) ? body.changes.slice(0, 2000) : [], appOf(body.app));
   }
   throw new Fail(404, 'not_found', 'Not found.');
 }
@@ -437,6 +561,8 @@ export default {
     }
     // The front page and the addresses that moved (see run_worker_first in wrangler.jsonc).
     const path = url.pathname.replace(/\/$/, '');
+    // account.cristianbagrin.com: the account pages for every app.
+    if (url.hostname.startsWith('account.') && path === '') return env.ASSETS.fetch(new Request(`${url.origin}/account${url.search}`, request));
     // chinesebrain.cristianbagrin.com is the short address of the extension's pages.
     const short = url.hostname.startsWith('chinesebrain.');
     if (short || MOVED[path]) {
