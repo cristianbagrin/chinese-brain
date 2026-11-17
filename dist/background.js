@@ -744,7 +744,7 @@
   var API = "https://generativelanguage.googleapis.com/v1beta";
   var mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
   function subtitlePrompt(clip) {
-    return `You are subtitling a YouTube video for someone learning Taiwan Mandarin.
+    return `You are subtitling a YouTube video for someone learning Taiwanese Chinese.
 ${clip ? `Only handle the part of the video from ${mmss(clip.start)} to ${mmss(clip.end)}.
 ` : ""}Listen to everything that is said and write subtitle lines:
 - Split at natural pauses: one phrase per line, about 1 to 5 seconds, at most about 18 Chinese characters.

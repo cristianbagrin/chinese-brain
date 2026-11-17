@@ -1,6 +1,6 @@
 # Example sentences: writing brief
 
-You are writing example sentences for a Taiwan Mandarin learner's pop-up
+You are writing example sentences for a Taiwanese Chinese learner's pop-up
 dictionary. The learner lives the Taiwan variety: Traditional characters,
 Taiwan vocabulary and Taiwan speech habits. Every sentence must sound like
 something a Taiwanese person would naturally say or write today.

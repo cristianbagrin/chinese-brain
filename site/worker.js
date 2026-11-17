@@ -547,7 +547,7 @@ async function api(request, env, path) {
 /** The extension's store pages. The pages link to /brain/firefox and /brain/chrome, so each address lives only here. */
 const STORES = {
   firefox: 'https://addons.mozilla.org/firefox/addon/chinesebrain/',
-  chrome: 'https://chromewebstore.google.com/detail/chinese-brain/CHROME_ID_PLACEHOLDER',
+  chrome: 'https://chromewebstore.google.com/detail/chinese-brain/pdhgpdlkjdkehlpoomonehbnhiplgaao',
 };
 
 /** Addresses from before the extension's pages moved under /brain. */

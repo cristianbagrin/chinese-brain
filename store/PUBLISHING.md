@@ -181,7 +181,7 @@ Since 1.5.0 (optional accounts) the stores' data questions have new answers:
 These are the store notes: every change. The website's What's new page
 (`site/public/brain/whats-new.html`) is written by hand from them: only what a reader would notice.
 
-1.7.0 (November 16, 2026):
+1.7.0 (November 17, 2026):
 
 ```
 • One word list, on the website: Word list opens chinese.cristianbagrin.com/brain/dashboard. With the extension it reads the list straight from your browser: no account, nothing uploaded. Signed in, it works on any device too.
@@ -189,6 +189,8 @@ These are the store notes: every change. The website's What's new page
 • Download new, from the toolbar menu: what you stamped since your last download, as a file for Anki or a spreadsheet.
 • How it works, rebuilt: try the card, the stamps and a selection right on the page (a demo, if the extension isn't installed yet), and drive a small YouTube player with A S D R E.
 • Backup and restore moved to Settings.
+• Settings, redesigned: a sidebar with one section at a time, clear switches and pickers, larger text, and help on hover.
+• Your account is now shared with Chris's other apps (At Peace, Money in Order, Ten Dollar Words), and you can change its email at account.cristianbagrin.com.
 ```
 
 1.6.0 (November 15, 2026):

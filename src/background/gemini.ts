@@ -2,7 +2,7 @@
  * Optional Gemini features, with the user's own key:
  * - subtitling YouTube videos that have no Chinese captions (opt-in per video, cached so
  *   a video is never sent twice). Mandarin is transcribed; any other language is
- *   translated into Taiwan Mandarin;
+ *   translated into Taiwanese Chinese;
  * - writing example sentences for words the bundled list doesn't cover (on request, cached).
  *
  * Google's servers answer 503 ("high demand") now and then. Every call retries once
@@ -31,7 +31,7 @@ const CHUNK = 300;
 const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 function subtitlePrompt(clip?: { start: number; end: number }) {
-  return `You are subtitling a YouTube video for someone learning Taiwan Mandarin.
+  return `You are subtitling a YouTube video for someone learning Taiwanese Chinese.
 ${clip ? `Only handle the part of the video from ${mmss(clip.start)} to ${mmss(clip.end)}.\n` : ''}Listen to everything that is said and write subtitle lines:
 - Split at natural pauses: one phrase per line, about 1 to 5 seconds, at most about 18 Chinese characters.
 - "start" and "end": when the line is spoken, as MM:SS.s (for example 01:23.4), counted from the start of the full video. Follow the audio closely.
