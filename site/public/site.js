@@ -186,7 +186,7 @@
   function bars(n) {
     let b = h("span", "bars");
     for (let i = 1; i <= 5; i++) b.append(h("i", i <= n ? "on" : ""));
-    return h("span", "freq", b, ["", "rare", "uncommon", "useful", "common", "essential"][n]);
+    return h("span", "freq", b, ["", "rare", "less common", "common", "very common", "essential"][n]);
   }
   function render() {
     if (!current) return;
@@ -232,12 +232,15 @@
     if (clearTimeout(hideTimer), !(current?.word === word && current.at === at && !card.hidden)) {
       current = { word, phrase, at }, render(), card.hidden = !1, card.classList.remove("in"), card.offsetWidth, card.classList.add("in"), place();
       for (let el of $$(".w.on")) el.classList.remove("on");
-      at instanceof HTMLElement && at.classList.add("on"), did(phrase ? "select" : "card");
+      at instanceof HTMLElement && at.classList.add("on");
+      for (let sim of $$(".ytsim")) sim.classList.toggle("held", at instanceof HTMLElement && sim.contains(at));
+      did(phrase ? "select" : "card");
     }
   }
   function hide() {
     card.hidden = !0, current = void 0;
     for (let el of $$(".w.on")) el.classList.remove("on");
+    for (let sim of $$(".ytsim.held")) sim.classList.remove("held");
   }
   var hideSoon = (ms = 220) => {
     clearTimeout(hideTimer), hideTimer = window.setTimeout(hide, ms);
@@ -246,16 +249,16 @@
     if (!current || current.phrase) return;
     let { word } = current, next = s && stamps.get(word) === s ? null : s;
     if (next !== (stamps.get(word) ?? null)) {
-      next ? stamps.set(word, next) : stamps.delete(word), playStamp(next);
+      stamps.delete(word), next && stamps.set(word, next), playStamp(next);
       for (let el of $$(`.w[data-w="${word}"]`))
         el.classList.remove("st-fresh", "st-learning", "st-known"), next && el.classList.add(`st-${next}`);
-      render(), card.querySelector(`.seal.${next}`)?.classList.add("press"), next && did("stamp");
+      render(), card.querySelector(`.seal.${next}`)?.classList.add("press"), mine(), next && did("stamp");
     }
   }
-  var demos = $$("[data-demo]");
+  var later = $$("[data-more]"), demos = $$("[data-demo]");
   if (demos.length) {
     document.body.append(card);
-    for (let d of demos) segment(d);
+    for (let d of demos) d.closest("[data-more]") || segment(d);
     let touch = matchMedia("(hover: none)").matches;
     document.addEventListener("mouseover", (e) => {
       if (ext() || touch) return;
@@ -264,7 +267,7 @@
     }), document.addEventListener("click", (e) => {
       if (ext()) return;
       let w = e.target.closest?.("[data-demo] .w");
-      w && touch ? show(w.dataset.w, w) : !card.contains(e.target) && current && (touch || current.phrase) && hide();
+      w && touch ? show(w.dataset.w, w) : !e.composedPath().includes(card) && current && (touch || current.phrase) && hide();
     }), document.addEventListener("keydown", (e) => {
       if (ext() || e.ctrlKey || e.metaKey || e.target.closest?.("input, textarea, select")) return;
       if (e.key === "Escape") return hide();
@@ -288,9 +291,10 @@
     b.addEventListener("click", () => {
       playStamp(b.dataset.sound), b.classList.add("press"), setTimeout(() => b.classList.remove("press"), 160);
     });
-  for (let sim of $$(".ytsim")) {
+  function player(sim) {
     let lines = $$(".script li", sim), zh = sim.querySelector(".band .zh"), en = sim.querySelector(".band .en"), bar = sim.querySelector(".bar"), at = 0, loop = !1, go = (i, flash) => {
-      if (at = (i + lines.length) % lines.length, zh.textContent = lines[at].dataset.zh, en.textContent = lines[at].dataset.en, segment(zh), lines.forEach((l, j) => l.classList.toggle("now", j === at)), bar.classList.remove("run"), bar.offsetWidth, bar.classList.add("run"), flash) {
+      if (at = (i + lines.length) % lines.length, zh.textContent = lines[at].dataset.zh, en.textContent = lines[at].dataset.en, segment(zh), sim.hasAttribute("data-pinyin")) for (let w of $$(".w", zh)) w.replaceChildren(h("ruby", null, w.dataset.w, h("rt", null, WORDS[w.dataset.w][0])));
+      if (lines.forEach((l, j) => l.classList.toggle("now", j === at)), bar.classList.remove("run"), bar.offsetWidth, bar.classList.add("run"), flash) {
         let k = sim.querySelector(`[data-k="${flash}"]`);
         k?.classList.remove("hit"), k?.offsetWidth, k?.classList.add("hit");
       }
@@ -304,6 +308,8 @@
       else if (k === "d") go(at + 1, k);
       else if (k === "r")
         loop = !loop, sim.classList.toggle("loop", loop), go(at, k);
+      else if (k === "p" || k === "x")
+        sim.classList.toggle(k === "p" ? "nopy" : "noen");
       else if (k === "e")
         sim.classList.toggle("script-on"), go(at, k);
       else return !1;
@@ -316,4 +322,102 @@
       r.bottom < 0 || r.top > innerHeight || act(e.key.toLowerCase()) && e.preventDefault();
     }), go(0);
   }
+  for (let sim of $$(".ytsim")) sim.closest("[data-more]") || player(sim);
+  if (later.length) {
+    let asked = !1, io = new IntersectionObserver((seen) => seen.some((e) => e.isIntersecting) && load(), { rootMargin: "600px 0px" }), load = () => {
+      asked || (asked = !0, io.disconnect(), fetch("/brain/demo.json").then((r) => r.json()).then((data) => {
+        var _a, _b;
+        for (let [w, v] of Object.entries(data.words)) (_a = WORDS)[w] ?? (_a[w] = v);
+        for (let [k, v] of Object.entries(data.phrases)) (_b = PHRASES)[k] ?? (_b[k] = v);
+        LONGEST = Math.max(...Object.keys(WORDS).map((w) => w.length));
+        for (let sec of later) {
+          for (let d of $$("[data-demo]", sec)) d.closest(".ytsim") || segment(d);
+          for (let sim of $$(".ytsim", sec)) player(sim);
+        }
+      }).catch(() => asked = !1));
+    };
+    for (let sec of later)
+      io.observe(sec), sec.addEventListener("pointerenter", load, { once: !0 });
+  }
+  function mine() {
+    for (let box of $$(".yours")) {
+      for (let [s] of STAMPS) box.querySelector(`[data-n="${s}"]`).textContent = String([...stamps.values()].filter((v) => v === s).length);
+      box.querySelector(".mylist").replaceChildren(
+        ...[...stamps].reverse().map(([w, s]) => {
+          let el = h("span", `w st-${s}`, w);
+          el.dataset.w = w;
+          let [py, en] = WORDS[w] ?? ["", ""], meaning = h("span", "en", en);
+          return meaning.lang = "en", h("li", null, el, h("span", "py", py), meaning);
+        })
+      ), box.classList.toggle("some", stamps.size > 0);
+    }
+  }
+  var ua = navigator.userAgent, phone = /Mobi|Android|iPhone|iPad/.test(ua) || navigator.maxTouchPoints > 1 && /Macintosh/.test(ua), browser = phone ? "" : /Firefox\//.test(ua) ? "firefox" : /Chrome\/|Chromium\/|Edg\//.test(ua) ? "chrome" : "";
+  if (browser)
+    for (let box of $$("[data-stores]")) {
+      let first = box.querySelector(`[data-store="${browser}"]`);
+      if (!first) continue;
+      box.prepend(first);
+      let [one, two] = box.dataset.stores === "quiet" ? ["btn secondary", "btn quiet"] : ["btn primary", "btn secondary"];
+      for (let b of $$("[data-store]", box)) b.className = b === first ? one : two;
+    }
+  var stored = (k) => {
+    try {
+      return localStorage.getItem(k) ?? "";
+    } catch {
+      return "";
+    }
+  }, forget = () => {
+    try {
+      localStorage.removeItem("cb-token"), localStorage.removeItem("cb-email");
+    } catch {
+    }
+  }, corner = document.querySelector("[data-account]"), accountHost = location.hostname.startsWith("account."), menu;
+  async function who() {
+    let token = stored("cb-token");
+    if (!token) return "";
+    let email = stored("cb-email");
+    if (email) return email;
+    try {
+      let res = await fetch("/api/me", { headers: { Authorization: `Bearer ${token}` } });
+      if (res.status === 401 && forget(), !res.ok) return "";
+      let me = await res.json();
+      return localStorage.setItem("cb-email", me.email), me.email;
+    } catch {
+      return "";
+    }
+  }
+  function link(text, href) {
+    let a = h("a", null, text);
+    return a.href = href, a;
+  }
+  async function drawCorner() {
+    if (!corner) return;
+    let email = await who();
+    menu?.remove(), menu = void 0;
+    let here = location.pathname.replace(/\/$/, "") || "/";
+    if (!email) {
+      corner.hidden = accountHost || here === "/account" || here === "/reset", here.startsWith("/brain") && (corner.href = `/account?next=${encodeURIComponent(here)}`);
+      return;
+    }
+    corner.hidden = !0;
+    let out = h("button", "out", "Sign out");
+    out.type = "button", out.addEventListener("click", async () => {
+      out.disabled = !0, await fetch("/api/logout", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${stored("cb-token")}` }, body: "{}" }).catch(() => {
+      }), forget(), location.reload();
+    });
+    let face = h("span", "initial", email[0].toUpperCase());
+    face.setAttribute("aria-hidden", "true");
+    let summary = h("summary", null, face);
+    summary.title = email, summary.setAttribute("aria-label", `Signed in as ${email}`);
+    let words = link("Your words", accountHost ? "https://chinese.cristianbagrin.com/brain/dashboard" : "/brain/dashboard");
+    menu = h("details", "me", summary, h("div", "menu", h("p", "who", email), words, link("Account", "/account"), out)), corner.after(menu);
+  }
+  corner && (drawCorner(), addEventListener("cb-account", () => void drawCorner()), addEventListener("storage", (e) => {
+    (e.key === "cb-token" || e.key === "cb-email") && drawCorner();
+  }), document.addEventListener("click", (e) => {
+    menu && !menu.contains(e.target) && menu.removeAttribute("open");
+  }), document.addEventListener("keydown", (e) => {
+    e.key === "Escape" && menu?.removeAttribute("open");
+  }));
 })();

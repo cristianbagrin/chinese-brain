@@ -18,17 +18,17 @@
 <body>
 <header><div class="wrap">
   <a class="home" href="/brain"><img src="/icon.png" alt="">Chinese Brain</a>
-  <nav><a href="/brain/guide">How it works</a><a href="/brain/whats-new">What's new</a><a href="/brain/dashboard">Your words</a><a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain%20feedback">Feedback</a></nav>
+  <nav><a href="/brain/guide">How it works</a><a href="/brain/whats-new">What's new</a><a href="/brain/dashboard">Your words</a><a class="signin" href="/account" data-account>Sign in</a></nav>
 </div></header>
 <main class="wrap">
   <section class="hero">
     <h1>Learn <span>Taiwanese Chinese</span> while you read and watch</h1>
     <p>Hover any word. Stamp what you know. Watch YouTube with two subtitles.</p>
-    <div class="buttons">
-      <a class="btn primary" href="https://addons.mozilla.org/firefox/addon/chinesebrain/">Add to Firefox</a>
-      <span class="btn secondary" aria-disabled="true" title="Waiting for the Chrome Web Store">Chrome: in review</span>
+    <div class="buttons" data-stores>
+      <a class="btn primary" data-store="firefox" href="/brain/firefox">Add to Firefox</a>
+      <a class="btn primary" data-store="chrome" href="/brain/chrome">Add to Chrome</a>
     </div>
-    <p class="fine">Free. No account needed.</p>
+    <p class="fine">Free for desktop Firefox and Chrome. No account needed.</p>
   </section>
   <section class="play" aria-label="Try it">
     <span class="mode" data-noext>Try it</span>
@@ -40,30 +40,76 @@
     <img src="/brain/video.jpg" width="1280" height="720" alt="">
     <span class="playicon" aria-hidden="true"></span>
   </button>
-  <section class="split">
-    <div><h2>Every word, explained</h2><p>Taiwan pinyin, meaning, parts and two example sentences you can read. Press <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> to stamp it.</p></div>
-    <img src="/brain/card.png" width="1280" height="800" alt="The word card over a Chinese web page">
+
+  <section class="stage" data-more>
+    <div class="intro">
+      <h2>YouTube, line by line</h2>
+      <p>Chinese, pinyin and English together. <span class="mouse">Hover a word and the video waits.</span><span class="touch">Tap a word and the video waits.</span></p>
+    </div>
+    <div class="ytsim tv" data-pinyin>
+      <div class="screen">
+        <span class="badge pause" aria-hidden="true">❚❚</span>
+        <span class="badge loopon" aria-hidden="true">⟲ loop</span>
+        <div class="band"><p class="zh" lang="zh-Hant" data-demo>夜市每到週末就特別熱鬧。</p><p class="en">The night market is especially lively every weekend.</p></div>
+        <div class="track"><div class="bar"></div></div>
+      </div>
+      <ol class="script" lang="zh-Hant">
+        <li data-zh="夜市每到週末就特別熱鬧。" data-en="The night market is especially lively every weekend.">夜市每到週末就特別熱鬧。</li>
+        <li data-zh="老闆，我要一份滷肉飯。" data-en="Boss, I&#39;ll have an order of braised pork rice.">老闆，我要一份滷肉飯。</li>
+        <li data-zh="我要一杯珍珠奶茶。" data-en="I&#39;d like a bubble tea.">我要一杯珍珠奶茶。</li>
+        <li data-zh="這家店既便宜又好吃。" data-en="This place is both cheap and tasty.">這家店既便宜又好吃。</li>
+        <li data-zh="好呀，那我們週末見！" data-en="Sure, see you this weekend!">好呀，那我們週末見！</li>
+      </ol>
+      <div class="ytkeys">
+        <button type="button" data-k="a"><kbd>A</kbd>back</button>
+        <button type="button" data-k="s"><kbd>S</kbd>again</button>
+        <button type="button" data-k="d"><kbd>D</kbd>next</button>
+        <button type="button" data-k="r"><kbd>R</kbd>loop</button>
+        <button type="button" data-k="p"><kbd>P</kbd>pinyin</button>
+        <button type="button" data-k="x"><kbd>X</kbd>English</button>
+        <button type="button" data-k="e"><kbd>E</kbd>transcript</button>
+      </div>
+    </div>
   </section>
-  <section class="split flip">
-    <div><h2>YouTube, line by line</h2><p>Chinese and English together. Hover a word and the video waits. No captions? Gemini writes them.</p></div>
-    <img src="/brain/youtube.png" width="1280" height="800" alt="A YouTube video with Chinese and English subtitles and the word card">
+
+  <section class="stage" data-more>
+    <div class="intro">
+      <h2>Stamp it once, see it everywhere</h2>
+      <p>A word you stamp takes its color on every page you read, and lands in your list.</p>
+    </div>
+    <div class="mine">
+      <article class="page" lang="zh-Hant" data-demo>
+        <h3>週末去哪裡？</h3>
+        <p><span data-en="There&#39;s a get-together with friends this weekend.">週末有朋友聚會。</span><span data-en="Spending at the night market is much cheaper than at restaurants.">夜市的消費比餐廳便宜多了。</span><span data-en="The snacks at this place are delicious.">這家的小吃很好吃。</span><span data-en="Pick up a coffee on the way.">順便買杯咖啡。</span></p>
+      </article>
+      <aside class="yours" aria-label="Your words">
+        <div class="piles" lang="zh-Hant"><span><b class="seal fresh">新</b><i data-n="fresh">0</i></span><span><b class="seal learning">學</b><i data-n="learning">0</i></span><span><b class="seal known">熟</b><i data-n="known">0</i></span></div>
+        <ol class="mylist" lang="zh-Hant" aria-live="polite"></ol>
+        <p class="empty"><span class="mouse">Hover a word, press <kbd>1</kbd> <kbd>2</kbd> or <kbd>3</kbd>.</span><span class="touch">Tap a word, then a stamp.</span> It lands here.</p>
+      </aside>
+    </div>
   </section>
+
   <section class="features">
-    <div class="feature"><h3>One word list</h3><p>Everything you stamped, colored on every page you read.</p></div>
+    <div class="feature"><h3>No subtitles?</h3><p>Gemini writes them, with your free key.</p></div>
     <div class="feature"><h3>Practice with AI</h3><p>One click turns your list into a story and a quiz for any chatbot.</p></div>
-    <div class="feature"><h3>Yours everywhere</h3><p>A free account syncs your words across browsers.</p></div>
+    <div class="feature"><h3>Yours everywhere</h3><p>A free account syncs your words across browsers and your phone.</p></div>
   </section>
   <section class="cta">
     <h2>Start with the next thing you read.</h2>
-    <a class="btn primary" href="https://addons.mozilla.org/firefox/addon/chinesebrain/">Add to Firefox</a>
+    <div class="buttons" data-stores>
+      <a class="btn primary" data-store="firefox" href="/brain/firefox">Add to Firefox</a>
+      <a class="btn primary" data-store="chrome" href="/brain/chrome">Add to Chrome</a>
+    </div>
   </section>
-  <a class="maker-card" href="https://cristianbagrin.com"><img src="/brain/chris.webp" width="64" height="64" alt=""><span>Made by <b>Chris 思紀</b><small>From Moldova, living in Taiwan</small></span><i aria-hidden="true">→</i></a>
+  <a class="maker-card" href="https://cristianbagrin.com"><img class="face" src="/chris.webp" width="64" height="64" alt=""><span>Made by <b>Chris 思紀</b><small>From Moldova, living in Taiwan</small></span><i aria-hidden="true">→</i></a>
 </main>
 <footer><div class="wrap">
-  <span>© 2026 <a class="maker" href="https://cristianbagrin.com" title="Who made this">Cristian Bagrin</a></span>
+  <a class="maker" href="https://cristianbagrin.com"><img class="face" src="/chris.webp" width="36" height="36" alt=""><span>Made by Cristian Bagrin</span></a>
+  <a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain%20feedback">Feedback</a>
   <a href="/brain/privacy">Privacy</a>
   <a href="/account">Account</a>
-  <a href="mailto:chris@cristianbagrin.com?subject=Chinese%20Brain%20feedback">chris@cristianbagrin.com</a>
+  <span class="year">© 2026</span>
 </div></footer>
 <script src="/site.js"></script>
 </body>

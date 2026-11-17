@@ -75,7 +75,7 @@ const STAMPS: [Status, string, string][] = [
   ['known', '熟', '3'],
 ];
 const stamps = new Map<string, Status>();
-const LONGEST = Math.max(...Object.keys(WORDS).map((w) => w.length));
+let LONGEST = Math.max(...Object.keys(WORDS).map((w) => w.length));
 
 /** Wrap the demo's known words in spans, longest first, like the extension finds them. */
 function segment(el: Element) {
@@ -126,7 +126,7 @@ function say(text: string) {
 function bars(n: number) {
   const b = h('span', 'bars');
   for (let i = 1; i <= 5; i++) b.append(h('i', i <= n ? 'on' : ''));
-  return h('span', 'freq', b, ['', 'rare', 'uncommon', 'useful', 'common', 'essential'][n]);
+  return h('span', 'freq', b, ['', 'rare', 'less common', 'common', 'very common', 'essential'][n]);
 }
 
 function render() {
@@ -200,6 +200,8 @@ function show(word: string, at: HTMLElement | DOMRect, phrase = false) {
   place();
   for (const el of $$('.w.on')) el.classList.remove('on');
   if (at instanceof HTMLElement) at.classList.add('on');
+  // A word open in the little player holds the line, like the extension pauses the video.
+  for (const sim of $$('.ytsim')) sim.classList.toggle('held', at instanceof HTMLElement && sim.contains(at));
   did(phrase ? 'select' : 'card');
 }
 
@@ -207,6 +209,7 @@ function hide() {
   card.hidden = true;
   current = undefined;
   for (const el of $$('.w.on')) el.classList.remove('on');
+  for (const sim of $$('.ytsim.held')) sim.classList.remove('held');
 }
 const hideSoon = (ms = 220) => {
   clearTimeout(hideTimer);
@@ -218,8 +221,8 @@ function stamp(s: Status | null) {
   const { word } = current;
   const next = s && stamps.get(word) === s ? null : s;
   if (next === (stamps.get(word) ?? null)) return;
+  stamps.delete(word); // a new stamp goes to the top of the list
   if (next) stamps.set(word, next);
-  else stamps.delete(word);
   playStamp(next);
   // Every copy of the word on the page takes the color, like the extension's page colors.
   for (const el of $$(`.w[data-w="${word}"]`)) {
@@ -228,13 +231,17 @@ function stamp(s: Status | null) {
   }
   render();
   card.querySelector(`.seal.${next}`)?.classList.add('press');
+  mine();
   if (next) did('stamp');
 }
 
+// The home page's player and paragraph use the real dictionary's words (brain/demo.json, made by
+// the build), loaded when they come near the screen.
+const later = $$('[data-more]');
 const demos = $$('[data-demo]');
 if (demos.length) {
   document.body.append(card);
-  for (const d of demos) segment(d);
+  for (const d of demos) if (!d.closest('[data-more]')) segment(d);
   const touch = matchMedia('(hover: none)').matches;
   document.addEventListener('mouseover', (e) => {
     if (ext() || touch) return;
@@ -247,7 +254,8 @@ if (demos.length) {
     if (ext()) return;
     const w = (e.target as Element).closest?.<HTMLElement>('[data-demo] .w');
     if (w && touch) show(w.dataset.w!, w);
-    else if (!card.contains(e.target as Node) && current && (touch || current.phrase)) hide();
+    // The path, not the target: a stamp redraws the card, so the button tapped is gone by now.
+    else if (!e.composedPath().includes(card) && current && (touch || current.phrase)) hide();
   });
   document.addEventListener('keydown', (e) => {
     if (ext() || e.ctrlKey || e.metaKey || (e.target as Element).closest?.('input, textarea, select')) return;
@@ -285,7 +293,7 @@ for (const b of $$<HTMLButtonElement>('[data-sound]')) {
 
 // ---------- YouTube, line by line (the guide's little player) ----------
 
-for (const sim of $$('.ytsim')) {
+function player(sim: HTMLElement) {
   const lines = $$('.script li', sim);
   const zh = sim.querySelector<HTMLElement>('.band .zh')!;
   const en = sim.querySelector<HTMLElement>('.band .en')!;
@@ -297,6 +305,7 @@ for (const sim of $$('.ytsim')) {
     zh.textContent = lines[at].dataset.zh!;
     en.textContent = lines[at].dataset.en!;
     segment(zh);
+    if (sim.hasAttribute('data-pinyin')) for (const w of $$('.w', zh)) w.replaceChildren(h('ruby', null, w.dataset.w!, h('rt', null, WORDS[w.dataset.w!][0])));
     lines.forEach((l, j) => l.classList.toggle('now', j === at));
     bar.classList.remove('run');
     void bar.offsetWidth;
@@ -321,6 +330,8 @@ for (const sim of $$('.ytsim')) {
       loop = !loop;
       sim.classList.toggle('loop', loop);
       go(at, k);
+    } else if (k === 'p' || k === 'x') {
+      sim.classList.toggle(k === 'p' ? 'nopy' : 'noen');
     } else if (k === 'e') {
       sim.classList.toggle('script-on');
       go(at, k);
@@ -336,4 +347,160 @@ for (const sim of $$('.ytsim')) {
     if (act(e.key.toLowerCase())) e.preventDefault();
   });
   go(0);
+}
+for (const sim of $$('.ytsim')) if (!sim.closest('[data-more]')) player(sim);
+
+
+if (later.length) {
+  let asked = false;
+  const io = new IntersectionObserver((seen) => seen.some((e) => e.isIntersecting) && load(), { rootMargin: '600px 0px' });
+  const load = () => {
+    if (asked) return;
+    asked = true;
+    io.disconnect();
+    fetch('/brain/demo.json')
+      .then((r) => r.json())
+      .then((data: { words: typeof WORDS; phrases: typeof PHRASES }) => {
+        // The hand-picked words of the first sentence stay as they are.
+        for (const [w, v] of Object.entries(data.words)) WORDS[w] ??= v;
+        for (const [k, v] of Object.entries(data.phrases)) PHRASES[k] ??= v;
+        LONGEST = Math.max(...Object.keys(WORDS).map((w) => w.length));
+        for (const sec of later) {
+          for (const d of $$('[data-demo]', sec)) if (!d.closest('.ytsim')) segment(d);
+          for (const sim of $$('.ytsim', sec)) player(sim);
+        }
+      })
+      .catch(() => (asked = false));
+  };
+  for (const sec of later) {
+    io.observe(sec);
+    sec.addEventListener('pointerenter', load, { once: true });
+  }
+}
+
+// ---------- Your words, filling as you stamp (home) ----------
+
+function mine() {
+  for (const box of $$('.yours')) {
+    for (const [s] of STAMPS) box.querySelector(`[data-n="${s}"]`)!.textContent = String([...stamps.values()].filter((v) => v === s).length);
+    box.querySelector('.mylist')!.replaceChildren(
+      ...[...stamps].reverse().map(([w, s]) => {
+        const el = h('span', `w st-${s}`, w);
+        el.dataset.w = w;
+        const [py, en] = WORDS[w] ?? ['', ''];
+        const meaning = h('span', 'en', en);
+        meaning.lang = 'en';
+        return h('li', null, el, h('span', 'py', py), meaning);
+      }),
+    );
+    box.classList.toggle('some', stamps.size > 0);
+  }
+}
+
+// ---------- The store for this browser ----------
+// Firefox (and Zen, LibreWolf…) or Chrome (and Edge, Brave, Arc, Opera, Vivaldi): its store first.
+// Anything else (Safari, a phone) keeps both, as the page has them without JavaScript.
+
+const ua = navigator.userAgent;
+const phone = /Mobi|Android|iPhone|iPad/.test(ua) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(ua));
+const browser = phone ? '' : /Firefox\//.test(ua) ? 'firefox' : /Chrome\/|Chromium\/|Edg\//.test(ua) ? 'chrome' : '';
+if (browser) {
+  for (const box of $$('[data-stores]')) {
+    const first = box.querySelector<HTMLElement>(`[data-store="${browser}"]`);
+    if (!first) continue;
+    box.prepend(first);
+    // Quiet: next to a more important button (Sign in on the word list).
+    const [one, two] = box.dataset.stores === 'quiet' ? ['btn secondary', 'btn quiet'] : ['btn primary', 'btn secondary'];
+    for (const b of $$('[data-store]', box)) b.className = b === first ? one : two;
+  }
+}
+
+// ---------- Signed in or not: the corner of the header ----------
+
+const stored = (k: string) => {
+  try {
+    return localStorage.getItem(k) ?? '';
+  } catch {
+    return '';
+  }
+};
+const forget = () => {
+  try {
+    localStorage.removeItem('cb-token');
+    localStorage.removeItem('cb-email');
+  } catch {
+    /* nothing kept */
+  }
+};
+const corner = document.querySelector<HTMLAnchorElement>('[data-account]');
+const accountHost = location.hostname.startsWith('account.');
+let menu: HTMLElement | undefined;
+
+/** The signed-in email: remembered by the account page, else asked once. */
+async function who() {
+  const token = stored('cb-token');
+  if (!token) return '';
+  const email = stored('cb-email');
+  if (email) return email;
+  try {
+    const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+    if (res.status === 401) forget();
+    if (!res.ok) return '';
+    const me = (await res.json()) as { email: string };
+    localStorage.setItem('cb-email', me.email);
+    return me.email;
+  } catch {
+    return '';
+  }
+}
+
+function link(text: string, href: string) {
+  const a = h('a', null, text) as HTMLAnchorElement;
+  a.href = href;
+  return a;
+}
+
+async function drawCorner() {
+  if (!corner) return;
+  const email = await who();
+  menu?.remove();
+  menu = undefined;
+  const here = location.pathname.replace(/\/$/, '') || '/';
+  if (!email) {
+    // On the sign-in page itself, the corner has nothing to add.
+    corner.hidden = accountHost || here === '/account' || here === '/reset';
+    if (here.startsWith('/brain')) corner.href = `/account?next=${encodeURIComponent(here)}`;
+    return;
+  }
+  corner.hidden = true;
+  const out = h('button', 'out', 'Sign out') as HTMLButtonElement;
+  out.type = 'button';
+  out.addEventListener('click', async () => {
+    out.disabled = true;
+    await fetch('/api/logout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${stored('cb-token')}` }, body: '{}' }).catch(() => {});
+    forget();
+    location.reload();
+  });
+  const face = h('span', 'initial', email[0].toUpperCase());
+  face.setAttribute('aria-hidden', 'true');
+  const summary = h('summary', null, face);
+  summary.title = email;
+  summary.setAttribute('aria-label', `Signed in as ${email}`);
+  const words = link('Your words', accountHost ? 'https://chinese.cristianbagrin.com/brain/dashboard' : '/brain/dashboard');
+  menu = h('details', 'me', summary, h('div', 'menu', h('p', 'who', email), words, link('Account', '/account'), out));
+  corner.after(menu);
+}
+
+if (corner) {
+  void drawCorner();
+  addEventListener('cb-account', () => void drawCorner());
+  addEventListener('storage', (e) => {
+    if (e.key === 'cb-token' || e.key === 'cb-email') void drawCorner();
+  });
+  document.addEventListener('click', (e) => {
+    if (menu && !menu.contains(e.target as Node)) menu.removeAttribute('open');
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') menu?.removeAttribute('open');
+  });
 }

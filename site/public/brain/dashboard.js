@@ -543,7 +543,7 @@
       else
         return $("loading").hidden = !0, void ($("welcome").hidden = !1);
     } catch (e) {
-      return e.code === "signed_out" ? (localStorage.removeItem("cb-token"), location.replace("/account?next=/brain/dashboard")) : void ($("loading").textContent = e instanceof Error ? e.message : "Something went wrong. Reload the page.");
+      return e.code === "signed_out" ? (localStorage.removeItem("cb-token"), location.replace("/account?next=/brain/dashboard")) : ($("loading").hidden = !0, $("troubleMsg").textContent = e instanceof Error ? e.message : "Something went wrong. Try again in a moment.", void ($("trouble").hidden = !1));
     }
     let f = location.hash.slice(1);
     ["all", "fresh", "learning", "known"].includes(f) && (filter = f), wire(), await load(), !location.hash && !words.some((w) => w.s === "fresh") && words.length && setFilter("all"), $("source").textContent = src.label, $("loading").hidden = !0, $("app").hidden = !1;

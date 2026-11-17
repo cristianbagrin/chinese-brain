@@ -3,14 +3,14 @@
 @font-face { font-family: 'CB Zh'; src: url('/fonts/zh-bold.woff2') format('woff2'); font-weight: 600 900; font-display: swap; unicode-range: U+4E2D, U+6587, U+8166, U+65B0, U+5B78, U+719F; }
 .dash {
   --red: #c8202f; --red-deep: #a3192a; --ink: #1e1a18; --ink2: #5e5650; --ink3: #958c85;
-  --paper: #fffdf9; --ground: #f6f2ed; --rule: #e9e1d7; --rule2: #d9cfc3; --grid: rgba(200, 32, 47, 0.2);
+  --paper: #fff; --ground: var(--page); --rule: #e9e1d7; --rule2: #d9cfc3; --grid: rgba(200, 32, 47, 0.2);
   --fresh: #ef2f42; --learning: #ffc81f; --known: #1fae4f;
   --fresh-ink: #d11e33; --learning-ink: #a87800; --known-ink: #138a3d;
   --ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --zh: 'CB Zh', 'Kaiti TC', 'BiauKai', 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', serif;
+  --zh: 'CB Zh', 'Kaiti TC', 'BiauKai', 'PingFang TC', 'Noto Sans TC', serif;
   max-width: 1080px; padding-top: 20px; padding-bottom: 64px; font-size: 15px; line-height: 1.5;
 }
-body:has(.dash) { background: #f6f2ed; }
+
 .dash :lang(zh-Hant) { font-family: var(--zh), var(--ui); }
 .dash button, .dash select, .dash input, .dash textarea { font: inherit; color: inherit; }
 .dash button { cursor: pointer; background: var(--paper); border: 1px solid var(--rule2); border-radius: 8px; padding: 6px 14px; }
@@ -53,10 +53,10 @@ body:has(.dash) { background: #f6f2ed; }
   align-items: center;
   margin: -8px -12px 10px;
   padding: 10px 12px;
-  background: rgba(246, 242, 237, 0.86);
+  background: rgba(255, 253, 249, 0.86);
   backdrop-filter: blur(14px) saturate(160%);
 }
-.bar::after { content: ''; position: absolute; left: 0; right: 0; bottom: -10px; height: 10px; background: linear-gradient(rgba(246, 242, 237, 0.86), rgba(246, 242, 237, 0)); pointer-events: none; }
+.bar::after { content: ''; position: absolute; left: 0; right: 0; bottom: -10px; height: 10px; background: linear-gradient(rgba(255, 253, 249, 0.86), rgba(255, 253, 249, 0)); pointer-events: none; }
 @media (prefers-reduced-transparency: reduce) { .bar { background: var(--ground); backdrop-filter: none; } }
 .bar input[type='search'] { flex: 1 1 200px; min-width: 0; height: 38px; }
 .bar select { height: 38px; }

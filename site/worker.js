@@ -75,6 +75,9 @@ export class Account extends DurableObject {
     this.sql = ctx.storage.sql;
     // Tables are made at sign-up: a sign-in try for an email without an account stores nothing.
     this.made = this.sql.exec("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'meta'").toArray().length > 0;
+    // Accounts made before a table was added get it now (the emails table came later: without
+    // it, opening an older account failed with a server error).
+    if (this.made) this.tables();
   }
 
   tables() {
@@ -541,6 +544,12 @@ async function api(request, env, path) {
   throw new Fail(404, 'not_found', 'Not found.');
 }
 
+/** The extension's store pages. The pages link to /brain/firefox and /brain/chrome, so each address lives only here. */
+const STORES = {
+  firefox: 'https://addons.mozilla.org/firefox/addon/chinesebrain/',
+  chrome: 'https://chromewebstore.google.com/detail/chinese-brain/CHROME_ID_PLACEHOLDER',
+};
+
 /** Addresses from before the extension's pages moved under /brain. */
 const MOVED = { '/welcome': '/brain/guide#welcome', '/brain/welcome': '/brain/guide#welcome', '/privacy': '/brain/privacy', '/dashboard': '/brain/dashboard', '/guide': '/brain/guide', '/whats-new': '/brain/whats-new' };
 
@@ -569,6 +578,7 @@ export default {
       const [to, hash] = (MOVED[path] ?? (path || '/brain')).split('#');
       return Response.redirect(`${env.SITE}${to}${url.search}${hash ? `#${hash}` : ''}`, 301);
     }
+    if (path === '/brain/firefox' || path === '/brain/chrome') return Response.redirect(STORES[path.slice(7)], 302);
     // Until the main site exists, the front page is Chinese Brain's.
     if (path === '') return env.ASSETS.fetch(new Request(`${url.origin}/brain`, request));
     return env.ASSETS.fetch(request);

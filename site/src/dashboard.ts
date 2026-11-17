@@ -460,7 +460,9 @@ async function start() {
       localStorage.removeItem('cb-token');
       return location.replace('/account?next=/brain/dashboard');
     }
-    return void ($('loading').textContent = e instanceof Error ? e.message : 'Something went wrong. Reload the page.');
+    $('loading').hidden = true;
+    $('troubleMsg').textContent = e instanceof Error ? e.message : 'Something went wrong. Try again in a moment.';
+    return void ($('trouble').hidden = false);
   }
   const f = location.hash.slice(1);
   if (['all', 'fresh', 'learning', 'known'].includes(f)) filter = f as Status | 'all';

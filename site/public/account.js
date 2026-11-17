@@ -16,8 +16,16 @@ function onSubmit(form, msg, run) {
   });
 }
 
+/** Tell the header (site.js) who is signed in, so its corner can say so. */
+function remember(email) {
+  if (email) localStorage.setItem('cb-email', email);
+  else localStorage.removeItem('cb-email');
+  dispatchEvent(new Event('cb-account'));
+}
+
 function signedOut() {
   localStorage.removeItem('cb-token');
+  remember('');
   show();
 }
 
@@ -26,6 +34,7 @@ if ($('reset')) {
   onSubmit($('reset'), 'msg', async () => {
     const res = await api('reset', { token: location.hash.slice(1), password: $('next').value });
     localStorage.setItem('cb-token', res.token);
+    localStorage.removeItem('cb-email');
     say('msg', 'Password saved. Taking you to your account…', true);
     setTimeout(() => (location.href = '/account'), 900);
   });
@@ -73,6 +82,7 @@ async function show() {
   try {
     const me = await api('me');
     $('who').textContent = me.email;
+    remember(me.email);
     $('stats').textContent = `Since ${new Date(me.created).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
     const apps = me.apps ?? { brain: me.words };
     $('n-brain').textContent = apps.brain ? `${apps.brain.toLocaleString('en-US')} ${apps.brain === 1 ? 'word' : 'words'}` : 'Not used yet';
@@ -104,6 +114,7 @@ if ($('enter')) {
     }
     const res = await api(mode === 'signup' ? 'signup' : 'login', { email, password: $('password').value });
     localStorage.setItem('cb-token', res.token);
+    remember(res.email);
     $('password').value = '';
     // Sent here by a page that needs you signed in: back to it (same site only).
     const next = new URLSearchParams(location.search).get('next');

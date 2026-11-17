@@ -5,6 +5,9 @@
 // `__CHROME__` is a build-time constant, so each bundle keeps only its own code paths.
 import * as esbuild from 'esbuild';
 import { cpSync, mkdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
+import { Dictionary } from '../src/shared/dict.ts';
+import { numberedToMarked } from '../src/shared/pinyin.ts';
 
 const watch = process.argv.includes('--watch');
 const entries = {
@@ -70,6 +73,8 @@ const site = { ...common, entryPoints: { dashboard: 'site/src/dashboard.ts' }, o
 
 const pages = { ...site, entryPoints: { site: 'site/src/site.ts' }, outdir: 'site/public' };
 
+writeFileSync('site/public/brain/demo.json', demoData(readFileSync('site/public/brain.html', 'utf8')));
+
 const builds = [firefox, chrome, chromeHook, site, pages];
 if (watch) {
   for (const opts of builds) await (await esbuild.context(opts)).watch();
@@ -105,4 +110,53 @@ function chromeManifest(ff) {
     commands: ff.commands,
   };
   return out;
+}
+
+
+/**
+ * The words in the home page's Chinese, looked up the way the extension does (its dictionary,
+ * static/data/dict.tsv.gz, and its word splitting), so the try-it player and paragraph show what
+ * the extension would. site.js loads it when they scroll into view:
+ * { words: { 夜市: [pinyin, meaning, bars (0-5), parts] }, phrases: { sentence: English } }.
+ * Sentences pair with their English as data-zh/data-en, or <span data-en="English">中文</span>.
+ */
+function demoData(html) {
+  const dict = Dictionary.fromTsv(gunzipSync(readFileSync('static/data/dict.tsv.gz')).toString('utf8'));
+  // The reading these sentences use, where the dictionary's first entry is another one.
+  const READ = { 便宜: 'pian2 yi5', 那: 'na4', 吧: 'ba5' };
+  const read = (e) => (e.tw || e.py).toLowerCase();
+  const sense = (e) => {
+    const defs = e.defs.filter((d) => !/^CL:|^(old )?variant of|^see /i.test(d)).map((d) => d.replace(/\|[^\s\[]+/g, '').replace(/\[([a-zA-Z0-9: ]+)\]/g, (_, p) => ` ${numberedToMarked(p)}`).replace(/^\(Tw\)\s*/, ''));
+    const two = defs.slice(0, 2).join('; ');
+    const one = defs[0] ?? '';
+    return two.length <= 50 ? two : one.length <= 60 ? one : `${one.split(/;\s*/)[0]}`;
+  };
+  const bars = (z) => (z >= 52 ? 5 : z >= 45 ? 4 : z >= 40 ? 3 : z >= 33 ? 2 : z >= 1 ? 1 : 0);
+  const clean = (t) => t.replace(/[，。！？、：；「」\s]/g, '');
+  const unescape = (t) => t.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+  const words = {};
+  const phrases = {};
+  for (const m of html.matchAll(/data-zh="([^"]+)" data-en="([^"]+)"|<span data-en="([^"]+)">([^<]+)<\/span>/g)) {
+    phrases[clean(m[1] ?? m[4])] = unescape(m[2] ?? m[3]);
+  }
+  for (const run of html.match(/[一-鿿，。！？]+/g) ?? []) {
+    for (const t of dict.segment(run)) {
+      if (!t.word || words[t.text]) continue;
+      const all = dict.get(t.text);
+      const e = all.find((x) => read(x) === READ[t.text]) ?? all[0];
+      const syls = (e.tw || e.py).split(/\s+/);
+      const chars = [...t.text];
+      const parts =
+        chars.length > 1 && chars.length === syls.length
+          ? chars.map((ch, k) => {
+              const c = dict.charEntry(ch, syls[k]);
+              const s = c ? sense(c).split(/;\s*/)[0] : '';
+              return [ch, numberedToMarked(syls[k]), s.length > 36 ? `${s.slice(0, 34).trimEnd()}…` : s];
+            })
+          : undefined;
+      const zipf = Math.max(...all.map((x) => x.zipf));
+      words[t.text] = [numberedToMarked(e.tw || e.py), sense(e), bars(zipf), ...(parts ? [parts] : [])];
+    }
+  }
+  return `${JSON.stringify({ words, phrases })}\n`;
 }
