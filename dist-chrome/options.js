@@ -429,7 +429,7 @@ Chinese Brain ${import_browser_polyfill_min.default.runtime.getManifest().versio
     if (el instanceof HTMLInputElement && el.type === "checkbox" ? value = el.checked : typeof def == "number" ? value = Number(el.value) || def : Array.isArray(def) ? value = el.value.split(/\s+/).map((x) => x.trim()).filter(Boolean) : value = el.value.trim(), JSON.stringify(settings[key]) === JSON.stringify(value)) return;
     settings = { ...settings, [key]: value }, state.settings = settings, await import_browser_polyfill_min.default.runtime.sendMessage({ type: "saveSettings", settings: { [key]: value } });
     let tag = $("saved");
-    tag.hidden = !1, clearTimeout(savedTimer), savedTimer = setTimeout(() => tag.hidden = !0, 1200), key === "voice" && showAzure(), key === "azureKey" && setStatus("azureStatus", ""), key === "geminiKey" && setStatus("geminiStatus", "");
+    tag.classList.add("show"), clearTimeout(savedTimer), savedTimer = setTimeout(() => tag.classList.remove("show"), 1400), key === "voice" && showAzure(), key === "azureKey" && setStatus("azureStatus", ""), key === "geminiKey" && setStatus("geminiStatus", "");
   }
   function showSites() {
     let sites = Object.entries(settings.siteColors).sort(([a], [b]) => a.localeCompare(b));
@@ -446,6 +446,61 @@ Chinese Brain ${import_browser_polyfill_min.default.runtime.getManifest().versio
         }), b;
       })
     );
+  }
+  function segmented(sel) {
+    let seg = document.createElement("div");
+    seg.className = "seg still", seg.setAttribute("role", "radiogroup");
+    let label = document.querySelector(`label[for="${sel.id}"]`)?.textContent?.trim();
+    label && seg.setAttribute("aria-label", label);
+    let thumb = document.createElement("i");
+    thumb.className = "thumb";
+    let buttons = [...sel.options].map((o) => {
+      let b = document.createElement("button");
+      return b.type = "button", b.setAttribute("role", "radio"), b.dataset.v = o.value, b.textContent = o.dataset.short ?? o.textContent, o.title && (b.title = o.title), b.addEventListener("click", () => pick(o.value)), b;
+    }), sync = () => {
+      for (let b of buttons) {
+        let on = b.dataset.v === sel.value;
+        b.setAttribute("aria-checked", String(on)), b.tabIndex = on ? 0 : -1, on && b.offsetWidth && (thumb.style.width = `${b.offsetWidth}px`, thumb.style.transform = `translateX(${b.offsetLeft}px)`);
+      }
+    }, pick = (v) => {
+      sel.value !== v && (seg.classList.remove("still"), sel.value = v, sel.dispatchEvent(new Event("change")), sync());
+    };
+    seg.addEventListener("keydown", (e) => {
+      let step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+      if (!step) return;
+      e.preventDefault();
+      let i = Math.min(buttons.length - 1, Math.max(0, sel.selectedIndex + step));
+      pick(sel.options[i].value), buttons[i].focus();
+    }), seg.append(thumb, ...buttons), sel.hidden = !0, sel.after(seg), sync(), new ResizeObserver(() => {
+      seg.classList.add("still"), sync();
+    }).observe(seg);
+  }
+  function stepper(input) {
+    let wrap = document.createElement("span");
+    wrap.className = "stepper";
+    let btn = (text, label, dir) => {
+      let b = document.createElement("button");
+      return b.type = "button", b.textContent = text, b.setAttribute("aria-label", label), b.addEventListener("click", () => {
+        dir > 0 ? input.stepUp() : input.stepDown(), input.dispatchEvent(new Event("change")), sync();
+      }), b;
+    }, minus = btn("\u2212", "Less", -1), plus = btn("+", "More", 1), sync = () => {
+      minus.disabled = Number(input.value) <= Number(input.min), plus.disabled = Number(input.value) >= Number(input.max);
+    }, val = document.createElement("span");
+    if (val.className = "val", input.replaceWith(wrap), val.append(input), input.dataset.unit) {
+      let u = document.createElement("span");
+      u.className = "unit", u.textContent = input.dataset.unit, val.append(u);
+    }
+    wrap.append(minus, val, plus), input.addEventListener("input", sync), sync();
+  }
+  function followSections() {
+    let links = [...document.querySelectorAll(".toc a")], mark = (id) => links.forEach((a) => a.setAttribute("aria-current", String(a.hash === `#${id}`))), secs = [...document.querySelectorAll("main .sec")], update = () => {
+      let line = Math.min(window.innerHeight * 0.3, 240), current = secs[0];
+      for (let s of secs) s.getBoundingClientRect().top <= line && (current = s);
+      window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2 && (current = secs[secs.length - 1]), mark(current.id), links.find((a) => a.hash === `#${current.id}`)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }, raf = 0;
+    window.addEventListener("scroll", () => {
+      cancelAnimationFrame(raf), raf = requestAnimationFrame(update);
+    }, { passive: !0 }), new ResizeObserver(update).observe(document.querySelector("main"));
   }
   function showAzure() {
     document.querySelectorAll(".azure").forEach((el) => el.hidden = settings.voice !== "azure");
@@ -465,13 +520,17 @@ Chinese Brain ${import_browser_polyfill_min.default.runtime.getManifest().versio
         });
       }
     }
-    showAzure(), showSites(), showKeys(), showAccount(), settings.geminiKey && loadModels(!1), location.hash && document.getElementById(location.hash.slice(1))?.scrollIntoView();
+    for (let sel of document.querySelectorAll("select[data-seg]")) segmented(sel);
+    for (let input of document.querySelectorAll('input[type="number"]')) stepper(input);
+    showAzure(), showSites(), showKeys(), followSections(), settings.geminiKey && loadModels(!1), showAccount().finally(() => {
+      location.hash && document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: "instant" });
+    });
   }
   function renderAccount(a, note = "") {
     if ($("acct").hidden = !1, $("signedOut").hidden = a.signedIn, $("signedIn").hidden = !a.signedIn, a.signedIn) {
-      $("acctEmail").textContent = a.email;
+      $("acctEmail").textContent = a.email, $("acctEmail").title = a.email, $("acctInitial").textContent = a.email.trim().charAt(0);
       let el = $("acctSync");
-      el.textContent = a.error ?? (a.at ? `Synced ${ago(a.at)}` : "Syncing\u2026"), el.className = a.error ? "status err" : "";
+      el.textContent = a.error ?? (a.at ? `Synced ${ago(a.at)}` : "Syncing\u2026"), el.className = a.error ? "err" : a.at ? "" : "busy";
     } else
       a.email && !$("email").value && ($("email").value = a.email), setStatus("acctStatus", note || a.error || "", note ? "ok" : "err");
   }
@@ -501,7 +560,7 @@ Chinese Brain ${import_browser_polyfill_min.default.runtime.getManifest().versio
     setStatus("acctStatus", res.ok ? "Check your inbox for a link to set a new password." : res.error ?? "That didn\u2019t work.", res.ok ? "ok" : "err");
   });
   $("syncNow").addEventListener("click", async () => {
-    $("acctSync").textContent = "Syncing\u2026", renderAccount(await import_browser_polyfill_min.default.runtime.sendMessage({ type: "syncNow" }));
+    $("acctSync").textContent = "Syncing\u2026", $("acctSync").className = "busy", renderAccount(await import_browser_polyfill_min.default.runtime.sendMessage({ type: "syncNow" }));
   });
   $("signOut").addEventListener("click", async () => renderAccount(await import_browser_polyfill_min.default.runtime.sendMessage({ type: "signOut" }), "Signed out. Your words stay in this browser."));
   var recording;
@@ -536,6 +595,7 @@ Chinese Brain ${import_browser_polyfill_min.default.runtime.getManifest().versio
   $("resetKeys").addEventListener("click", () => void saveKeys({}));
   for (let el of document.querySelectorAll(".altKey")) el.textContent = ALT;
   $("altOption").textContent = `while holding ${ALT}`;
+  $("altOption").dataset.short = `Hold ${ALT}`;
   import_browser_polyfill_min.default.commands.getAll().then((cmds) => {
     $("colorKey").textContent = shortcutLabel(cmds.find((c) => c.name === "toggle-colors")?.shortcut), $("colorAllKey").textContent = shortcutLabel(cmds.find((c) => c.name === "toggle-colors-all")?.shortcut);
   }).catch(() => {

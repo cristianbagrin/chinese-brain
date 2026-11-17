@@ -56,9 +56,9 @@ async function save(key: Key, el: Field) {
   state.settings = settings;
   await browser.runtime.sendMessage({ type: 'saveSettings', settings: { [key]: value } });
   const tag = $('saved');
-  tag.hidden = false;
+  tag.classList.add('show');
   clearTimeout(savedTimer);
-  savedTimer = setTimeout(() => (tag.hidden = true), 1200);
+  savedTimer = setTimeout(() => tag.classList.remove('show'), 1400);
   if (key === 'voice') showAzure();
   if (key === 'azureKey') setStatus('azureStatus', '');
   if (key === 'geminiKey') setStatus('geminiStatus', '');
@@ -92,6 +92,125 @@ function showSites() {
   );
 }
 
+/** A select with a few choices becomes a segmented picker; the select stays (hidden) and keeps saving. */
+function segmented(sel: HTMLSelectElement) {
+  const seg = document.createElement('div');
+  seg.className = 'seg still';
+  seg.setAttribute('role', 'radiogroup');
+  const label = document.querySelector(`label[for="${sel.id}"]`)?.textContent?.trim();
+  if (label) seg.setAttribute('aria-label', label);
+  const thumb = document.createElement('i');
+  thumb.className = 'thumb';
+  const buttons = [...sel.options].map((o) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('role', 'radio');
+    b.dataset.v = o.value;
+    b.textContent = o.dataset.short ?? o.textContent;
+    if (o.title) b.title = o.title;
+    b.addEventListener('click', () => pick(o.value));
+    return b;
+  });
+  const sync = () => {
+    for (const b of buttons) {
+      const on = b.dataset.v === sel.value;
+      b.setAttribute('aria-checked', String(on));
+      b.tabIndex = on ? 0 : -1;
+      if (on && b.offsetWidth) {
+        thumb.style.width = `${b.offsetWidth}px`;
+        thumb.style.transform = `translateX(${b.offsetLeft}px)`;
+      }
+    }
+  };
+  const pick = (v: string) => {
+    if (sel.value === v) return;
+    seg.classList.remove('still');
+    sel.value = v;
+    sel.dispatchEvent(new Event('change'));
+    sync();
+  };
+  seg.addEventListener('keydown', (e) => {
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const i = Math.min(buttons.length - 1, Math.max(0, sel.selectedIndex + step));
+    pick(sel.options[i].value);
+    buttons[i].focus();
+  });
+  seg.append(thumb, ...buttons);
+  sel.hidden = true;
+  sel.after(seg);
+  sync();
+  // Sizes settle once the fonts load (and change with the window): the thumb follows without sliding.
+  new ResizeObserver(() => {
+    seg.classList.add('still');
+    sync();
+  }).observe(seg);
+}
+
+/** A number field gets − and + around it, with its unit. */
+function stepper(input: HTMLInputElement) {
+  const wrap = document.createElement('span');
+  wrap.className = 'stepper';
+  const btn = (text: string, label: string, dir: 1 | -1) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = text;
+    b.setAttribute('aria-label', label);
+    b.addEventListener('click', () => {
+      if (dir > 0) input.stepUp();
+      else input.stepDown();
+      input.dispatchEvent(new Event('change'));
+      sync();
+    });
+    return b;
+  };
+  const minus = btn('−', 'Less', -1);
+  const plus = btn('+', 'More', 1);
+  const sync = () => {
+    minus.disabled = Number(input.value) <= Number(input.min);
+    plus.disabled = Number(input.value) >= Number(input.max);
+  };
+  const val = document.createElement('span');
+  val.className = 'val';
+  input.replaceWith(wrap);
+  val.append(input);
+  if (input.dataset.unit) {
+    const u = document.createElement('span');
+    u.className = 'unit';
+    u.textContent = input.dataset.unit;
+    val.append(u);
+  }
+  wrap.append(minus, val, plus);
+  input.addEventListener('input', sync);
+  sync();
+}
+
+/** The sidebar marks the section in view. */
+function followSections() {
+  const links = [...document.querySelectorAll<HTMLAnchorElement>('.toc a')];
+  const mark = (id: string) => links.forEach((a) => a.setAttribute('aria-current', String(a.hash === `#${id}`)));
+  const secs = [...document.querySelectorAll<HTMLElement>('main .sec')];
+  const update = () => {
+    const line = Math.min(window.innerHeight * 0.3, 240);
+    let current = secs[0];
+    for (const s of secs) if (s.getBoundingClientRect().top <= line) current = s;
+    // At the bottom of the page the last section counts, even when it is short.
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) current = secs[secs.length - 1];
+    mark(current.id);
+    const link = links.find((a) => a.hash === `#${current.id}`);
+    // Narrow windows: keep the current section's tab in view.
+    link?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  };
+  let raf = 0;
+  window.addEventListener('scroll', () => {
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(update);
+  }, { passive: true });
+  // Sections grow as they fill in (the account appears a moment later): look again.
+  new ResizeObserver(update).observe(document.querySelector('main')!);
+}
+
 function showAzure() {
   document.querySelectorAll<HTMLElement>('.azure').forEach((el) => (el.hidden = settings.voice !== 'azure'));
 }
@@ -118,13 +237,17 @@ async function init() {
       });
     }
   }
+  for (const sel of document.querySelectorAll<HTMLSelectElement>('select[data-seg]')) segmented(sel);
+  for (const input of document.querySelectorAll<HTMLInputElement>('input[type="number"]')) stepper(input);
   showAzure();
   showSites();
   showKeys();
-  void showAccount();
+  followSections();
   if (settings.geminiKey) void loadModels(false);
-  // A link straight to a section (the YouTube panel's "Add a Gemini key").
-  if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
+  // A link straight to a section (the YouTube panel's "Add a Gemini key"), once the account above it has its height.
+  void showAccount().finally(() => {
+    if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: 'instant' });
+  });
 }
 
 // ---------- Account ----------
@@ -135,9 +258,11 @@ function renderAccount(a: AccountInfo, note = '') {
   $('signedIn').hidden = !a.signedIn;
   if (a.signedIn) {
     $('acctEmail').textContent = a.email;
+    $('acctEmail').title = a.email;
+    $('acctInitial').textContent = a.email.trim().charAt(0);
     const el = $('acctSync');
     el.textContent = a.error ?? (a.at ? `Synced ${ago(a.at)}` : 'Syncing…');
-    el.className = a.error ? 'status err' : '';
+    el.className = a.error ? 'err' : a.at ? '' : 'busy';
   } else {
     if (a.email && !$<HTMLInputElement>('email').value) $<HTMLInputElement>('email').value = a.email;
     setStatus('acctStatus', note || a.error || '', note ? 'ok' : 'err');
@@ -181,6 +306,7 @@ $('forgot').addEventListener('click', async () => {
 });
 $('syncNow').addEventListener('click', async () => {
   $('acctSync').textContent = 'Syncing…';
+  $('acctSync').className = 'busy';
   renderAccount(await browser.runtime.sendMessage({ type: 'syncNow' }));
 });
 $('signOut').addEventListener('click', async () => renderAccount(await browser.runtime.sendMessage({ type: 'signOut' }), 'Signed out. Your words stay in this browser.'));
@@ -251,6 +377,7 @@ $('resetKeys').addEventListener('click', () => void saveKeys({}));
 // Key names as this computer calls them.
 for (const el of document.querySelectorAll('.altKey')) el.textContent = ALT;
 $('altOption').textContent = `while holding ${ALT}`;
+$('altOption').dataset.short = `Hold ${ALT}`;
 browser.commands
   .getAll()
   .then((cmds) => {
