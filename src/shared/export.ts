@@ -164,7 +164,7 @@ export function buildPracticePrompt(words: WordRecord[], saved: Record<string, S
     return [w.w, w.p?.toLowerCase(), w.g, met?.text].map((x) => clean(x)).filter(Boolean).join(' · ');
   });
   return [
-    'I am learning Taiwan Mandarin. Please be my tutor for a short practice session.',
+    'I am learning Taiwanese Chinese. Please be my tutor for a short practice session.',
     '',
     `Below are ${mine.length} words I am studying right now (word · pinyin · meaning · the sentence I met it in). I already know about ${known.toLocaleString('en-US')} other words, so keep everything else simple.`,
     '',

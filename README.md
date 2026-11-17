@@ -1,6 +1,6 @@
 # Chinese Brain 中文腦
 
-A browser extension for learning **Taiwan Mandarin** while you read and watch.
+A browser extension for learning **Taiwanese Chinese** while you read and watch.
 [Website](https://chinese.cristianbagrin.com/brain) · [Guide](https://chinese.cristianbagrin.com/brain/guide) ·
 [Firefox](https://addons.mozilla.org/firefox/addon/chinesebrain/) · Chrome (in review) ·
 [Privacy](https://chinese.cristianbagrin.com/brain/privacy) ·

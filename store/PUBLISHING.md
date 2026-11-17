@@ -83,13 +83,13 @@ chinesebrain
 **Summary** (250 characters max)
 
 ```
-Learn Taiwan Mandarin while you read and watch. Hover any Chinese word for Taiwan pinyin, meanings and natural example sentences; get dual Chinese + English subtitles on YouTube; keep one word list with Fresh, Learning and Known.
+Learn Taiwanese Chinese while you read and watch. Hover any Chinese word for Taiwan pinyin, meanings and natural example sentences; get dual Chinese + English subtitles on YouTube; keep one word list with Fresh, Learning and Known.
 ```
 
 **Description**
 
 ```
-Chinese Brain turns everything you read and watch into Taiwan Mandarin practice.
+Chinese Brain turns everything you read and watch into Taiwanese Chinese practice.
 
 HOVER ANY CHINESE WORD
 • Traditional characters with Taiwan standard pinyin (教育部 readings)
@@ -118,7 +118,7 @@ YOUTUBE DUAL SUBTITLES
 • How much of the video you already know, as a percentage
 
 OPTIONAL, WITH YOUR OWN KEYS
-• Gemini: subtitles for videos without Chinese captions (Mandarin is transcribed; other languages are translated into Taiwan Mandarin), and new example sentences
+• Gemini: subtitles for videos without Chinese captions (Mandarin is transcribed; other languages are translated into Taiwanese Chinese), and new example sentences
 • Azure: a Taiwan neural voice
 
 SYNC (OPTIONAL)
@@ -351,7 +351,7 @@ The files in `store/screenshots/` are these shots in the red-and-paper frame (12
 3. **Store listing**: the same name, summary, description, category (Education or
    Productivity), icon (`store/icon-128.png`) and screenshots as on AMO (sections 2 and 6).
 4. **Privacy practices**: single purpose "Look up Chinese words on web pages and in YouTube
-   subtitles to learn Taiwan Mandarin." Permission justifications:
+   subtitles to learn Taiwanese Chinese." Permission justifications:
    - host permissions / content scripts: hover lookup on any page the user reads.
    - storage, unlimitedStorage: the word list and settings, kept locally.
    - alarms: syncs the word list every 20 minutes when signed in to the optional account.

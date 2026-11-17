@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Chinese Brain",
   "version": "1.6.0",
-  "description": "Learn Taiwan Mandarin while you read and watch: hover lookup with Taiwan pinyin, YouTube dual subtitles, one word list.",
+  "description": "Learn Taiwanese Chinese while you read and watch: hover lookup with Taiwan pinyin, YouTube dual subtitles, one word list.",
   "minimum_chrome_version": "128",
   "icons": {
     "16": "icons/icon-16.png",

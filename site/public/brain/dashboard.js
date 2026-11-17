@@ -226,7 +226,7 @@
       return [w.w, w.p?.toLowerCase(), w.g, met?.text].map((x) => clean(x)).filter(Boolean).join(" \xB7 ");
     });
     return [
-      "I am learning Taiwan Mandarin. Please be my tutor for a short practice session.",
+      "I am learning Taiwanese Chinese. Please be my tutor for a short practice session.",
       "",
       `Below are ${mine.length} words I am studying right now (word \xB7 pinyin \xB7 meaning \xB7 the sentence I met it in). I already know about ${known.toLocaleString("en-US")} other words, so keep everything else simple.`,
       "",
