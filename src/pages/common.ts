@@ -18,10 +18,7 @@ export function h(tag: string, attrs: Record<string, string> | null, ...kids: (N
 
 export const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
-export function today() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+export { today } from '../shared/time.ts';
 
 export function ago(t: number): string {
   const s = (Date.now() - t) / 1000;

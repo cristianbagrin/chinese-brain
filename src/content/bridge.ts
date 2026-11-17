@@ -8,6 +8,11 @@ import { state } from './state.ts';
  */
 const PASSED = new Set(['allData', 'setStatus', 'getWord', 'importWords', 'importList', 'account', 'syncNow']);
 
+/** On our own site, tell the page what you just did, so How it works can tick it off. */
+export function signal(did: 'card' | 'stamp' | 'select') {
+  if (location.origin === __SITE__ && window === window.top) window.postMessage({ cb: 'did', did }, location.origin);
+}
+
 export function startBridge() {
   if (location.origin !== __SITE__ || window !== window.top) return;
   window.addEventListener('message', async (e) => {

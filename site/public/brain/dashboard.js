@@ -99,6 +99,10 @@
     let s = Math.max(0, Math.floor(secs)), h2 = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = String(s % 60).padStart(2, "0");
     return h2 ? `${h2}:${String(m).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
   }
+  function today() {
+    let d = /* @__PURE__ */ new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
 
   // src/shared/types.ts
   var STATUS_CODE = { fresh: "F", learning: "L", known: "K" };
@@ -301,10 +305,6 @@
     return el;
   }
   var $ = (id) => document.getElementById(id);
-  function today() {
-    let d = /* @__PURE__ */ new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  }
   function ago(t) {
     let s = (Date.now() - t) / 1e3;
     if (s < 90) return "just now";

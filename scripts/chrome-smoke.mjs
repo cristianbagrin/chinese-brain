@@ -123,7 +123,7 @@ try {
   // The website's word list, from site/public with the site's headers, talking to the extension.
   const site = 'https://chinese.cristianbagrin.com';
   const csp = readFileSync('site/public/_headers', 'utf8').match(/Content-Security-Policy: (.*)/)[1];
-  const types = { html: 'text/html; charset=utf-8', css: 'text/css', js: 'text/javascript', png: 'image/png', jpg: 'image/jpeg', woff2: 'font/woff2' };
+  const types = { html: 'text/html; charset=utf-8', css: 'text/css', js: 'text/javascript', png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp', woff2: 'font/woff2' };
   await context.route(`${site}/**`, (route) => {
     const path = new URL(route.request().url()).pathname;
     const file = ['', '.html'].map((x) => join('site/public', path + x)).find((f) => existsSync(f) && !f.endsWith('/'));
@@ -147,6 +147,39 @@ try {
     await p.close();
   }
 
+  // How it works: the extension (not the demo) runs the card there, and the steps tick as you go.
+  {
+    const p = await context.newPage();
+    await p.goto(`${site}/brain/guide`);
+    await sleep(1500);
+    const live = await p.evaluate(() => getComputedStyle(document.querySelector('.mode.live')).display !== 'none');
+    ok('How it works knows the extension is there', live);
+    const box = await p.evaluate(() => {
+      const el = document.querySelector('.try .w[data-w="車站"]');
+      const b = el.getBoundingClientRect();
+      return { x: b.left + b.width / 2, y: b.top + b.height / 2 };
+    });
+    const ticked = async (q) => {
+      for (let i = 0; i < 20; i++) {
+        if (await p.evaluate((q) => document.querySelector(`[data-q="${q}"]`).classList.contains('done'), q)) return true;
+        await sleep(150);
+      }
+      return false;
+    };
+    let card = false;
+    for (let i = 0; i < 6 && !card; i++) {
+      await p.mouse.move(10, 10);
+      await p.mouse.move(box.x, box.y);
+      card = await ticked('card');
+    }
+    ok('hovering on How it works ticks its first step', card);
+    await p.keyboard.press('2');
+    ok('stamping there ticks the second', await ticked('stamp'));
+    ok('no demo card while the extension runs', await p.evaluate(() => document.querySelector('.dcard')?.hidden !== false));
+    if (shots) await p.screenshot({ path: join(shots, 'guide.png') });
+    await p.close();
+  }
+
   // Extension pages.
   for (const name of ['options', 'action']) {
     const p = await context.newPage();
@@ -157,6 +190,13 @@ try {
     const text = (await p.evaluate(() => document.body.innerText)).trim();
     if (shots) await p.screenshot({ path: join(shots, `${name}.png`), fullPage: name !== 'action' });
     ok(`${name} page opens`, !pageErrors.length && text.length > 20, pageErrors.join('; ') || `${text.length} chars`);
+    if (name === 'action') {
+      // "↓ New": what changed since the last download, saved by the worker.
+      const before = await p.evaluate(() => document.getElementById('newN').textContent);
+      const saved = await p.evaluate(() => chrome.runtime.sendMessage({ type: 'downloadNew' }).catch((e) => String(e)));
+      const left = await p.evaluate(() => chrome.runtime.sendMessage({ type: 'newCount' }));
+      ok('toolbar menu downloads the new words', Number(before) >= 2 && saved === true && left === 0, `${before} new, ${saved}, ${left} left`);
+    }
     if (name === 'options') {
       // Audio comes back as base64 on Chrome (its messages are JSON); needs translate.google.com.
       const tts = await p.evaluate(() => chrome.runtime.sendMessage({ type: 'tts', engine: 'google', text: '你好' }));

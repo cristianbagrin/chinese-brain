@@ -178,16 +178,17 @@ Since 1.5.0 (optional accounts) the stores' data questions have new answers:
 
 ## 4. Version notes
 
-`npm run build` turns these into the website's What's new page. A date in brackets after the
-version is shown there.
+These are the store notes: every change. The website's What's new page
+(`site/public/brain/whats-new.html`) is written by hand from them: only what a reader would notice.
 
 1.7.0 (November 16, 2026):
 
 ```
 • One word list, on the website: Word list opens chinese.cristianbagrin.com/brain/dashboard. With the extension it reads the list straight from your browser: no account, nothing uploaded. Signed in, it works on any device too.
 • A website you switch colors on or off keeps that choice, even with Colors on every website on. Settings lists those sites; click one to forget it.
-• A new How it works page, one line per feature, with a video.
-• Backup and restore moved to Settings. The extension no longer asks for the downloads permission.
+• Download new, from the toolbar menu: what you stamped since your last download, as a file for Anki or a spreadsheet.
+• How it works, rebuilt: try the card, the stamps and a selection right on the page (a demo, if the extension isn't installed yet), and drive a small YouTube player with A S D R E.
+• Backup and restore moved to Settings.
 ```
 
 1.6.0 (November 15, 2026):
@@ -306,12 +307,16 @@ Permissions:
     script was not already running in, tabs.executeScript injects the add-on's own content.js there.
   commands: two keyboard shortcuts that toggle page colors: Alt+Shift+C for the current site, Alt+Shift+A for every site.
   alarms: one alarm, every 20 minutes, that syncs the word list when the user is signed in.
+  downloads: "Download new" in the toolbar menu saves the word-list export (a TSV the background page
+    just built from the local word list) with downloads.download.
 
 The word list page is on the developer's website (chinese.cristianbagrin.com/brain/dashboard, source in
 site/src/dashboard.ts). On that origin only, and only in the top frame, the content script answers
 window.postMessage requests from the page (src/content/bridge.ts): a fixed list of message types
 (read the list, set a status, import a list, account status), checked against e.origin and e.source.
-The list is read in the browser; nothing is uploaded by this.
+The list is read in the browser; nothing is uploaded by this. On that page the content script also
+posts which of three things the user just did (opened a card, stamped a word, looked up a selection),
+so the How it works page can tick its steps; nothing else is sent.
 
 Remote requests (all user-facing features, listed in the privacy policy): translate.google.com (TTS),
 translate.googleapis.com (caption translation fallback; translation of a selection the user looks up), *.tts.speech.microsoft.com (optional, user key),
@@ -356,6 +361,7 @@ The files in `store/screenshots/` are these shots in the red-and-paper frame (12
    - storage, unlimitedStorage: the word list and settings, kept locally.
    - alarms: syncs the word list every 20 minutes when signed in to the optional account.
    - contextMenus: the "Look up" item on selected text.
+   - downloads: "Download new" saves the word-list export (a TSV built from the local list).
    - scripting: starts the lookup in a frame from the menu, and hides YouTube's own captions
      while ours show.
    - Remote code: No. Data usage: see section 3.

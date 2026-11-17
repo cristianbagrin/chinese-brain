@@ -1634,6 +1634,9 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
   // src/content/bridge.ts
   init_browser_shim();
   var PASSED = /* @__PURE__ */ new Set(["allData", "setStatus", "getWord", "importWords", "importList", "account", "syncNow"]);
+  function signal(did) {
+    location.origin === "https://chinese.cristianbagrin.com" && window === window.top && window.postMessage({ cb: "did", did }, location.origin);
+  }
   function startBridge() {
     location.origin !== "https://chinese.cristianbagrin.com" || window !== window.top || (window.addEventListener("message", async (e) => {
       let d = e.data;
@@ -1904,7 +1907,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         src: "web",
         pinned: !0,
         ctx: { text: sel.context, url: location.href, title: document.title, at: Date.now(), src: "web" }
-      }));
+      }), signal("select"));
     }
     /** Selecting Chinese in a search box opens its card (page popups can't be seen there otherwise). */
     async onSelect(e) {
@@ -1963,7 +1966,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         cursor: { x: this.lastX, y: this.lastY },
         src: "web",
         ctx: { text: sentenceAround(text, offset), url: location.href, title: document.title, at: Date.now(), src: "web" }
-      });
+      }), signal("card");
     }
     charRect(node, i) {
       if (i < 0 || i >= node.data.length) return;
@@ -2733,7 +2736,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       let m = this.current;
       if (!m || !this.opts || !stampable(m)) return;
       let cur = state.status(m.word), next = toggle && cur === status ? null : status;
-      next !== cur && (next ? state.statuses.set(m.word, next) : state.statuses.delete(m.word), stampSound(next), this.infoCache.delete(m.word), this.render(next ?? void 0), import_browser_polyfill_min.default.runtime.sendMessage({ type: "setStatus", word: m.word, status: next, entry: m.entries[0], ctx: this.ctxFor(m) }));
+      next !== cur && (next ? state.statuses.set(m.word, next) : state.statuses.delete(m.word), stampSound(next), next && signal("stamp"), this.infoCache.delete(m.word), this.render(next ?? void 0), import_browser_polyfill_min.default.runtime.sendMessage({ type: "setStatus", word: m.word, status: next, entry: m.entries[0], ctx: this.ctxFor(m) }));
     }
     speak() {
       let m = this.current;
@@ -2807,7 +2810,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       if (key === "images") return this.images(m.word);
       let want = key === "fresh" || key === "learning" || key === "known" ? key : null, cur = state.status(m.word), next = want && cur === want ? null : want;
       if (next === cur) return;
-      next ? state.statuses.set(m.word, next) : state.statuses.delete(m.word), stampSound(next);
+      next ? state.statuses.set(m.word, next) : state.statuses.delete(m.word), stampSound(next), next && signal("stamp");
       let ctx2 = target2.sentence ? this.ctxFor(m, { text: target2.sentence, url: location.href, title: document.title, at: Date.now(), src: this.opts.src }) : void 0;
       import_browser_polyfill_min.default.runtime.sendMessage({ type: "setStatus", word: m.word, status: next, entry: m.entries[0], ctx: ctx2 });
     }

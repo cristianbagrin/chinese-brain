@@ -163,6 +163,11 @@
 
   // src/pages/common.ts
   init_browser_shim();
+
+  // src/shared/time.ts
+  init_browser_shim();
+
+  // src/pages/common.ts
   function h(tag, attrs, ...kids) {
     let el = document.createElement(tag);
     if (attrs) for (let [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
@@ -205,6 +210,13 @@ Chinese Brain ${import_browser_polyfill_min.default.runtime.getManifest().versio
       })
     ), $("feedback").href = feedbackLink(), $("words").href = DASHBOARD, $("altMode").textContent = ALT, $("altMode").title = `Only while holding ${ALT}`, import_browser_polyfill_min.default.runtime.sendMessage({ type: "account" }).then((a) => {
       a.signedIn && ($("acctLink").textContent = a.error ? "Sync problem" : "\u2713 Synced");
+    });
+    let dl = $("dlNew"), newCount = async () => {
+      let n = await import_browser_polyfill_min.default.runtime.sendMessage({ type: "newCount" });
+      $("newN").textContent = n ? n.toLocaleString("en-US") : "", dl.disabled = !n, dl.title = n ? `Download the ${n} word${n === 1 ? "" : "s"} you changed since the last download (TSV)` : "Nothing new since your last download";
+    };
+    newCount(), dl.addEventListener("click", async () => {
+      dl.disabled = !0, await import_browser_polyfill_min.default.runtime.sendMessage({ type: "downloadNew" }), $("newN").textContent = "\u2713", setTimeout(newCount, 1500);
     });
     for (let el of document.querySelectorAll("[data-setting]")) {
       let key = el.dataset.setting;

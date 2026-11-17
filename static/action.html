@@ -47,7 +47,11 @@
   .stats { font-size: 12px; color: var(--ink2); margin: -2px 0 2px; }
   .links { display: flex; gap: 8px; margin-top: 10px; }
   .links a { flex: 1; text-align: center; text-decoration: none; padding: 6px 0; border-radius: 8px; background: var(--ground); color: var(--ink); font-size: 13px; }
-  .links a:hover { background: var(--rule); }
+  .links a:hover, .links button:hover:enabled { background: var(--rule); }
+  .links button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 0; border: 0; border-radius: 8px; background: var(--ground); color: var(--ink); font-size: 13px; }
+  .links button:disabled { color: var(--ink2); opacity: 0.7; }
+  .links button b { font-size: 11px; font-weight: 700; line-height: 16px; min-width: 16px; padding: 0 5px; border-radius: 8px; background: var(--red); color: #fff; }
+  .links button b:empty { display: none; }
   .foot { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; }
   .foot a { color: var(--ink2); text-decoration: none; }
   .foot a:hover { color: var(--red-deep); text-decoration: underline; }
@@ -85,7 +89,7 @@
     </div>
   </div>
 
-  <div class="links"><a id="words" href="https://chinese.cristianbagrin.com/brain/dashboard" target="_blank">Word list</a><a href="options.html" target="_blank">Settings</a></div>
+  <div class="links"><a id="words" href="https://chinese.cristianbagrin.com/brain/dashboard" target="_blank">Word list</a><button type="button" id="dlNew" disabled>↓ New<b id="newN"></b></button><a href="options.html" target="_blank">Settings</a></div>
   <div class="foot"><a href="options.html#account" target="_blank" id="acctLink">Sign in to sync</a><a id="feedback" href="mailto:chris@cristianbagrin.com">Give feedback</a></div>
 </div>
 <script src="action.js"></script>

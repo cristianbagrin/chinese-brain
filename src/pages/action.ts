@@ -36,6 +36,22 @@ async function init() {
     if (a.signedIn) $('acctLink').textContent = a.error ? 'Sync problem' : '✓ Synced';
   });
 
+  // What you stamped since the last download, straight to a file (for Anki or a spreadsheet).
+  const dl = $<HTMLButtonElement>('dlNew');
+  const newCount = async () => {
+    const n: number = await browser.runtime.sendMessage({ type: 'newCount' });
+    $('newN').textContent = n ? n.toLocaleString('en-US') : '';
+    dl.disabled = !n;
+    dl.title = n ? `Download the ${n} word${n === 1 ? '' : 's'} you changed since the last download (TSV)` : 'Nothing new since your last download';
+  };
+  void newCount();
+  dl.addEventListener('click', async () => {
+    dl.disabled = true;
+    await browser.runtime.sendMessage({ type: 'downloadNew' });
+    $('newN').textContent = '✓';
+    setTimeout(newCount, 1500);
+  });
+
   // Switches and segmented choices, each bound to one setting.
   for (const el of document.querySelectorAll<HTMLElement>('[data-setting]')) {
     const key = el.dataset.setting as keyof Settings;

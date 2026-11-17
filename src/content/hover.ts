@@ -1,6 +1,7 @@
 import { CJK } from '../shared/dict.ts';
 import { sentenceAt } from '../shared/context.ts';
 import type { LookupMatch, Token } from '../shared/types.ts';
+import { signal } from './bridge.ts';
 import { addPageCSS } from './css.ts';
 import { lookupText } from './lookup.ts';
 import { Popup } from './popup.ts';
@@ -259,6 +260,7 @@ export class HoverLookup {
       pinned: true,
       ctx: { text: sel.context, url: location.href, title: document.title, at: Date.now(), src: 'web' },
     });
+    signal('select');
   }
 
   /** Selecting Chinese in a search box opens its card (page popups can't be seen there otherwise). */
@@ -356,6 +358,7 @@ export class HoverLookup {
       src: 'web',
       ctx: { text: sentenceAround(text, offset), url: location.href, title: document.title, at: Date.now(), src: 'web' },
     });
+    signal('card');
   }
 
   private charRect(node: Text, i: number): DOMRect | undefined {
