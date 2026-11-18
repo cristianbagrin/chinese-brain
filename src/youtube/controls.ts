@@ -13,7 +13,7 @@ const TOAST: Partial<Record<KeyAction, (s: YouTubeSubs) => string>> = {
   next: () => 'next line ▶',
   loop: (s) => (s.looping ? '↻ looping this line' : 'loop off'),
   shadow: (s) => (s.shadowing ? 'shadowing on' : 'shadowing off'),
-  pinyin: () => (state.settings.pinyin ? 'pinyin on' : 'pinyin off'),
+  pinyin: () => `${state.settings.pron === 'zhuyin' ? '注音' : 'pinyin'} ${state.settings.pinyin ? 'on' : 'off'}`,
   transcript: (s) => (s.transcript.open ? 'transcript open' : 'transcript closed'),
   english: () => `English ${state.settings.translation === 'show' ? 'shown' : state.settings.translation === 'blur' ? 'blurred' : 'hidden'}`,
 };
@@ -164,7 +164,7 @@ export class Controls {
       el(
         'div',
         'chips',
-        chip('Pinyin', 'pinyin', s.pinyin, () => save({ pinyin: !s.pinyin })),
+        chip(s.pron === 'zhuyin' ? '注音' : 'Pinyin', 'pinyin', s.pinyin, () => save({ pinyin: !s.pinyin }), 'Pronunciation over the words'),
         chip(s.translation === 'blur' ? 'English (blur)' : 'English', 'english', s.translation !== 'hide', () => save({ translation: MODES[(MODES.indexOf(s.translation) + 1) % 3] }), 'Shown, blurred until you hover, or hidden'),
         chip('Transcript', 'transcript', this.subs.transcript.open, () => this.subs.transcript.toggle()),
       ),

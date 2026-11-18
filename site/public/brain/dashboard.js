@@ -316,6 +316,190 @@
   }
   var MAC = /Mac|iPhone|iPad/.test(navigator.platform);
 
+  // src/shared/zhuyin.ts
+  var PRONS = ["zhuyin", "pinyin"], PRON_LABEL = { zhuyin: "\u6CE8\u97F3", pinyin: "Pinyin" }, INITIALS = {
+    b: "\u3105",
+    p: "\u3106",
+    m: "\u3107",
+    f: "\u3108",
+    d: "\u3109",
+    t: "\u310A",
+    n: "\u310B",
+    l: "\u310C",
+    g: "\u310D",
+    k: "\u310E",
+    h: "\u310F",
+    j: "\u3110",
+    q: "\u3111",
+    x: "\u3112",
+    zh: "\u3113",
+    ch: "\u3114",
+    sh: "\u3115",
+    r: "\u3116",
+    z: "\u3117",
+    c: "\u3118",
+    s: "\u3119"
+  }, FINALS = {
+    a: "\u311A",
+    o: "\u311B",
+    e: "\u311C",
+    \u00EA: "\u311D",
+    ai: "\u311E",
+    ei: "\u311F",
+    ao: "\u3120",
+    ou: "\u3121",
+    an: "\u3122",
+    en: "\u3123",
+    ang: "\u3124",
+    eng: "\u3125",
+    ong: "\u3128\u3125",
+    er: "\u3126",
+    i: "\u3127",
+    ia: "\u3127\u311A",
+    io: "\u3127\u311B",
+    ie: "\u3127\u311D",
+    iai: "\u3127\u311E",
+    iao: "\u3127\u3120",
+    iou: "\u3127\u3121",
+    ian: "\u3127\u3122",
+    in: "\u3127\u3123",
+    iang: "\u3127\u3124",
+    ing: "\u3127\u3125",
+    iong: "\u3129\u3125",
+    u: "\u3128",
+    ua: "\u3128\u311A",
+    uo: "\u3128\u311B",
+    uai: "\u3128\u311E",
+    uei: "\u3128\u311F",
+    uan: "\u3128\u3122",
+    uen: "\u3128\u3123",
+    uang: "\u3128\u3124",
+    ueng: "\u3128\u3125",
+    \u00FC: "\u3129",
+    \u00FCe: "\u3129\u311D",
+    \u00FCan: "\u3129\u3122",
+    \u00FCn: "\u3129\u3123"
+  }, WHOLE = { er: "\u3126", m: "\u3107", n: "\u3123", ng: "\u312B", hm: "\u310F\u3107", hng: "\u310F\u312B", \u00EA: "\u311D", eh: "\u311D" }, BUZZ = /* @__PURE__ */ new Set(["zh", "ch", "sh", "r", "z", "c", "s"]), PALATAL = /* @__PURE__ */ new Set(["j", "q", "x"]), TONE_MARK = ["", "", "\u02CA", "\u02C7", "\u02CB", "\u02D9"];
+  function zhuyinLetters(raw) {
+    let s = raw.toLowerCase().replace(/u:|v/g, "\xFC");
+    if (WHOLE[s]) return WHOLE[s];
+    let yw = s[0] === "y" || s[0] === "w";
+    s[0] === "y" ? s = s.startsWith("yu") ? `\xFC${s.slice(2)}` : s.startsWith("yi") ? s.slice(1) : `i${s.slice(1)}` : s[0] === "w" && (s = s.startsWith("wu") ? s.slice(1) : `u${s.slice(1)}`);
+    let m = /^(zh|ch|sh|[bpmfdtnlgkhjqxrzcs])?([a-zü]*)$/.exec(s);
+    if (!m) return null;
+    let ini = m[1] ?? "", fin = m[2];
+    if (!fin) return null;
+    if (BUZZ.has(ini) && fin === "i") return INITIALS[ini];
+    PALATAL.has(ini) && fin[0] === "u" && (fin = `\xFC${fin.slice(1)}`), ini && (fin = fin === "iu" ? "iou" : fin === "ui" ? "uei" : fin === "un" ? "uen" : fin === "ue" ? "\xFCe" : fin);
+    let z = FINALS[fin];
+    return z ? ini ? allowed(ini, fin) ? INITIALS[ini] + z : null : /^[iuü]/.test(fin) === yw && fin !== "ong" ? z : null : null;
+  }
+  function allowed(ini, fin) {
+    let iFinal = fin[0] === "i", uFinal = fin[0] === "u", \u00FCFinal = fin[0] === "\xFC";
+    return fin === "er" || fin === "\xEA" || fin === "iai" || fin === "io" ? !1 : PALATAL.has(ini) ? iFinal || \u00FCFinal : \u00FCFinal ? (ini === "n" || ini === "l") && (fin === "\xFC" || fin === "\xFCe") : fin === "ia" ? ini === "d" || ini === "l" : iFinal ? /^[bpmdtnl]$/.test(ini) && fin !== "iong" : fin === "o" ? /^[bpmfl]$/.test(ini) : fin === "ueng" ? !1 : uFinal && /^[bpmf]$/.test(ini) ? fin === "u" : !0;
+  }
+  function parseNumbered(syl) {
+    let m = /^([a-zA-Z:üÜêÊ]+)([1-5])$/.exec(syl.trim());
+    if (!m) return null;
+    let base = m[1].toLowerCase(), tone = Number(m[2]);
+    if (base === "r") return { letters: "", tone, er: !0 };
+    let z = zhuyinLetters(base);
+    if (z) return { letters: z, tone, er: !1 };
+    if (base.length > 2 && base.endsWith("r")) {
+      let b = zhuyinLetters(base.slice(0, -1));
+      if (b) return { letters: b, tone, er: !0 };
+    }
+    return null;
+  }
+  function syllableToZhuyin(syl) {
+    let p = parseNumbered(syl);
+    if (!p) return syl;
+    if (!p.letters) return "\u3126";
+    let body = p.tone === 5 ? `\u02D9${p.letters}` : p.letters + TONE_MARK[p.tone];
+    return p.er ? `${body}\u3126` : body;
+  }
+  function numberedToZhuyin(py) {
+    let out = [];
+    for (let s of py.split(/\s+/).filter(Boolean))
+      /^r[1-5]$/i.test(s) && out.length ? out[out.length - 1] += "\u3126" : out.push(syllableToZhuyin(s));
+    return out.join(" ");
+  }
+  function zhuyinParts(syl) {
+    let p = parseNumbered(syl);
+    return p ? p.letters ? { letters: p.tone === 5 ? `\u02D9${p.letters}` : p.letters, tone: p.tone === 5 ? "" : TONE_MARK[p.tone], er: p.er ? "\u3126" : "" } : { letters: "\u3126", tone: "", er: "" } : null;
+  }
+  var COMBINING_TONE = { "\u0304": 1, "\u0301": 2, "\u030C": 3, "\u0300": 4 };
+  function markedToNumbered(syl) {
+    let tone = 5;
+    return `${syl.normalize("NFD").replace(/[̀́̄̌]/g, (c) => (tone = COMBINING_TONE[c], "")).normalize("NFC").toLowerCase()}${tone}`;
+  }
+  var isSyllable = (s) => zhuyinLetters(s) != null, toneCount = (s) => (s.normalize("NFD").match(/[̀́̄̌]/g) ?? []).length, toneless = (s) => s.normalize("NFD").replace(/[̀́̄̌]/g, "").normalize("NFC").toLowerCase();
+  function splitPinyin(text, count) {
+    let chunks = text.trim().split(/[\s'’\-·]+/).filter(Boolean), out = [];
+    for (let c of chunks) {
+      let ways = splits(c, 0);
+      if (!ways.length) return null;
+      out.push(...ways[0]);
+    }
+    return count == null || out.length === count || chunks.length !== 1 ? out : splits(chunks[0], 0).find((w) => w.length === count) ?? out;
+  }
+  function splits(s, depth) {
+    if (!s) return [[]];
+    if (depth > 12) return [];
+    let out = [];
+    for (let n = Math.min(6, s.length); n > 0; n--) {
+      let head = s.slice(0, n);
+      if (toneCount(head) > 1 || !isSyllable(toneless(head))) continue;
+      let rest = s.slice(n);
+      if (!((rest || depth) && /^(m|n|ng|hm|hng)$/.test(toneless(head))) && !/^[aeoāáǎàēéěèōóǒò]/i.test(rest.normalize("NFC"))) {
+        for (let tail of splits(rest, depth + 1)) out.push([head, ...tail]);
+        if (out.length > 8) break;
+      }
+    }
+    return out;
+  }
+  function markedToZhuyin(text, count) {
+    let sylls = splitPinyin(text, count);
+    return sylls ? numberedToZhuyin(sylls.map(markedToNumbered).join(" ")) : text;
+  }
+  function pronMarked(marked2, mode, count) {
+    return mode === "zhuyin" ? markedToZhuyin(marked2, count) : marked2;
+  }
+
+  // site/src/pron.ts
+  var KEY = "cb-pron", root = document.documentElement, fromExtension = () => !!root.dataset.cbPron;
+  function sitePron() {
+    let ext = root.dataset.cbPron;
+    if (ext === "pinyin" || ext === "zhuyin") return ext;
+    try {
+      return localStorage.getItem(KEY) === "pinyin" ? "pinyin" : "zhuyin";
+    } catch {
+      return "zhuyin";
+    }
+  }
+  function setSitePron(p) {
+    try {
+      localStorage.setItem(KEY, p);
+    } catch {
+    }
+    dispatchEvent(new Event("cb-pron"));
+  }
+  function onPron(redraw) {
+    let last = sitePron(), check = () => {
+      sitePron() !== last && (last = sitePron(), redraw());
+    };
+    addEventListener("cb-pron", () => {
+      last = sitePron(), redraw();
+    }), addEventListener("storage", (e) => e.key === KEY && check()), new MutationObserver(check).observe(root, { attributes: !0, attributeFilter: ["data-cb-pron"] });
+  }
+  function numbered(marked2, chars) {
+    let s = splitPinyin(marked2, chars);
+    return s && s.length === chars ? s.map(markedToNumbered).join(" ") : null;
+  }
+  function readingOf(marked2, chars) {
+    return pronMarked(marked2, sitePron(), chars);
+  }
+
   // site/src/dashboard.ts
   var nextId = 1, waiting = /* @__PURE__ */ new Map();
   window.addEventListener("message", (e) => {
@@ -385,7 +569,7 @@
     ["fresh", "\u65B0", "Fresh"],
     ["learning", "\u5B78", "Learning"],
     ["known", "\u719F", "Known"]
-  ], src, words = [], logs = [], saved = {}, filter = "fresh", PAGE = 120, shown = PAGE, kept = /* @__PURE__ */ new Map(), removed = /* @__PURE__ */ new Map(), removing = /* @__PURE__ */ new Map();
+  ], src, words = [], logs = [], saved = {}, filter = "fresh", FIRST = 30, MORE = 100, shown = FIRST, kept = /* @__PURE__ */ new Map(), removed = /* @__PURE__ */ new Map(), removing = /* @__PURE__ */ new Map();
   async function load() {
     ({ words, logs, saved } = await src.load()), render(), renderExportInfo();
   }
@@ -403,7 +587,7 @@
     );
     let q = $("q").value.trim().toLowerCase(), sort = $("sort").value, byWord = new Map(words.map((w) => [w.w, w]));
     for (let [w, rec] of removed) byWord.has(w) || byWord.set(w, rec);
-    let matches = (w) => !q || w.w.includes(q) || plain(w.p ?? "").includes(plain(q)) || (w.g ?? "").toLowerCase().includes(q), list = [...byWord.values()].filter((w) => filter === "all" || w.s === filter || kept.has(w.w) || removed.has(w.w)).filter(matches).sort((a, b) => key(b, sort) - key(a, sort));
+    let zq = q.replace(/[\sˊˇˋ˙]/g, ""), matches = (w) => !q || w.w.includes(q) || plain(w.p ?? "").includes(plain(q)) || (w.g ?? "").toLowerCase().includes(q) || /[ㄅ-ㄩ]/.test(zq) && zhuyinOf(w).includes(zq), list = [...byWord.values()].filter((w) => filter === "all" || w.s === filter || kept.has(w.w) || removed.has(w.w)).filter(matches).sort((a, b) => key(b, sort) - key(a, sort));
     $("rows").replaceChildren(...list.slice(0, shown).map(row)), list.length || $("rows").append(emptyState(q, words.filter(matches).length));
     let total = list.filter((w) => words.includes(w) && (filter === "all" || w.s === filter)).length, what = `${q ? "match" : `${LABEL[filter] ? `${LABEL[filter]} ` : ""}word`}${total === 1 ? "" : q ? "es" : "s"}`;
     $("more").textContent = list.length > shown ? `${shown} of ${total.toLocaleString("en-US")} ${what}` : total ? `${total.toLocaleString("en-US")} ${what}` : "", $("showMore").hidden = list.length <= shown, renderWeeks();
@@ -427,7 +611,11 @@
     let all = h("button", { class: "link" }, elsewhere === 1 ? "Show it" : `Show all ${elsewhere}`);
     return all.addEventListener("click", () => setFilter("all")), h("p", { class: "empty" }, `No ${LABEL[filter]} words match \u201C${q}\u201D, but ${elsewhere === 1 ? "one word" : `${elsewhere} words`} in your other lists ${elsewhere === 1 ? "does" : "do"}. `, all);
   }
-  var key = (w, sort) => sort === "updated" ? kept.get(w.w) ?? w.updated : w[sort] ?? 0, plain = (s) => s.normalize("NFD").replace(/[\u0300-\u036f\s']/g, "").toLowerCase();
+  var key = (w, sort) => sort === "updated" ? kept.get(w.w) ?? w.updated : w[sort] ?? 0, plain = (s) => s.normalize("NFD").replace(/[\u0300-\u036f\s']/g, "").toLowerCase(), zhuyinSearch = /* @__PURE__ */ new Map();
+  function zhuyinOf(w) {
+    let key2 = `${w.w}|${w.p ?? ""}`, z = zhuyinSearch.get(key2);
+    return z == null && zhuyinSearch.set(key2, z = markedToZhuyin(w.p ?? "", [...w.w].length).replace(/[\sˊˇˋ˙]/g, "")), z;
+  }
   function marked(text, word, alt) {
     let esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/[臺台]/g, "[\u81FA\u53F0]"), re = new RegExp([word, alt].filter(Boolean).map((x) => esc(x)).join("|"), "g"), out = [], at = 0;
     for (let m of text.matchAll(re))
@@ -436,11 +624,34 @@
   }
   function headword(w) {
     let chars = [...w.w], split = (w.p ?? "").split(/\s+/).filter(Boolean), syl = w.syl?.length === chars.length ? w.syl : split.length === chars.length ? split : void 0;
+    if (sitePron() === "zhuyin") {
+      let parts = (syl ? syl.map(markedToNumbered) : numbered(w.p ?? "", chars.length)?.split(" "))?.map(zhuyinParts);
+      return parts?.every(Boolean) ? h(
+        "div",
+        { class: "hw", lang: "zh-Hant" },
+        h("div", { class: "chars zyc", title: w.p ?? "" }, ...chars.map((ch, i) => zyBox(ch, parts[i])))
+      ) : h("div", { class: "hw", lang: "zh-Hant" }, h("div", { class: "pyline" }, readingOf(w.p ?? "", chars.length)), h("div", { class: "chars nopy" }, ...chars.map((ch) => h("span", { class: "ch" }, h("b", null, ch)))));
+    }
     return h(
       "div",
       { class: "hw", lang: "zh-Hant" },
       syl ? null : h("div", { class: "pyline" }, w.p ?? ""),
       h("div", { class: `chars${syl ? "" : " nopy"}`, title: syl ? w.p ?? "" : "" }, ...chars.map((ch, i) => h("span", { class: "ch", "data-py": syl?.[i] ?? "" }, h("b", null, ch))))
+    );
+  }
+  function zyBox(ch, p) {
+    let n = [...p.letters].length + (p.er ? 1 : 0);
+    return h("span", { class: `ch zy n${Math.min(4, n)}`, "data-zy": p.letters + p.er, "data-tone": p.tone }, h("b", null, ch));
+  }
+  function renderPron() {
+    let box = $("pron");
+    box.hidden = fromExtension();
+    let now = sitePron();
+    box.replaceChildren(
+      ...PRONS.map((p) => {
+        let b = h("button", { type: "button", "aria-pressed": String(p === now), lang: p === "zhuyin" ? "zh-Hant" : "en" }, PRON_LABEL[p]);
+        return b.addEventListener("click", () => p !== sitePron() && setSitePron(p)), b;
+      })
     );
   }
   function row(w) {
@@ -491,7 +702,7 @@
     removing.delete(w.w), await src.restore(stored).catch(failed);
   }
   function setFilter(f) {
-    filter = f, kept.clear(), removed.clear(), removing.clear(), shown = PAGE, history.replaceState(null, "", `#${f}`), render();
+    filter = f, kept.clear(), removed.clear(), removing.clear(), shown = FIRST, history.replaceState(null, "", `#${f}`), render();
   }
   async function renderExportInfo() {
     let whole = src.kind === "account";
@@ -508,9 +719,13 @@
   var TSV = "text/tab-separated-values;charset=utf-8";
   function wire() {
     $("q").addEventListener("input", () => {
-      shown = PAGE, render();
-    }), $("sort").addEventListener("change", render), $("showMore").addEventListener("click", () => {
-      shown += PAGE, render();
+      shown = FIRST, render();
+    }), $("sort").addEventListener("change", () => {
+      shown = FIRST, render();
+    }), $("showMore").addEventListener("click", () => {
+      shown += MORE, render();
+    }), renderPron(), onPron(() => {
+      renderPron(), render();
     }), $("filter").addEventListener("click", (e) => {
       let b = e.target.closest("button");
       b && setFilter(b.dataset.f);

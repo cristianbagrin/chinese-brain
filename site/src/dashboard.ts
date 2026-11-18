@@ -1,4 +1,4 @@
-// The word list, on the website. One page for everyone:
+// The dashboard: your words, on the website. One page for everyone:
 //   with the extension installed, it shows the words in this browser (through the extension;
 //     nothing is uploaded for it) and hovering a word opens its card;
 //   without it (a phone, another computer), it shows the words in your account.
@@ -8,6 +8,8 @@ import { playStamp } from '../../src/shared/sounds.ts';
 import { clock } from '../../src/shared/time.ts';
 import type { LogEvent, SavedSentence, Status, WordRecord } from '../../src/shared/types.ts';
 import { $, ago, download, h, today } from '../../src/pages/common.ts';
+import { markedToNumbered, markedToZhuyin, PRON_LABEL, PRONS, zhuyinParts, type ZhuyinParts } from '../../src/shared/zhuyin.ts';
+import { fromExtension, numbered, onPron, readingOf, setSitePron, sitePron } from './pron.ts';
 
 interface Data {
   words: WordRecord[];
@@ -150,8 +152,10 @@ let logs: LogEvent[] = [];
 let saved: Record<string, SavedSentence[]> = {};
 /** Fresh first: the words to work on. */
 let filter: Status | 'all' = 'fresh';
-const PAGE = 120;
-let shown = PAGE;
+/** The latest 30 first; each "Show more" adds 100. */
+const FIRST = 30;
+const MORE = 100;
+let shown = FIRST;
 /**
  * Words you restamped or removed in this view stay where they are (with their new status, or
  * faded with an Undo) until you switch filters, so the list doesn't jump while you work through it.
@@ -187,7 +191,9 @@ function render() {
   const sort = $<HTMLSelectElement>('sort').value as 'updated' | 'added' | 'looks';
   const byWord = new Map(words.map((w) => [w.w, w]));
   for (const [w, rec] of removed) if (!byWord.has(w)) byWord.set(w, rec);
-  const matches = (w: WordRecord) => !q || w.w.includes(q) || plain(w.p ?? '').includes(plain(q)) || (w.g ?? '').toLowerCase().includes(q);
+  const zq = q.replace(/[\sˊˇˋ˙]/g, '');
+  const matches = (w: WordRecord) =>
+    !q || w.w.includes(q) || plain(w.p ?? '').includes(plain(q)) || (w.g ?? '').toLowerCase().includes(q) || (/[ㄅ-ㄩ]/.test(zq) && zhuyinOf(w).includes(zq));
   const list = [...byWord.values()]
     .filter((w) => filter === 'all' || w.s === filter || kept.has(w.w) || removed.has(w.w))
     .filter(matches)
@@ -235,6 +241,15 @@ const key = (w: WordRecord, sort: 'updated' | 'added' | 'looks') => (sort === 'u
 /** Pinyin without tone marks or spaces, so "zhongwen" finds zhōngwén. */
 const plain = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f\s']/g, '').toLowerCase();
 
+/** A word's 注音 without tones or spaces, so ㄓㄨㄥㄨㄣ finds 中文 (worked out once per word). */
+const zhuyinSearch = new Map<string, string>();
+function zhuyinOf(w: WordRecord): string {
+  const key = `${w.w}|${w.p ?? ''}`;
+  let z = zhuyinSearch.get(key);
+  if (z == null) zhuyinSearch.set(key, (z = markedToZhuyin(w.p ?? '', [...w.w].length).replace(/[\sˊˇˋ˙]/g, '')));
+  return z;
+}
+
 /** The sentence with the headword marked, however it's written there (台/臺, or as `alt`). */
 function marked(text: string, word: string, alt?: string): (Node | string)[] {
   const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/[臺台]/g, '[臺台]');
@@ -250,20 +265,51 @@ function marked(text: string, word: string, alt?: string): (Node | string)[] {
 }
 
 /**
- * The headword in 田字格 squares with each character's pinyin above it, like a practice book.
- * The squares stay inline and the pinyin is drawn by CSS (data-py), so hovering the word still
- * opens the card for the whole word, not one character.
+ * The headword in 田字格 squares, like a practice book: each character's pinyin above it, or its
+ * 注音 in a column on its right, as Taiwan prints it. The squares stay inline and the reading is
+ * drawn by CSS (data-py, data-zy), so hovering the word still opens the card for the whole word.
  */
 function headword(w: WordRecord): HTMLElement {
   const chars = [...w.w];
   // The extension works the syllables out from its dictionary; without it, the saved pinyin splits when it fits.
   const split = (w.p ?? '').split(/\s+/).filter(Boolean);
   const syl = w.syl?.length === chars.length ? w.syl : split.length === chars.length ? split : undefined;
+  if (sitePron() === 'zhuyin') {
+    const n = syl ? syl.map(markedToNumbered) : numbered(w.p ?? '', chars.length)?.split(' ');
+    const parts = n?.map(zhuyinParts);
+    if (parts?.every(Boolean))
+      return h(
+        'div',
+        { class: 'hw', lang: 'zh-Hant' },
+        h('div', { class: 'chars zyc', title: w.p ?? '' }, ...chars.map((ch, i) => zyBox(ch, parts[i]!))),
+      );
+    return h('div', { class: 'hw', lang: 'zh-Hant' }, h('div', { class: 'pyline' }, readingOf(w.p ?? '', chars.length)), h('div', { class: 'chars nopy' }, ...chars.map((ch) => h('span', { class: 'ch' }, h('b', null, ch)))));
+  }
   return h(
     'div',
     { class: 'hw', lang: 'zh-Hant' },
     syl ? null : h('div', { class: 'pyline' }, w.p ?? ''),
     h('div', { class: `chars${syl ? '' : ' nopy'}`, title: syl ? w.p ?? '' : '' }, ...chars.map((ch, i) => h('span', { class: 'ch', 'data-py': syl?.[i] ?? '' }, h('b', null, ch)))),
+  );
+}
+
+/** A square with the character's 注音 on its right (zhuyin.css draws the column). */
+function zyBox(ch: string, p: ZhuyinParts): HTMLElement {
+  const n = [...p.letters].length + (p.er ? 1 : 0);
+  return h('span', { class: `ch zy n${Math.min(4, n)}`, 'data-zy': p.letters + p.er, 'data-tone': p.tone }, h('b', null, ch));
+}
+
+/** 注音 or pinyin, for visitors without the extension (with it, its Settings decide). */
+function renderPron() {
+  const box = $('pron');
+  box.hidden = fromExtension();
+  const now = sitePron();
+  box.replaceChildren(
+    ...PRONS.map((p) => {
+      const b = h('button', { type: 'button', 'aria-pressed': String(p === now), lang: p === 'zhuyin' ? 'zh-Hant' : 'en' }, PRON_LABEL[p]);
+      b.addEventListener('click', () => p !== sitePron() && setSitePron(p));
+      return b;
+    }),
   );
 }
 
@@ -360,7 +406,7 @@ function setFilter(f: Status | 'all') {
   kept.clear();
   removed.clear();
   removing.clear();
-  shown = PAGE;
+  shown = FIRST;
   history.replaceState(null, '', `#${f}`);
   render();
 }
@@ -396,12 +442,20 @@ const TSV = 'text/tab-separated-values;charset=utf-8';
 
 function wire() {
   $('q').addEventListener('input', () => {
-    shown = PAGE;
+    shown = FIRST;
     render();
   });
-  $('sort').addEventListener('change', render);
+  $('sort').addEventListener('change', () => {
+    shown = FIRST;
+    render();
+  });
   $('showMore').addEventListener('click', () => {
-    shown += PAGE;
+    shown += MORE;
+    render();
+  });
+  renderPron();
+  onPron(() => {
+    renderPron();
     render();
   });
   $('filter').addEventListener('click', (e) => {

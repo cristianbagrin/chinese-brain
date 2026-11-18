@@ -1,6 +1,6 @@
 import { hasWord, metSentence } from '../shared/context.ts';
 import { CJK } from '../shared/dict.ts';
-import { numberedToMarked } from '../shared/pinyin.ts';
+import { pron, zhuyinWord } from '../shared/zhuyin.ts';
 import type { Context, Entry, LookupMatch, Status, Token } from '../shared/types.ts';
 import { saveSound, speak, stampSound } from './audio.ts';
 import { signal } from './bridge.ts';
@@ -8,6 +8,7 @@ import { actionFor, keyLabel, keyOf, type KeyAction } from '../shared/keys.ts';
 import { inOwnBox } from './keys.ts';
 import { lookupText } from './lookup.ts';
 import css from './popup.css';
+import zhuyinCss from '../shared/zhuyin.css';
 import { state } from './state.ts';
 
 export const STAMPS: { s: Status; zh: string; label: string }[] = [
@@ -54,9 +55,12 @@ function h(tag: string, attrs: Record<string, string> | null, ...kids: (Node | s
   return el;
 }
 
-/** Turn "variant of 臺|台[tai2]" into "variant of 臺 tái". */
+/** A reading the way you chose to see them (注音 or pinyin). */
+const readAs = (numbered: string, joined = true) => pron(numbered, state.settings.pron, joined);
+
+/** Turn "variant of 臺|台[tai2]" into "variant of 臺 tái" (or 臺 ㄊㄞˊ). */
 function prettyDef(d: string): string {
-  return d.replace(/([^\s\[|,;(]+)(?:\|([^\s\[,;]+))?\[([a-zA-Z0-9: ]+)\]/g, (_, t: string, _s: string, p: string) => `${t} ${numberedToMarked(p)}`);
+  return d.replace(/([^\s\[|,;(]+)(?:\|([^\s\[,;]+))?\[([a-zA-Z0-9: ]+)\]/g, (_, t: string, _s: string, p: string) => `${t} ${readAs(p)}`);
 }
 
 /** How common a word is, in words: Zipf score (x10) thresholds, roughly the top 1k / 4k / 9k / 23k words. */
@@ -226,7 +230,7 @@ export class Popup {
     this.host = document.createElement('chinese-brain-popup');
     this.root = this.host.attachShadow({ mode: 'closed' });
     const style = document.createElement('style');
-    style.textContent = css;
+    style.textContent = zhuyinCss + css;
     this.card = h('div', { class: 'card', hidden: '' });
     this.hint = h('div', { class: 'hint', hidden: '' });
     this.root.append(style, this.card, this.hint);
@@ -624,7 +628,7 @@ export class Popup {
     hint.classList.toggle('large', state.settings.cardSize === 'large');
     hint.replaceChildren(
       h('div', { class: 'hg' }, mainSense(e)),
-      h('div', { class: 'hpy' }, numberedToMarked(e.tw || e.py, false)),
+      h('div', { class: 'hpy' }, readAs(e.tw || e.py, false)),
     );
     hint.hidden = false;
     const r = el.getBoundingClientRect();
@@ -957,8 +961,12 @@ export class Popup {
     card.replaceChildren();
 
     const freq = frequency(Math.max(...m.entries.map((e) => e.zipf)));
-    // Pinyin is always shown here: opening the card means you are learning the word.
-    const pyEl = h('span', { class: 'py' }, numberedToMarked(e0.tw || e0.py, false));
+    // The reading is always shown here: opening the card means you are learning the word.
+    // 注音 sits beside each character, as Taiwan prints it; a long phrase gets it on one line.
+    const reading0 = e0.tw || e0.py;
+    const long = [...m.word].length > 8;
+    const zyHead = s.pron === 'zhuyin' && !long ? zhuyinWord(m.word, reading0) : null;
+    const pyEl = zyHead ? null : h('span', { class: `py${s.pron === 'zhuyin' ? ' zyline' : ''}` }, readAs(reading0, false));
 
     // Senses grouped by reading; each group on one line.
     const groups = new Map<string, Entry[]>();
@@ -974,7 +982,7 @@ export class Popup {
       const senses = defs.filter((d) => !d.startsWith('CL:')).slice(0, 10).map(prettyDef);
       const cls = defs.filter((d) => d.startsWith('CL:')).flatMap((d) => d.slice(3).split(','));
       const line = h('div', { class: 'defs' });
-      if (!first) line.append(h('span', { class: 'rpy' }, numberedToMarked(reading, false)));
+      if (!first) line.append(h('span', { class: 'rpy' }, readAs(reading, false)));
       senses.forEach((d, i) => {
         if (i) line.append(h('span', { class: 'sep' }, '·'));
         line.append(...this.richText(d));
@@ -988,7 +996,7 @@ export class Popup {
             'measure word ',
             ...cls.flatMap((c, i) => {
               const mm = /^([^|\[]+)(?:\|[^\[]+)?\[([^\]]+)\]/.exec(c);
-              return mm ? [i ? ', ' : '', this.word(mm[1], mm[1], mm[1]), ' ' + numberedToMarked(mm[2])] : [];
+              return mm ? [i ? ', ' : '', this.word(mm[1], mm[1], mm[1]), ' ' + readAs(mm[2])] : [];
             }),
           ),
         );
@@ -997,8 +1005,7 @@ export class Popup {
       first = false;
     }
 
-    const long = [...m.word].length > 8;
-    const head = h('span', { class: `head${status ? ' st-' + status : ''}${long ? ' long' : ''}` }, m.word);
+    const head = h('span', { class: `head${status ? ' st-' + status : ''}${long ? ' long' : ''}${zyHead ? ' zyhead' : ''}` }, zyHead ?? m.word);
     // A translated selection says so.
     if (m.phrase && !e0.defs[0]?.startsWith('(')) readings[0]?.querySelector('.defs')?.append(h('span', { class: 'mt' }, 'machine translation'));
     const top = h('div', { class: 'top' });
@@ -1040,7 +1047,7 @@ export class Popup {
         const ch = this.word(c.ch, c.ch, c.ch);
         ch.classList.add('c');
         const cell = h('span', { class: `cw d${Math.min(c.depth, 3)}` }, ch);
-        grid.append(cell, h('span', { class: 'cpy' }, numberedToMarked(c.py, false)), h('span', { class: 'cg' }, c.gloss));
+        grid.append(cell, h('span', { class: 'cpy' }, readAs(c.py, false)), h('span', { class: 'cg' }, c.gloss));
       }
       card.append(h('div', { class: 'sect' }, grid));
     }

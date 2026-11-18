@@ -13,7 +13,7 @@ export const KEY_ACTIONS = {
   next: { label: 'Next line', group: 'yt', key: 'd' },
   loop: { label: 'Loop line', group: 'yt', key: 'r' },
   shadow: { label: 'Shadowing', group: 'yt', key: 'q' },
-  pinyin: { label: 'Pinyin', group: 'yt', key: 'p' },
+  pinyin: { label: 'Pronunciation', group: 'yt', key: 'p' },
   english: { label: 'English line', group: 'yt', key: 'x' },
   transcript: { label: 'Transcript', group: 'yt', key: 'e' },
 } as const;

@@ -67,7 +67,9 @@
       <div class="seg" data-setting="hoverMode"><button data-v="hover">hover</button><button data-v="alt" id="altMode">Alt</button><button data-v="off">off</button></div>
     </div>
     <div class="row" id="siteLine" hidden><span>Lookup on <b class="hostname"></b></span><label class="sw"><input type="checkbox" id="siteOn"><i></i></label></div>
-    <div class="row"><span>Pinyin</span><label class="sw"><input type="checkbox" data-setting="pinyin"><i></i></label></div>
+    <div class="row"><span>Pronunciation</span>
+      <div class="seg" data-setting="pron"><button data-v="zhuyin" lang="zh-Hant">注音</button><button data-v="pinyin">pinyin</button></div>
+    </div>
     <div class="row"><span>Card size</span>
       <div class="seg" data-setting="cardSize"><button data-v="normal">normal</button><button data-v="large">large</button></div>
     </div>
@@ -83,13 +85,14 @@
     <div class="row"><span>English line</span>
       <div class="seg" data-setting="translation"><button data-v="show">show</button><button data-v="blur">blur</button><button data-v="hide">hide</button></div>
     </div>
+    <div class="row"><span>Pronunciation over the words</span><label class="sw"><input type="checkbox" data-setting="pinyin"><i></i></label></div>
     <div class="row"><span>Pause on hover</span><label class="sw"><input type="checkbox" data-setting="pauseOnHover"><i></i></label></div>
     <div class="row"><span>Subtitle band</span>
       <div class="seg" data-setting="subStyle"><button data-v="light">light</button><button data-v="dark">dark</button></div>
     </div>
   </div>
 
-  <div class="links"><a id="words" href="https://chinese.cristianbagrin.com/brain/dashboard" target="_blank">Word list</a><button type="button" id="dlNew" disabled>↓ New<b id="newN"></b></button><a href="options.html" target="_blank">Settings</a></div>
+  <div class="links"><a id="words" href="https://chinese.cristianbagrin.com/brain/dashboard" target="_blank">Dashboard</a><button type="button" id="dlNew" disabled>↓ New<b id="newN"></b></button><a href="options.html" target="_blank">Settings</a></div>
   <div class="foot"><a href="options.html#account" target="_blank" id="acctLink">Sign in to sync</a><a id="feedback" href="mailto:chris@cristianbagrin.com">Give feedback</a></div>
 </div>
 <script src="action.js"></script>

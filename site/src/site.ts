@@ -7,7 +7,9 @@
 // steps on How it works tick either way.
 import { playSave, playStamp } from '../../src/shared/sounds.ts';
 import type { Status } from '../../src/shared/types.ts';
+import { numberedToZhuyin, PRON_LABEL, PRONS } from '../../src/shared/zhuyin.ts';
 import { PHRASES, WORDS } from './demo-words.ts';
+import { fromExtension, numbered, onPron, readingOf, setSitePron, sitePron, zhuyinHead } from './pron.ts';
 
 const root = document.documentElement;
 const ext = () => !!root.dataset.cbExt;
@@ -112,17 +114,6 @@ card.hidden = true;
 let current: { word: string; phrase: boolean; at: HTMLElement | DOMRect } | undefined;
 let hideTimer = 0;
 
-function say(text: string) {
-  try {
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'zh-TW';
-    speechSynthesis.cancel();
-    speechSynthesis.speak(u);
-  } catch {
-    /* no speech here */
-  }
-}
-
 function bars(n: number) {
   const b = h('span', 'bars');
   for (let i = 1; i <= 5; i++) b.append(h('i', i <= n ? 'on' : ''));
@@ -133,31 +124,37 @@ function render() {
   if (!current) return;
   const { word, phrase } = current;
   const st = stamps.get(word);
-  const sayBtn = h('button', 'say', '🔊');
-  sayBtn.title = 'Say it';
-  sayBtn.addEventListener('click', () => say(word));
+  const zy = sitePron() === 'zhuyin';
   if (phrase) {
     const clean = word.replace(/[，。！？、：；「」\s]/g, '');
     const parts = segmentWords(clean);
     const en = PHRASES[clean] ?? parts.map((p) => WORDS[p]?.[1].replace(/^\((.*)\)$/, '$1') ?? p).join(' · ');
     card.replaceChildren(
-      h('div', 'top', h('div', 'headrow', h('span', 'head long', word), sayBtn), h('div', 'py', parts.map((p) => WORDS[p]?.[0] ?? p).join(' ')), h('div', 'en', en)),
+      h('div', 'top', h('div', 'headrow', h('span', 'head long', word)), h('div', 'py', parts.map((p) => (WORDS[p] ? readingOf(WORDS[p][0], p.length) : p)).join(' ')), h('div', 'en', en)),
+      h('div', 'foot', pronSwitch()),
     );
   } else {
     const [py, en, freq, parts] = WORDS[word];
-    const head = h('span', `head${st ? ` st-${st}` : ''}`, word);
+    // 注音 beside each character, as Taiwan prints it; pinyin next to the word.
+    const zyHead = zy ? zhuyinHead(word, py) : null;
+    const head = h('span', `head${st ? ` st-${st}` : ''}${zyHead ? ' zyhead' : ''}`, zyHead ?? word);
     card.replaceChildren(
-      h('div', 'top', h('div', 'headrow', head, h('span', 'py', py), sayBtn, bars(freq)), h('div', 'en', en)),
-      parts ? h('div', 'parts', ...parts.map(([c, p, e]) => h('div', null, h('b', null, c), h('span', 'ppy', p), e))) : '',
+      h('div', 'top', h('div', 'headrow', head, zyHead ? null : h('span', 'py', readingOf(py, word.length)), bars(freq)), h('div', 'en', en)),
+      parts ? h('div', 'parts', ...parts.map(([c, p, e]) => h('div', null, h('b', null, c), h('span', 'ppy', readingOf(p, 1)), e))) : '',
       h(
         'div',
-        'stamps',
-        ...STAMPS.map(([s, zh, key]) => {
-          const b = h('button', `seal ${s}${st === s ? ' on' : ''}`, zh, h('small', null, key));
-          b.title = `${s[0].toUpperCase()}${s.slice(1)} (${key})`;
-          b.addEventListener('click', () => stamp(s));
-          return b;
-        }),
+        'foot',
+        h(
+          'div',
+          'stamps',
+          ...STAMPS.map(([s, zh, key]) => {
+            const b = h('button', `seal ${s}${st === s ? ' on' : ''}`, zh, h('small', null, key));
+            b.title = `${s[0].toUpperCase()}${s.slice(1)} (${key})`;
+            b.addEventListener('click', () => stamp(s));
+            return b;
+          }),
+        ),
+        pronSwitch(),
       ),
     );
   }
@@ -275,7 +272,6 @@ if (demos.length) {
     const s = STAMPS.find(([, , k]) => k === e.key);
     if (s) stamp(s[0]);
     else if (e.key === '0') stamp(null);
-    else if (e.key === 'v') say(current.word);
     else return;
     e.preventDefault();
   });
@@ -291,7 +287,49 @@ for (const b of $$<HTMLButtonElement>('[data-sound]')) {
   });
 }
 
+// ---------- 注音 or pinyin ----------
+
+/** Redraws for a new choice of reading (the card, the player's line, your words). */
+const redraws: (() => void)[] = [
+  () => {
+    if (current && !card.hidden) {
+      render();
+      place();
+    }
+  },
+  () => mine(),
+];
+onPron(() => redraws.forEach((r) => r()));
+
+/** The card's own switch between 注音 and pinyin (with the extension, its Settings decide). */
+function pronSwitch(): HTMLElement | null {
+  if (fromExtension()) return null;
+  const now = sitePron();
+  const seg = h('div', 'pron');
+  seg.setAttribute('role', 'group');
+  seg.setAttribute('aria-label', 'Pronunciation');
+  for (const p of PRONS) {
+    const b = h('button', null, PRON_LABEL[p]) as HTMLButtonElement;
+    b.type = 'button';
+    b.lang = p === 'zhuyin' ? 'zh-Hant' : 'en';
+    b.setAttribute('aria-pressed', String(p === now));
+    b.addEventListener('click', () => p !== sitePron() && setSitePron(p));
+    seg.append(b);
+  }
+  return seg;
+}
+
 // ---------- YouTube, line by line (the guide's little player) ----------
+
+/** A subtitle word with its reading over it: 注音 over each character, pinyin over the word. */
+function ruby(word: string): HTMLElement {
+  const py = WORDS[word][0];
+  const n = sitePron() === 'zhuyin' ? numbered(py, word.length) : null;
+  if (!n) return h('ruby', null, word, h('rt', null, readingOf(py, word.length)));
+  const r = h('ruby', 'zy');
+  n.split(' ').forEach((syl, i) => r.append([...word][i], h('rt', null, numberedToZhuyin(syl))));
+  return r;
+}
 
 function player(sim: HTMLElement) {
   const lines = $$('.script li', sim);
@@ -305,7 +343,7 @@ function player(sim: HTMLElement) {
     zh.textContent = lines[at].dataset.zh!;
     en.textContent = lines[at].dataset.en!;
     segment(zh);
-    if (sim.hasAttribute('data-pinyin')) for (const w of $$('.w', zh)) w.replaceChildren(h('ruby', null, w.dataset.w!, h('rt', null, WORDS[w.dataset.w!][0])));
+    if (sim.hasAttribute('data-pinyin')) for (const w of $$('.w', zh)) w.replaceChildren(ruby(w.dataset.w!));
     lines.forEach((l, j) => l.classList.toggle('now', j === at));
     bar.classList.remove('run');
     void bar.offsetWidth;
@@ -318,6 +356,10 @@ function player(sim: HTMLElement) {
     }
   };
   bar.addEventListener('animationend', () => go(loop ? at : at + 1));
+  // A new choice of 注音 or pinyin shows on the line now on screen.
+  redraws.push(() => {
+    if (sim.hasAttribute('data-pinyin')) for (const w of $$('.w', zh)) w.replaceChildren(ruby(w.dataset.w!));
+  });
   // Hover the subtitles and the video waits.
   const band = sim.querySelector('.band')!;
   band.addEventListener('mouseenter', () => sim.classList.add('paused'));
@@ -389,8 +431,10 @@ function mine() {
         el.dataset.w = w;
         const [py, en] = WORDS[w] ?? ['', ''];
         const meaning = h('span', 'en', en);
+        const reading = h('span', 'py', py && readingOf(py, w.length));
+        if (sitePron() === 'zhuyin') reading.lang = 'zh-Hant';
         meaning.lang = 'en';
-        return h('li', null, el, h('span', 'py', py), meaning);
+        return h('li', null, el, reading, meaning);
       }),
     );
     box.classList.toggle('some', stamps.size > 0);
@@ -486,7 +530,7 @@ async function drawCorner() {
   const summary = h('summary', null, face);
   summary.title = email;
   summary.setAttribute('aria-label', `Signed in as ${email}`);
-  const words = link('Your words', accountHost ? 'https://chinese.cristianbagrin.com/brain/dashboard' : '/brain/dashboard');
+  const words = link('Dashboard', accountHost ? 'https://chinese.cristianbagrin.com/brain/dashboard' : '/brain/dashboard');
   menu = h('details', 'me', summary, h('div', 'menu', h('p', 'who', email), words, link('Account', '/account'), out));
   corner.after(menu);
 }

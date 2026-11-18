@@ -53,6 +53,168 @@
     }
   }
 
+  // src/shared/zhuyin.ts
+  var PRONS = ["zhuyin", "pinyin"], PRON_LABEL = { zhuyin: "\u6CE8\u97F3", pinyin: "Pinyin" }, INITIALS = {
+    b: "\u3105",
+    p: "\u3106",
+    m: "\u3107",
+    f: "\u3108",
+    d: "\u3109",
+    t: "\u310A",
+    n: "\u310B",
+    l: "\u310C",
+    g: "\u310D",
+    k: "\u310E",
+    h: "\u310F",
+    j: "\u3110",
+    q: "\u3111",
+    x: "\u3112",
+    zh: "\u3113",
+    ch: "\u3114",
+    sh: "\u3115",
+    r: "\u3116",
+    z: "\u3117",
+    c: "\u3118",
+    s: "\u3119"
+  }, FINALS = {
+    a: "\u311A",
+    o: "\u311B",
+    e: "\u311C",
+    \u00EA: "\u311D",
+    ai: "\u311E",
+    ei: "\u311F",
+    ao: "\u3120",
+    ou: "\u3121",
+    an: "\u3122",
+    en: "\u3123",
+    ang: "\u3124",
+    eng: "\u3125",
+    ong: "\u3128\u3125",
+    er: "\u3126",
+    i: "\u3127",
+    ia: "\u3127\u311A",
+    io: "\u3127\u311B",
+    ie: "\u3127\u311D",
+    iai: "\u3127\u311E",
+    iao: "\u3127\u3120",
+    iou: "\u3127\u3121",
+    ian: "\u3127\u3122",
+    in: "\u3127\u3123",
+    iang: "\u3127\u3124",
+    ing: "\u3127\u3125",
+    iong: "\u3129\u3125",
+    u: "\u3128",
+    ua: "\u3128\u311A",
+    uo: "\u3128\u311B",
+    uai: "\u3128\u311E",
+    uei: "\u3128\u311F",
+    uan: "\u3128\u3122",
+    uen: "\u3128\u3123",
+    uang: "\u3128\u3124",
+    ueng: "\u3128\u3125",
+    \u00FC: "\u3129",
+    \u00FCe: "\u3129\u311D",
+    \u00FCan: "\u3129\u3122",
+    \u00FCn: "\u3129\u3123"
+  }, WHOLE = { er: "\u3126", m: "\u3107", n: "\u3123", ng: "\u312B", hm: "\u310F\u3107", hng: "\u310F\u312B", \u00EA: "\u311D", eh: "\u311D" }, BUZZ = /* @__PURE__ */ new Set(["zh", "ch", "sh", "r", "z", "c", "s"]), PALATAL = /* @__PURE__ */ new Set(["j", "q", "x"]), TONE_MARK = ["", "", "\u02CA", "\u02C7", "\u02CB", "\u02D9"];
+  function zhuyinLetters(raw) {
+    let s = raw.toLowerCase().replace(/u:|v/g, "\xFC");
+    if (WHOLE[s]) return WHOLE[s];
+    let yw = s[0] === "y" || s[0] === "w";
+    s[0] === "y" ? s = s.startsWith("yu") ? `\xFC${s.slice(2)}` : s.startsWith("yi") ? s.slice(1) : `i${s.slice(1)}` : s[0] === "w" && (s = s.startsWith("wu") ? s.slice(1) : `u${s.slice(1)}`);
+    let m = /^(zh|ch|sh|[bpmfdtnlgkhjqxrzcs])?([a-zü]*)$/.exec(s);
+    if (!m) return null;
+    let ini = m[1] ?? "", fin = m[2];
+    if (!fin) return null;
+    if (BUZZ.has(ini) && fin === "i") return INITIALS[ini];
+    PALATAL.has(ini) && fin[0] === "u" && (fin = `\xFC${fin.slice(1)}`), ini && (fin = fin === "iu" ? "iou" : fin === "ui" ? "uei" : fin === "un" ? "uen" : fin === "ue" ? "\xFCe" : fin);
+    let z = FINALS[fin];
+    return z ? ini ? allowed(ini, fin) ? INITIALS[ini] + z : null : /^[iuü]/.test(fin) === yw && fin !== "ong" ? z : null : null;
+  }
+  function allowed(ini, fin) {
+    let iFinal = fin[0] === "i", uFinal = fin[0] === "u", \u00FCFinal = fin[0] === "\xFC";
+    return fin === "er" || fin === "\xEA" || fin === "iai" || fin === "io" ? !1 : PALATAL.has(ini) ? iFinal || \u00FCFinal : \u00FCFinal ? (ini === "n" || ini === "l") && (fin === "\xFC" || fin === "\xFCe") : fin === "ia" ? ini === "d" || ini === "l" : iFinal ? /^[bpmdtnl]$/.test(ini) && fin !== "iong" : fin === "o" ? /^[bpmfl]$/.test(ini) : fin === "ueng" ? !1 : uFinal && /^[bpmf]$/.test(ini) ? fin === "u" : !0;
+  }
+  function parseNumbered(syl) {
+    let m = /^([a-zA-Z:üÜêÊ]+)([1-5])$/.exec(syl.trim());
+    if (!m) return null;
+    let base = m[1].toLowerCase(), tone = Number(m[2]);
+    if (base === "r") return { letters: "", tone, er: !0 };
+    let z = zhuyinLetters(base);
+    if (z) return { letters: z, tone, er: !1 };
+    if (base.length > 2 && base.endsWith("r")) {
+      let b = zhuyinLetters(base.slice(0, -1));
+      if (b) return { letters: b, tone, er: !0 };
+    }
+    return null;
+  }
+  function syllableToZhuyin(syl) {
+    let p = parseNumbered(syl);
+    if (!p) return syl;
+    if (!p.letters) return "\u3126";
+    let body = p.tone === 5 ? `\u02D9${p.letters}` : p.letters + TONE_MARK[p.tone];
+    return p.er ? `${body}\u3126` : body;
+  }
+  function numberedToZhuyin(py) {
+    let out = [];
+    for (let s of py.split(/\s+/).filter(Boolean))
+      /^r[1-5]$/i.test(s) && out.length ? out[out.length - 1] += "\u3126" : out.push(syllableToZhuyin(s));
+    return out.join(" ");
+  }
+  function zhuyinParts(syl) {
+    let p = parseNumbered(syl);
+    return p ? p.letters ? { letters: p.tone === 5 ? `\u02D9${p.letters}` : p.letters, tone: p.tone === 5 ? "" : TONE_MARK[p.tone], er: p.er ? "\u3126" : "" } : { letters: "\u3126", tone: "", er: "" } : null;
+  }
+  var COMBINING_TONE = { "\u0304": 1, "\u0301": 2, "\u030C": 3, "\u0300": 4 };
+  function markedToNumbered(syl) {
+    let tone = 5;
+    return `${syl.normalize("NFD").replace(/[̀́̄̌]/g, (c) => (tone = COMBINING_TONE[c], "")).normalize("NFC").toLowerCase()}${tone}`;
+  }
+  var isSyllable = (s) => zhuyinLetters(s) != null, toneCount = (s) => (s.normalize("NFD").match(/[̀́̄̌]/g) ?? []).length, toneless = (s) => s.normalize("NFD").replace(/[̀́̄̌]/g, "").normalize("NFC").toLowerCase();
+  function splitPinyin(text, count) {
+    let chunks = text.trim().split(/[\s'’\-·]+/).filter(Boolean), out = [];
+    for (let c of chunks) {
+      let ways = splits(c, 0);
+      if (!ways.length) return null;
+      out.push(...ways[0]);
+    }
+    return count == null || out.length === count || chunks.length !== 1 ? out : splits(chunks[0], 0).find((w) => w.length === count) ?? out;
+  }
+  function splits(s, depth) {
+    if (!s) return [[]];
+    if (depth > 12) return [];
+    let out = [];
+    for (let n = Math.min(6, s.length); n > 0; n--) {
+      let head = s.slice(0, n);
+      if (toneCount(head) > 1 || !isSyllable(toneless(head))) continue;
+      let rest = s.slice(n);
+      if (!((rest || depth) && /^(m|n|ng|hm|hng)$/.test(toneless(head))) && !/^[aeoāáǎàēéěèōóǒò]/i.test(rest.normalize("NFC"))) {
+        for (let tail of splits(rest, depth + 1)) out.push([head, ...tail]);
+        if (out.length > 8) break;
+      }
+    }
+    return out;
+  }
+  function markedToZhuyin(text, count) {
+    let sylls = splitPinyin(text, count);
+    return sylls ? numberedToZhuyin(sylls.map(markedToNumbered).join(" ")) : text;
+  }
+  function pronMarked(marked, mode, count) {
+    return mode === "zhuyin" ? markedToZhuyin(marked, count) : marked;
+  }
+  function zhuyinWord(word, numbered2, doc = document) {
+    let chars = [...word], sylls = numbered2.split(/\s+/).filter(Boolean);
+    if (chars.length !== sylls.length) return null;
+    let parts = sylls.map(zhuyinParts);
+    if (parts.some((p) => !p)) return null;
+    let box = doc.createElement("span");
+    return box.className = "zyw", chars.forEach((ch, i) => box.append(zhuyinChar(ch, parts[i], doc))), box;
+  }
+  function zhuyinChar(ch, p, doc = document) {
+    let c = doc.createElement("span"), n = [...p.letters].length + (p.er ? 1 : 0);
+    return c.className = `zy n${Math.min(4, n)}`, c.dataset.zy = p.letters + p.er, c.dataset.tone = p.tone, c.textContent = ch, c;
+  }
+
   // site/src/demo-words.ts
   var WORDS = {
     \u4ECA\u5929: ["j\u012Bnti\u0101n", "today", 5, [["\u4ECA", "j\u012Bn", "now"], ["\u5929", "ti\u0101n", "day; sky"]]],
@@ -112,8 +274,46 @@
     \u627E\u4E0D\u5230\u9019\u9801: "Can't find this page."
   };
 
+  // site/src/pron.ts
+  var KEY = "cb-pron", root = document.documentElement, fromExtension = () => !!root.dataset.cbPron;
+  function sitePron() {
+    let ext2 = root.dataset.cbPron;
+    if (ext2 === "pinyin" || ext2 === "zhuyin") return ext2;
+    try {
+      return localStorage.getItem(KEY) === "pinyin" ? "pinyin" : "zhuyin";
+    } catch {
+      return "zhuyin";
+    }
+  }
+  function setSitePron(p) {
+    try {
+      localStorage.setItem(KEY, p);
+    } catch {
+    }
+    dispatchEvent(new Event("cb-pron"));
+  }
+  function onPron(redraw) {
+    let last = sitePron(), check = () => {
+      sitePron() !== last && (last = sitePron(), redraw());
+    };
+    addEventListener("cb-pron", () => {
+      last = sitePron(), redraw();
+    }), addEventListener("storage", (e) => e.key === KEY && check()), new MutationObserver(check).observe(root, { attributes: !0, attributeFilter: ["data-cb-pron"] });
+  }
+  function numbered(marked, chars) {
+    let s = splitPinyin(marked, chars);
+    return s && s.length === chars ? s.map(markedToNumbered).join(" ") : null;
+  }
+  function readingOf(marked, chars) {
+    return pronMarked(marked, sitePron(), chars);
+  }
+  function zhuyinHead(word, marked) {
+    let n = numbered(marked, [...word].length);
+    return n ? zhuyinWord(word, n) : null;
+  }
+
   // site/src/site.ts
-  var root = document.documentElement, ext = () => !!root.dataset.cbExt, mac = /Mac|iPhone|iPad/.test(navigator.platform), $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
+  var root2 = document.documentElement, ext = () => !!root2.dataset.cbExt, mac = /Mac|iPhone|iPad/.test(navigator.platform), $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
   function h(tag, cls, ...kids) {
     let el = document.createElement(tag);
     cls && (el.className = cls);
@@ -133,7 +333,7 @@
       { once: !0 }
     );
   if (location.hash === "#welcome") {
-    root.classList.add("welcome");
+    root2.classList.add("welcome");
     for (let el of $$("[data-welcome]")) el.textContent = el.dataset.welcome;
   }
   function did(what) {
@@ -176,13 +376,6 @@
   card.setAttribute("role", "dialog");
   card.hidden = !0;
   var current, hideTimer = 0;
-  function say(text) {
-    try {
-      let u = new SpeechSynthesisUtterance(text);
-      u.lang = "zh-TW", speechSynthesis.cancel(), speechSynthesis.speak(u);
-    } catch {
-    }
-  }
   function bars(n) {
     let b = h("span", "bars");
     for (let i = 1; i <= 5; i++) b.append(h("i", i <= n ? "on" : ""));
@@ -190,24 +383,30 @@
   }
   function render() {
     if (!current) return;
-    let { word, phrase } = current, st = stamps.get(word), sayBtn = h("button", "say", "\u{1F50A}");
-    if (sayBtn.title = "Say it", sayBtn.addEventListener("click", () => say(word)), phrase) {
+    let { word, phrase } = current, st = stamps.get(word), zy = sitePron() === "zhuyin";
+    if (phrase) {
       let clean = word.replace(/[，。！？、：；「」\s]/g, ""), parts = segmentWords(clean), en = PHRASES[clean] ?? parts.map((p) => WORDS[p]?.[1].replace(/^\((.*)\)$/, "$1") ?? p).join(" \xB7 ");
       card.replaceChildren(
-        h("div", "top", h("div", "headrow", h("span", "head long", word), sayBtn), h("div", "py", parts.map((p) => WORDS[p]?.[0] ?? p).join(" ")), h("div", "en", en))
+        h("div", "top", h("div", "headrow", h("span", "head long", word)), h("div", "py", parts.map((p) => WORDS[p] ? readingOf(WORDS[p][0], p.length) : p).join(" ")), h("div", "en", en)),
+        h("div", "foot", pronSwitch())
       );
     } else {
-      let [py, en, freq, parts] = WORDS[word], head = h("span", `head${st ? ` st-${st}` : ""}`, word);
+      let [py, en, freq, parts] = WORDS[word], zyHead = zy ? zhuyinHead(word, py) : null, head = h("span", `head${st ? ` st-${st}` : ""}${zyHead ? " zyhead" : ""}`, zyHead ?? word);
       card.replaceChildren(
-        h("div", "top", h("div", "headrow", head, h("span", "py", py), sayBtn, bars(freq)), h("div", "en", en)),
-        parts ? h("div", "parts", ...parts.map(([c, p, e]) => h("div", null, h("b", null, c), h("span", "ppy", p), e))) : "",
+        h("div", "top", h("div", "headrow", head, zyHead ? null : h("span", "py", readingOf(py, word.length)), bars(freq)), h("div", "en", en)),
+        parts ? h("div", "parts", ...parts.map(([c, p, e]) => h("div", null, h("b", null, c), h("span", "ppy", readingOf(p, 1)), e))) : "",
         h(
           "div",
-          "stamps",
-          ...STAMPS.map(([s, zh, key]) => {
-            let b = h("button", `seal ${s}${st === s ? " on" : ""}`, zh, h("small", null, key));
-            return b.title = `${s[0].toUpperCase()}${s.slice(1)} (${key})`, b.addEventListener("click", () => stamp(s)), b;
-          })
+          "foot",
+          h(
+            "div",
+            "stamps",
+            ...STAMPS.map(([s, zh, key]) => {
+              let b = h("button", `seal ${s}${st === s ? " on" : ""}`, zh, h("small", null, key));
+              return b.title = `${s[0].toUpperCase()}${s.slice(1)} (${key})`, b.addEventListener("click", () => stamp(s)), b;
+            })
+          ),
+          pronSwitch()
         )
       );
     }
@@ -225,7 +424,7 @@
   }
   function place() {
     if (!current) return;
-    let r = current.at instanceof HTMLElement ? current.at.getBoundingClientRect() : current.at, w = card.offsetWidth, left = Math.max(8, Math.min(r.left + scrollX, scrollX + root.clientWidth - w - 8)), top = r.bottom + scrollY + 8;
+    let r = current.at instanceof HTMLElement ? current.at.getBoundingClientRect() : current.at, w = card.offsetWidth, left = Math.max(8, Math.min(r.left + scrollX, scrollX + root2.clientWidth - w - 8)), top = r.bottom + scrollY + 8;
     r.bottom + card.offsetHeight + 16 > innerHeight && r.top > card.offsetHeight + 16 && (top = r.top + scrollY - card.offsetHeight - 8), card.style.left = `${left}px`, card.style.top = `${top}px`;
   }
   function show(word, at, phrase = !1) {
@@ -282,7 +481,6 @@
       let s = STAMPS.find(([, , k]) => k === e.key);
       if (s) stamp(s[0]);
       else if (e.key === "0") stamp(null);
-      else if (e.key === "v") say(current.word);
       else return;
       e.preventDefault();
     }), addEventListener("resize", place);
@@ -291,15 +489,40 @@
     b.addEventListener("click", () => {
       playStamp(b.dataset.sound), b.classList.add("press"), setTimeout(() => b.classList.remove("press"), 160);
     });
+  var redraws = [
+    () => {
+      current && !card.hidden && (render(), place());
+    },
+    () => mine()
+  ];
+  onPron(() => redraws.forEach((r) => r()));
+  function pronSwitch() {
+    if (fromExtension()) return null;
+    let now = sitePron(), seg = h("div", "pron");
+    seg.setAttribute("role", "group"), seg.setAttribute("aria-label", "Pronunciation");
+    for (let p of PRONS) {
+      let b = h("button", null, PRON_LABEL[p]);
+      b.type = "button", b.lang = p === "zhuyin" ? "zh-Hant" : "en", b.setAttribute("aria-pressed", String(p === now)), b.addEventListener("click", () => p !== sitePron() && setSitePron(p)), seg.append(b);
+    }
+    return seg;
+  }
+  function ruby(word) {
+    let py = WORDS[word][0], n = sitePron() === "zhuyin" ? numbered(py, word.length) : null;
+    if (!n) return h("ruby", null, word, h("rt", null, readingOf(py, word.length)));
+    let r = h("ruby", "zy");
+    return n.split(" ").forEach((syl, i) => r.append([...word][i], h("rt", null, numberedToZhuyin(syl)))), r;
+  }
   function player(sim) {
     let lines = $$(".script li", sim), zh = sim.querySelector(".band .zh"), en = sim.querySelector(".band .en"), bar = sim.querySelector(".bar"), at = 0, loop = !1, go = (i, flash) => {
-      if (at = (i + lines.length) % lines.length, zh.textContent = lines[at].dataset.zh, en.textContent = lines[at].dataset.en, segment(zh), sim.hasAttribute("data-pinyin")) for (let w of $$(".w", zh)) w.replaceChildren(h("ruby", null, w.dataset.w, h("rt", null, WORDS[w.dataset.w][0])));
+      if (at = (i + lines.length) % lines.length, zh.textContent = lines[at].dataset.zh, en.textContent = lines[at].dataset.en, segment(zh), sim.hasAttribute("data-pinyin")) for (let w of $$(".w", zh)) w.replaceChildren(ruby(w.dataset.w));
       if (lines.forEach((l, j) => l.classList.toggle("now", j === at)), bar.classList.remove("run"), bar.offsetWidth, bar.classList.add("run"), flash) {
         let k = sim.querySelector(`[data-k="${flash}"]`);
         k?.classList.remove("hit"), k?.offsetWidth, k?.classList.add("hit");
       }
     };
-    bar.addEventListener("animationend", () => go(loop ? at : at + 1));
+    bar.addEventListener("animationend", () => go(loop ? at : at + 1)), redraws.push(() => {
+      if (sim.hasAttribute("data-pinyin")) for (let w of $$(".w", zh)) w.replaceChildren(ruby(w.dataset.w));
+    });
     let band = sim.querySelector(".band");
     band.addEventListener("mouseenter", () => sim.classList.add("paused")), band.addEventListener("mouseleave", () => sim.classList.remove("paused"));
     let act = (k) => {
@@ -346,8 +569,8 @@
         ...[...stamps].reverse().map(([w, s]) => {
           let el = h("span", `w st-${s}`, w);
           el.dataset.w = w;
-          let [py, en] = WORDS[w] ?? ["", ""], meaning = h("span", "en", en);
-          return meaning.lang = "en", h("li", null, el, h("span", "py", py), meaning);
+          let [py, en] = WORDS[w] ?? ["", ""], meaning = h("span", "en", en), reading = h("span", "py", py && readingOf(py, w.length));
+          return sitePron() === "zhuyin" && (reading.lang = "zh-Hant"), meaning.lang = "en", h("li", null, el, reading, meaning);
         })
       ), box.classList.toggle("some", stamps.size > 0);
     }
@@ -410,7 +633,7 @@
     face.setAttribute("aria-hidden", "true");
     let summary = h("summary", null, face);
     summary.title = email, summary.setAttribute("aria-label", `Signed in as ${email}`);
-    let words = link("Your words", accountHost ? "https://chinese.cristianbagrin.com/brain/dashboard" : "/brain/dashboard");
+    let words = link("Dashboard", accountHost ? "https://chinese.cristianbagrin.com/brain/dashboard" : "/brain/dashboard");
     menu = h("details", "me", summary, h("div", "menu", h("p", "who", email), words, link("Account", "/account"), out)), corner.after(menu);
   }
   corner && (drawCorner(), addEventListener("cb-account", () => void drawCorner()), addEventListener("storage", (e) => {

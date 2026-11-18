@@ -63,6 +63,8 @@
 :host(.dark) .tok.st-known { background: none; color: #5fe08a; }
 ruby { ruby-position: over; }
 rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spacing: 0; }
+/* 注音: a touch larger and darker, its strokes are finer than pinyin's letters. */
+ruby.zy rt { font-size: 0.36em; opacity: 0.85; }
 
 .note {
   background: var(--band);

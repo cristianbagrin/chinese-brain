@@ -1,0 +1,30 @@
+/*
+ * 注音 beside each character, as Taiwan prints it: the letters in a column on the character's
+ * right, the tone mark to the right of the last letter, the neutral tone's dot on top.
+ * Drawn from data attributes (src/shared/zhuyin.ts, zhuyinChar), so the element's text stays the
+ * character. Size it with --zy (the letters' size, in em of the character); color with --zy-ink.
+ * Shared by the extension's card and the website (the build copies it to site/public/zhuyin.css).
+ */
+.zyw { display: inline-flex; align-items: center; }
+.zy { position: relative; display: inline-flex; align-items: center; padding-right: 0.16em; }
+.zy::after,
+.zy::before { font-size: var(--zy, 0.42em); font-weight: 500; font-style: normal; color: var(--zy-ink, currentColor); letter-spacing: 0; }
+.zy::after {
+  content: attr(data-zy);
+  width: 1em;
+  margin-left: 0.08em;
+  line-height: 1.02;
+  text-align: center;
+  white-space: normal;
+  word-break: break-all;
+}
+.zy::before {
+  content: attr(data-tone);
+  position: absolute;
+  right: -0.1em;
+  line-height: 1;
+  top: calc(50% - 0.46em);
+}
+.zy.n2::before { top: calc(50% + 0.08em); }
+.zy.n3::before { top: calc(50% + 0.6em); }
+.zy.n4::before { top: calc(50% + 1.12em); }

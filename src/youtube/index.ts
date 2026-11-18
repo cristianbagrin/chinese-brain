@@ -1,5 +1,6 @@
 import { CJK } from '../shared/dict.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
+import { numberedToZhuyin } from '../shared/zhuyin.ts';
 import { TRANS_LANG, type Status, type Token } from '../shared/types.ts';
 import { lookupText } from '../content/lookup.ts';
 import { cardTakes, isTyping, onKeydown } from '../content/keys.ts';
@@ -644,10 +645,21 @@ export class YouTubeSubs {
         if (st) span.classList.add('st-' + st);
         if (s.pinyin && t.py) {
           const ruby = document.createElement('ruby');
-          ruby.append(text);
-          const rt = document.createElement('rt');
-          rt.textContent = numberedToMarked(t.py);
-          ruby.append(rt);
+          const rt = (txt: string) => {
+            const el = document.createElement('rt');
+            el.textContent = txt;
+            return el;
+          };
+          const sylls = t.py.split(/\s+/).filter(Boolean);
+          const chars = [...text];
+          // 注音 goes over each character, as Taiwan writes it; pinyin over the whole word.
+          if (s.pron === 'zhuyin' && sylls.length === chars.length) {
+            ruby.classList.add('zy');
+            chars.forEach((c, j) => ruby.append(c, rt(numberedToZhuyin(sylls[j]))));
+          } else {
+            if (s.pron === 'zhuyin') ruby.classList.add('zy');
+            ruby.append(text, rt(s.pron === 'zhuyin' ? numberedToZhuyin(t.py) : numberedToMarked(t.py)));
+          }
           span.append(ruby);
         } else span.textContent = text;
         this.zh.append(span);

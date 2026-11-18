@@ -21,7 +21,7 @@ export function startBridge() {
     const reply = (result: unknown, error?: string) => window.postMessage({ cb: 'res', id: d.id, result, error }, location.origin);
     try {
       const m = d.msg;
-      if (m?.type === 'prefs') reply({ sounds: state.settings.sounds, version: browser.runtime.getManifest().version });
+      if (m?.type === 'prefs') reply({ sounds: state.settings.sounds, pron: state.settings.pron, version: browser.runtime.getManifest().version });
       // When "Download new" last ran: the export picks up from there.
       else if (m?.type === 'mark') {
         if (typeof m.at === 'number') await browser.storage.local.set({ lastExportAt: m.at });
@@ -32,6 +32,12 @@ export function startBridge() {
       reply(undefined, String(err instanceof Error ? err.message : err));
     }
   });
+  // The site writes readings the way you chose in Settings (注音 or pinyin), and follows a change.
+  const pron = () => {
+    if (document.documentElement.dataset.cbPron !== state.settings.pron) document.documentElement.dataset.cbPron = state.settings.pron;
+  };
+  pron();
+  state.onChange(pron);
   // The page waits for this before it decides where the list comes from.
   document.documentElement.dataset.cbExt = browser.runtime.getManifest().version;
   window.postMessage({ cb: 'ready' }, location.origin);

@@ -10,7 +10,7 @@
 <body>
 <div class="app">
 <aside class="side">
-  <a class="brand words" href="https://chinese.cristianbagrin.com/brain/dashboard" title="Your word list"><img class="mark" src="icons/icon.svg" alt=""><span class="name" lang="zh-Hant">中文腦</span></a>
+  <a class="brand words" href="https://chinese.cristianbagrin.com/brain/dashboard" title="Dashboard"><img class="mark" src="icons/icon.svg" alt=""><span class="name" lang="zh-Hant">中文腦</span></a>
   <nav class="toc" aria-label="Settings sections">
     <a href="#account"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.2-3.3 3.9-5 7-5s5.8 1.7 7 5"/></svg>Account</a>
     <a href="#lookup"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="12" rx="3"/><path d="M8 21h8M12 17v4"/></svg>Lookup</a>
@@ -53,7 +53,7 @@
         </div>
         <div class="group">
           <a class="row go" href="https://account.cristianbagrin.com/" target="_blank" data-tip="Email, password, delete account"><span>Manage account</span><i class="out" aria-hidden="true"></i></a>
-          <a class="row go words" href="https://chinese.cristianbagrin.com/brain/dashboard" target="_blank"><span>Word list</span><i class="out" aria-hidden="true"></i></a>
+          <a class="row go words" href="https://chinese.cristianbagrin.com/brain/dashboard" target="_blank"><span>Dashboard</span><i class="out" aria-hidden="true"></i></a>
           <button type="button" class="row go danger" id="signOut"><span>Sign out</span></button>
         </div>
       </div>
@@ -74,6 +74,15 @@
         </div>
       </div>
       <div class="row">
+        <label for="pron" data-tip="In the card, the subtitles, the transcript and on the website">Pronunciation</label>
+        <div class="ctl">
+          <select id="pron" data-seg>
+            <option value="zhuyin" data-short="注音" lang="zh-Hant">注音</option>
+            <option value="pinyin" data-short="Pinyin">Pinyin</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
         <label for="cardSize">Card size</label>
         <div class="ctl">
           <select id="cardSize" data-seg>
@@ -82,7 +91,6 @@
           </select>
         </div>
       </div>
-      <div class="row"><label for="pinyin">Pinyin</label><input type="checkbox" id="pinyin" role="switch"></div>
       <div class="row"><label for="cardColors">Color words in the card</label><input type="checkbox" id="cardColors" role="switch"></div>
       <div class="row"><label for="sounds">Stamp sounds</label><input type="checkbox" id="sounds" role="switch"></div>
     </div>
@@ -117,6 +125,7 @@
           </select>
         </div>
       </div>
+      <div class="row"><label for="pinyin">Pronunciation over the words</label><input type="checkbox" id="pinyin" role="switch"></div>
       <div class="row">
         <label for="subStyle">Subtitle band</label>
         <div class="ctl">

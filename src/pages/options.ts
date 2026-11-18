@@ -108,6 +108,7 @@ function segmented(sel: HTMLSelectElement) {
     b.dataset.v = o.value;
     b.textContent = o.dataset.short ?? o.textContent;
     if (o.title) b.title = o.title;
+    if (o.lang) b.lang = o.lang;
     b.addEventListener('click', () => pick(o.value));
     return b;
   });

@@ -12,6 +12,7 @@
     disabledSites: [],
     ytEnabled: !0,
     pinyin: !0,
+    pron: "zhuyin",
     translation: "blur",
     pauseOnHover: !0,
     autoFreshOnClick: !0,
@@ -34,7 +35,7 @@
   };
   function normalizeSettings(raw) {
     let r = { ...raw ?? {} };
-    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), r.hoverMode === "shift" && (r.hoverMode = "alt"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, { ...DEFAULT_SETTINGS, ...r };
+    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), r.hoverMode === "shift" && (r.hoverMode = "alt"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, r.pron !== "pinyin" && r.pron !== "zhuyin" && delete r.pron, { ...DEFAULT_SETTINGS, ...r };
   }
   function colorsOn(s, host) {
     return s.siteColors[host] ?? s.pageColors;
@@ -156,7 +157,7 @@
     next: { label: "Next line", group: "yt", key: "d" },
     loop: { label: "Loop line", group: "yt", key: "r" },
     shadow: { label: "Shadowing", group: "yt", key: "q" },
-    pinyin: { label: "Pinyin", group: "yt", key: "p" },
+    pinyin: { label: "Pronunciation", group: "yt", key: "p" },
     english: { label: "English line", group: "yt", key: "x" },
     transcript: { label: "Transcript", group: "yt", key: "e" }
   };
@@ -279,7 +280,7 @@ Chinese Brain ${browser.runtime.getManifest().version} \xB7 ${navigator.userAgen
     thumb.className = "thumb";
     let buttons = [...sel.options].map((o) => {
       let b = document.createElement("button");
-      return b.type = "button", b.setAttribute("role", "radio"), b.dataset.v = o.value, b.textContent = o.dataset.short ?? o.textContent, o.title && (b.title = o.title), b.addEventListener("click", () => pick(o.value)), b;
+      return b.type = "button", b.setAttribute("role", "radio"), b.dataset.v = o.value, b.textContent = o.dataset.short ?? o.textContent, o.title && (b.title = o.title), o.lang && (b.lang = o.lang), b.addEventListener("click", () => pick(o.value)), b;
     }), sync = () => {
       for (let b of buttons) {
         let on = b.dataset.v === sel.value;

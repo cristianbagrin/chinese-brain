@@ -1,4 +1,5 @@
 import type { KeyAction } from './keys.ts';
+import type { Pron } from './zhuyin.ts';
 
 export type Status = 'fresh' | 'learning' | 'known';
 export const STATUSES: Status[] = ['fresh', 'learning', 'known'];
@@ -98,8 +99,10 @@ export interface Settings {
   disabledSites: string[];
   /** Our subtitles on YouTube (the switch in the player). */
   ytEnabled: boolean;
-  /** Pinyin everywhere: above subtitle words, in the card and in word hints (P toggles it). */
+  /** Pronunciation above subtitle words (P toggles it). The name is older than 注音. */
   pinyin: boolean;
+  /** How pronunciation is written everywhere: 注音 or Pinyin. */
+  pron: Pron;
   /** Show the English line. */
   translation: TranslationMode;
   /** Pause while the mouse is over the subtitles. */
@@ -140,6 +143,7 @@ export const DEFAULT_SETTINGS: Settings = {
   disabledSites: [],
   ytEnabled: true,
   pinyin: true,
+  pron: 'zhuyin',
   translation: 'blur',
   pauseOnHover: true,
   autoFreshOnClick: true,
@@ -175,6 +179,7 @@ export function normalizeSettings(raw: Record<string, unknown> | undefined): Set
   delete r.subPinyin;
   delete r.cardPinyin;
   delete r.markUntracked; // the dotted underline on new subtitle words was dropped
+  if (r.pron !== 'pinyin' && r.pron !== 'zhuyin') delete r.pron;
   return { ...DEFAULT_SETTINGS, ...(r as Partial<Settings>) };
 }
 

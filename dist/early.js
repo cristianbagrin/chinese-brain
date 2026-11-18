@@ -6,6 +6,7 @@
     disabledSites: [],
     ytEnabled: !0,
     pinyin: !0,
+    pron: "zhuyin",
     translation: "blur",
     pauseOnHover: !0,
     autoFreshOnClick: !0,
@@ -28,7 +29,7 @@
   };
   function normalizeSettings(raw) {
     let r = { ...raw ?? {} };
-    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), r.hoverMode === "shift" && (r.hoverMode = "alt"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, { ...DEFAULT_SETTINGS, ...r };
+    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), r.hoverMode === "shift" && (r.hoverMode = "alt"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, r.pron !== "pinyin" && r.pron !== "zhuyin" && delete r.pron, { ...DEFAULT_SETTINGS, ...r };
   }
   function colorsOn(s, host) {
     return s.siteColors[host] ?? s.pageColors;

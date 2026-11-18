@@ -1,6 +1,6 @@
 import { state } from '../content/state.ts';
 import { CJK } from '../shared/dict.ts';
-import { numberedToMarked } from '../shared/pinyin.ts';
+import { pron } from '../shared/zhuyin.ts';
 import { stripNote } from './captions.ts';
 import { clock } from '../shared/time.ts';
 import type { Status } from '../shared/types.ts';
@@ -243,7 +243,7 @@ export class Transcript {
         'div',
         `learn${r.status ? ' st-' + r.status : ''}`,
         el('span', 'lw', r.w),
-        el('span', 'lpy', numberedToMarked(r.py)),
+        el('span', 'lpy', pron(r.py, state.settings.pron)),
         el('span', 'lg', r.g),
         el('span', 'lc', `×${r.count}`),
         stamps,

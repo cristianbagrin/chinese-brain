@@ -69,6 +69,8 @@ const chromeHook = { ...common, entryPoints: { ythook: 'src/platform/yt-hook.ts'
 // are bundled here too: the word list (dashboard.js) and every page's site.js, with the demo card.
 // Their output is committed: Cloudflare deploys site/ as it is.
 cpSync('static/fonts', 'site/public/fonts', { recursive: true });
+// 注音 beside each character: the same drawing as the extension's card.
+cpSync('src/shared/zhuyin.css', 'site/public/zhuyin.css');
 const site = { ...common, entryPoints: { dashboard: 'site/src/dashboard.ts' }, outdir: 'site/public/brain', target: 'es2020', define: define(false) };
 
 const pages = { ...site, entryPoints: { site: 'site/src/site.ts' }, outdir: 'site/public' };

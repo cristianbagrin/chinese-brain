@@ -52,6 +52,9 @@
 .head.st-learning { background: var(--learning-mark); }
 .head.st-known { background: var(--known-mark); }
 .py { font-size: 1.07em; color: var(--text3); letter-spacing: 0.01em; }
+/* 注音: beside each character of the headword; on its own line for a long phrase. */
+.head.zyhead { --zy: 0.45em; --zy-ink: var(--text2); padding-right: 0; }
+.head.zyhead .zy::after, .head.zyhead .zy::before { font-weight: 400; }
 
 /* How common the word is, in words (the tooltip says what that means for you). */
 .freq { margin-left: auto; display: flex; align-items: center; gap: 0.45em; font-size: 0.86em; color: var(--text3); white-space: nowrap; cursor: default; }

@@ -32,12 +32,141 @@
     return joined ? sylls.reduce((acc, s, i) => i > 0 && /^[aeoāáǎàēéěèōóǒò]/i.test(s) ? acc + "'" + s : acc + s, "") : sylls.join(" ");
   }
 
+  // src/shared/zhuyin.ts
+  var INITIALS = {
+    b: "\u3105",
+    p: "\u3106",
+    m: "\u3107",
+    f: "\u3108",
+    d: "\u3109",
+    t: "\u310A",
+    n: "\u310B",
+    l: "\u310C",
+    g: "\u310D",
+    k: "\u310E",
+    h: "\u310F",
+    j: "\u3110",
+    q: "\u3111",
+    x: "\u3112",
+    zh: "\u3113",
+    ch: "\u3114",
+    sh: "\u3115",
+    r: "\u3116",
+    z: "\u3117",
+    c: "\u3118",
+    s: "\u3119"
+  }, FINALS = {
+    a: "\u311A",
+    o: "\u311B",
+    e: "\u311C",
+    \u00EA: "\u311D",
+    ai: "\u311E",
+    ei: "\u311F",
+    ao: "\u3120",
+    ou: "\u3121",
+    an: "\u3122",
+    en: "\u3123",
+    ang: "\u3124",
+    eng: "\u3125",
+    ong: "\u3128\u3125",
+    er: "\u3126",
+    i: "\u3127",
+    ia: "\u3127\u311A",
+    io: "\u3127\u311B",
+    ie: "\u3127\u311D",
+    iai: "\u3127\u311E",
+    iao: "\u3127\u3120",
+    iou: "\u3127\u3121",
+    ian: "\u3127\u3122",
+    in: "\u3127\u3123",
+    iang: "\u3127\u3124",
+    ing: "\u3127\u3125",
+    iong: "\u3129\u3125",
+    u: "\u3128",
+    ua: "\u3128\u311A",
+    uo: "\u3128\u311B",
+    uai: "\u3128\u311E",
+    uei: "\u3128\u311F",
+    uan: "\u3128\u3122",
+    uen: "\u3128\u3123",
+    uang: "\u3128\u3124",
+    ueng: "\u3128\u3125",
+    \u00FC: "\u3129",
+    \u00FCe: "\u3129\u311D",
+    \u00FCan: "\u3129\u3122",
+    \u00FCn: "\u3129\u3123"
+  }, WHOLE = { er: "\u3126", m: "\u3107", n: "\u3123", ng: "\u312B", hm: "\u310F\u3107", hng: "\u310F\u312B", \u00EA: "\u311D", eh: "\u311D" }, BUZZ = /* @__PURE__ */ new Set(["zh", "ch", "sh", "r", "z", "c", "s"]), PALATAL = /* @__PURE__ */ new Set(["j", "q", "x"]), TONE_MARK = ["", "", "\u02CA", "\u02C7", "\u02CB", "\u02D9"];
+  function zhuyinLetters(raw) {
+    let s = raw.toLowerCase().replace(/u:|v/g, "\xFC");
+    if (WHOLE[s]) return WHOLE[s];
+    let yw = s[0] === "y" || s[0] === "w";
+    s[0] === "y" ? s = s.startsWith("yu") ? `\xFC${s.slice(2)}` : s.startsWith("yi") ? s.slice(1) : `i${s.slice(1)}` : s[0] === "w" && (s = s.startsWith("wu") ? s.slice(1) : `u${s.slice(1)}`);
+    let m = /^(zh|ch|sh|[bpmfdtnlgkhjqxrzcs])?([a-zü]*)$/.exec(s);
+    if (!m) return null;
+    let ini = m[1] ?? "", fin = m[2];
+    if (!fin) return null;
+    if (BUZZ.has(ini) && fin === "i") return INITIALS[ini];
+    PALATAL.has(ini) && fin[0] === "u" && (fin = `\xFC${fin.slice(1)}`), ini && (fin = fin === "iu" ? "iou" : fin === "ui" ? "uei" : fin === "un" ? "uen" : fin === "ue" ? "\xFCe" : fin);
+    let z = FINALS[fin];
+    return z ? ini ? allowed(ini, fin) ? INITIALS[ini] + z : null : /^[iuü]/.test(fin) === yw && fin !== "ong" ? z : null : null;
+  }
+  function allowed(ini, fin) {
+    let iFinal = fin[0] === "i", uFinal = fin[0] === "u", \u00FCFinal = fin[0] === "\xFC";
+    return fin === "er" || fin === "\xEA" || fin === "iai" || fin === "io" ? !1 : PALATAL.has(ini) ? iFinal || \u00FCFinal : \u00FCFinal ? (ini === "n" || ini === "l") && (fin === "\xFC" || fin === "\xFCe") : fin === "ia" ? ini === "d" || ini === "l" : iFinal ? /^[bpmdtnl]$/.test(ini) && fin !== "iong" : fin === "o" ? /^[bpmfl]$/.test(ini) : fin === "ueng" ? !1 : uFinal && /^[bpmf]$/.test(ini) ? fin === "u" : !0;
+  }
+  function parseNumbered(syl) {
+    let m = /^([a-zA-Z:üÜêÊ]+)([1-5])$/.exec(syl.trim());
+    if (!m) return null;
+    let base = m[1].toLowerCase(), tone = Number(m[2]);
+    if (base === "r") return { letters: "", tone, er: !0 };
+    let z = zhuyinLetters(base);
+    if (z) return { letters: z, tone, er: !1 };
+    if (base.length > 2 && base.endsWith("r")) {
+      let b = zhuyinLetters(base.slice(0, -1));
+      if (b) return { letters: b, tone, er: !0 };
+    }
+    return null;
+  }
+  function syllableToZhuyin(syl) {
+    let p = parseNumbered(syl);
+    if (!p) return syl;
+    if (!p.letters) return "\u3126";
+    let body = p.tone === 5 ? `\u02D9${p.letters}` : p.letters + TONE_MARK[p.tone];
+    return p.er ? `${body}\u3126` : body;
+  }
+  function numberedToZhuyin(py) {
+    let out = [];
+    for (let s of py.split(/\s+/).filter(Boolean))
+      /^r[1-5]$/i.test(s) && out.length ? out[out.length - 1] += "\u3126" : out.push(syllableToZhuyin(s));
+    return out.join(" ");
+  }
+  function zhuyinParts(syl) {
+    let p = parseNumbered(syl);
+    return p ? p.letters ? { letters: p.tone === 5 ? `\u02D9${p.letters}` : p.letters, tone: p.tone === 5 ? "" : TONE_MARK[p.tone], er: p.er ? "\u3126" : "" } : { letters: "\u3126", tone: "", er: "" } : null;
+  }
+  function pron(numbered, mode, joined = !0) {
+    return mode === "zhuyin" ? numberedToZhuyin(numbered) : numberedToMarked(numbered, joined);
+  }
+  function zhuyinWord(word, numbered, doc = document) {
+    let chars = [...word], sylls = numbered.split(/\s+/).filter(Boolean);
+    if (chars.length !== sylls.length) return null;
+    let parts = sylls.map(zhuyinParts);
+    if (parts.some((p) => !p)) return null;
+    let box2 = doc.createElement("span");
+    return box2.className = "zyw", chars.forEach((ch, i) => box2.append(zhuyinChar(ch, parts[i], doc))), box2;
+  }
+  function zhuyinChar(ch, p, doc = document) {
+    let c = doc.createElement("span"), n = [...p.letters].length + (p.er ? 1 : 0);
+    return c.className = `zy n${Math.min(4, n)}`, c.dataset.zy = p.letters + p.er, c.dataset.tone = p.tone, c.textContent = ch, c;
+  }
+
   // src/shared/types.ts
   var DEFAULT_SETTINGS = {
     hoverMode: "hover",
     disabledSites: [],
     ytEnabled: !0,
     pinyin: !0,
+    pron: "zhuyin",
     translation: "blur",
     pauseOnHover: !0,
     autoFreshOnClick: !0,
@@ -60,7 +189,7 @@
   };
   function normalizeSettings(raw) {
     let r = { ...raw ?? {} };
-    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), r.hoverMode === "shift" && (r.hoverMode = "alt"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, { ...DEFAULT_SETTINGS, ...r };
+    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), r.hoverMode === "shift" && (r.hoverMode = "alt"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, r.pron !== "pinyin" && r.pron !== "zhuyin" && delete r.pron, { ...DEFAULT_SETTINGS, ...r };
   }
   function colorsOn(s, host2) {
     return s.siteColors[host2] ?? s.pageColors;
@@ -89,7 +218,7 @@
     next: { label: "Next line", group: "yt", key: "d" },
     loop: { label: "Loop line", group: "yt", key: "r" },
     shadow: { label: "Shadowing", group: "yt", key: "q" },
-    pinyin: { label: "Pinyin", group: "yt", key: "p" },
+    pinyin: { label: "Pronunciation", group: "yt", key: "p" },
     english: { label: "English line", group: "yt", key: "x" },
     transcript: { label: "Transcript", group: "yt", key: "e" }
   };
@@ -457,7 +586,7 @@
     next: () => "next line \u25B6",
     loop: (s) => s.looping ? "\u21BB looping this line" : "loop off",
     shadow: (s) => s.shadowing ? "shadowing on" : "shadowing off",
-    pinyin: () => state.settings.pinyin ? "pinyin on" : "pinyin off",
+    pinyin: () => `${state.settings.pron === "zhuyin" ? "\u6CE8\u97F3" : "pinyin"} ${state.settings.pinyin ? "on" : "off"}`,
     transcript: (s) => s.transcript.open ? "transcript open" : "transcript closed",
     english: () => `English ${state.settings.translation === "show" ? "shown" : state.settings.translation === "blur" ? "blurred" : "hidden"}`
   };
@@ -543,7 +672,7 @@
         el(
           "div",
           "chips",
-          chip("Pinyin", "pinyin", s.pinyin, () => save({ pinyin: !s.pinyin })),
+          chip(s.pron === "zhuyin" ? "\u6CE8\u97F3" : "Pinyin", "pinyin", s.pinyin, () => save({ pinyin: !s.pinyin }), "Pronunciation over the words"),
           chip(s.translation === "blur" ? "English (blur)" : "English", "english", s.translation !== "hide", () => save({ translation: MODES[(MODES.indexOf(s.translation) + 1) % 3] }), "Shown, blurred until you hover, or hidden"),
           chip("Transcript", "transcript", this.subs.transcript.open, () => this.subs.transcript.toggle())
         )
@@ -804,7 +933,7 @@
           "div",
           `learn${r.status ? " st-" + r.status : ""}`,
           el2("span", "lw", r.w),
-          el2("span", "lpy", numberedToMarked(r.py)),
+          el2("span", "lpy", pron(r.py, state.settings.pron)),
           el2("span", "lg", r.g),
           el2("span", "lc", `\xD7${r.count}`),
           stamps
@@ -892,6 +1021,8 @@
 :host(.dark) .tok.st-known { background: none; color: #5fe08a; }
 ruby { ruby-position: over; }
 rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spacing: 0; }
+/* \u6CE8\u97F3: a touch larger and darker, its strokes are finer than pinyin's letters. */
+ruby.zy rt { font-size: 0.36em; opacity: 0.85; }
 
 .note {
   background: var(--band);
@@ -1286,10 +1417,11 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
         span.className = "tok", span.dataset.k = String(k);
         let st = state.status(t.word);
         if (st && span.classList.add("st-" + st), s.pinyin && t.py) {
-          let ruby = document.createElement("ruby");
-          ruby.append(text);
-          let rt = document.createElement("rt");
-          rt.textContent = numberedToMarked(t.py), ruby.append(rt), span.append(ruby);
+          let ruby = document.createElement("ruby"), rt = (txt) => {
+            let el3 = document.createElement("rt");
+            return el3.textContent = txt, el3;
+          }, sylls = t.py.split(/\s+/).filter(Boolean), chars = [...text];
+          s.pron === "zhuyin" && sylls.length === chars.length ? (ruby.classList.add("zy"), chars.forEach((c, j) => ruby.append(c, rt(numberedToZhuyin(sylls[j]))))) : (s.pron === "zhuyin" && ruby.classList.add("zy"), ruby.append(text, rt(s.pron === "zhuyin" ? numberedToZhuyin(t.py) : numberedToMarked(t.py)))), span.append(ruby);
         } else span.textContent = text;
         this.zh.append(span);
       });
@@ -1431,17 +1563,22 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     location.origin === "https://chinese.cristianbagrin.com" && window === window.top && window.postMessage({ cb: "did", did }, location.origin);
   }
   function startBridge() {
-    location.origin !== "https://chinese.cristianbagrin.com" || window !== window.top || (window.addEventListener("message", async (e) => {
+    if (location.origin !== "https://chinese.cristianbagrin.com" || window !== window.top) return;
+    window.addEventListener("message", async (e) => {
       let d = e.data;
       if (e.source !== window || e.origin !== location.origin || d?.cb !== "req" || typeof d.id != "number") return;
       let reply = (result, error) => window.postMessage({ cb: "res", id: d.id, result, error }, location.origin);
       try {
         let m = d.msg;
-        m?.type === "prefs" ? reply({ sounds: state.settings.sounds, version: browser.runtime.getManifest().version }) : m?.type === "mark" ? (typeof m.at == "number" && await browser.storage.local.set({ lastExportAt: m.at }), reply((await browser.storage.local.get("lastExportAt")).lastExportAt ?? 0)) : m?.type && PASSED.has(m.type) ? reply(await browser.runtime.sendMessage(m)) : reply(void 0, "Not something the page can ask for.");
+        m?.type === "prefs" ? reply({ sounds: state.settings.sounds, pron: state.settings.pron, version: browser.runtime.getManifest().version }) : m?.type === "mark" ? (typeof m.at == "number" && await browser.storage.local.set({ lastExportAt: m.at }), reply((await browser.storage.local.get("lastExportAt")).lastExportAt ?? 0)) : m?.type && PASSED.has(m.type) ? reply(await browser.runtime.sendMessage(m)) : reply(void 0, "Not something the page can ask for.");
       } catch (err) {
         reply(void 0, String(err instanceof Error ? err.message : err));
       }
-    }), document.documentElement.dataset.cbExt = browser.runtime.getManifest().version, window.postMessage({ cb: "ready" }, location.origin));
+    });
+    let pron2 = () => {
+      document.documentElement.dataset.cbPron !== state.settings.pron && (document.documentElement.dataset.cbPron = state.settings.pron);
+    };
+    pron2(), state.onChange(pron2), document.documentElement.dataset.cbExt = browser.runtime.getManifest().version, window.postMessage({ cb: "ready" }, location.origin);
   }
 
   // src/shared/context.ts
@@ -2068,6 +2205,9 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 .head.st-learning { background: var(--learning-mark); }
 .head.st-known { background: var(--known-mark); }
 .py { font-size: 1.07em; color: var(--text3); letter-spacing: 0.01em; }
+/* \u6CE8\u97F3: beside each character of the headword; on its own line for a long phrase. */
+.head.zyhead { --zy: 0.45em; --zy-ink: var(--text2); padding-right: 0; }
+.head.zyhead .zy::after, .head.zyhead .zy::before { font-weight: 400; }
 
 /* How common the word is, in words (the tooltip says what that means for you). */
 .freq { margin-left: auto; display: flex; align-items: center; gap: 0.45em; font-size: 0.86em; color: var(--text3); white-space: nowrap; cursor: default; }
@@ -2231,6 +2371,39 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
 .hint .hpy { color: #e3d8cc; font-size: 0.82em; }
 `;
 
+  // src/shared/zhuyin.css
+  var zhuyin_default = `/*
+ * \u6CE8\u97F3 beside each character, as Taiwan prints it: the letters in a column on the character's
+ * right, the tone mark to the right of the last letter, the neutral tone's dot on top.
+ * Drawn from data attributes (src/shared/zhuyin.ts, zhuyinChar), so the element's text stays the
+ * character. Size it with --zy (the letters' size, in em of the character); color with --zy-ink.
+ * Shared by the extension's card and the website (the build copies it to site/public/zhuyin.css).
+ */
+.zyw { display: inline-flex; align-items: center; }
+.zy { position: relative; display: inline-flex; align-items: center; padding-right: 0.16em; }
+.zy::after,
+.zy::before { font-size: var(--zy, 0.42em); font-weight: 500; font-style: normal; color: var(--zy-ink, currentColor); letter-spacing: 0; }
+.zy::after {
+  content: attr(data-zy);
+  width: 1em;
+  margin-left: 0.08em;
+  line-height: 1.02;
+  text-align: center;
+  white-space: normal;
+  word-break: break-all;
+}
+.zy::before {
+  content: attr(data-tone);
+  position: absolute;
+  right: -0.1em;
+  line-height: 1;
+  top: calc(50% - 0.46em);
+}
+.zy.n2::before { top: calc(50% + 0.08em); }
+.zy.n3::before { top: calc(50% + 0.6em); }
+.zy.n4::before { top: calc(50% + 1.12em); }
+`;
+
   // src/content/popup.ts
   var STAMPS = [
     { s: "fresh", zh: "\u65B0", label: "Fresh" },
@@ -2243,8 +2416,9 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     for (let k of kids) k && el3.append(k);
     return el3;
   }
+  var readAs = (numbered, joined = !0) => pron(numbered, state.settings.pron, joined);
   function prettyDef(d) {
-    return d.replace(/([^\s\[|,;(]+)(?:\|([^\s\[,;]+))?\[([a-zA-Z0-9: ]+)\]/g, (_, t, _s, p) => `${t} ${numberedToMarked(p)}`);
+    return d.replace(/([^\s\[|,;(]+)(?:\|([^\s\[,;]+))?\[([a-zA-Z0-9: ]+)\]/g, (_, t, _s, p) => `${t} ${readAs(p)}`);
   }
   var FREQ = [
     { min: 52, bars: 5, label: "essential", tip: "One of the words you'll meet every day. Learn it now." },
@@ -2358,7 +2532,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
     constructor() {
       this.host = document.createElement("chinese-brain-popup"), this.root = this.host.attachShadow({ mode: "closed" });
       let style = document.createElement("style");
-      style.textContent = popup_default, this.card = h("div", { class: "card", hidden: "" }), this.hint = h("div", { class: "hint", hidden: "" }), this.root.append(style, this.card, this.hint), document.addEventListener(
+      style.textContent = zhuyin_default + popup_default, this.card = h("div", { class: "card", hidden: "" }), this.hint = h("div", { class: "hint", hidden: "" }), this.root.append(style, this.card, this.hint), document.addEventListener(
         "mousemove",
         (e) => {
           this.px = e.clientX, this.py = e.clientY;
@@ -2595,7 +2769,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       let e = m.entries[0], hint = this.hint;
       hint.classList.toggle("large", state.settings.cardSize === "large"), hint.replaceChildren(
         h("div", { class: "hg" }, mainSense(e)),
-        h("div", { class: "hpy" }, numberedToMarked(e.tw || e.py, !1))
+        h("div", { class: "hpy" }, readAs(e.tw || e.py, !1))
       ), hint.hidden = !1;
       let r = el3.getBoundingClientRect(), w2 = hint.offsetWidth, ht = hint.offsetHeight, y = r.top - ht - 6;
       y < 4 && (y = r.bottom + 6), place(hint, Math.min(Math.max(4, r.left + r.width / 2 - w2 / 2), window.innerWidth - w2 - 4), y);
@@ -2793,7 +2967,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       if (!o || !m) return;
       let status = state.status(m.word), e0 = m.entries[0], s = state.settings, card = this.card;
       card.classList.toggle("pinned", !!o.pinned), card.classList.toggle("large", s.cardSize === "large"), card.replaceChildren();
-      let freq = frequency(Math.max(...m.entries.map((e) => e.zipf))), pyEl = h("span", { class: "py" }, numberedToMarked(e0.tw || e0.py, !1)), groups = /* @__PURE__ */ new Map();
+      let freq = frequency(Math.max(...m.entries.map((e) => e.zipf))), reading0 = e0.tw || e0.py, long = [...m.word].length > 8, zyHead = s.pron === "zhuyin" && !long ? zhuyinWord(m.word, reading0) : null, pyEl = zyHead ? null : h("span", { class: `py${s.pron === "zhuyin" ? " zyline" : ""}` }, readAs(reading0, !1)), groups = /* @__PURE__ */ new Map();
       for (let e of m.entries) {
         let k = (e.tw || e.py).toLowerCase();
         groups.has(k) || groups.set(k, []), groups.get(k).push(e);
@@ -2801,7 +2975,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
       let readings = [], first = !0;
       for (let [reading, list] of groups) {
         let defs = [...new Set(list.flatMap((e) => e.defs))], senses = defs.filter((d) => !d.startsWith("CL:")).slice(0, 10).map(prettyDef), cls = defs.filter((d) => d.startsWith("CL:")).flatMap((d) => d.slice(3).split(",")), line = h("div", { class: "defs" });
-        first || line.append(h("span", { class: "rpy" }, numberedToMarked(reading, !1))), senses.forEach((d, i) => {
+        first || line.append(h("span", { class: "rpy" }, readAs(reading, !1))), senses.forEach((d, i) => {
           i && line.append(h("span", { class: "sep" }, "\xB7")), line.append(...this.richText(d));
         });
         let block = h("div", { class: "reading" }, line);
@@ -2812,12 +2986,12 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
             "measure word ",
             ...cls.flatMap((c, i) => {
               let mm = /^([^|\[]+)(?:\|[^\[]+)?\[([^\]]+)\]/.exec(c);
-              return mm ? [i ? ", " : "", this.word(mm[1], mm[1], mm[1]), " " + numberedToMarked(mm[2])] : [];
+              return mm ? [i ? ", " : "", this.word(mm[1], mm[1], mm[1]), " " + readAs(mm[2])] : [];
             })
           )
         ), readings.push(block), first = !1;
       }
-      let long = [...m.word].length > 8, head = h("span", { class: `head${status ? " st-" + status : ""}${long ? " long" : ""}` }, m.word);
+      let head = h("span", { class: `head${status ? " st-" + status : ""}${long ? " long" : ""}${zyHead ? " zyhead" : ""}` }, zyHead ?? m.word);
       m.phrase && !e0.defs[0]?.startsWith("(") && readings[0]?.querySelector(".defs")?.append(h("span", { class: "mt" }, "machine translation"));
       let top = h("div", { class: "top" });
       if (this.trail.length > 1) {
@@ -2847,7 +3021,7 @@ rt { font: 400 0.34em/1 var(--sans); color: var(--rt); opacity: 0.7; letter-spac
           let ch = this.word(c.ch, c.ch, c.ch);
           ch.classList.add("c");
           let cell = h("span", { class: `cw d${Math.min(c.depth, 3)}` }, ch);
-          grid.append(cell, h("span", { class: "cpy" }, numberedToMarked(c.py, !1)), h("span", { class: "cg" }, c.gloss));
+          grid.append(cell, h("span", { class: "cpy" }, readAs(c.py, !1)), h("span", { class: "cg" }, c.gloss));
         }
         card.append(h("div", { class: "sect" }, grid));
       }
