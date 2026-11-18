@@ -21,3 +21,8 @@
 - Key names in the UI follow the computer: `Alt` on Windows and Linux, `⌥ Option` on a Mac.
 - All user-facing English is American English (UI, docs, data; see `scripts/american.py`).
 - Few words, clear controls: prefer a button or an icon with a tooltip over a sentence.
+- Chris changes the pages' words himself at `/edit` (any page: `/edit/brain/guide`…; password = the
+  `EDIT_KEY` secret). His edits live in the Worker's `Copy` database and are put into each page as it's
+  served, tied to the words they replaced (`site/src/copy.ts`). Run `node site/sync.mjs` before changing
+  page text by hand (`--apply` writes his edits into `site/public`); words that scripts write go in an
+  element marked `data-js-text`, so the editor leaves them alone.

@@ -1,24 +1,28 @@
 // The website and the account service for all of Chris's apps: https://chinese.cristianbagrin.com and https://account.cristianbagrin.com.
 //   public/    the pages (served as they are): /brain/* is the Chinese Brain extension, /account the login
 //              shared by everything on this site
-//   worker.js  /api/*: accounts and word-list sync, one small SQLite database per account
+//   worker.js  /api/*: accounts and word-list sync, one small SQLite database per account; and the
+//              pages themselves, with Chris's edits from /edit put in (EDIT_KEY secret, see worker.js)
 // Pushing to main deploys it (Cloudflare Workers Builds); by hand: `npx wrangler deploy` here.
 // Password-reset emails need one secret: `npx wrangler secret put RESEND_API_KEY` (resend.com, free).
+// Editing the pages at /edit needs another: `npx wrangler secret put EDIT_KEY` (the password, as on cristianbagrin.com).
 {
   "name": "chinesebrain",
   "main": "worker.js",
   "compatibility_date": "2026-11-01",
-  "assets": { "directory": "./public", "binding": "ASSETS", "not_found_handling": "404-page", "run_worker_first": ["/api/*", "/", "/welcome", "/brain/welcome", "/privacy", "/dashboard", "/guide", "/whats-new", "/brain/firefox", "/brain/chrome"] },
+  "assets": { "directory": "./public", "binding": "ASSETS", "not_found_handling": "none", "run_worker_first": ["/api/*", "/", "/brain", "/brain/guide", "/brain/whats-new", "/brain/privacy", "/brain/dashboard", "/account", "/reset", "/edit", "/edit/*", "/welcome", "/brain/welcome", "/privacy", "/dashboard", "/guide", "/whats-new", "/brain/firefox", "/brain/chrome"] },
   "durable_objects": {
     "bindings": [
       { "name": "ACCOUNT", "class_name": "Account" },
       { "name": "LIMITER", "class_name": "Limiter" },
-      { "name": "DIRECTORY", "class_name": "Directory" }
+      { "name": "DIRECTORY", "class_name": "Directory" },
+      { "name": "COPY", "class_name": "Copy" }
     ]
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["Account", "Limiter"] },
-    { "tag": "v2", "new_sqlite_classes": ["Directory"] }
+    { "tag": "v2", "new_sqlite_classes": ["Directory"] },
+    { "tag": "v3", "new_sqlite_classes": ["Copy"] }
   ],
   // chinesebrain.cristianbagrin.com is a short address that forwards to /brain.
   "routes": [

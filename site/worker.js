@@ -4,8 +4,10 @@
 // Chinese Brain's have no prefix, the others' start with @<app>/ (see APPS), and an app only ever reads
 // and writes its own. After an email change the new address is an alias that points at the account.
 // Nothing here needs setting up besides the RESEND_API_KEY secret for password-reset emails
-// (and, to see who signed up at /admin, an ADMIN_KEY secret of your choosing).
+// (and, to see who signed up at /admin, an ADMIN_KEY secret of your choosing; to change the
+// pages' words at /edit, an EDIT_KEY secret: see "Editing the pages" below).
 import { DurableObject } from 'cloudflare:workers';
+import { annotate, clean, PAGES } from './src/copy.ts';
 
 const MAX_BODY = 1_500_000;
 const MAX_ITEMS = 60_000;
@@ -373,6 +375,36 @@ export class Limiter extends DurableObject {
   }
 }
 
+/**
+ * Chris's edits to the pages' words (/edit), kept in one small database so they outlive every
+ * deploy: { v: version, edits: { name: { to?: new HTML, gone?: true, was: the source's words, page, at } } }.
+ * The one before the last save is kept too ("previous"), in case a save goes wrong.
+ */
+export class Copy extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.sql = ctx.storage.sql;
+    this.sql.exec('CREATE TABLE IF NOT EXISTS copy (k TEXT PRIMARY KEY, v TEXT)');
+  }
+  read() {
+    const row = this.sql.exec("SELECT v FROM copy WHERE k = 'edits'").toArray()[0];
+    return row ? JSON.parse(row.v) : { v: 0, edits: {} };
+  }
+  /** `updates`: name -> the new edit, or null to drop it. */
+  apply(updates) {
+    const doc = this.read();
+    const put = (k, v) => this.sql.exec('INSERT INTO copy (k, v) VALUES (?, ?) ON CONFLICT (k) DO UPDATE SET v = excluded.v', k, v);
+    put('previous', JSON.stringify(doc));
+    for (const [k, e] of Object.entries(updates)) {
+      if (e) doc.edits[k] = e;
+      else delete doc.edits[k];
+    }
+    doc.v += 1;
+    put('edits', JSON.stringify(doc));
+    return doc;
+  }
+}
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -538,10 +570,178 @@ async function api(request, env, path) {
     }
     case 'POST delete':
       return authed('remove', String(body.password ?? ''));
+    case 'GET copy':
+      return copyFor(request, env, new URL(request.url).searchParams.get('page'));
+    case 'POST copy':
+      return saveCopy(request, env, body);
     case 'POST sync':
       return authed('sync', body.since, Array.isArray(body.changes) ? body.changes.slice(0, 2000) : [], appOf(body.app));
   }
   throw new Fail(404, 'not_found', 'Not found.');
+}
+
+// ---------- Editing the pages (/edit) ----------
+// Chris opens /edit (or /edit/brain/guide…), clicks any words and changes them, and saves with the
+// password (the EDIT_KEY secret, the same one as cristianbagrin.com/edit). Every page is marked as
+// it's served (src/copy.ts: each piece of text gets data-copy, each block data-block, named after
+// its words in the source) and his edits go in with HTMLRewriter. An edit is tied to the words it
+// replaced: when those change in the source, it no longer applies and the page shows the source.
+// `node site/sync.mjs` lists the edits and which no longer apply, to fold them into the source.
+
+const NO_EDITS = { v: 0, edits: {} };
+let memo = null; // { at, doc }: the edits, kept a short while in this instance
+const MEMO_MS = 30_000;
+const cacheKey = (env) => `${env.SITE}/__copy`;
+
+/** The saved edits; `fresh` skips the caches (the editor, and right after a save). */
+async function editsOf(env, fresh = false) {
+  if (!env.COPY) return NO_EDITS;
+  if (!fresh && memo && Date.now() - memo.at < MEMO_MS) return memo.doc;
+  let doc;
+  // Each place Cloudflare serves from keeps the edits for a minute, so a page doesn't wait on the database.
+  const cache = globalThis.caches?.default;
+  if (!fresh && cache) {
+    try {
+      const hit = await cache.match(cacheKey(env));
+      if (hit) doc = await hit.json();
+    } catch {}
+  }
+  if (!doc) {
+    doc = await env.COPY.get(env.COPY.idFromName('site')).read();
+    if (cache) {
+      try {
+        await cache.put(cacheKey(env), new Response(JSON.stringify(doc), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=60' } }));
+      } catch {}
+    }
+  }
+  memo = { at: Date.now(), doc };
+  return doc;
+}
+
+/** Pages as marked for editing, by file and version (they only change with a deploy). */
+const marked = new Map();
+function markedPage(key, etag, html) {
+  const id = `${key}|${etag}`;
+  let a = etag && marked.get(id);
+  if (!a) {
+    a = annotate(html);
+    if (etag) {
+      if (marked.size > 40) marked.clear();
+      marked.set(id, a);
+    }
+  }
+  return a;
+}
+
+/** A page from the site's files, without the visitor's cache headers (its ETag is ours, not the file's). */
+function pageFile(env, request, path) {
+  const url = new URL(path, request.url);
+  const headers = new Headers(request.headers);
+  headers.delete('If-None-Match');
+  headers.delete('If-Modified-Since');
+  return env.ASSETS.fetch(new Request(url, { method: 'GET', headers, redirect: 'manual' }));
+}
+
+async function pageWords(env, request, page) {
+  const p = PAGES.find((x) => x[1] === page);
+  if (!p) throw new Fail(404, 'not_found', 'No such page.');
+  const res = await pageFile(env, request, p[2]);
+  if (!res.ok) throw new Fail(404, 'not_found', 'No such page.');
+  return markedPage(p[2], res.headers.get('ETag') ?? '', await res.text());
+}
+
+/** GET /api/copy: every saved edit; with ?page=, also that page's words as in the source. */
+async function copyFor(request, env, page) {
+  const doc = await editsOf(env, true);
+  if (!page) return doc;
+  const a = await pageWords(env, request, page);
+  return { ...doc, texts: a.texts, blocks: a.blocks, pages: PAGES.map(([label, path]) => [label, path]) };
+}
+
+/** POST /api/copy { page, changes: { name: new HTML | null, "-name": true | null } }, with the password. */
+async function saveCopy(request, env, body) {
+  await limit(env, request, 'edit', 30, 600_000);
+  const key = request.headers.get('X-Edit-Key') ?? '';
+  if (!env.EDIT_KEY || !env.COPY || !same(await sha(key), await sha(env.EDIT_KEY))) throw new Fail(401, 'wrong', 'Wrong password.');
+  const page = String(body.page ?? '');
+  const a = await pageWords(env, request, page);
+  const { edits } = await editsOf(env, true);
+  const updates = {};
+  for (const [name, v] of Object.entries(body.changes ?? {})) {
+    const gone = name.startsWith('-');
+    const k = gone ? name.slice(1) : name;
+    const known = Object.hasOwn(a.texts, k) || a.blocks.includes(k);
+    // Unknown names can only be cleared (an edit whose words changed in the source).
+    if (!known) {
+      if ((v === null || v === false) && edits[k]) updates[k] = null;
+      continue;
+    }
+    const e = { ...(updates[k] ?? edits[k] ?? {}), was: a.texts[k] ?? a.blockWords[k] ?? '', page, at: Date.now() };
+    if (gone) {
+      if (v === true) e.gone = true;
+      else delete e.gone;
+    } else if (v === null || v === false || v === a.texts[k]) delete e.to;
+    else if (typeof v === 'string' && v.length <= 8000) e.to = clean(v);
+    updates[k] = e.to !== undefined || e.gone ? e : null;
+  }
+  const doc = await env.COPY.get(env.COPY.idFromName('site')).apply(updates);
+  memo = { at: Date.now(), doc };
+  try {
+    await globalThis.caches?.default?.delete(cacheKey(env));
+  } catch {}
+  return { ok: true, edited: Object.keys(doc.edits).length };
+}
+
+/** The edits, put into a page as it streams out; at /edit, the editor too (and none of the page's own scripts). */
+function withCopy(res, edits, edit) {
+  let rw = new HTMLRewriter().on('[data-copy],[data-block]', {
+    element(el) {
+      for (const attr of ['data-block', 'data-copy']) {
+        const k = el.getAttribute(attr);
+        if (!k || !edits[k]?.gone) continue;
+        if (edit) el.setAttribute('data-gone', '');
+        else {
+          // Hidden rather than taken out: the page's scripts may still look for what's inside.
+          el.setAttribute('hidden', '');
+          el.setAttribute('style', 'display:none!important');
+          return;
+        }
+      }
+      const e = edits[el.getAttribute('data-copy')];
+      if (typeof e?.to === 'string') el.setInnerContent(clean(e.to), { html: true });
+    },
+  });
+  if (edit) {
+    rw = rw
+      .on('html', { element: (el) => el.setAttribute('data-edit', '') })
+      .on('title', { element: (el) => el.prepend('Edit · ') })
+      .on('head', { element: (el) => el.append('<meta name="robots" content="noindex">', { html: true }) })
+      // The page's own scripts would rewrite words as you edit them (your email in the corner, Option for Alt…).
+      .on('script', { element: (el) => el.remove() })
+      .on('body', { element: (el) => el.append('<script src="/edit.js" defer></script>', { html: true }) });
+  }
+  return rw.transform(res);
+}
+
+/** Serves a page with the edits in. Anything that isn't a page passes through as it is. */
+async function servePage(request, env, res, { key, edit = false, status = res.status }) {
+  if (!(res.headers.get('Content-Type') ?? '').startsWith('text/html') || (res.status !== 200 && res.status !== 404)) return res;
+  const fileTag = res.headers.get('ETag') ?? '';
+  const a = markedPage(key, fileTag, await res.text());
+  const doc = await editsOf(env, edit);
+  const h = new Headers(res.headers);
+  h.delete('Content-Length');
+  if (edit) {
+    h.delete('ETag');
+    h.set('Cache-Control', 'no-store');
+  } else if (fileTag) {
+    // Changes with the file (a deploy) and with the edits, so browsers can still ask "anything new?".
+    const tag = `W/"${fileTag.replace(/^W\//, '').replace(/"/g, '')}.${doc.v}"`;
+    h.set('ETag', tag);
+    if (status === 200 && request.headers.get('If-None-Match') === tag) return new Response(null, { status: 304, headers: h });
+  }
+  if (request.method === 'HEAD') return new Response(null, { status, headers: h });
+  return withCopy(new Response(a.html, { status, headers: h }), doc.edits, edit);
 }
 
 /** The extension's store pages. The pages link to /brain/firefox and /brain/chrome, so each address lives only here. */
@@ -568,10 +768,18 @@ export default {
         return json({ error: 'Something went wrong on our side. Try again in a moment.', code: 'server' }, 500);
       }
     }
-    // The front page and the addresses that moved (see run_worker_first in wrangler.jsonc).
+    // The pages (to put Chris's edits in), the front page and the addresses that moved (see
+    // run_worker_first in wrangler.jsonc). Files that aren't pages are served without the Worker.
     const path = url.pathname.replace(/\/$/, '');
+    const accountSite = url.hostname.startsWith('account.');
+    if (path === '/edit' || path.startsWith('/edit/')) {
+      const page = path.slice(5) || (accountSite ? '/account' : '/brain');
+      const p = PAGES.find((x) => x[1] === page);
+      if (!p) return Response.redirect(`${url.origin}/edit`, 302);
+      return servePage(request, env, await pageFile(env, request, p[2]), { key: p[2], edit: true, status: 200 });
+    }
     // account.cristianbagrin.com: the account pages for every app.
-    if (url.hostname.startsWith('account.') && path === '') return env.ASSETS.fetch(new Request(`${url.origin}/account${url.search}`, request));
+    if (accountSite && path === '') return servePage(request, env, await pageFile(env, request, `/account${url.search}`), { key: '/account' });
     // chinesebrain.cristianbagrin.com is the short address of the extension's pages.
     const short = url.hostname.startsWith('chinesebrain.');
     if (short || MOVED[path]) {
@@ -580,7 +788,10 @@ export default {
     }
     if (path === '/brain/firefox' || path === '/brain/chrome') return Response.redirect(STORES[path.slice(7)], 302);
     // Until the main site exists, the front page is Chinese Brain's.
-    if (path === '') return env.ASSETS.fetch(new Request(`${url.origin}/brain`, request));
-    return env.ASSETS.fetch(request);
+    if (path === '') return servePage(request, env, await pageFile(env, request, `/brain${url.search}`), { key: '/brain' });
+    const res = await pageFile(env, request, url.pathname + url.search);
+    // An address with no file (not_found_handling is "none", so it comes here): the 404 page.
+    if (res.status === 404) return servePage(request, env, await pageFile(env, request, '/404'), { key: '/404', status: 404 });
+    return servePage(request, env, res, { key: url.pathname });
   },
 };

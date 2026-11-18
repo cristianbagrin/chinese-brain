@@ -17,8 +17,8 @@
   <noscript><p>This page needs JavaScript.</p></noscript>
 
   <form class="card" id="enter" hidden>
-    <h1 id="enterTitle">Sign in</h1>
-    <p class="lead" id="enterLead">One account for Chinese Brain, At Peace, Money in Order and Ten Dollar Words.</p>
+    <h1 id="enterTitle" data-js-text>Sign in</h1>
+    <p class="lead" id="enterLead" data-js-text>One account for Chinese Brain, At Peace, Money in Order and Ten Dollar Words.</p>
     <label>Email<input type="email" id="email" autocomplete="username" required></label>
     <label id="pwLabel">Password<input type="password" id="password" autocomplete="current-password" minlength="8" required></label>
     <p class="msg" id="enterMsg" role="status"></p>
@@ -44,7 +44,7 @@
     </section>
     <form class="card" id="emailForm">
       <h2>Change email</h2>
-      <p class="lead" id="emailLead">We’ll send a link to the new address. Your email changes once you open it.</p>
+      <p class="lead" id="emailLead" data-js-text>We’ll send a link to the new address. Your email changes once you open it.</p>
       <label>New email<input type="email" id="newEmail" autocomplete="email" required></label>
       <label>Password<input type="password" id="emailPw" autocomplete="current-password" required></label>
       <p class="msg" id="emailMsg" role="status"></p>

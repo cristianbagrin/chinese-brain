@@ -73,7 +73,8 @@ cpSync('static/fonts', 'site/public/fonts', { recursive: true });
 cpSync('src/shared/zhuyin.css', 'site/public/zhuyin.css');
 const site = { ...common, entryPoints: { dashboard: 'site/src/dashboard.ts' }, outdir: 'site/public/brain', target: 'es2020', define: define(false) };
 
-const pages = { ...site, entryPoints: { site: 'site/src/site.ts' }, outdir: 'site/public' };
+// edit.js is the page editor, loaded only at /edit (site/worker.js).
+const pages = { ...site, entryPoints: { site: 'site/src/site.ts', edit: 'site/src/edit.ts' }, outdir: 'site/public' };
 
 writeFileSync('site/public/brain/demo.json', demoData(readFileSync('site/public/brain.html', 'utf8')));
 
