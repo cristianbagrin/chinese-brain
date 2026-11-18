@@ -22,5 +22,9 @@ if (process.argv.includes('--text')) {
   console.log(notes);
 } else {
   const reviewer = section('5. Notes to reviewer').match(/```\n([\s\S]*?)\n```/)?.[1] ?? '';
+  if (reviewer.length > 3000) {
+    console.error(`Notes to reviewer are ${reviewer.length} characters; Mozilla takes at most 3000 (store/PUBLISHING.md, section 5).`);
+    process.exit(1);
+  }
   console.log(JSON.stringify({ version: { release_notes: { 'en-US': notes }, approval_notes: reviewer } }, null, 2));
 }

@@ -306,53 +306,27 @@ These are the store notes: every change. The website's What's new page
 
 ## 5. Notes to reviewer
 
-```
-Build (Node 22, npm 10):
-  npm ci
-  npm run build     # esbuild bundles src/ + static/ into dist/ (scripts/build.mjs); output is not minified
-The uploaded add-on is the dist/ folder zipped by web-ext (npm run zip).
+Mozilla takes at most 3,000 characters here (`scripts/release-notes.mjs` checks).
 
-The bundled data files (static/data/dict.tsv.gz, names.tsv.gz, examples.tsv.gz) are prebuilt:
-  dict: python3 scripts/build_data.py (downloads CC-CEDICT and MOE readings, uses the wordfreq package)
-  names: python3 scripts/build_names.py (Wikidata SPARQL queries, CC0 data)
-  examples: python3 scripts/build_examples.py (from data-src/examples/)
-The font static/fonts/zh.woff2 (and zh-bold.woff2) is LXGW WenKai TC (SIL OFL 1.1, license in
-static/fonts/OFL.txt), cut to the 7,000 most common characters by scripts/build_fonts.py. It is
-used only on the extension's own pages.
+```
+Build (Node 22): npm ci && npm run build (esbuild bundles src/ + static/ into dist/, not minified). The upload is dist/ zipped by web-ext.
+
+Prebuilt data in static/data: dict (scripts/build_data.py: CC-CEDICT, MOE readings, wordfreq), names (scripts/build_names.py: Wikidata, CC0), examples (scripts/build_examples.py). Font static/fonts/zh*.woff2: LXGW WenKai TC (SIL OFL 1.1, static/fonts/OFL.txt), cut by scripts/build_fonts.py; used only on the extension's pages.
 
 Permissions:
-  <all_urls> + content script: hover lookup works on any page the user reads.
-  webRequest + webRequestBlocking: only for *://*.youtube.com/api/timedtext* (see src/background/youtube.ts).
-    filterResponseData passes the caption response through unchanged and keeps a read-only copy for
-    the subtitle overlay. The add-on never requests timedtext itself.
-  storage + unlimitedStorage: the word list, logs and caches stay local.
-  menus: one context-menu item, "Look up" on selected text. If the selection is in a frame the content
-    script was not already running in, tabs.executeScript injects the add-on's own content.js there.
-  commands: two keyboard shortcuts that toggle page colors: Alt+Shift+C for the current site, Alt+Shift+A for every site.
-  alarms: one alarm, every 20 minutes, that syncs the word list when the user is signed in.
-  downloads: "Download new" in the toolbar menu saves the word-list export (a TSV the background page
-    just built from the local word list) with downloads.download.
+- <all_urls> + content script: hover lookup on any page the user reads.
+- webRequest + webRequestBlocking: only *://*.youtube.com/api/timedtext* (src/background/youtube.ts). filterResponseData passes captions through unchanged and keeps a read-only copy for the subtitle overlay.
+- storage, unlimitedStorage: word list, logs, caches, all local.
+- menus: "Look up" on selected text; in a frame without the content script, tabs.executeScript injects the add-on's own content.js.
+- commands: Alt+Shift+C / Alt+Shift+A toggle word colors.
+- alarms: syncs the word list every 20 min when signed in.
+- downloads: "Download new" saves a TSV built from the local list.
 
-The word list page is on the developer's website (chinese.cristianbagrin.com/brain/dashboard, source in
-site/src/dashboard.ts). On that origin only, and only in the top frame, the content script answers
-window.postMessage requests from the page (src/content/bridge.ts): a fixed list of message types
-(read the list, set a status, import a list, account status), checked against e.origin and e.source.
-It also marks the page with the user's pronunciation choice (data-cb-pron="zhuyin" or "pinyin") so the site
-writes readings the same way; no other setting is shared.
-The list is read in the browser; nothing is uploaded by this. On that page the content script also
-posts which of three things the user just did (opened a card, stamped a word, looked up a selection),
-so the How it works page can tick its steps; nothing else is sent.
+The Dashboard is on the developer's site (chinese.cristianbagrin.com/brain/dashboard, site/src/dashboard.ts). On that origin only, top frame only, the content script answers a fixed list of postMessage requests (read list, set status, import, account status), checked against e.origin and e.source (src/content/bridge.ts). It marks the page with the pronunciation choice (data-cb-pron) and posts which demo step the user just did. Nothing is uploaded by this.
 
-Remote requests (all user-facing features, listed in the privacy policy): translate.google.com (TTS),
-translate.googleapis.com (caption translation fallback; translation of a selection the user looks up), *.tts.speech.microsoft.com (optional, user key),
-generativelanguage.googleapis.com (optional, user key), chinese.cristianbagrin.com/api (optional account:
-sign-in and word-list sync, src/background/sync.ts; its server code is site/worker.js). No remote code is
-loaded; no eval, no innerHTML.
+Remote requests (all in the privacy policy): translate.google.com (speech), translate.googleapis.com (translation), *.tts.speech.microsoft.com and generativelanguage.googleapis.com (optional, user's own key), chinese.cristianbagrin.com/api (optional account, src/background/sync.ts; server: site/worker.js). No remote code, no eval, no innerHTML.
 
-Data collection permissions: websiteContent (words and caption lines sent for speech and translation)
-and browsingActivity (the YouTube link sent to Gemini when the user asks for it). Optional, requested with
-permissions.request when the user signs in (src/pages/options.ts): personallyIdentifyingInfo (email) and
-authenticationInfo (password). Test account for review: create one in Settings → Account with any email.
+Data collection: websiteContent (words and captions sent for speech and translation), browsingActivity (YouTube link sent to Gemini on request); optional at sign-in: personallyIdentifyingInfo (email), authenticationInfo (password). Test account: create one in Settings → Account.
 ```
 
 ## 6. Screenshots (1280 × 800)
