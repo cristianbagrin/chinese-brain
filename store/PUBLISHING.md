@@ -25,16 +25,26 @@ Secrets and variables → Actions → New repository secret):
    → **Generate new credentials**.
 2. Save the *JWT issuer* as `AMO_JWT_ISSUER` and the *JWT secret* as `AMO_JWT_SECRET`.
 
-**Chrome** (one-time $5 developer fee):
+**Chrome** (one-time $5 developer fee). A Google Cloud *service account* signs in for the
+release, so there is no consent screen to fill in or publish, and nothing expires:
 
 1. Publish the first version by hand (section "Chrome Web Store" below); the API can only
-   update an item that exists. Copy its item ID (the 32 letters in its dashboard URL) into
-   `CWS_EXTENSION_ID`, and your publisher ID (Developer Dashboard → Account) into
+   update an item that exists. Save its item ID (the 32 letters in its dashboard URL) as
+   `CWS_EXTENSION_ID`, and your publisher ID (Developer Dashboard → Account) as
    `CWS_PUBLISHER_ID`.
-2. Follow [this guide](https://github.com/fregante/chrome-webstore-upload-keys) to get a
-   client ID, client secret and refresh token for the Chrome Web Store API; save them as
-   `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET` and `CWS_REFRESH_TOKEN`. Set the OAuth consent
-   screen to **In production** (not Testing), or the refresh token stops working after a week.
+2. In any Google Cloud project you already have, turn on the
+   [Chrome Web Store API](https://console.cloud.google.com/apis/library/chromewebstore.googleapis.com).
+3. [Service accounts](https://console.cloud.google.com/iam-admin/serviceaccounts) → **Create
+   service account** → any name (e.g. `chrome-release`) → **Done** (no roles needed). Copy its
+   email.
+4. Open it → **Keys** → **Add key** → **Create new key** → JSON. Save the whole file's text as
+   `CWS_SERVICE_ACCOUNT`, then delete the downloaded file.
+5. Chrome Web Store Developer Dashboard → **Account** → service accounts → add that email
+   (one per publisher).
+
+`scripts/cws-publish.mjs` does the upload and publish (API v2). The older route (an OAuth client
+plus `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET`, `CWS_REFRESH_TOKEN`) still works if those secrets
+are set and `CWS_SERVICE_ACCOUNT` isn't.
 
 Mozilla and Google still review each version (minutes to a few days); users get it after
 that, on their own.
