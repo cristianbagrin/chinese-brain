@@ -64,7 +64,7 @@ function allowed(ini: string, fin: string): boolean {
   if (fin === 'er' || fin === 'ê' || fin === 'iai' || fin === 'io') return false;
   if (PALATAL.has(ini)) return iFinal || üFinal;
   if (üFinal) return (ini === 'n' || ini === 'l') && (fin === 'ü' || fin === 'üe');
-  if (fin === 'ia') return ini === 'd' || ini === 'l';
+  if (fin === 'ia') return /^[bpdl]$/.test(ini); // bia, pia (sounds), dia, lia
   if (iFinal) return /^[bpmdtnl]$/.test(ini) && fin !== 'iong';
   if (fin === 'o') return /^[bpmfl]$/.test(ini);
   if (fin === 'ueng') return false;

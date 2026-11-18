@@ -96,6 +96,10 @@ export type VoiceEngine = 'google' | 'system' | 'azure';
 
 export interface Settings {
   hoverMode: HoverMode;
+  /** With "hover" chosen: websites where the card waits for Option (Alt). */
+  altSites: string[];
+  /** With "hold Option" chosen: websites where plain hover opens the card. */
+  hoverSites: string[];
   disabledSites: string[];
   /** Our subtitles on YouTube (the switch in the player). */
   ytEnabled: boolean;
@@ -140,6 +144,8 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   hoverMode: 'hover',
+  altSites: [],
+  hoverSites: [],
   disabledSites: [],
   ytEnabled: true,
   pinyin: true,
@@ -181,6 +187,26 @@ export function normalizeSettings(raw: Record<string, unknown> | undefined): Set
   delete r.markUntracked; // the dotted underline on new subtitle words was dropped
   if (r.pron !== 'pinyin' && r.pron !== 'zhuyin') delete r.pron;
   return { ...DEFAULT_SETTINGS, ...(r as Partial<Settings>) };
+}
+
+/** How the card opens on this website: your choice, unless the website is an exception to it. */
+export function cardMode(s: Settings, host: string): HoverMode {
+  if (s.hoverMode === 'off' || s.disabledSites.includes(host)) return 'off';
+  if (s.hoverMode === 'hover') return s.altSites.includes(host) ? 'alt' : 'hover';
+  return s.hoverSites.includes(host) ? 'hover' : 'alt';
+}
+
+/**
+ * A website's own way to open the card (hover, alt or off), as the exception lists record it:
+ * choosing the global mode clears its exceptions.
+ */
+export function setSiteMode(s: Settings, host: string, mode: HoverMode): Pick<Settings, 'altSites' | 'hoverSites' | 'disabledSites'> {
+  const without = (list: string[]) => list.filter((h) => h !== host);
+  const out = { altSites: without(s.altSites), hoverSites: without(s.hoverSites), disabledSites: without(s.disabledSites) };
+  if (mode === 'off') out.disabledSites.push(host);
+  else if (s.hoverMode === 'hover' && mode === 'alt') out.altSites.push(host);
+  else if (s.hoverMode === 'alt' && mode === 'hover') out.hoverSites.push(host);
+  return out;
 }
 
 /** Are page colors on for this host (its own exception, else the global switch)? */

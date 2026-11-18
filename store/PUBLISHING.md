@@ -93,7 +93,7 @@ chinesebrain
 **Summary** (250 characters max)
 
 ```
-Learn Taiwanese Chinese while you read and watch. Hover any Chinese word for Taiwan pinyin, meanings and natural example sentences; get dual Chinese + English subtitles on YouTube; keep one word list with Fresh, Learning and Known.
+Learn Taiwanese Chinese while you read and watch. Hover any Chinese word for 注音 or Taiwan pinyin, meanings and natural example sentences; get dual Chinese + English subtitles on YouTube; keep one word list with Fresh, Learning and Known.
 ```
 
 **Description**
@@ -102,7 +102,7 @@ Learn Taiwanese Chinese while you read and watch. Hover any Chinese word for Tai
 Chinese Brain turns everything you read and watch into Taiwanese Chinese practice.
 
 HOVER ANY CHINESE WORD
-• Traditional characters with Taiwan standard pinyin (教育部 readings)
+• Traditional characters with Taiwan's standard readings (教育部), in 注音 beside each character or in pinyin
 • How common the word is, in plain words: essential, very common, common, less common, rare
 • The meaning, and a top-down breakdown: 臺北市 → 臺北 → 臺 · 北, then 市
 • Two natural Taiwan-Mandarin example sentences, picked so the other words are ones you know. Play them aloud, save the ones you want to learn, delete the ones you don't
@@ -117,13 +117,13 @@ SELECT ANYTHING
 
 ONE WORD LIST, THREE STATUSES
 • 新 Fresh · 學 Learning · 熟 Known: press 1, 2 or 3
-• The same colors in the card, the subtitles, the transcript, your word list, and (optional) on every page; Option+Shift+C (Alt+Shift+C) turns them on or off for one website
+• The same colors in the card, the subtitles, the transcript, your Dashboard, and (optional) on every page; Option+Shift+C (Alt+Shift+C) turns them on or off for one website
 • Import your known-words list; export what changed each week as a small TSV
 
 YOUTUBE DUAL SUBTITLES
 • Chinese + English lines over the video; every word is hoverable and clickable
 • The video pauses while you read
-• Keys: A / D previous and next line, S replay, R loop, Q shadowing, P pinyin, X English line, E transcript
+• Keys: A / D previous and next line, S replay, R loop, Q shadowing, P pronunciation, X English line, E transcript
 • Transcript with a "learn first" list: the words that unlock the most of this video
 • How much of the video you already know, as a percentage
 
@@ -132,7 +132,7 @@ OPTIONAL, WITH YOUR OWN KEYS
 • Azure: a Taiwan neural voice
 
 SYNC (OPTIONAL)
-• Works without an account: your word list stays in your browser
+• Works without an account: your words stay in your browser
 • A free account keeps your words in sync across your browsers; reset your password or delete the account any time
 
 MAKE IT YOURS
@@ -190,6 +190,17 @@ Since 1.5.0 (optional accounts) the stores' data questions have new answers:
 
 These are the store notes: every change. The website's What's new page
 (`site/public/brain/whats-new.html`) is written by hand from them: only what a reader would notice.
+
+1.8.0 (November 18, 2026):
+
+```
+• 注音 (Zhuyin): pronunciation in Taiwan's own script, now the default. In the card each character has its 注音 beside it, as Taiwan prints it; the subtitles, the transcript, word hints, the Dashboard and the website use it too. Prefer pinyin? Settings → Lookup → Pronunciation, or the toolbar menu.
+• One Dashboard: the word list is the Dashboard on the website (chinese.cristianbagrin.com/brain/dashboard), and every "Word list" link now says Dashboard. It opens on your latest 30 words; Show more adds 100 at a time. Search finds 注音 too.
+• The card's activation, per website: with "hover" chosen, pick websites where it waits for Option (Alt); with "hold Option" chosen, websites where hover is enough. One click from the toolbar menu (On this website: hover, Option, off).
+• Settings show only what applies: the website list that fits your choice, YouTube options while the subtitles are on, the Gemini model once there's a key.
+• The P key and its switch are called Pronunciation; the switch moved to YouTube in Settings.
+• The website's demo card no longer reads words aloud.
+```
 
 1.7.0 (November 17, 2026):
 
@@ -326,6 +337,8 @@ The word list page is on the developer's website (chinese.cristianbagrin.com/bra
 site/src/dashboard.ts). On that origin only, and only in the top frame, the content script answers
 window.postMessage requests from the page (src/content/bridge.ts): a fixed list of message types
 (read the list, set a status, import a list, account status), checked against e.origin and e.source.
+It also marks the page with the user's pronunciation choice (data-cb-pron="zhuyin" or "pinyin") so the site
+writes readings the same way; no other setting is shared.
 The list is read in the browser; nothing is uploaded by this. On that page the content script also
 posts which of three things the user just did (opened a card, stamped a word, looked up a selection),
 so the How it works page can tick its steps; nothing else is sent.

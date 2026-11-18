@@ -181,6 +181,8 @@
   init_browser_shim();
   var DEFAULT_SETTINGS = {
     hoverMode: "hover",
+    altSites: [],
+    hoverSites: [],
     disabledSites: [],
     ytEnabled: !0,
     pinyin: !0,
@@ -208,6 +210,9 @@
   function normalizeSettings(raw) {
     let r = { ...raw ?? {} };
     return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), r.hoverMode === "shift" && (r.hoverMode = "alt"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, r.pron !== "pinyin" && r.pron !== "zhuyin" && delete r.pron, { ...DEFAULT_SETTINGS, ...r };
+  }
+  function cardMode(s, host) {
+    return s.hoverMode === "off" || s.disabledSites.includes(host) ? "off" : s.hoverMode === "hover" ? s.altSites.includes(host) ? "alt" : "hover" : s.hoverSites.includes(host) ? "hover" : "alt";
   }
   function colorsOn(s, host) {
     return s.siteColors[host] ?? s.pageColors;
@@ -253,6 +258,10 @@
     /** Color the words on this page? */
     colorsEnabled() {
       return this.siteEnabled() && colorsOn(this.settings, location.hostname);
+    }
+    /** How the card opens here: on hover, while holding Option (Alt), or not at all. */
+    cardMode() {
+      return cardMode(this.settings, location.hostname);
     }
     siteEnabled() {
       return this.settings.hoverMode !== "off" && !this.settings.disabledSites.includes(location.hostname);
@@ -430,7 +439,7 @@ Chinese Brain ${import_browser_polyfill_min.default.runtime.getManifest().versio
     if (el instanceof HTMLInputElement && el.type === "checkbox" ? value = el.checked : typeof def == "number" ? value = Number(el.value) || def : Array.isArray(def) ? value = el.value.split(/\s+/).map((x) => x.trim()).filter(Boolean) : value = el.value.trim(), JSON.stringify(settings[key]) === JSON.stringify(value)) return;
     settings = { ...settings, [key]: value }, state.settings = settings, await import_browser_polyfill_min.default.runtime.sendMessage({ type: "saveSettings", settings: { [key]: value } });
     let tag = $("saved");
-    tag.classList.add("show"), clearTimeout(savedTimer), savedTimer = setTimeout(() => tag.classList.remove("show"), 1400), key === "voice" && showAzure(), key === "azureKey" && setStatus("azureStatus", ""), key === "geminiKey" && setStatus("geminiStatus", "");
+    tag.classList.add("show"), clearTimeout(savedTimer), savedTimer = setTimeout(() => tag.classList.remove("show"), 1400), showWhen(), key === "azureKey" && setStatus("azureStatus", ""), key === "geminiKey" && setStatus("geminiStatus", "");
   }
   function showSites() {
     let sites = Object.entries(settings.siteColors).sort(([a], [b]) => a.localeCompare(b));
@@ -503,8 +512,13 @@ Chinese Brain ${import_browser_polyfill_min.default.runtime.getManifest().versio
       cancelAnimationFrame(raf), raf = requestAnimationFrame(update);
     }, { passive: !0 }), new ResizeObserver(update).observe(document.querySelector("main"));
   }
-  function showAzure() {
-    document.querySelectorAll(".azure").forEach((el) => el.hidden = settings.voice !== "azure");
+  function showWhen() {
+    for (let el of document.querySelectorAll("[data-when]")) {
+      let m = /^(\w+)(?:(!?=)(.+))?$/.exec(el.dataset.when);
+      if (!m) continue;
+      let v = settings[m[1]];
+      el.hidden = !(m[2] === "=" ? String(v) === m[3] : m[2] === "!=" ? String(v) !== m[3] : Array.isArray(v) ? v.length > 0 : v);
+    }
   }
   async function init() {
     settings = await import_browser_polyfill_min.default.runtime.sendMessage({ type: "settings" }), state.settings = settings;
@@ -523,7 +537,7 @@ Chinese Brain ${import_browser_polyfill_min.default.runtime.getManifest().versio
     }
     for (let sel of document.querySelectorAll("select[data-seg]")) segmented(sel);
     for (let input of document.querySelectorAll('input[type="number"]')) stepper(input);
-    showAzure(), showSites(), showKeys(), followSections(), settings.geminiKey && loadModels(!1), showAccount().finally(() => {
+    showWhen(), showSites(), showKeys(), followSections(), settings.geminiKey && loadModels(!1), showAccount().finally(() => {
       location.hash && document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: "instant" });
     });
   }

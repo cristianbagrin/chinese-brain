@@ -112,7 +112,7 @@
   }
   function allowed(ini, fin) {
     let iFinal = fin[0] === "i", uFinal = fin[0] === "u", \u00FCFinal = fin[0] === "\xFC";
-    return fin === "er" || fin === "\xEA" || fin === "iai" || fin === "io" ? !1 : PALATAL.has(ini) ? iFinal || \u00FCFinal : \u00FCFinal ? (ini === "n" || ini === "l") && (fin === "\xFC" || fin === "\xFCe") : fin === "ia" ? ini === "d" || ini === "l" : iFinal ? /^[bpmdtnl]$/.test(ini) && fin !== "iong" : fin === "o" ? /^[bpmfl]$/.test(ini) : fin === "ueng" ? !1 : uFinal && /^[bpmf]$/.test(ini) ? fin === "u" : !0;
+    return fin === "er" || fin === "\xEA" || fin === "iai" || fin === "io" ? !1 : PALATAL.has(ini) ? iFinal || \u00FCFinal : \u00FCFinal ? (ini === "n" || ini === "l") && (fin === "\xFC" || fin === "\xFCe") : fin === "ia" ? /^[bpdl]$/.test(ini) : iFinal ? /^[bpmdtnl]$/.test(ini) && fin !== "iong" : fin === "o" ? /^[bpmfl]$/.test(ini) : fin === "ueng" ? !1 : uFinal && /^[bpmf]$/.test(ini) ? fin === "u" : !0;
   }
   function parseNumbered(syl) {
     let m = /^([a-zA-Z:üÜêÊ]+)([1-5])$/.exec(syl.trim());
@@ -163,6 +163,8 @@
   // src/shared/types.ts
   var DEFAULT_SETTINGS = {
     hoverMode: "hover",
+    altSites: [],
+    hoverSites: [],
     disabledSites: [],
     ytEnabled: !0,
     pinyin: !0,
@@ -190,6 +192,9 @@
   function normalizeSettings(raw) {
     let r = { ...raw ?? {} };
     return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), r.hoverMode === "shift" && (r.hoverMode = "alt"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, r.pron !== "pinyin" && r.pron !== "zhuyin" && delete r.pron, { ...DEFAULT_SETTINGS, ...r };
+  }
+  function cardMode(s, host2) {
+    return s.hoverMode === "off" || s.disabledSites.includes(host2) ? "off" : s.hoverMode === "hover" ? s.altSites.includes(host2) ? "alt" : "hover" : s.hoverSites.includes(host2) ? "hover" : "alt";
   }
   function colorsOn(s, host2) {
     return s.siteColors[host2] ?? s.pageColors;
@@ -277,6 +282,10 @@
     /** Color the words on this page? */
     colorsEnabled() {
       return this.siteEnabled() && colorsOn(this.settings, location.hostname);
+    }
+    /** How the card opens here: on hover, while holding Option (Alt), or not at all. */
+    cardMode() {
+      return cardMode(this.settings, location.hostname);
     }
     siteEnabled() {
       return this.settings.hoverMode !== "off" && !this.settings.disabledSites.includes(location.hostname);
@@ -1795,7 +1804,7 @@ ruby.zy rt { font-size: 0.36em; opacity: 0.85; }
             this.altTap = !1;
             return;
           }
-          this.altTap = !e.repeat && !e.ctrlKey && !e.metaKey && !e.shiftKey, this.alt = !0, !e.repeat && state.settings.hoverMode === "alt" && !currentSelection()?.text.trim() && this.check(document.elementFromPoint(this.lastX, this.lastY));
+          this.altTap = !e.repeat && !e.ctrlKey && !e.metaKey && !e.shiftKey, this.alt = !0, !e.repeat && state.cardMode() === "alt" && !currentSelection()?.text.trim() && this.check(document.elementFromPoint(this.lastX, this.lastY));
         },
         !0
       ), window.addEventListener(
@@ -1856,7 +1865,7 @@ ruby.zy rt { font-size: 0.36em; opacity: 0.85; }
       }
       if (this.popup.visible && this.popup.inBridge(this.lastX, this.lastY) || target2?.closest?.("[data-cb-own]")) return;
       let s = state.settings;
-      if (!state.siteEnabled() || s.hoverMode === "alt" && !this.alt) return this.scheduleHide();
+      if (!state.siteEnabled() || state.cardMode() === "alt" && !this.alt) return this.scheduleHide();
       let pos = document.caretPositionFromPoint?.(this.lastX, this.lastY), node = pos?.offsetNode;
       if (!node || node.nodeType !== Node.TEXT_NODE) return this.scheduleHide();
       let text = node, offset = pos.offset;

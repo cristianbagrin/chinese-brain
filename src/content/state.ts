@@ -1,4 +1,4 @@
-import { colorsOn, DEFAULT_SETTINGS, normalizeSettings, type Settings, type Status, type WordRecord } from '../shared/types.ts';
+import { cardMode, colorsOn, DEFAULT_SETTINGS, normalizeSettings, type Settings, type Status, type WordRecord } from '../shared/types.ts';
 
 type Listener = () => void;
 
@@ -56,6 +56,11 @@ class State {
   /** Color the words on this page? */
   colorsEnabled(): boolean {
     return this.siteEnabled() && colorsOn(this.settings, location.hostname);
+  }
+
+  /** How the card opens here: on hover, while holding Option (Alt), or not at all. */
+  cardMode() {
+    return cardMode(this.settings, location.hostname);
   }
 
   siteEnabled(): boolean {

@@ -157,6 +157,13 @@
 
   // src/shared/types.ts
   init_browser_shim();
+  function cardMode(s, host) {
+    return s.hoverMode === "off" || s.disabledSites.includes(host) ? "off" : s.hoverMode === "hover" ? s.altSites.includes(host) ? "alt" : "hover" : s.hoverSites.includes(host) ? "hover" : "alt";
+  }
+  function setSiteMode(s, host, mode) {
+    let without = (list) => list.filter((h2) => h2 !== host), out = { altSites: without(s.altSites), hoverSites: without(s.hoverSites), disabledSites: without(s.disabledSites) };
+    return mode === "off" ? out.disabledSites.push(host) : s.hoverMode === "hover" && mode === "alt" ? out.altSites.push(host) : s.hoverMode === "alt" && mode === "hover" && out.hoverSites.push(host), out;
+  }
   function colorsOn(s, host) {
     return s.siteColors[host] ?? s.pageColors;
   }
@@ -208,7 +215,10 @@ Chinese Brain ${import_browser_polyfill_min.default.runtime.getManifest().versio
           h("b", null, n.toLocaleString("en-US"))
         );
       })
-    ), $("feedback").href = feedbackLink(), $("words").href = DASHBOARD, $("altMode").textContent = ALT, $("altMode").title = `Only while holding ${ALT}`, import_browser_polyfill_min.default.runtime.sendMessage({ type: "account" }).then((a) => {
+    ), $("feedback").href = feedbackLink(), $("words").href = DASHBOARD, $("altMode").textContent = ALT, $("altMode").title = `Only while holding ${ALT}`;
+    for (let el of document.querySelectorAll(".altName"))
+      el.textContent = ALT, el.title = `Only while holding ${ALT} on this website`;
+    import_browser_polyfill_min.default.runtime.sendMessage({ type: "account" }).then((a) => {
       a.signedIn && ($("acctLink").textContent = a.error ? "Sync problem" : "\u2713 Synced");
     });
     let dl = $("dlNew"), newCount = async () => {
@@ -230,10 +240,11 @@ Chinese Brain ${import_browser_polyfill_min.default.runtime.getManifest().versio
       mark(String(s[key]));
       for (let b of buttons)
         b.addEventListener("click", () => {
-          mark(b.dataset.v), save({ [key]: b.dataset.v });
+          mark(b.dataset.v), s[key] = b.dataset.v, save({ [key]: b.dataset.v }), key === "hoverMode" && syncSite();
         });
     }
     let syncColors = () => {
+    }, syncSite = () => {
     }, tab = tabs[0], showStats = async () => {
       try {
         let st = await import_browser_polyfill_min.default.tabs.sendMessage(tab.id, { type: "pageStats" });
@@ -263,11 +274,17 @@ Chinese Brain ${import_browser_polyfill_min.default.runtime.getManifest().versio
       key && ($("colorKey").textContent = shortcutLabel(key));
     }).catch(() => {
     });
-    let box = $("siteOn");
-    box.checked = !s.disabledSites.includes(host), box.addEventListener("change", () => {
-      let list = new Set(s.disabledSites);
-      box.checked ? list.delete(host) : list.add(host), s.disabledSites = [...list], save({ disabledSites: s.disabledSites });
-    });
+    let siteButtons = [...$("siteMode").querySelectorAll("button")];
+    syncSite = () => {
+      let now = cardMode(s, host);
+      for (let b of siteButtons) b.setAttribute("aria-pressed", String(b.dataset.v === now));
+      $("siteLine").hidden = s.hoverMode === "off";
+    }, syncSite();
+    for (let b of siteButtons)
+      b.addEventListener("click", () => {
+        let lists = setSiteMode(s, host, b.dataset.v);
+        Object.assign(s, lists), syncSite(), save(lists);
+      });
   }
   init();
 })();

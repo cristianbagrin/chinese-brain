@@ -73,6 +73,14 @@
           </select>
         </div>
       </div>
+      <div class="row stack" data-when="hoverMode=hover">
+        <label for="altSites" data-tip="Websites where the card waits for the key">Hold <span class="altKey">Alt</span> on</label>
+        <textarea id="altSites" rows="2" placeholder="docs.google.com" spellcheck="false" title="One website per line"></textarea>
+      </div>
+      <div class="row stack" data-when="hoverMode=alt">
+        <label for="hoverSites" data-tip="Websites where the card opens without the key">Plain hover on</label>
+        <textarea id="hoverSites" rows="2" placeholder="youtube.com" spellcheck="false" title="One website per line"></textarea>
+      </div>
       <div class="row">
         <label for="pron" data-tip="In the card, the subtitles, the transcript and on the website">Pronunciation</label>
         <div class="ctl">
@@ -103,7 +111,7 @@
       </div>
     </div>
 
-    <div class="group">
+    <div class="group" data-when="hoverMode!=off">
       <div class="row stack">
         <label for="disabledSites">Lookup stays off on</label>
         <textarea id="disabledSites" rows="2" placeholder="mail.google.com" spellcheck="false" title="One website per line"></textarea>
@@ -115,7 +123,7 @@
     <h2>YouTube</h2>
     <div class="group">
       <div class="row"><label for="ytEnabled">Chinese Brain subtitles</label><input type="checkbox" id="ytEnabled" role="switch"></div>
-      <div class="row">
+      <div class="row" data-when="ytEnabled">
         <label for="translation">English line</label>
         <div class="ctl">
           <select id="translation" data-seg>
@@ -125,8 +133,8 @@
           </select>
         </div>
       </div>
-      <div class="row"><label for="pinyin">Pronunciation over the words</label><input type="checkbox" id="pinyin" role="switch"></div>
-      <div class="row">
+      <div class="row" data-when="ytEnabled"><label for="pinyin">Pronunciation over the words</label><input type="checkbox" id="pinyin" role="switch"></div>
+      <div class="row" data-when="ytEnabled">
         <label for="subStyle">Subtitle band</label>
         <div class="ctl">
           <select id="subStyle" data-seg>
@@ -135,9 +143,9 @@
           </select>
         </div>
       </div>
-      <div class="row"><label for="subFontSize">Subtitle size</label><input type="number" id="subFontSize" min="16" max="60" step="1" data-unit="px"></div>
+      <div class="row" data-when="ytEnabled"><label for="subFontSize">Subtitle size</label><input type="number" id="subFontSize" min="16" max="60" step="1" data-unit="px"></div>
     </div>
-    <div class="group">
+    <div class="group" data-when="ytEnabled">
       <div class="row"><label for="pauseOnHover">Pause while hovering the subtitles</label><input type="checkbox" id="pauseOnHover" role="switch"></div>
       <div class="row"><label for="autoFreshOnClick">Clicking a new word stamps it <span lang="zh-Hant" class="zh">新</span> Fresh</label><input type="checkbox" id="autoFreshOnClick" role="switch"></div>
       <div class="row"><label for="shadowFactor" data-tip="How long Shadowing waits, in lengths of the line you just heard">Shadowing pause</label><input type="number" id="shadowFactor" min="0.5" max="4" step="0.25" data-unit="×"></div>
@@ -171,7 +179,7 @@
         </div>
       </div>
     </div>
-    <div class="group azure">
+    <div class="group" data-when="voice=azure">
       <div class="row">
         <label for="azureKey">Azure key</label>
         <div class="ctl">
@@ -209,7 +217,7 @@
         </div>
         <span class="status" id="geminiStatus" role="status"></span>
       </div>
-      <div class="row"><label for="geminiModel">Model</label><div class="ctl"><select id="geminiModel"></select></div></div>
+      <div class="row" data-when="geminiKey"><label for="geminiModel">Model</label><div class="ctl"><select id="geminiModel"></select></div></div>
     </div>
   </section>
 

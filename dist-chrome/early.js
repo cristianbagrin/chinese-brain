@@ -168,6 +168,8 @@
   init_browser_shim();
   var DEFAULT_SETTINGS = {
     hoverMode: "hover",
+    altSites: [],
+    hoverSites: [],
     disabledSites: [],
     ytEnabled: !0,
     pinyin: !0,
@@ -195,6 +197,9 @@
   function normalizeSettings(raw) {
     let r = { ...raw ?? {} };
     return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), r.hoverMode === "shift" && (r.hoverMode = "alt"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, r.pron !== "pinyin" && r.pron !== "zhuyin" && delete r.pron, { ...DEFAULT_SETTINGS, ...r };
+  }
+  function cardMode(s, host) {
+    return s.hoverMode === "off" || s.disabledSites.includes(host) ? "off" : s.hoverMode === "hover" ? s.altSites.includes(host) ? "alt" : "hover" : s.hoverSites.includes(host) ? "hover" : "alt";
   }
   function colorsOn(s, host) {
     return s.siteColors[host] ?? s.pageColors;
@@ -240,6 +245,10 @@
     /** Color the words on this page? */
     colorsEnabled() {
       return this.siteEnabled() && colorsOn(this.settings, location.hostname);
+    }
+    /** How the card opens here: on hover, while holding Option (Alt), or not at all. */
+    cardMode() {
+      return cardMode(this.settings, location.hostname);
     }
     siteEnabled() {
       return this.settings.hoverMode !== "off" && !this.settings.disabledSites.includes(location.hostname);

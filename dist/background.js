@@ -319,6 +319,8 @@
   // src/shared/types.ts
   var STATUS_CODE = { fresh: "F", learning: "L", known: "K" }, DEFAULT_SETTINGS = {
     hoverMode: "hover",
+    altSites: [],
+    hoverSites: [],
     disabledSites: [],
     ytEnabled: !0,
     pinyin: !0,

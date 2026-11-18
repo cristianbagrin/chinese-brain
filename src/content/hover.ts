@@ -203,7 +203,7 @@ export class HoverLookup {
         }
         this.altTap = !e.repeat && !e.ctrlKey && !e.metaKey && !e.shiftKey;
         this.alt = true;
-        if (!e.repeat && state.settings.hoverMode === 'alt' && !currentSelection()?.text.trim()) this.check(document.elementFromPoint(this.lastX, this.lastY));
+        if (!e.repeat && state.cardMode() === 'alt' && !currentSelection()?.text.trim()) this.check(document.elementFromPoint(this.lastX, this.lastY));
       },
       true,
     );
@@ -300,7 +300,7 @@ export class HoverLookup {
     if (this.popup.visible && this.popup.inBridge(this.lastX, this.lastY)) return;
     if ((target as Element | null)?.closest?.('[data-cb-own]')) return;
     const s = state.settings;
-    if (!state.siteEnabled() || (s.hoverMode === 'alt' && !this.alt)) return this.scheduleHide();
+    if (!state.siteEnabled() || (state.cardMode() === 'alt' && !this.alt)) return this.scheduleHide();
 
     const pos = document.caretPositionFromPoint?.(this.lastX, this.lastY);
     const node = pos?.offsetNode;

@@ -10,14 +10,16 @@ Questions and bugs: [chris@cristianbagrin.com](mailto:chris@cristianbagrin.com)
   common it is, its meaning, a breakdown into parts (臺北市 → 臺北 → 臺, 北; then 市) and two
   natural example sentences. Play, copy, edit and save sentences.
 - **Select anything** (a name, a phrase, a sentence) and tap `Alt` (`⌥ Option`), or
-  right-click → **Look up**: pinyin, a translation and the words inside it. Taiwan places and
+  right-click → **Look up**: the pronunciation, a translation and the words inside it. Taiwan places and
   dishes (野柳, 滷肉飯…) are in the dictionary.
 - **Three stamps everywhere:** 新 Fresh, 學 Learning, 熟 Known (`1` `2` `3`). The same colors
-  in the card, the subtitles, your word list and, if you like, on every page.
+  in the card, the subtitles, your Dashboard and, if you like, on every page.
+- **注音 or pinyin:** pronunciation in 注音 (the default, beside each character as Taiwan
+  prints it) or pinyin, everywhere: card, subtitles, transcript, Dashboard, website.
 - **YouTube dual subtitles:** Chinese + English over the video, every word hoverable, the
   video pausing while you read; a transcript with a learn-first list. Videos without Chinese
   captions can get them from Gemini (your own key).
-- **One word list**, with import, export and backup, and a ready prompt to practice your
+- **One Dashboard** on the website, with import, export and backup, and a ready prompt to practice your
   words with an AI tutor (Claude, ChatGPT, Gemini).
 - **Optional account:** everything works without one; a free account keeps your words,
   saved sentences and settings in sync across browsers, and shows them in a
@@ -42,15 +44,15 @@ Every key below can be changed in **Settings → Shortcuts**. `Alt` is `⌥ Opti
 | Pointing at a word inside the card | the same keys act on that word |
 | Text selected | tap `Alt` |
 | Any website | `Alt`+`Shift`+`C`: word colors on / off for this site · `Alt`+`Shift`+`A`: for every site |
-| YouTube | `A` previous line · `S` replay · `D` next · `R` loop · `Q` shadowing · `P` pinyin · `X` English line · `E` transcript |
+| YouTube | `A` previous line · `S` replay · `D` next · `R` loop · `Q` shadowing · `P` pronunciation · `X` English line · `E` transcript |
 
-## Your word list
+## Dashboard
 
-Toolbar button → **Word list** opens
+Toolbar button → **Dashboard** opens
 [chinese.cristianbagrin.com/brain/dashboard](https://chinese.cristianbagrin.com/brain/dashboard).
 With the extension installed it reads the list straight from the browser (nothing is
 uploaded, no account needed); anywhere else it shows your account's list. Filter, search,
-sort, restamp, remove (with Undo), **Practice with AI**, **Download new** (what changed since
+sort, restamp, remove (with Undo), the latest 30 first with **Show more** (100 at a time), **Practice with AI**, **Download new** (what changed since
 the last export, as a small TSV) and **Import** a `word⇥K|L⇥date` list.
 The toolbar menu's **↓ New** downloads the same export in one click.
 **Backup / restore** (everything as JSON) is in Settings.

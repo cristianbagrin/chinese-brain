@@ -1,4 +1,4 @@
-import { colorsOn, type Settings, type Status } from '../shared/types.ts';
+import { cardMode, colorsOn, setSiteMode, type HoverMode, type Settings, type Status } from '../shared/types.ts';
 import type { AccountInfo } from '../background/sync.ts';
 import { $, ALT, DASHBOARD, feedbackLink, h, shortcutLabel } from './common.ts';
 
@@ -32,6 +32,10 @@ async function init() {
   $<HTMLAnchorElement>('words').href = DASHBOARD;
   $('altMode').textContent = ALT;
   $('altMode').title = `Only while holding ${ALT}`;
+  for (const el of document.querySelectorAll<HTMLElement>('.altName')) {
+    el.textContent = ALT;
+    el.title = `Only while holding ${ALT} on this website`;
+  }
   void browser.runtime.sendMessage({ type: 'account' }).then((a: AccountInfo) => {
     if (a.signedIn) $('acctLink').textContent = a.error ? 'Sync problem' : '✓ Synced';
   });
@@ -73,12 +77,15 @@ async function init() {
     for (const b of buttons) {
       b.addEventListener('click', () => {
         mark(b.dataset.v!);
+        (s as unknown as Record<string, unknown>)[key] = b.dataset.v;
         void save({ [key]: b.dataset.v });
+        if (key === 'hoverMode') syncSite();
       });
     }
   }
 
   let syncColors = () => {};
+  let syncSite = () => {};
   const tab = tabs[0];
   const showStats = async () => {
     try {
@@ -123,14 +130,22 @@ async function init() {
       if (key) $('colorKey').textContent = shortcutLabel(key);
     })
     .catch(() => {});
-  const box = $<HTMLInputElement>('siteOn');
-  box.checked = !s.disabledSites.includes(host);
-  box.addEventListener('change', () => {
-    const list = new Set(s.disabledSites);
-    if (box.checked) list.delete(host);
-    else list.add(host);
-    s.disabledSites = [...list];
-    void save({ disabledSites: s.disabledSites });
-  });
+  // How the card opens on this website: an exception to the choice above, in one click.
+  const siteButtons = [...$('siteMode').querySelectorAll<HTMLButtonElement>('button')];
+  syncSite = () => {
+    const now = cardMode(s, host);
+    for (const b of siteButtons) b.setAttribute('aria-pressed', String(b.dataset.v === now));
+    // "Never" everywhere leaves nothing to make an exception to.
+    $('siteLine').hidden = s.hoverMode === 'off';
+  };
+  syncSite();
+  for (const b of siteButtons) {
+    b.addEventListener('click', () => {
+      const lists = setSiteMode(s, host, b.dataset.v as HoverMode);
+      Object.assign(s, lists);
+      syncSite();
+      void save(lists);
+    });
+  }
 }
 init();

@@ -325,3 +325,4 @@ footer .year { margin-left: auto; }
 @media (max-width: 640px) { .tv .screen { padding: 0 10px 22px; } .tv .band { padding: 6px 12px 8px; } .tv .zh { font-size: 23px; } .tv rt { font-size: 14px; } .tv .en { font-size: 16px; } }
 .screen .en { font-size: 16px; } .quests li { font-size: 15px; } .log time { font-size: 15px; } .tile { font-size: 15px; } .tile strong { font-size: 16px; }
 .doc .updated { font-size: 17px; }
+.zydemo { font: 600 44px/1.2 var(--zh, "PingFang TC", serif); color: var(--ink); --zy: 0.4em; --zy-ink: var(--ink2); }

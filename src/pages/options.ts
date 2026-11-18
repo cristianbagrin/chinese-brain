@@ -59,7 +59,7 @@ async function save(key: Key, el: Field) {
   tag.classList.add('show');
   clearTimeout(savedTimer);
   savedTimer = setTimeout(() => tag.classList.remove('show'), 1400);
-  if (key === 'voice') showAzure();
+  showWhen();
   if (key === 'azureKey') setStatus('azureStatus', '');
   if (key === 'geminiKey') setStatus('geminiStatus', '');
 }
@@ -212,8 +212,17 @@ function followSections() {
   new ResizeObserver(update).observe(document.querySelector('main')!);
 }
 
-function showAzure() {
-  document.querySelectorAll<HTMLElement>('.azure').forEach((el) => (el.hidden = settings.voice !== 'azure'));
+/**
+ * A control shows only when it makes sense for the choices above it: data-when="key" (on, or
+ * filled in), "key=value", "key!=value". Checked again after every change.
+ */
+function showWhen() {
+  for (const el of document.querySelectorAll<HTMLElement>('[data-when]')) {
+    const m = /^(\w+)(?:(!?=)(.+))?$/.exec(el.dataset.when!);
+    if (!m) continue;
+    const v = settings[m[1] as Key];
+    el.hidden = !(m[2] === '=' ? String(v) === m[3] : m[2] === '!=' ? String(v) !== m[3] : Array.isArray(v) ? v.length > 0 : !!v);
+  }
 }
 
 async function init() {
@@ -240,7 +249,7 @@ async function init() {
   }
   for (const sel of document.querySelectorAll<HTMLSelectElement>('select[data-seg]')) segmented(sel);
   for (const input of document.querySelectorAll<HTMLInputElement>('input[type="number"]')) stepper(input);
-  showAzure();
+  showWhen();
   showSites();
   showKeys();
   followSections();

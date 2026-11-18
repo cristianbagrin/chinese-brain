@@ -7,7 +7,7 @@
   (`.github/workflows/release.yml`). No pull request needed unless asked.
 - `dist/`, `dist-chrome/`, `site/public/brain/dashboard.js` and `site/public/site.js` (from
   `site/src/`) are committed: rebuild them (`npm run build`) before committing source changes.
-- The word list lives on the website (`/brain/dashboard`). With the extension it talks to the
+- The word list is the Dashboard, on the website only (`/brain/dashboard`). With the extension it talks to the
   extension through `src/content/bridge.ts` (own site only, whitelisted messages).
 - The site sends a strict CSP (`site/public/_headers`): no inline scripts; shared page code goes
   in `site/src/site.ts` (the demo card for visitors without the extension, the steps on How it
