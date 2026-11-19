@@ -44,12 +44,19 @@
   var State = class {
     settings = { ...DEFAULT_SETTINGS };
     statuses = /* @__PURE__ */ new Map();
+    /** The website this frame is part of (a frame follows its page's switches, as the toolbar menu shows them). */
+    host = location.hostname;
     statusesLoaded;
     settingsLoaded;
     listeners = /* @__PURE__ */ new Set();
     constructor() {
-      this.settingsLoaded = browser.storage.local.get("settings").then(({ settings }) => {
-        this.settings = normalizeSettings(settings);
+      let settings = browser.storage.local.get("settings").then(({ settings: settings2 }) => {
+        this.settings = normalizeSettings(settings2);
+      }), host = window === window.top ? void 0 : browser.runtime.sendMessage({ type: "siteHost" }).then((h) => {
+        h && (this.host = h);
+      }).catch(() => {
+      });
+      this.settingsLoaded = Promise.all([settings, host]).then(() => {
       }), browser.storage.onChanged.addListener((changes, area) => {
         if (area !== "local") return;
         let dirty = !1;
@@ -79,14 +86,14 @@
     }
     /** Color the words on this page? */
     colorsEnabled() {
-      return this.siteEnabled() && colorsOn(this.settings, location.hostname);
+      return this.siteEnabled() && colorsOn(this.settings, this.host);
     }
     /** How the card opens here: on hover, while holding Option (Alt), or not at all. */
     cardMode() {
-      return cardMode(this.settings, location.hostname);
+      return cardMode(this.settings, this.host);
     }
     siteEnabled() {
-      return this.settings.hoverMode !== "off" && !this.settings.disabledSites.includes(location.hostname);
+      return this.settings.hoverMode !== "off" && !this.settings.disabledSites.includes(this.host);
     }
   }, state = new State();
 

@@ -269,12 +269,19 @@
   var State = class {
     settings = { ...DEFAULT_SETTINGS };
     statuses = /* @__PURE__ */ new Map();
+    /** The website this frame is part of (a frame follows its page's switches, as the toolbar menu shows them). */
+    host = location.hostname;
     statusesLoaded;
     settingsLoaded;
     listeners = /* @__PURE__ */ new Set();
     constructor() {
-      this.settingsLoaded = import_browser_polyfill_min.default.storage.local.get("settings").then(({ settings: settings2 }) => {
-        this.settings = normalizeSettings(settings2);
+      let settings2 = import_browser_polyfill_min.default.storage.local.get("settings").then(({ settings: settings3 }) => {
+        this.settings = normalizeSettings(settings3);
+      }), host = window === window.top ? void 0 : import_browser_polyfill_min.default.runtime.sendMessage({ type: "siteHost" }).then((h2) => {
+        h2 && (this.host = h2);
+      }).catch(() => {
+      });
+      this.settingsLoaded = Promise.all([settings2, host]).then(() => {
       }), import_browser_polyfill_min.default.storage.onChanged.addListener((changes, area) => {
         if (area !== "local") return;
         let dirty = !1;
@@ -304,14 +311,14 @@
     }
     /** Color the words on this page? */
     colorsEnabled() {
-      return this.siteEnabled() && colorsOn(this.settings, location.hostname);
+      return this.siteEnabled() && colorsOn(this.settings, this.host);
     }
     /** How the card opens here: on hover, while holding Option (Alt), or not at all. */
     cardMode() {
-      return cardMode(this.settings, location.hostname);
+      return cardMode(this.settings, this.host);
     }
     siteEnabled() {
-      return this.settings.hoverMode !== "off" && !this.settings.disabledSites.includes(location.hostname);
+      return this.settings.hoverMode !== "off" && !this.settings.disabledSites.includes(this.host);
     }
   }, state = new State();
 
@@ -768,8 +775,8 @@ button.help:focus-visible { outline: 2px solid var(--help-accent, #c8202f); outl
     return box.className = "zyw over", chars.forEach((ch, i) => box.append(zhuyinChar(ch, parts[i], doc))), box;
   }
   function zhuyinChar(ch, p, doc = document) {
-    let c = doc.createElement("span"), n = [...p.letters].length + (p.er ? 1 : 0);
-    return c.className = `zy n${Math.min(4, n)}`, c.dataset.zy = p.letters + p.er, c.dataset.tone = p.tone, c.dataset.over = p.letters + p.tone + p.er, c.textContent = ch, c;
+    let c = doc.createElement("span");
+    return c.className = "zy", c.dataset.over = p.letters + p.tone + p.er, c.textContent = ch, c;
   }
 
   // src/content/bridge.ts
@@ -852,8 +859,12 @@ button.help:focus-visible { outline: 2px solid var(--help-accent, #c8202f); outl
 .head.st-learning { background: var(--learning-mark); }
 .head.st-known { background: var(--known-mark); }
 .py { font-size: 1.07em; color: var(--text3); letter-spacing: 0.01em; }
-/* Zhuyin: over each character of the headword; on its own line for a long phrase. */
-.head.zyhead { --zy: 0.42em; --zy-ink: var(--text2); }
+/* Zhuyin over each character: the headword, a long phrase (it wraps), the parts and measure words. */
+.head.zyhead { display: inline-block; padding-top: 0.12em; --zy: 0.42em; --zy-ink: var(--text2); }
+.head.long.zyhead { --zy: 0.7em; }
+.chars .w .zyw, .cl .w .zyw { --zy: 0.66em; --zy-ink: var(--text2); }
+.cl .w:has(.zyw) { font-size: 1.3em; }
+.chars:has(.zyw) { row-gap: 0.5em; }
 
 /* How common the word is, in words (the tooltip says what that means for you). */
 .freq { margin-left: auto; display: flex; align-items: center; gap: 0.45em; font-size: 0.86em; color: var(--text3); white-space: nowrap; cursor: default; }
@@ -1019,50 +1030,25 @@ button.help:focus-visible { outline: 2px solid var(--help-accent, #c8202f); outl
 
   // src/shared/zhuyin.css
   var zhuyin_default = `/*
- * Zhuyin beside each character, as Taiwan prints it: the letters in a column on the character's
- * right, the tone mark to the right of the last letter, the neutral tone's dot on top.
- * Drawn from data attributes (src/shared/zhuyin.ts, zhuyinChar), so the element's text stays the
- * character. Size it with --zy (the letters' size, in em of the character); color with --zy-ink.
- * Shared by the extension's card and the website (the build copies it to site/public/zhuyin.css).
+ * Zhuyin over each character (.zyw.over), on one line, centered, like ruby: the card's headword
+ * and parts, the website's demo and Dashboard lists. Drawn from data attributes (src/shared/zhuyin.ts,
+ * zhuyinChar), so the element's text stays the character. Size it with --zy (the letters' size, in
+ * em of the character); color with --zy-ink. Each character is an inline block whose baseline is the
+ * character's, so it sits in a line of text like any word, and a long phrase wraps.
  */
-.zyw { display: inline-flex; align-items: center; }
-.zy { position: relative; display: inline-flex; align-items: center; padding-right: 0.16em; }
-.zy::after,
-.zy::before { font-size: var(--zy, 0.42em); font-weight: 500; font-style: normal; color: var(--zy-ink, currentColor); letter-spacing: 0; }
-.zy::after {
-  content: attr(data-zy);
-  width: 1em;
-  margin-left: 0.08em;
-  line-height: 1.02;
-  text-align: center;
-  white-space: normal;
-  word-break: break-all;
-}
-.zy::before {
-  content: attr(data-tone);
-  position: absolute;
-  right: -0.1em;
-  line-height: 1;
-  top: calc(50% - 0.46em);
-}
-.zy.n2::before { top: calc(50% + 0.08em); }
-.zy.n3::before { top: calc(50% + 0.6em); }
-.zy.n4::before { top: calc(50% + 1.12em); }
-
-/* Over each character instead (.zyw.over, the card's headword): one line, centered, like ruby. */
-.zyw.over { align-items: flex-end; }
-.zyw.over .zy { flex-direction: column; padding-right: 0; }
+.zyw .zy { display: inline-block; text-align: center; text-indent: 0; }
 /* A little air between characters, so each syllable reads as its own (zhuyin runs wider than a character). */
-.zyw.over .zy + .zy { margin-left: 0.14em; }
-.zyw.over .zy::before { content: none; }
-.zyw.over .zy::after {
+.zyw .zy + .zy { margin-left: 0.14em; }
+.zyw .zy::before {
   content: attr(data-over);
-  order: -1;
-  width: auto;
-  margin: 0 0 0.3em;
+  display: block;
+  margin-bottom: 0.3em;
+  font-size: var(--zy, 0.42em);
+  font-weight: 500;
+  font-style: normal;
+  color: var(--zy-ink, currentColor);
   line-height: 1;
   white-space: nowrap;
-  word-break: normal;
   letter-spacing: -0.06em;
 }
 `;
@@ -1079,7 +1065,7 @@ button.help:focus-visible { outline: 2px solid var(--help-accent, #c8202f); outl
     for (let k of kids) k && el.append(k);
     return el;
   }
-  var readAs = (numbered, joined = !0) => pron(numbered, state.settings.pron, joined);
+  var readAs = (numbered, joined = !0) => pron(numbered, state.settings.pron, joined), zyOver = (word, numbered) => state.settings.pron === "zhuyin" ? zhuyinWord(word, numbered) : null;
   function prettyDef(d) {
     return d.replace(/([^\s\[|,;(]+)(?:\|([^\s\[,;]+))?\[([a-zA-Z0-9: ]+)\]/g, (_, t, _s, p) => `${t} ${readAs(p)}`);
   }
@@ -1630,7 +1616,7 @@ button.help:focus-visible { outline: 2px solid var(--help-accent, #c8202f); outl
       if (!o || !m) return;
       let status = state.status(m.word), e0 = m.entries[0], s = state.settings, card2 = this.card;
       card2.classList.toggle("pinned", !!o.pinned), card2.classList.toggle("large", s.cardSize === "large"), card2.replaceChildren();
-      let freq = frequency(Math.max(...m.entries.map((e) => e.zipf))), reading0 = e0.tw || e0.py, long = [...m.word].length > 8, zyHead = s.pron === "zhuyin" && !long ? zhuyinWord(m.word, reading0) : null, pyEl = zyHead ? null : h("span", { class: `py${s.pron === "zhuyin" ? " zyline" : ""}` }, readAs(reading0, !1)), groups = /* @__PURE__ */ new Map();
+      let freq = frequency(Math.max(...m.entries.map((e) => e.zipf))), reading0 = e0.tw || e0.py, long = [...m.word].length > 8, zyHead = zyOver(m.word, reading0), pyEl = zyHead ? null : h("span", { class: `py${s.pron === "zhuyin" ? " zyline" : ""}` }, readAs(reading0, !1)), groups = /* @__PURE__ */ new Map();
       for (let e of m.entries) {
         let k = (e.tw || e.py).toLowerCase();
         groups.has(k) || groups.set(k, []), groups.get(k).push(e);
@@ -1649,7 +1635,9 @@ button.help:focus-visible { outline: 2px solid var(--help-accent, #c8202f); outl
             "measure word ",
             ...cls.flatMap((c, i) => {
               let mm = /^([^|\[]+)(?:\|[^\[]+)?\[([^\]]+)\]/.exec(c);
-              return mm ? [i ? ", " : "", this.word(mm[1], mm[1], mm[1]), " " + readAs(mm[2])] : [];
+              if (!mm) return [];
+              let z = zyOver(mm[1], mm[2]), w = this.word(mm[1], mm[1], mm[1]);
+              return z && w.replaceChildren(z), [i ? ", " : "", w, z ? "" : " " + readAs(mm[2])];
             })
           )
         ), readings.push(block), first = !1;
@@ -1683,8 +1671,10 @@ button.help:focus-visible { outline: 2px solid var(--help-accent, #c8202f); outl
         for (let c of info.chars) {
           let ch = this.word(c.ch, c.ch, c.ch);
           ch.classList.add("c");
+          let z = zyOver(c.ch, c.py);
+          z && ch.replaceChildren(z);
           let cell = h("span", { class: `cw d${Math.min(c.depth, 3)}` }, ch);
-          grid.append(cell, h("span", { class: "cpy" }, readAs(c.py, !1)), h("span", { class: "cg" }, c.gloss));
+          grid.append(cell, h("span", { class: "cpy" }, z ? "" : readAs(c.py, !1)), h("span", { class: "cg" }, c.gloss));
         }
         card2.append(h("div", { class: "sect" }, grid));
       }

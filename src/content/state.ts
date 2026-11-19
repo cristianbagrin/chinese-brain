@@ -6,14 +6,26 @@ type Listener = () => void;
 class State {
   settings: Settings = { ...DEFAULT_SETTINGS };
   statuses = new Map<string, Status>();
+  /** The website this frame is part of (a frame follows its page's switches, as the toolbar menu shows them). */
+  host = location.hostname;
   private statusesLoaded: Promise<void> | undefined;
   private settingsLoaded: Promise<void>;
   private listeners = new Set<Listener>();
 
   constructor() {
-    this.settingsLoaded = browser.storage.local.get('settings').then(({ settings }) => {
+    const settings = browser.storage.local.get('settings').then(({ settings }) => {
       this.settings = normalizeSettings(settings as Record<string, unknown> | undefined);
     });
+    const host =
+      window === window.top
+        ? undefined
+        : browser.runtime
+            .sendMessage({ type: 'siteHost' })
+            .then((h: string) => {
+              if (h) this.host = h;
+            })
+            .catch(() => {});
+    this.settingsLoaded = Promise.all([settings, host]).then(() => {});
     browser.storage.onChanged.addListener((changes, area) => {
       if (area !== 'local') return;
       let dirty = false;
@@ -55,16 +67,16 @@ class State {
 
   /** Color the words on this page? */
   colorsEnabled(): boolean {
-    return this.siteEnabled() && colorsOn(this.settings, location.hostname);
+    return this.siteEnabled() && colorsOn(this.settings, this.host);
   }
 
   /** How the card opens here: on hover, while holding Option (Alt), or not at all. */
   cardMode() {
-    return cardMode(this.settings, location.hostname);
+    return cardMode(this.settings, this.host);
   }
 
   siteEnabled(): boolean {
-    return this.settings.hoverMode !== 'off' && !this.settings.disabledSites.includes(location.hostname);
+    return this.settings.hoverMode !== 'off' && !this.settings.disabledSites.includes(this.host);
   }
 }
 

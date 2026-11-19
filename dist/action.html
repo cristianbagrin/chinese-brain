@@ -33,7 +33,8 @@
   .hostname { overflow-wrap: anywhere; }
   .seg.wide { display: flex; }
   .seg.wide button { flex: 1; }
-  .stack .help { width: 18px; height: 18px; font-size: 11.5px; margin-left: 4px; vertical-align: -3px; }
+  /* Centered on the name beside it (between its x-height and cap height), not on its baseline. */
+  .stack .help { width: 18px; height: 18px; font-size: 11.5px; margin-left: 4px; vertical-align: middle; top: -1px; }
   .help-pop { max-width: 260px; font-size: 13px; padding: 10px 12px; }
 
   /* Switches */

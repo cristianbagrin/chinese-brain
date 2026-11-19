@@ -136,7 +136,10 @@ html[data-cb-ext] [data-noext], html:not([data-cb-ext]) [data-ext] { display: no
 .dcard .head.st-fresh { background: #ffd3d8; } .dcard .head.st-learning { background: #ffe680; } .dcard .head.st-known { background: #c9eed5; }
 .dcard .py { color: #958c85; font-size: 15px; }
 /* 注音 beside each character of the headword (zhuyin.css) */
-.dcard .head.zyhead { --zy: 0.42em; --zy-ink: var(--ink2); }
+.dcard .head.zyhead { display: inline-block; padding-top: 2px; --zy: 0.42em; --zy-ink: var(--ink2); }
+.dcard .head.long.zyhead { --zy: 0.7em; }
+.dcard .parts .zyw { --zy: 0.75em; --zy-ink: var(--ink2); }
+.mylist .zyw { --zy: 0.62em; --zy-ink: var(--ink2); }
 .dcard .freq { margin-left: auto; padding-left: 12px; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--red-dark); white-space: nowrap; align-self: center; }
 .dcard .bars { display: inline-flex; gap: 2px; align-items: flex-end; height: 11px; }
 .dcard .bars i { width: 3px; background: var(--line); border-radius: 1px; }

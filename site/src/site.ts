@@ -129,18 +129,34 @@ function render() {
     const clean = word.replace(/[，。！？、：；「」\s]/g, '');
     const parts = segmentWords(clean);
     const en = PHRASES[clean] ?? parts.map((p) => WORDS[p]?.[1].replace(/^\((.*)\)$/, '$1') ?? p).join(' · ');
+    // 注音 over each character, word by word; the reading on its own line when a word doesn't pair up.
+    const zyParts: (HTMLElement | string | null)[] | null = zy
+      ? word.split(/([，。！？、：；「」\s]+)/).flatMap((run, i): (HTMLElement | string | null)[] => (i % 2 ? [run] : segmentWords(run).map((p) => (WORDS[p] ? zhuyinHead(p, WORDS[p][0]) : null))))
+      : null;
+    const zyPhrase = zyParts && !zyParts.includes(null) ? h('span', 'zyw over', ...zyParts.flatMap((p): (Node | string)[] => (typeof p === 'string' ? [p] : [...p!.childNodes]))) : null;
     card.replaceChildren(
-      h('div', 'top', h('div', 'headrow', h('span', 'head long', word)), h('div', 'py', parts.map((p) => (WORDS[p] ? readingOf(WORDS[p][0], p.length) : p)).join(' ')), h('div', 'en', en)),
+      h(
+        'div',
+        'top',
+        h('div', 'headrow', h('span', `head long${zyPhrase ? ' zyhead' : ''}`, zyPhrase ?? word)),
+        zyPhrase ? null : h('div', 'py', parts.map((p) => (WORDS[p] ? readingOf(WORDS[p][0], p.length) : p)).join(' ')),
+        h('div', 'en', en),
+      ),
       h('div', 'foot', pronSwitch()),
     );
   } else {
     const [py, en, freq, parts] = WORDS[word];
-    // 注音 beside each character, as Taiwan prints it; pinyin next to the word.
+    // 注音 over each character; pinyin next to the word.
     const zyHead = zy ? zhuyinHead(word, py) : null;
     const head = h('span', `head${st ? ` st-${st}` : ''}${zyHead ? ' zyhead' : ''}`, zyHead ?? word);
     card.replaceChildren(
       h('div', 'top', h('div', 'headrow', head, zyHead ? null : h('span', 'py', readingOf(py, word.length)), bars(freq)), h('div', 'en', en)),
-      parts ? h('div', 'parts', ...parts.map(([c, p, e]) => h('div', null, h('b', null, c), h('span', 'ppy', readingOf(p, 1)), e))) : '',
+      parts
+        ? h('div', 'parts', ...parts.map(([c, p, e]) => {
+            const z = zy ? zhuyinHead(c, p) : null;
+            return h('div', null, h('b', null, z ?? c), z ? null : h('span', 'ppy', readingOf(p, 1)), e);
+          }))
+        : '',
       h(
         'div',
         'foot',
@@ -427,11 +443,12 @@ function mine() {
     for (const [s] of STAMPS) box.querySelector(`[data-n="${s}"]`)!.textContent = String([...stamps.values()].filter((v) => v === s).length);
     box.querySelector('.mylist')!.replaceChildren(
       ...[...stamps].reverse().map(([w, s]) => {
-        const el = h('span', `w st-${s}`, w);
-        el.dataset.w = w;
         const [py, en] = WORDS[w] ?? ['', ''];
+        const z = py && sitePron() === 'zhuyin' ? zhuyinHead(w, py) : null;
+        const el = h('span', `w st-${s}`, z ?? w);
+        el.dataset.w = w;
         const meaning = h('span', 'en', en);
-        const reading = h('span', 'py', py && readingOf(py, w.length));
+        const reading = h('span', 'py', z ? '' : py && readingOf(py, w.length));
         if (sitePron() === 'zhuyin') reading.lang = 'zh-Hant';
         meaning.lang = 'en';
         return h('li', null, el, reading, meaning);

@@ -9,7 +9,7 @@ import { clock } from '../../src/shared/time.ts';
 import type { LogEvent, SavedSentence, Status, WordRecord } from '../../src/shared/types.ts';
 import { $, ago, download, h, today } from '../../src/pages/common.ts';
 import { helpPopovers } from '../../src/pages/help.ts';
-import { markedToNumbered, markedToZhuyin, PRON_LABEL, PRONS, zhuyinParts, type ZhuyinParts } from '../../src/shared/zhuyin.ts';
+import { markedToNumbered, markedToZhuyin, PRON_LABEL, PRONS, zhuyinParts } from '../../src/shared/zhuyin.ts';
 import { fromExtension, numbered, onPron, readingOf, setSitePron, sitePron } from './pron.ts';
 
 interface Data {
@@ -266,38 +266,27 @@ function marked(text: string, word: string, alt?: string): (Node | string)[] {
 }
 
 /**
- * The headword in 田字格 squares, like a practice book: each character's pinyin above it, or its
- * 注音 in a column on its right, as Taiwan prints it. The squares stay inline and the reading is
- * drawn by CSS (data-py, data-zy), so hovering the word still opens the card for the whole word.
+ * The headword in 田字格 squares, like a practice book: each character's reading above it (注音 or
+ * pinyin). The squares stay inline and the reading is drawn by CSS (data-py), so hovering the word
+ * still opens the card for the whole word.
  */
 function headword(w: WordRecord): HTMLElement {
   const chars = [...w.w];
   // The extension works the syllables out from its dictionary; without it, the saved pinyin splits when it fits.
   const split = (w.p ?? '').split(/\s+/).filter(Boolean);
-  const syl = w.syl?.length === chars.length ? w.syl : split.length === chars.length ? split : undefined;
-  if (sitePron() === 'zhuyin') {
+  const zy = sitePron() === 'zhuyin';
+  let syl = w.syl?.length === chars.length ? w.syl : split.length === chars.length ? split : undefined;
+  if (zy) {
     const n = syl ? syl.map(markedToNumbered) : numbered(w.p ?? '', chars.length)?.split(' ');
     const parts = n?.map(zhuyinParts);
-    if (parts?.every(Boolean))
-      return h(
-        'div',
-        { class: 'hw', lang: 'zh-Hant' },
-        h('div', { class: 'chars zyc', title: w.p ?? '' }, ...chars.map((ch, i) => zyBox(ch, parts[i]!))),
-      );
-    return h('div', { class: 'hw', lang: 'zh-Hant' }, h('div', { class: 'pyline' }, readingOf(w.p ?? '', chars.length)), h('div', { class: 'chars nopy' }, ...chars.map((ch) => h('span', { class: 'ch' }, h('b', null, ch)))));
+    syl = parts?.every(Boolean) ? parts.map((p) => p!.letters + p!.tone + p!.er) : undefined;
   }
   return h(
     'div',
     { class: 'hw', lang: 'zh-Hant' },
-    syl ? null : h('div', { class: 'pyline' }, w.p ?? ''),
-    h('div', { class: `chars${syl ? '' : ' nopy'}`, title: syl ? w.p ?? '' : '' }, ...chars.map((ch, i) => h('span', { class: 'ch', 'data-py': syl?.[i] ?? '' }, h('b', null, ch)))),
+    syl ? null : h('div', { class: 'pyline' }, zy ? readingOf(w.p ?? '', chars.length) : w.p ?? ''),
+    h('div', { class: `chars${syl ? '' : ' nopy'}${zy ? ' zyc' : ''}`, title: syl ? w.p ?? '' : '' }, ...chars.map((ch, i) => h('span', { class: 'ch', 'data-py': syl?.[i] ?? '' }, h('b', null, ch)))),
   );
-}
-
-/** A square with the character's 注音 on its right (zhuyin.css draws the column). */
-function zyBox(ch: string, p: ZhuyinParts): HTMLElement {
-  const n = [...p.letters].length + (p.er ? 1 : 0);
-  return h('span', { class: `ch zy n${Math.min(4, n)}`, 'data-zy': p.letters + p.er, 'data-tone': p.tone }, h('b', null, ch));
 }
 
 /** 注音 or pinyin, for visitors without the extension (with it, its Settings decide). */
@@ -482,7 +471,6 @@ function wire() {
     $('knownOk').textContent = what;
   };
   $('importPrompt').addEventListener('click', () => copied(IMPORT_PROMPT, 'Prompt copied. Add your list in the AI chat.'));
-  $('exampleCopy').addEventListener('click', () => copied(IMPORT_EXAMPLE, 'Example copied.'));
   $('exampleGet').addEventListener('click', () => download('chinese-brain-words.csv', IMPORT_EXAMPLE, 'text/csv;charset=utf-8'));
   $('knownFile').addEventListener('change', async (e) => {
     const f = (e.target as HTMLInputElement).files?.[0];

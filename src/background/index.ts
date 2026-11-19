@@ -4,7 +4,7 @@ import type { Entry, LookupMatch, SavedSentence } from '../shared/types.ts';
 import { numberedToMarked } from '../shared/pinyin.ts';
 import { buildClaudeExport, exportCount } from '../shared/export.ts';
 import { today } from '../shared/time.ts';
-import { colorsOn, DEFAULT_SETTINGS, normalizeSettings, type Msg, type Settings, type Status, type WordRecord } from '../shared/types.ts';
+import { colorsOn, DEFAULT_SETTINGS, normalizeSettings, siteHost, type Msg, type Settings, type Status, type WordRecord } from '../shared/types.ts';
 import { freshen, isPlaceholder, shortGloss, withSurface } from '../shared/gloss.ts';
 import { Store, stored, storedKeys } from './store.ts';
 import { SITE, Sync } from './sync.ts';
@@ -221,6 +221,8 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
   }
   const any = msg as { type: string; [k: string]: unknown };
   switch (any.type) {
+    case 'siteHost':
+      return Promise.resolve(siteHost(sender.tab?.url, ''));
     case 'ytCached':
       if (__CHROME__) return sender.tab?.id != null ? cachedHookCaptions(sender.tab.id) : Promise.resolve([]);
       return Promise.resolve(sender.tab?.id != null ? cachedCaptions(sender.tab.id) : []);

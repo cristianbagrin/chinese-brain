@@ -700,25 +700,17 @@ button.help:focus-visible { outline: 2px solid var(--help-accent, #c8202f); outl
     return out.push(text.slice(at)), out.filter((x) => x !== "");
   }
   function headword(w) {
-    let chars = [...w.w], split = (w.p ?? "").split(/\s+/).filter(Boolean), syl = w.syl?.length === chars.length ? w.syl : split.length === chars.length ? split : void 0;
-    if (sitePron() === "zhuyin") {
+    let chars = [...w.w], split = (w.p ?? "").split(/\s+/).filter(Boolean), zy = sitePron() === "zhuyin", syl = w.syl?.length === chars.length ? w.syl : split.length === chars.length ? split : void 0;
+    if (zy) {
       let parts = (syl ? syl.map(markedToNumbered) : numbered(w.p ?? "", chars.length)?.split(" "))?.map(zhuyinParts);
-      return parts?.every(Boolean) ? h(
-        "div",
-        { class: "hw", lang: "zh-Hant" },
-        h("div", { class: "chars zyc", title: w.p ?? "" }, ...chars.map((ch, i) => zyBox(ch, parts[i])))
-      ) : h("div", { class: "hw", lang: "zh-Hant" }, h("div", { class: "pyline" }, readingOf(w.p ?? "", chars.length)), h("div", { class: "chars nopy" }, ...chars.map((ch) => h("span", { class: "ch" }, h("b", null, ch)))));
+      syl = parts?.every(Boolean) ? parts.map((p) => p.letters + p.tone + p.er) : void 0;
     }
     return h(
       "div",
       { class: "hw", lang: "zh-Hant" },
-      syl ? null : h("div", { class: "pyline" }, w.p ?? ""),
-      h("div", { class: `chars${syl ? "" : " nopy"}`, title: syl ? w.p ?? "" : "" }, ...chars.map((ch, i) => h("span", { class: "ch", "data-py": syl?.[i] ?? "" }, h("b", null, ch))))
+      syl ? null : h("div", { class: "pyline" }, zy ? readingOf(w.p ?? "", chars.length) : w.p ?? ""),
+      h("div", { class: `chars${syl ? "" : " nopy"}${zy ? " zyc" : ""}`, title: syl ? w.p ?? "" : "" }, ...chars.map((ch, i) => h("span", { class: "ch", "data-py": syl?.[i] ?? "" }, h("b", null, ch))))
     );
-  }
-  function zyBox(ch, p) {
-    let n = [...p.letters].length + (p.er ? 1 : 0);
-    return h("span", { class: `ch zy n${Math.min(4, n)}`, "data-zy": p.letters + p.er, "data-tone": p.tone }, h("b", null, ch));
   }
   function renderPron() {
     let box = $("pron");
@@ -817,7 +809,7 @@ button.help:focus-visible { outline: 2px solid var(--help-accent, #c8202f); outl
     let copied = async (text, what) => {
       await navigator.clipboard.writeText(text), $("knownOk").textContent = what;
     };
-    $("importPrompt").addEventListener("click", () => copied(IMPORT_PROMPT, "Prompt copied. Add your list in the AI chat.")), $("exampleCopy").addEventListener("click", () => copied(IMPORT_EXAMPLE, "Example copied.")), $("exampleGet").addEventListener("click", () => download("chinese-brain-words.csv", IMPORT_EXAMPLE, "text/csv;charset=utf-8")), $("knownFile").addEventListener("change", async (e) => {
+    $("importPrompt").addEventListener("click", () => copied(IMPORT_PROMPT, "Prompt copied. Add your list in the AI chat.")), $("exampleGet").addEventListener("click", () => download("chinese-brain-words.csv", IMPORT_EXAMPLE, "text/csv;charset=utf-8")), $("knownFile").addEventListener("change", async (e) => {
       let f = e.target.files?.[0];
       f && ($("knownText").value = await f.text());
     }), $("knownGo").addEventListener("click", async () => {

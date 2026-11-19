@@ -218,6 +218,20 @@ export function colorsOn(s: Settings, host: string): boolean {
   return s.siteColors[host] ?? s.pageColors;
 }
 
+/**
+ * The website a frame belongs to: the tab's own address, so a page's frames (Claude's
+ * artifacts, embeds) follow that website's switches. `own` when the tab isn't a web page.
+ */
+export function siteHost(tabUrl: string | undefined, own: string): string {
+  try {
+    const u = new URL(tabUrl ?? '');
+    if (/^https?:$/.test(u.protocol)) return u.hostname;
+  } catch {
+    /* no address */
+  }
+  return own;
+}
+
 /** Language of the second subtitle line. */
 export const TRANS_LANG = 'en';
 

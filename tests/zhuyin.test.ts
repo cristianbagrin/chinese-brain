@@ -171,7 +171,7 @@ test('pron follows the choice; Pinyin stays exactly as before', () => {
   assert.equal(pronMarked('zhōngwén', 'zhuyin'), 'ㄓㄨㄥ ㄨㄣˊ');
 });
 
-test('parts for drawing a column beside each character', () => {
+test('a syllable’s zhuyin in parts: letters, tone, erhua', () => {
   assert.deepEqual(zhuyinParts('zhong1'), { letters: 'ㄓㄨㄥ', tone: '', er: '' });
   assert.deepEqual(zhuyinParts('wen2'), { letters: 'ㄨㄣ', tone: 'ˊ', er: '' });
   assert.deepEqual(zhuyinParts('ma5'), { letters: '˙ㄇㄚ', tone: '', er: '' });

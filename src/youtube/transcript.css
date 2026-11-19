@@ -59,6 +59,7 @@
 .learn.st-fresh { border-left-color: var(--fresh); }
 .learn.st-learning { border-left-color: var(--learning); }
 .lw { font-size: 18px; }
+.lw rt { font-size: 0.6em; color: var(--text2); letter-spacing: -0.04em; }
 .lpy { font-size: 12.5px; color: var(--text2); }
 .lg { font-size: 12.5px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lc { font-size: 12px; color: var(--text3); }

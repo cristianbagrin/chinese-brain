@@ -57,6 +57,8 @@ function h(tag: string, attrs: Record<string, string> | null, ...kids: (Node | s
 
 /** A reading the way you chose to see them (注音 or pinyin). */
 const readAs = (numbered: string, joined = true) => pron(numbered, state.settings.pron, joined);
+/** The word with 注音 over each character, when 注音 is chosen and the reading pairs up. */
+const zyOver = (word: string, numbered: string) => (state.settings.pron === 'zhuyin' ? zhuyinWord(word, numbered) : null);
 
 /** Turn "variant of 臺|台[tai2]" into "variant of 臺 tái" (or 臺 ㄊㄞˊ). */
 function prettyDef(d: string): string {
@@ -962,10 +964,10 @@ export class Popup {
 
     const freq = frequency(Math.max(...m.entries.map((e) => e.zipf)));
     // The reading is always shown here: opening the card means you are learning the word.
-    // 注音 sits beside each character, as Taiwan prints it; a long phrase gets it on one line.
+    // 注音 sits over each character (a reading that doesn't pair up gets its own line).
     const reading0 = e0.tw || e0.py;
     const long = [...m.word].length > 8;
-    const zyHead = s.pron === 'zhuyin' && !long ? zhuyinWord(m.word, reading0) : null;
+    const zyHead = zyOver(m.word, reading0);
     const pyEl = zyHead ? null : h('span', { class: `py${s.pron === 'zhuyin' ? ' zyline' : ''}` }, readAs(reading0, false));
 
     // Senses grouped by reading; each group on one line.
@@ -996,7 +998,11 @@ export class Popup {
             'measure word ',
             ...cls.flatMap((c, i) => {
               const mm = /^([^|\[]+)(?:\|[^\[]+)?\[([^\]]+)\]/.exec(c);
-              return mm ? [i ? ', ' : '', this.word(mm[1], mm[1], mm[1]), ' ' + readAs(mm[2])] : [];
+              if (!mm) return [];
+              const z = zyOver(mm[1], mm[2]);
+              const w = this.word(mm[1], mm[1], mm[1]);
+              if (z) w.replaceChildren(z);
+              return [i ? ', ' : '', w, z ? '' : ' ' + readAs(mm[2])];
             }),
           ),
         );
@@ -1046,8 +1052,10 @@ export class Popup {
       for (const c of info.chars) {
         const ch = this.word(c.ch, c.ch, c.ch);
         ch.classList.add('c');
+        const z = zyOver(c.ch, c.py);
+        if (z) ch.replaceChildren(z);
         const cell = h('span', { class: `cw d${Math.min(c.depth, 3)}` }, ch);
-        grid.append(cell, h('span', { class: 'cpy' }, readAs(c.py, false)), h('span', { class: 'cg' }, c.gloss));
+        grid.append(cell, h('span', { class: 'cpy' }, z ? '' : readAs(c.py, false)), h('span', { class: 'cg' }, c.gloss));
       }
       card.append(h('div', { class: 'sect' }, grid));
     }

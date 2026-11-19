@@ -1,47 +1,22 @@
 /*
- * Zhuyin beside each character, as Taiwan prints it: the letters in a column on the character's
- * right, the tone mark to the right of the last letter, the neutral tone's dot on top.
- * Drawn from data attributes (src/shared/zhuyin.ts, zhuyinChar), so the element's text stays the
- * character. Size it with --zy (the letters' size, in em of the character); color with --zy-ink.
- * Shared by the extension's card and the website (the build copies it to site/public/zhuyin.css).
+ * Zhuyin over each character (.zyw.over), on one line, centered, like ruby: the card's headword
+ * and parts, the website's demo and Dashboard lists. Drawn from data attributes (src/shared/zhuyin.ts,
+ * zhuyinChar), so the element's text stays the character. Size it with --zy (the letters' size, in
+ * em of the character); color with --zy-ink. Each character is an inline block whose baseline is the
+ * character's, so it sits in a line of text like any word, and a long phrase wraps.
  */
-.zyw { display: inline-flex; align-items: center; }
-.zy { position: relative; display: inline-flex; align-items: center; padding-right: 0.16em; }
-.zy::after,
-.zy::before { font-size: var(--zy, 0.42em); font-weight: 500; font-style: normal; color: var(--zy-ink, currentColor); letter-spacing: 0; }
-.zy::after {
-  content: attr(data-zy);
-  width: 1em;
-  margin-left: 0.08em;
-  line-height: 1.02;
-  text-align: center;
-  white-space: normal;
-  word-break: break-all;
-}
-.zy::before {
-  content: attr(data-tone);
-  position: absolute;
-  right: -0.1em;
-  line-height: 1;
-  top: calc(50% - 0.46em);
-}
-.zy.n2::before { top: calc(50% + 0.08em); }
-.zy.n3::before { top: calc(50% + 0.6em); }
-.zy.n4::before { top: calc(50% + 1.12em); }
-
-/* Over each character instead (.zyw.over, the card's headword): one line, centered, like ruby. */
-.zyw.over { align-items: flex-end; }
-.zyw.over .zy { flex-direction: column; padding-right: 0; }
+.zyw .zy { display: inline-block; text-align: center; text-indent: 0; }
 /* A little air between characters, so each syllable reads as its own (zhuyin runs wider than a character). */
-.zyw.over .zy + .zy { margin-left: 0.14em; }
-.zyw.over .zy::before { content: none; }
-.zyw.over .zy::after {
+.zyw .zy + .zy { margin-left: 0.14em; }
+.zyw .zy::before {
   content: attr(data-over);
-  order: -1;
-  width: auto;
-  margin: 0 0 0.3em;
+  display: block;
+  margin-bottom: 0.3em;
+  font-size: var(--zy, 0.42em);
+  font-weight: 500;
+  font-style: normal;
+  color: var(--zy-ink, currentColor);
   line-height: 1;
   white-space: nowrap;
-  word-break: normal;
   letter-spacing: -0.06em;
 }

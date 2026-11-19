@@ -211,8 +211,8 @@
     return box.className = "zyw over", chars.forEach((ch, i) => box.append(zhuyinChar(ch, parts[i], doc))), box;
   }
   function zhuyinChar(ch, p, doc = document) {
-    let c = doc.createElement("span"), n = [...p.letters].length + (p.er ? 1 : 0);
-    return c.className = `zy n${Math.min(4, n)}`, c.dataset.zy = p.letters + p.er, c.dataset.tone = p.tone, c.dataset.over = p.letters + p.tone + p.er, c.textContent = ch, c;
+    let c = doc.createElement("span");
+    return c.className = "zy", c.dataset.over = p.letters + p.tone + p.er, c.textContent = ch, c;
   }
 
   // site/src/demo-words.ts
@@ -385,16 +385,25 @@
     if (!current) return;
     let { word, phrase } = current, st = stamps.get(word), zy = sitePron() === "zhuyin";
     if (phrase) {
-      let clean = word.replace(/[，。！？、：；「」\s]/g, ""), parts = segmentWords(clean), en = PHRASES[clean] ?? parts.map((p) => WORDS[p]?.[1].replace(/^\((.*)\)$/, "$1") ?? p).join(" \xB7 ");
+      let clean = word.replace(/[，。！？、：；「」\s]/g, ""), parts = segmentWords(clean), en = PHRASES[clean] ?? parts.map((p) => WORDS[p]?.[1].replace(/^\((.*)\)$/, "$1") ?? p).join(" \xB7 "), zyParts = zy ? word.split(/([，。！？、：；「」\s]+)/).flatMap((run, i) => i % 2 ? [run] : segmentWords(run).map((p) => WORDS[p] ? zhuyinHead(p, WORDS[p][0]) : null)) : null, zyPhrase = zyParts && !zyParts.includes(null) ? h("span", "zyw over", ...zyParts.flatMap((p) => typeof p == "string" ? [p] : [...p.childNodes])) : null;
       card.replaceChildren(
-        h("div", "top", h("div", "headrow", h("span", "head long", word)), h("div", "py", parts.map((p) => WORDS[p] ? readingOf(WORDS[p][0], p.length) : p).join(" ")), h("div", "en", en)),
+        h(
+          "div",
+          "top",
+          h("div", "headrow", h("span", `head long${zyPhrase ? " zyhead" : ""}`, zyPhrase ?? word)),
+          zyPhrase ? null : h("div", "py", parts.map((p) => WORDS[p] ? readingOf(WORDS[p][0], p.length) : p).join(" ")),
+          h("div", "en", en)
+        ),
         h("div", "foot", pronSwitch())
       );
     } else {
       let [py, en, freq, parts] = WORDS[word], zyHead = zy ? zhuyinHead(word, py) : null, head = h("span", `head${st ? ` st-${st}` : ""}${zyHead ? " zyhead" : ""}`, zyHead ?? word);
       card.replaceChildren(
         h("div", "top", h("div", "headrow", head, zyHead ? null : h("span", "py", readingOf(py, word.length)), bars(freq)), h("div", "en", en)),
-        parts ? h("div", "parts", ...parts.map(([c, p, e]) => h("div", null, h("b", null, c), h("span", "ppy", readingOf(p, 1)), e))) : "",
+        parts ? h("div", "parts", ...parts.map(([c, p, e]) => {
+          let z = zy ? zhuyinHead(c, p) : null;
+          return h("div", null, h("b", null, z ?? c), z ? null : h("span", "ppy", readingOf(p, 1)), e);
+        })) : "",
         h(
           "div",
           "foot",
@@ -567,9 +576,9 @@
       for (let [s] of STAMPS) box.querySelector(`[data-n="${s}"]`).textContent = String([...stamps.values()].filter((v) => v === s).length);
       box.querySelector(".mylist").replaceChildren(
         ...[...stamps].reverse().map(([w, s]) => {
-          let el = h("span", `w st-${s}`, w);
+          let [py, en] = WORDS[w] ?? ["", ""], z = py && sitePron() === "zhuyin" ? zhuyinHead(w, py) : null, el = h("span", `w st-${s}`, z ?? w);
           el.dataset.w = w;
-          let [py, en] = WORDS[w] ?? ["", ""], meaning = h("span", "en", en), reading = h("span", "py", py && readingOf(py, w.length));
+          let meaning = h("span", "en", en), reading = h("span", "py", z ? "" : py && readingOf(py, w.length));
           return sitePron() === "zhuyin" && (reading.lang = "zh-Hant"), meaning.lang = "en", h("li", null, el, reading, meaning);
         })
       ), box.classList.toggle("some", stamps.size > 0);

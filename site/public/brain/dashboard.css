@@ -97,10 +97,8 @@
 .ch:first-child { margin-left: 0; }
 .ch::before, .pyline { content: attr(data-py); display: block; height: 19px; font: 500 13px/19px var(--ui); color: var(--ink2); white-space: nowrap; }
 .nopy .ch::before { display: none; }
-/* 注音: a column on each square's right, as Taiwan prints it (zhuyin.css draws it). */
-.zyc .ch.zy { display: inline-flex; width: auto; height: var(--box); --zy: 13px; --zy-ink: var(--ink2); margin: 0 2px 6px 0; padding-right: 4px; line-height: 1; }
-.zyc .ch.zy::before { content: attr(data-tone); display: block; height: auto; font: 500 var(--zy)/1 var(--ui); white-space: nowrap; }
-.zyc .ch.zy::after { font-family: var(--ui); }
+/* 注音 runs wider than pinyin: a little tighter, and centered even when it outgrows its square. */
+.zyc .ch::before { display: flex; justify-content: center; letter-spacing: -0.04em; }
 .ch b {
   display: inline-grid;
   place-items: center;

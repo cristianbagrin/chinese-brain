@@ -191,6 +191,15 @@ Since 1.5.0 (optional accounts) the stores' data questions have new answers:
 These are the store notes: every change. The website's What's new page
 (`site/public/brain/whats-new.html`) is written by hand from them: only what a reader would notice.
 
+1.9.1 (November 19, 2026):
+
+```
+• Colors on a website now cover everything on it, frames included: with colors off on claude.ai, Claude's artifacts stay uncolored too, even with Colors on every website on.
+• Zhuyin sits over each character everywhere: the Dashboard's practice squares, long phrases and the character breakdown in the card, measure words, the transcript's word list and the website's demo.
+• Dashboard Import: the "?" says how to use Copy AI prompt; Copy example is gone (Download example stays).
+• The "?" buttons line up with the text beside them.
+```
+
 1.9.0 (November 19, 2026):
 
 ```

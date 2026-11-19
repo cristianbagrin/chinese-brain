@@ -70,13 +70,13 @@
       <div class="tool" id="importTool">
         <h3>Import a word list<button type="button" class="help" popovertarget="helpImport" aria-label="How importing works">?</button></h3>
         <div class="help-pop" id="helpImport" popover>
+          <p>With an AI: <b>Copy AI prompt</b>, paste it into any AI chat with your list or a photo of it, copy its answer, paste it below, <b>Import</b>.</p>
           <p>One word per line, then a comma and <code>K</code> known, <code>L</code> learning or <code>F</code> fresh. No letter means known.</p>
           <p>Words you already have take the new stamp. Nothing is deleted.</p>
         </div>
         <p>From Anki, a spreadsheet or a photo of a list: copy the prompt, give it to any AI with your list, paste the answer here.</p>
         <div class="actions">
           <button id="importPrompt">Copy AI prompt</button>
-          <button class="link" id="exampleCopy" title="The format we read, to copy">Copy example</button>
           <button class="link" id="exampleGet" title="The format we read, as a file">Download example</button>
         </div>
         <textarea id="knownText" rows="4" placeholder="臺北,K&#10;捷運,L&#10;夜市,F" aria-label="Your word list"></textarea>

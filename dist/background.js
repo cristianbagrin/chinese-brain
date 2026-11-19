@@ -352,6 +352,14 @@
   function colorsOn(s, host) {
     return s.siteColors[host] ?? s.pageColors;
   }
+  function siteHost(tabUrl, own) {
+    try {
+      let u = new URL(tabUrl ?? "");
+      if (/^https?:$/.test(u.protocol)) return u.hostname;
+    } catch {
+    }
+    return own;
+  }
 
   // src/shared/export.ts
   var clean = (s) => (s ?? "").replace(/[\t\r\n]+/g, " ").trim(), stamp = (t) => {
@@ -1354,6 +1362,8 @@ Give each with a natural American English translation.`, schema = {
     }
     let any = msg;
     switch (any.type) {
+      case "siteHost":
+        return Promise.resolve(siteHost(sender.tab?.url, ""));
       case "ytCached":
         return Promise.resolve(sender.tab?.id != null ? cachedCaptions(sender.tab.id) : []);
       case "allData":

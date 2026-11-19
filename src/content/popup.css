@@ -52,8 +52,12 @@
 .head.st-learning { background: var(--learning-mark); }
 .head.st-known { background: var(--known-mark); }
 .py { font-size: 1.07em; color: var(--text3); letter-spacing: 0.01em; }
-/* Zhuyin: over each character of the headword; on its own line for a long phrase. */
-.head.zyhead { --zy: 0.42em; --zy-ink: var(--text2); }
+/* Zhuyin over each character: the headword, a long phrase (it wraps), the parts and measure words. */
+.head.zyhead { display: inline-block; padding-top: 0.12em; --zy: 0.42em; --zy-ink: var(--text2); }
+.head.long.zyhead { --zy: 0.7em; }
+.chars .w .zyw, .cl .w .zyw { --zy: 0.66em; --zy-ink: var(--text2); }
+.cl .w:has(.zyw) { font-size: 1.3em; }
+.chars:has(.zyw) { row-gap: 0.5em; }
 
 /* How common the word is, in words (the tooltip says what that means for you). */
 .freq { margin-left: auto; display: flex; align-items: center; gap: 0.45em; font-size: 0.86em; color: var(--text3); white-space: nowrap; cursor: default; }

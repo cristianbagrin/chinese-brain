@@ -200,9 +200,8 @@ export function pronMarked(marked: string, mode: Pron, count?: number): string {
 }
 
 /**
- * A word with each character's zhuyin over it, like ruby (and like the YouTube subtitles): easier
- * to read at a glance than the printed column. The zhuyin is drawn by CSS from data attributes
- * (see `.zy` in the stylesheets), so the text of the element stays the word itself: selecting,
+ * A word with each character's zhuyin over it, like ruby (and like the YouTube subtitles). The
+ * zhuyin is drawn by CSS from data attributes (zhuyin.css), so the text of the element stays the word itself: selecting,
  * copying and the hover lookup see only the characters. Null when the readings don't pair up.
  */
 export function zhuyinWord(word: string, numbered: string, doc: Document = document): HTMLElement | null {
@@ -217,16 +216,10 @@ export function zhuyinWord(word: string, numbered: string, doc: Document = docum
   return box;
 }
 
-/**
- * One character with its zhuyin: data-zy (the column's letters), data-tone, n1..n4 (how many
- * letters); data-over is the whole syllable on one line, for zhuyin over the character.
- */
+/** One character with its zhuyin over it (zhuyin.css draws data-over, the whole syllable on one line). */
 export function zhuyinChar(ch: string, p: ZhuyinParts, doc: Document = document): HTMLElement {
   const c = doc.createElement('span');
-  const n = [...p.letters].length + (p.er ? 1 : 0);
-  c.className = `zy n${Math.min(4, n)}`;
-  c.dataset.zy = p.letters + p.er;
-  c.dataset.tone = p.tone;
+  c.className = 'zy';
   c.dataset.over = p.letters + p.tone + p.er;
   c.textContent = ch;
   return c;
