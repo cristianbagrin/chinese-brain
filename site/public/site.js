@@ -54,7 +54,7 @@
   }
 
   // src/shared/zhuyin.ts
-  var PRONS = ["zhuyin", "pinyin"], PRON_LABEL = { zhuyin: "\u6CE8\u97F3", pinyin: "Pinyin" }, INITIALS = {
+  var PRONS = ["zhuyin", "pinyin"], PRON_LABEL = { zhuyin: "Zhuyin", pinyin: "Pinyin" }, INITIALS = {
     b: "\u3105",
     p: "\u3106",
     m: "\u3107",
@@ -208,11 +208,11 @@
     let parts = sylls.map(zhuyinParts);
     if (parts.some((p) => !p)) return null;
     let box = doc.createElement("span");
-    return box.className = "zyw", chars.forEach((ch, i) => box.append(zhuyinChar(ch, parts[i], doc))), box;
+    return box.className = "zyw over", chars.forEach((ch, i) => box.append(zhuyinChar(ch, parts[i], doc))), box;
   }
   function zhuyinChar(ch, p, doc = document) {
     let c = doc.createElement("span"), n = [...p.letters].length + (p.er ? 1 : 0);
-    return c.className = `zy n${Math.min(4, n)}`, c.dataset.zy = p.letters + p.er, c.dataset.tone = p.tone, c.textContent = ch, c;
+    return c.className = `zy n${Math.min(4, n)}`, c.dataset.zy = p.letters + p.er, c.dataset.tone = p.tone, c.dataset.over = p.letters + p.tone + p.er, c.textContent = ch, c;
   }
 
   // site/src/demo-words.ts
@@ -509,7 +509,7 @@
   function ruby(word) {
     let py = WORDS[word][0], n = sitePron() === "zhuyin" ? numbered(py, word.length) : null;
     if (!n) return h("ruby", null, word, h("rt", null, readingOf(py, word.length)));
-    let r = h("ruby", "zy");
+    let r = h("ruby", "zr");
     return n.split(" ").forEach((syl, i) => r.append([...word][i], h("rt", null, numberedToZhuyin(syl)))), r;
   }
   function player(sim) {

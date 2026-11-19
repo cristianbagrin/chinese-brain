@@ -327,7 +327,7 @@
     pron: "zhuyin",
     translation: "blur",
     pauseOnHover: !0,
-    autoFreshOnClick: !0,
+    clickStamp: "fresh",
     subFontSize: 30,
     subStyle: "light",
     shadowFactor: 1.5,
@@ -347,7 +347,7 @@
   };
   function normalizeSettings(raw) {
     let r = { ...raw ?? {} };
-    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), r.hoverMode === "shift" && (r.hoverMode = "alt"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, r.pron !== "pinyin" && r.pron !== "zhuyin" && delete r.pron, { ...DEFAULT_SETTINGS, ...r };
+    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), r.hoverMode === "shift" && (r.hoverMode = "alt"), r.clickStamp === void 0 && r.autoFreshOnClick === !1 && (r.clickStamp = "off"), delete r.autoFreshOnClick, ["fresh", "learning", "known", "off"].includes(r.clickStamp) || delete r.clickStamp, delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, r.pron !== "pinyin" && r.pron !== "zhuyin" && delete r.pron, { ...DEFAULT_SETTINGS, ...r };
   }
   function colorsOn(s, host) {
     return s.siteColors[host] ?? s.pageColors;
@@ -424,6 +424,31 @@
     let order = { K: 0, L: 1, F: 2, "-": 3 };
     return rows.sort((a, b) => order[code(a.now)] - order[code(b.now)] || a.date - b.date), { rows, savedNow, watches };
   }
+  var IMPORT_EXAMPLE = [
+    "# Chinese Brain word list: one word per line, then a comma and K (known), L (learning) or F (fresh). No letter means known.",
+    "\u81FA\u5317,K",
+    "\u6377\u904B,L",
+    "\u591C\u5E02,F",
+    ""
+  ].join(`
+`), IMPORT_PROMPT = [
+    "Turn my Chinese word list (below or attached) into this exact format, so I can import it into Chinese Brain:",
+    "",
+    "- One word per line, in Traditional characters as used in Taiwan (convert Simplified ones).",
+    "- After each word, a comma and one letter for how well I know it: K known, L learning, F fresh (new to me).",
+    "- If my list shows how well I know each word (Anki intervals or due dates, a column, a mark), use that. Otherwise use K.",
+    "- Only the words: no pinyin, meanings, numbering or headings. Leave out duplicates and anything that isn't a Chinese word.",
+    "",
+    "Reply with the list only, in one code block, like this:",
+    "",
+    "\u81FA\u5317,K",
+    "\u6377\u904B,L",
+    "\u591C\u5E02,F",
+    "",
+    "My list:",
+    ""
+  ].join(`
+`);
 
   // src/shared/gloss.ts
   var PLACEHOLDER = /^\(?(your own word|not in the dictionary)\)?$/i, isPlaceholder = (g) => !g || PLACEHOLDER.test(g.trim()), POINTER = /^(CL:|(old |unofficial )?variant of |used in |see |also pr\.|also written |surname )/i;
@@ -1345,8 +1370,8 @@ Give each with a natural American English translation.`, schema = {
           for (let [k, v] of Object.entries(await stored("sav:"))) saved[k.slice(4)] = v;
           let words = [...store.words.values()].map((w) => freshen(d, w)), logs = await store.allLogs();
           if (count) return exportCount(words, logs, since, saved);
-          let text = buildClaudeExport(words, logs, since, saved), type = "text/tab-separated-values;charset=utf-8", url = URL.createObjectURL(new Blob([text], { type }));
-          return await browser.downloads.download({ url, filename: `chinese-brain-${today()}.tsv` }), setTimeout(() => URL.revokeObjectURL(url), 6e4), await browser.storage.local.set({ lastExportAt: at }), !0;
+          let text = buildClaudeExport(words, logs, since, saved), type = "text/tab-separated-values;charset=utf-8", url = URL.createObjectURL(new Blob([text], { type })), kept = await saveAs(url, `chinese-brain-${today()}.tsv`);
+          return URL.revokeObjectURL(url), kept && await browser.storage.local.set({ lastExportAt: at }), kept;
         });
       case "importWords":
         return storeReady.then(() => store.importWords(any.words, any.mode ?? "merge"));
@@ -1477,4 +1502,18 @@ Give each with a natural American English translation.`, schema = {
         return dictReady.then((d) => d.get(any.word));
     }
   });
+  async function saveAs(url, filename) {
+    let id;
+    try {
+      id = await browser.downloads.download({ url, filename, saveAs: !0 });
+    } catch {
+      return !1;
+    }
+    return new Promise((ok) => {
+      let done = (d) => {
+        d.id !== id || !d.state || d.state.current === "in_progress" || (browser.downloads.onChanged.removeListener(done), ok(d.state.current === "complete"));
+      };
+      browser.downloads.onChanged.addListener(done);
+    });
+  }
 })();

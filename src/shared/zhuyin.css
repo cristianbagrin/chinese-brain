@@ -1,5 +1,5 @@
 /*
- * 注音 beside each character, as Taiwan prints it: the letters in a column on the character's
+ * Zhuyin beside each character, as Taiwan prints it: the letters in a column on the character's
  * right, the tone mark to the right of the last letter, the neutral tone's dot on top.
  * Drawn from data attributes (src/shared/zhuyin.ts, zhuyinChar), so the element's text stays the
  * character. Size it with --zy (the letters' size, in em of the character); color with --zy-ink.
@@ -28,3 +28,18 @@
 .zy.n2::before { top: calc(50% + 0.08em); }
 .zy.n3::before { top: calc(50% + 0.6em); }
 .zy.n4::before { top: calc(50% + 1.12em); }
+
+/* Over each character instead (.zyw.over, the card's headword): one line, centered, like ruby. */
+.zyw.over { align-items: flex-end; }
+.zyw.over .zy { flex-direction: column; padding-right: 0; }
+.zyw.over .zy + .zy { margin-left: 0.04em; }
+.zyw.over .zy::before { content: none; }
+.zyw.over .zy::after {
+  content: attr(data-over);
+  order: -1;
+  width: auto;
+  margin: 0 0 0.3em;
+  line-height: 1;
+  white-space: nowrap;
+  word-break: normal;
+}

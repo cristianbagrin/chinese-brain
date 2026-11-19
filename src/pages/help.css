@@ -1,0 +1,47 @@
+/*
+ * The "?" next to a setting and the short note it opens, right there (help.ts). The note grows out
+ * of its "?" (transform-origin follows the trigger), fades in fast and out faster, and can be
+ * reversed mid-way: transitions, not keyframes. Pages tune it with --help-* custom properties.
+ */
+button.help {
+  display: inline-grid; place-items: center; flex: none; vertical-align: middle;
+  width: 22px; height: 22px; padding: 0; margin: 0 0 0 6px; border: 0; border-radius: 50%;
+  background: var(--help-fill, rgba(30, 26, 24, 0.07)); color: var(--help-ink2, #6b635d);
+  font: 600 13px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.12s ease;
+  /* A bigger target than it looks (fingers). */
+  position: relative;
+}
+button.help::before { content: ''; position: absolute; inset: -8px; }
+button.help:active { transform: scale(0.92); }
+button.help[aria-expanded='true'] { background: var(--help-accent, #c8202f); color: #fff; }
+@media (hover: hover) and (pointer: fine) {
+  button.help:hover:not([aria-expanded='true']) { background: var(--help-fill2, rgba(30, 26, 24, 0.12)); color: var(--help-ink, #1e1a18); }
+}
+button.help:focus-visible { outline: 2px solid var(--help-accent, #c8202f); outline-offset: 2px; }
+
+.help-pop {
+  position: fixed; inset: auto; margin: 0; box-sizing: border-box;
+  width: max-content; max-width: min(300px, calc(100vw - 16px)); padding: 12px 14px;
+  border: 0; border-radius: 12px; background: var(--help-bg, #fff); color: var(--help-ink, #1e1a18);
+  box-shadow: 0 0 0 1px rgba(30, 26, 24, 0.08), 0 12px 32px -8px rgba(30, 26, 24, 0.28), 0 2px 6px rgba(30, 26, 24, 0.06);
+  font: 400 14px/1.45 -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; text-align: left;
+  letter-spacing: normal; text-transform: none; white-space: normal; overflow-wrap: break-word;
+  opacity: 1; transform: none;
+  transition: opacity 0.15s cubic-bezier(0.23, 1, 0.32, 1), transform 0.2s cubic-bezier(0.23, 1, 0.32, 1),
+    overlay 0.2s allow-discrete, display 0.2s allow-discrete;
+}
+.help-pop:not(:popover-open) { opacity: 0; transform: scale(0.96); transition-duration: 0.1s, 0.12s, 0.12s, 0.12s; }
+@starting-style { .help-pop:popover-open { opacity: 0; transform: scale(0.96); } }
+.help-pop p { margin: 0; }
+.help-pop p + p, .help-pop p + ul, .help-pop ul + p { margin-top: 8px; }
+.help-pop ul { margin: 0; padding-left: 18px; }
+.help-pop b, .help-pop strong { font-weight: 600; }
+.help-pop a { color: var(--help-link, #a3192a); font-weight: 500; }
+.help-pop code, .help-pop kbd { font: 500 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 1px 4px; border-radius: 4px; background: var(--help-fill, rgba(30, 26, 24, 0.07)); }
+.help-pop [lang='zh-Hant'] { font-size: 1.08em; }
+
+@media (prefers-reduced-motion: reduce) {
+  .help-pop, .help-pop:not(:popover-open) { transform: none; }
+  @starting-style { .help-pop:popover-open { transform: none; } }
+}

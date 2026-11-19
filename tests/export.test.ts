@@ -123,3 +123,15 @@ test('export: header, sentence with the word, empty when it is missing, saved-on
   assert.equal(byWord['捷運'][8], '我搭捷運上班。 — I take the MRT to work. ‖ 捷運很方便。 — The MRT is convenient.');
   assert.match(buildClaudeExport(words, logs, 0, saved).split('\n')[0], / · everything so far$/);
 });
+
+test('the import example and an AI chat answer (spaces for tabs) parse', async () => {
+  const { IMPORT_EXAMPLE } = await import('../src/shared/export.ts');
+  assert.deepEqual(
+    parseWordList(IMPORT_EXAMPLE).map((x) => `${x.w}:${x.s}`),
+    ['臺北:known', '捷運:learning', '夜市:fresh'],
+  );
+  assert.deepEqual(
+    parseWordList('臺北 K\n捷運   l\n夜市').map((x) => x.s),
+    ['known', 'learning', 'known'],
+  );
+});

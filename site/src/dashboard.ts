@@ -3,11 +3,12 @@
 //     nothing is uploaded for it) and hovering a word opens its card;
 //   without it (a phone, another computer), it shows the words in your account.
 import { shownSentence } from '../../src/shared/context.ts';
-import { buildClaudeExport, buildPracticePrompt, exportCount, parseWordList, sourceName } from '../../src/shared/export.ts';
+import { buildClaudeExport, exportCount, IMPORT_EXAMPLE, IMPORT_PROMPT, parseWordList, sourceName } from '../../src/shared/export.ts';
 import { playStamp } from '../../src/shared/sounds.ts';
 import { clock } from '../../src/shared/time.ts';
 import type { LogEvent, SavedSentence, Status, WordRecord } from '../../src/shared/types.ts';
 import { $, ago, download, h, today } from '../../src/pages/common.ts';
+import { helpPopovers } from '../../src/pages/help.ts';
 import { markedToNumbered, markedToZhuyin, PRON_LABEL, PRONS, zhuyinParts, type ZhuyinParts } from '../../src/shared/zhuyin.ts';
 import { fromExtension, numbered, onPron, readingOf, setSitePron, sitePron } from './pron.ts';
 
@@ -306,7 +307,7 @@ function renderPron() {
   const now = sitePron();
   box.replaceChildren(
     ...PRONS.map((p) => {
-      const b = h('button', { type: 'button', 'aria-pressed': String(p === now), lang: p === 'zhuyin' ? 'zh-Hant' : 'en' }, PRON_LABEL[p]);
+      const b = h('button', { type: 'button', 'aria-pressed': String(p === now), lang: 'en' }, PRON_LABEL[p]);
       b.addEventListener('click', () => p !== sitePron() && setSitePron(p));
       return b;
     }),
@@ -462,11 +463,6 @@ function wire() {
     const b = (e.target as HTMLElement).closest('button');
     if (b) setFilter(b.dataset.f as Status | 'all');
   });
-  $('practice').addEventListener('click', async () => {
-    const learning = words.some((w) => w.s !== 'known');
-    if (learning) await navigator.clipboard.writeText(buildPracticePrompt(words, saved));
-    $('practiceOk').textContent = learning ? 'Copied. Paste it into your AI chat.' : 'Stamp some words 新 or 學 first.';
-  });
   $('exportNew').addEventListener('click', () => exportNew((text) => download(`chinese-brain-${today()}.tsv`, text, TSV)));
   $('copyNew').addEventListener('click', () =>
     exportNew(async (text) => {
@@ -480,13 +476,21 @@ function wire() {
   });
   // Importing needs the extension's dictionary (it turns 台北 into 臺北 and finds the readings).
   $('importTool').hidden = !src.importList;
+  helpPopovers();
+  const copied = async (text: string, what: string) => {
+    await navigator.clipboard.writeText(text);
+    $('knownOk').textContent = what;
+  };
+  $('importPrompt').addEventListener('click', () => copied(IMPORT_PROMPT, 'Prompt copied. Add your list in the AI chat.'));
+  $('exampleCopy').addEventListener('click', () => copied(IMPORT_EXAMPLE, 'Example copied.'));
+  $('exampleGet').addEventListener('click', () => download('chinese-brain-words.csv', IMPORT_EXAMPLE, 'text/csv;charset=utf-8'));
   $('knownFile').addEventListener('change', async (e) => {
     const f = (e.target as HTMLInputElement).files?.[0];
     if (f) $<HTMLTextAreaElement>('knownText').value = await f.text();
   });
   $('knownGo').addEventListener('click', async () => {
     const items = parseWordList($<HTMLTextAreaElement>('knownText').value);
-    if (!items.length) return void ($('knownOk').textContent = 'Nothing to import: one word per line.');
+    if (!items.length) return void ($('knownOk').textContent = 'No Chinese words in it. Copy the example to see the format.');
     const n = await src.importList!(items);
     // Whoever gave you this list already has it: the next "Download new" starts from here.
     if (!(await src.mark())) await src.mark(Date.now());

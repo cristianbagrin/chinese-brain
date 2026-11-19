@@ -736,14 +736,15 @@ export class YouTubeSubs {
       ctx,
       pinned,
     });
-    if (pinned && state.settings.autoFreshOnClick) {
-      // Click a new word: Fresh. Click it again: back to untracked.
+    const stamp = state.settings.clickStamp;
+    if (pinned && stamp !== 'off') {
+      // Click a new word: stamped (Fresh unless you chose another pile). Click it again: back to untracked.
       const w = matches[0].word;
       const st = state.status(w);
       if (!st) {
-        this.popup.setStatus('fresh', false);
+        this.popup.setStatus(stamp, false);
         this.clickStamped = w;
-      } else if (st === 'fresh' && this.clickStamped === w) {
+      } else if (st === stamp && this.clickStamped === w) {
         this.popup.setStatus(null, false);
         this.clickStamped = '';
       }

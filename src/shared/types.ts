@@ -98,7 +98,7 @@ export interface Settings {
   hoverMode: HoverMode;
   /** With "hover" chosen: websites where the card waits for Option (Alt). */
   altSites: string[];
-  /** With "hold Option" chosen: websites where plain hover opens the card. */
+  /** With "hold Option" chosen: websites with auto-hover (the card opens without the key). */
   hoverSites: string[];
   disabledSites: string[];
   /** Our subtitles on YouTube (the switch in the player). */
@@ -111,8 +111,8 @@ export interface Settings {
   translation: TranslationMode;
   /** Pause while the mouse is over the subtitles. */
   pauseOnHover: boolean;
-  /** Clicking a new word in subtitles marks it Fresh (clicking again undoes it). */
-  autoFreshOnClick: boolean;
+  /** Clicking a new word in the subtitles stamps it this status (clicking again undoes it), or nothing. */
+  clickStamp: Status | 'off';
   subFontSize: number;
   /** Subtitle band: light (default) or dark. */
   subStyle: 'light' | 'dark';
@@ -152,7 +152,7 @@ export const DEFAULT_SETTINGS: Settings = {
   pron: 'zhuyin',
   translation: 'blur',
   pauseOnHover: true,
-  autoFreshOnClick: true,
+  clickStamp: 'fresh',
   subFontSize: 30,
   subStyle: 'light',
   shadowFactor: 1.5,
@@ -182,6 +182,10 @@ export function normalizeSettings(raw: Record<string, unknown> | undefined): Set
   if (r.voice === undefined && typeof r.azureKey === 'string' && r.azureKey) r.voice = 'azure';
   // Holding Option replaced holding Shift.
   if (r.hoverMode === 'shift') r.hoverMode = 'alt';
+  // "Clicking a new word stamps it Fresh" (on/off) became a choice of pile.
+  if (r.clickStamp === undefined && r.autoFreshOnClick === false) r.clickStamp = 'off';
+  delete r.autoFreshOnClick;
+  if (!['fresh', 'learning', 'known', 'off'].includes(r.clickStamp as string)) delete r.clickStamp;
   delete r.subPinyin;
   delete r.cardPinyin;
   delete r.markUntracked; // the dotted underline on new subtitle words was dropped

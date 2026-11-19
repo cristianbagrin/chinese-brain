@@ -1,6 +1,8 @@
 import { cardMode, colorsOn, setSiteMode, type HoverMode, type Settings, type Status } from '../shared/types.ts';
 import type { AccountInfo } from '../background/sync.ts';
 import { $, ALT, DASHBOARD, feedbackLink, h, shortcutLabel } from './common.ts';
+import { helpPopovers } from './help.ts';
+import { playStamp } from '../shared/sounds.ts';
 
 const save = (settings: Partial<Settings>) => browser.runtime.sendMessage({ type: 'saveSettings', settings });
 
@@ -29,6 +31,7 @@ async function init() {
   );
 
   $<HTMLAnchorElement>('feedback').href = feedbackLink();
+  helpPopovers();
   $<HTMLAnchorElement>('words').href = DASHBOARD;
   $('altMode').textContent = ALT;
   $('altMode').title = `Only while holding ${ALT}`;
@@ -51,7 +54,8 @@ async function init() {
   void newCount();
   dl.addEventListener('click', async () => {
     dl.disabled = true;
-    await browser.runtime.sendMessage({ type: 'downloadNew' });
+    const kept: boolean = await browser.runtime.sendMessage({ type: 'downloadNew' });
+    if (!kept) return void newCount();
     $('newN').textContent = '✓';
     setTimeout(newCount, 1500);
   });
@@ -64,6 +68,7 @@ async function init() {
       el.addEventListener('change', () => {
         (s as unknown as Record<string, unknown>)[key] = el.checked;
         void save({ [key]: el.checked });
+        if (key === 'sounds' && el.checked) playStamp('fresh');
         if (key === 'pageColors') {
           syncColors();
           setTimeout(showStats, 1500);

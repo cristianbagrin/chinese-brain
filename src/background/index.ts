@@ -247,10 +247,11 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
         const type = 'text/tab-separated-values;charset=utf-8';
         // A service worker (Chrome) has no blob URLs; Firefox refuses data: URLs here.
         const url = __CHROME__ ? `data:${type},${encodeURIComponent(text)}` : URL.createObjectURL(new Blob([text], { type }));
-        await browser.downloads.download({ url, filename: `chinese-brain-${today()}.tsv` });
-        if (!__CHROME__) setTimeout(() => URL.revokeObjectURL(url), 60_000);
-        await browser.storage.local.set({ lastExportAt: at });
-        return true;
+        // The save-as dialog opens in the folder used last. Cancel it and nothing counts as downloaded.
+        const kept = await saveAs(url, `chinese-brain-${today()}.tsv`);
+        if (!__CHROME__) URL.revokeObjectURL(url);
+        if (kept) await browser.storage.local.set({ lastExportAt: at });
+        return kept;
       });
     case 'importWords':
       return storeReady.then(() => store.importWords(any.words as never, (any.mode as 'merge' | 'replace') ?? 'merge'));
@@ -427,3 +428,22 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
   }
   return undefined;
 });
+
+/** Download through the browser's save-as dialog; true once the file is saved, false if cancelled. */
+async function saveAs(url: string, filename: string): Promise<boolean> {
+  let id: number;
+  try {
+    id = await browser.downloads.download({ url, filename, saveAs: true });
+  } catch {
+    return false; // Firefox: the dialog was cancelled
+  }
+  // Chrome starts the download before its dialog; a cancel shows up as an interruption.
+  return new Promise((ok) => {
+    const done = (d: browser.downloads._OnChangedDownloadDelta) => {
+      if (d.id !== id || !d.state || d.state.current === 'in_progress') return;
+      browser.downloads.onChanged.removeListener(done);
+      ok(d.state.current === 'complete');
+    };
+    browser.downloads.onChanged.addListener(done);
+  });
+}

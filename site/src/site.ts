@@ -326,7 +326,7 @@ function ruby(word: string): HTMLElement {
   const py = WORDS[word][0];
   const n = sitePron() === 'zhuyin' ? numbered(py, word.length) : null;
   if (!n) return h('ruby', null, word, h('rt', null, readingOf(py, word.length)));
-  const r = h('ruby', 'zy');
+  const r = h('ruby', 'zr'); // not .zy: that class draws the printed column (zhuyin.css)
   n.split(' ').forEach((syl, i) => r.append([...word][i], h('rt', null, numberedToZhuyin(syl))));
   return r;
 }

@@ -14,13 +14,13 @@ Questions and bugs: [chris@cristianbagrin.com](mailto:chris@cristianbagrin.com)
   dishes (野柳, 滷肉飯…) are in the dictionary.
 - **Three stamps everywhere:** 新 Fresh, 學 Learning, 熟 Known (`1` `2` `3`). The same colors
   in the card, the subtitles, your Dashboard and, if you like, on every page.
-- **注音 or pinyin:** pronunciation in 注音 (the default, beside each character as Taiwan
-  prints it) or pinyin, everywhere: card, subtitles, transcript, Dashboard, website.
+- **Zhuyin or pinyin:** pronunciation in zhuyin (注音, the default, over each character) or
+  pinyin, everywhere: card, subtitles, transcript, Dashboard, website.
 - **YouTube dual subtitles:** Chinese + English over the video, every word hoverable, the
   video pausing while you read; a transcript with a learn-first list. Videos without Chinese
   captions can get them from Gemini (your own key).
-- **One Dashboard** on the website, with import, export and backup, and a ready prompt to practice your
-  words with an AI tutor (Claude, ChatGPT, Gemini).
+- **One Dashboard** on the website, with import and export. Words kept elsewhere (Anki, a
+  spreadsheet, a photo) come in through a ready prompt for any AI.
 - **Optional account:** everything works without one; a free account keeps your words,
   saved sentences and settings in sync across browsers, and shows them in a
   [web dashboard](https://chinese.cristianbagrin.com/brain/dashboard).
@@ -52,9 +52,10 @@ Toolbar button → **Dashboard** opens
 [chinese.cristianbagrin.com/brain/dashboard](https://chinese.cristianbagrin.com/brain/dashboard).
 With the extension installed it reads the list straight from the browser (nothing is
 uploaded, no account needed); anywhere else it shows your account's list. Filter, search,
-sort, restamp, remove (with Undo), the latest 30 first with **Show more** (100 at a time), **Practice with AI**, **Download new** (what changed since
-the last export, as a small TSV) and **Import** a `word⇥K|L⇥date` list.
-The toolbar menu's **↓ New** downloads the same export in one click.
+sort, restamp, remove (with Undo), the latest 30 first with **Show more** (100 at a time), **Download new** (what changed since
+the last export, as a small TSV) and **Import** a `word,K|L|F` list (an example and an AI prompt
+that converts any list are next to it).
+The toolbar menu's **↓ New** saves the same export (the browser asks where, starting in the folder you used last).
 **Backup / restore** (everything as JSON) is in Settings.
 
 ## Account and sync

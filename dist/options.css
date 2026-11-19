@@ -27,6 +27,8 @@
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
   --ui: -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
   --zh: 'CB Zh', 'PingFang TC', 'Noto Sans TC', serif;
+  /* The "?" notes (pages/help.css). */
+  --help-accent: var(--accent); --help-link: var(--accent-deep); --help-ink: var(--ink); --help-ink2: var(--ink2); --help-fill: var(--fill); --help-fill2: var(--fill2);
   color-scheme: light;
 }
 * { box-sizing: border-box; }
@@ -65,12 +67,13 @@ main { padding: 40px 0 120px; max-width: 680px; min-width: 0; }
 .group.pad { padding: 20px; }
 .row { position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; min-height: 56px; padding: 8px 16px 8px 20px; }
 .row + .row::before { content: ''; position: absolute; top: 0; left: 20px; right: 0; border-top: 1px solid var(--line); }
-.row > label, .row > span:first-child { flex: 1 1 180px; min-width: 0; font-weight: 500; }
+.row > label, .row > span:first-child, .row > .lab { flex: 1 1 180px; min-width: 0; font-weight: 500; }
+.lab { display: flex; align-items: center; }
 .row .ctl { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .row .status { flex-basis: 100%; text-align: right; margin: -4px 0 4px; }
 .row .status:empty { display: none; }
 .row.stack { flex-direction: column; align-items: stretch; padding-top: 16px; padding-bottom: 16px; }
-.row.stack > label, .row.stack > span:first-child { flex: none; }
+.row.stack > label, .row.stack > span:first-child, .row.stack > .lab { flex: none; }
 .zh { font-size: 1.08em; }
 
 /* Rows that go somewhere (links, sign out). */
@@ -166,14 +169,14 @@ kbd, .key {
 @keyframes rec { 50% { opacity: 0.75; } }
 .hint { color: var(--ink2); }
 .ctl kbd + kbd { margin-left: 0; }
-/* The two key lists: two columns of rows, each action next to its key. */
-.keys { display: grid; grid-template-columns: 1fr 1fr; }
+/* The two key lists: two columns of rows, read down the first column, then the second (options.ts sets the rows). */
+.keys { display: grid; grid-template-columns: 1fr 1fr; grid-auto-flow: column; }
 .keys > div { position: relative; display: flex; align-items: center; gap: 16px; min-height: 56px; padding: 8px 16px 8px 20px; font-weight: 500; }
 .keys > div > button { margin-left: auto; }
-.keys > div:nth-child(n + 3)::before { content: ''; position: absolute; top: 0; left: 20px; right: 0; border-top: 1px solid var(--line); }
-.keys > div:nth-child(even) { padding-left: 16px; }
-.keys > div:nth-child(even)::after { content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; border-left: 1px solid var(--line); }
-.keys > div:nth-child(even)::before { left: 16px; }
+.keys > div:not(.top)::before { content: ''; position: absolute; top: 0; left: 20px; right: 0; border-top: 1px solid var(--line); }
+.keys > div.col2 { padding-left: 16px; }
+.keys > div.col2::after { content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; border-left: 1px solid var(--line); }
+.keys > div.col2::before { left: 16px; }
 .keys button { min-width: 36px; height: 32px; padding: 0 10px; font: 600 15px/1 var(--ui); background: var(--panel); border-radius: 8px; box-shadow: 0 0 0 1px var(--line2), 0 2px 0 var(--line2); }
 .keys button:hover { background: var(--panel); box-shadow: 0 0 0 1px var(--ink3), 0 2px 0 var(--ink3); }
 .keys button.none { color: var(--ink3); }
@@ -197,6 +200,17 @@ kbd, .key {
 .who { display: flex; align-items: center; gap: 16px; }
 .who-text { flex: 1; min-width: 0; }
 .who h3 { margin: 0; font: 600 18px/1.3 var(--ui); letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Your account: the whole block opens account.cristianbagrin.com. */
+.who-link { display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0; margin: -8px; padding: 8px; border-radius: 12px; color: inherit; text-decoration: none; transition: background-color 0.15s var(--ease); }
+.who-link h3 { display: flex; align-items: center; gap: 8px; }
+.who-link h3 span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.who-link h3 .out { margin-left: 0; width: 14px; height: 14px; opacity: 0.35; transition: opacity 0.15s var(--ease); }
+.who-link:active { background: var(--fill); }
+@media (hover: hover) and (pointer: fine) {
+  .who-link:hover { background: rgba(30, 26, 24, 0.025); }
+  .who-link:hover h3 .out { opacity: 0.7; }
+}
+.who-link[data-tip]::after { left: 72px; }
 .who p, .chris p { margin: 2px 0 0; color: var(--ink2); }
 .disc { display: grid; place-items: center; width: 48px; height: 48px; flex: none; border-radius: 50%; background: var(--accent-soft); color: var(--accent); }
 .disc svg { width: 24px; height: 24px; }
@@ -220,6 +234,9 @@ kbd, .key {
 
 /* Chris */
 .chris { display: flex; align-items: center; gap: 16px; }
+.chris .me { display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0; margin: -8px; padding: 8px; border-radius: 40px 12px 12px 40px; color: inherit; text-decoration: none; transition: background-color 0.15s var(--ease); }
+.chris .me:active { background: var(--fill); }
+@media (hover: hover) and (pointer: fine) { .chris .me:hover { background: rgba(30, 26, 24, 0.025); } .chris .me:hover h3 { color: var(--accent-deep); } }
 .chris img { width: 64px; height: 64px; border-radius: 50%; flex: none; object-fit: cover; box-shadow: 0 0 0 1px var(--line); }
 .chris h3 { margin: 0; font: 600 18px/1.3 var(--ui); }
 .version { margin: 24px 4px 0; color: var(--ink3); font-size: 15px; }
@@ -234,11 +251,9 @@ label[data-tip], span[data-tip] { cursor: help; text-decoration: underline dotte
   box-shadow: 0 8px 24px rgba(30, 26, 24, 0.18); pointer-events: none;
   opacity: 0; transform: translateY(-4px); transition: opacity 0.15s var(--ease), transform 0.2s var(--ease); transition-delay: 0s;
 }
-button[data-tip]::after, a.info::after, a.pill[data-tip]::after { left: auto; right: 0; }
+button[data-tip]::after, a.pill[data-tip]::after { left: auto; right: 0; }
 .row.go[data-tip]::after { left: 20px; }
 [data-tip]:hover::after, [data-tip]:focus-visible::after { opacity: 1; transform: none; transition-delay: 0.35s; }
-.info { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--fill); color: var(--ink2); font: 600 14px/1 var(--ui); text-decoration: none; flex: none; }
-.info:hover { background: var(--fill2); color: var(--ink); }
 
 /* Saved: a small toast that rises from the bottom. */
 .saved {
@@ -275,12 +290,12 @@ input:focus-visible, textarea:focus-visible { outline: none; }
   html { scroll-padding-top: 128px; }
 }
 @media (max-width: 560px) {
-  .keys { grid-template-columns: 1fr; }
-  .keys > div:nth-child(even) { padding-left: 20px; }
-  .keys > div:nth-child(even)::after { display: none; }
+  .keys { grid-template-columns: 1fr; grid-auto-flow: row; grid-template-rows: none !important; }
+  .keys > div.col2 { padding-left: 20px; }
+  .keys > div.col2::after { display: none; }
   .keys > div:nth-child(n + 2)::before { content: ''; position: absolute; top: 0; left: 20px; right: 0; border-top: 1px solid var(--line); }
   .row .ctl { margin-left: 0; }
-  .row > label, .row > span:first-child { flex-basis: 100%; }
+  .row > label, .row > span:first-child, .row > .lab { flex-basis: 100%; }
   .row:has(> input[type='checkbox']) > label, .row:has(> .stepper) > label, .row:has(> .key) > span:first-child, .row.go > span { flex-basis: 0; }
   .row:has(> .ctl) { padding-top: 12px; padding-bottom: 12px; }
   .row input[type='password'] { width: auto; flex: 1; }

@@ -131,13 +131,43 @@ function exportRows(words: WordRecord[], logs: LogEvent[], since: number, saved:
   return { rows, savedNow, watches };
 }
 
-/** Parse a known-words.txt style list: word<TAB>K|L|F<TAB>date. Lines with only a word count as known. */
+/** The import format, shown and offered as a file on the Dashboard. */
+export const IMPORT_EXAMPLE = [
+  '# Chinese Brain word list: one word per line, then a comma and K (known), L (learning) or F (fresh). No letter means known.',
+  '臺北,K',
+  '捷運,L',
+  '夜市,F',
+  '',
+].join('\n');
+
+/** For any AI chat, with your own list (an Anki export, a spreadsheet, a photo): it answers in IMPORT_EXAMPLE's format. */
+export const IMPORT_PROMPT = [
+  'Turn my Chinese word list (below or attached) into this exact format, so I can import it into Chinese Brain:',
+  '',
+  '- One word per line, in Traditional characters as used in Taiwan (convert Simplified ones).',
+  '- After each word, a comma and one letter for how well I know it: K known, L learning, F fresh (new to me).',
+  '- If my list shows how well I know each word (Anki intervals or due dates, a column, a mark), use that. Otherwise use K.',
+  '- Only the words: no pinyin, meanings, numbering or headings. Leave out duplicates and anything that isn\'t a Chinese word.',
+  '',
+  'Reply with the list only, in one code block, like this:',
+  '',
+  '臺北,K',
+  '捷運,L',
+  '夜市,F',
+  '',
+  'My list:',
+  '',
+].join('\n');
+
+/** Parse a known-words.txt style list: word, K|L|F, date (tab, comma or semicolon). Lines with only a word count as known. */
 export function parseWordList(text: string): { w: string; s: Status; t: number }[] {
   const out: { w: string; s: Status; t: number }[] = [];
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
     if (!line || line.startsWith('#')) continue;
-    const cols = line.split(/\t|,|;/).map((c) => c.trim());
+    // Columns by tab, comma or semicolon; "臺北 K" (an AI chat turns tabs into spaces) works too.
+    const spaced = /^(\S+)\s+([KLF])$/i.exec(line);
+    const cols = spaced ? [spaced[1], spaced[2]] : line.split(/\t|,|;/).map((c) => c.trim());
     const m = /[㐀-鿿豈-﫿]+/.exec(cols[0]) ?? /[㐀-鿿豈-﫿]+/.exec(line);
     if (!m) continue;
     const codeCol = cols.find((c, i) => i > 0 && /^[KLF]$/i.test(c))?.toUpperCase();
@@ -147,35 +177,4 @@ export function parseWordList(text: string): { w: string; s: Status; t: number }
     out.push({ w: m[0], s, t });
   }
   return out;
-}
-
-/**
- * A ready prompt for an AI tutor (Claude, ChatGPT, Gemini): the words you are learning, the
- * newest first, each with its reading, meaning and the sentence you met it in.
- */
-export function buildPracticePrompt(words: WordRecord[], saved: Record<string, SavedSentence[]> = {}, max = 40): string {
-  const mine = words
-    .filter((w) => w.s !== 'known')
-    .sort((a, b) => b.updated - a.updated)
-    .slice(0, max);
-  const known = words.filter((w) => w.s === 'known').length;
-  const rows = mine.map((w) => {
-    const met = shownSentence(w.ctx ?? [], w.w, saved[w.w]);
-    return [w.w, w.p?.toLowerCase(), w.g, met?.text].map((x) => clean(x)).filter(Boolean).join(' · ');
-  });
-  return [
-    'I am learning Taiwanese Chinese. Please be my tutor for a short practice session.',
-    '',
-    `Below are ${mine.length} words I am studying right now (word · pinyin · meaning · the sentence I met it in). I already know about ${known.toLocaleString('en-US')} other words, so keep everything else simple.`,
-    '',
-    'Rules: Traditional characters and Taiwan usage only (no 兒化, Taiwan vocabulary and readings). Add pinyin only when I ask.',
-    '',
-    '1. Write a short story or dialogue (about 150 characters) that uses as many of these words as fit naturally. Mark each of my words in **bold**.',
-    '2. Then quiz me on 8 of the words, one question at a time: a new sentence with a blank, and wait for my answer. Tell me if I was right, explain briefly in English, and move on.',
-    '3. At the end, list the words I got wrong.',
-    '',
-    'My words:',
-    ...rows,
-    '',
-  ].join('\n');
 }

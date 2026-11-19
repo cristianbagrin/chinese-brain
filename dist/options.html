@@ -30,7 +30,8 @@
         <div class="who">
           <span class="disc" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7.5 18.5h9.5a4 4 0 0 0 .4-8 5.5 5.5 0 0 0-10.6-1A4.5 4.5 0 0 0 7.5 18.5z"/></svg></span>
           <div class="who-text"><h3>Sync your words</h3><p>One list on every browser and on the web.</p></div>
-          <a class="info" href="https://chinese.cristianbagrin.com/brain/guide#sync" target="_blank" aria-label="How sync works" data-tip="Free and optional. Click to read how it works.">?</a>
+          <button type="button" class="help" popovertarget="helpSync" aria-label="About sync">?</button>
+          <div class="help-pop" id="helpSync" popover><p>Free and optional. Your words, saved sentences and settings stay the same in every browser you sign in to, and on the <a class="words" href="https://chinese.cristianbagrin.com/brain/dashboard" target="_blank">Dashboard</a> on any device.</p><p>Without an account, everything stays in this browser.</p></div>
         </div>
         <div class="fields">
           <input type="email" id="email" placeholder="Email" autocomplete="username" aria-label="Email" required>
@@ -46,13 +47,14 @@
       <div id="signedIn" hidden>
         <div class="group pad">
           <div class="who">
-            <span class="disc initial" id="acctInitial" aria-hidden="true"></span>
-            <div class="who-text"><h3 id="acctEmail"></h3><p id="acctSync" role="status"></p></div>
+            <a class="who-link" href="https://account.cristianbagrin.com/" target="_blank" data-tip="Email, password, delete account">
+              <span class="disc initial" id="acctInitial" aria-hidden="true"></span>
+              <div class="who-text"><h3><span id="acctEmail"></span><i class="out" aria-hidden="true"></i></h3><p id="acctSync" role="status"></p></div>
+            </a>
             <button type="button" class="icon" id="syncNow" aria-label="Sync now" data-tip="Sync now"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12a7 7 0 0 1-12.2 4.7M5 12a7 7 0 0 1 12.2-4.7"/><path d="M17.5 3.5v4h-4M6.5 20.5v-4h4"/></svg></button>
           </div>
         </div>
         <div class="group">
-          <a class="row go" href="https://account.cristianbagrin.com/" target="_blank" data-tip="Email, password, delete account"><span>Manage account</span><i class="out" aria-hidden="true"></i></a>
           <a class="row go words" href="https://chinese.cristianbagrin.com/brain/dashboard" target="_blank"><span>Dashboard</span><i class="out" aria-hidden="true"></i></a>
           <button type="button" class="row go danger" id="signOut"><span>Sign out</span></button>
         </div>
@@ -67,25 +69,27 @@
         <label for="hoverMode">Show the card</label>
         <div class="ctl">
           <select id="hoverMode" data-seg>
-            <option value="hover" data-short="Hover">on hover</option>
+            <option value="hover" data-short="Auto-hover" title="Opens when you rest the pointer on a word">auto-hover</option>
             <option value="alt" id="altOption">while holding Alt</option>
             <option value="off" data-short="Never">never</option>
           </select>
         </div>
       </div>
       <div class="row stack" data-when="hoverMode=hover">
-        <label for="altSites" data-tip="Websites where the card waits for the key">Hold <span class="altKey">Alt</span> on</label>
+        <div class="lab"><label for="altSites">Hold <span class="altKey">Alt</span> on</label><button type="button" class="help" popovertarget="helpAltSites" aria-label="About websites that wait for the key">?</button></div>
+        <div class="help-pop" id="helpAltSites" popover><p>On these websites the card opens only while you hold <b class="altKey">Alt</b>, so hovering doesn’t get in the way. One website per line.</p><p>Quicker: the toolbar menu, <b>On this website</b>.</p></div>
         <textarea id="altSites" rows="2" placeholder="docs.google.com" spellcheck="false" title="One website per line"></textarea>
       </div>
       <div class="row stack" data-when="hoverMode=alt">
-        <label for="hoverSites" data-tip="Websites where the card opens without the key">Plain hover on</label>
+        <div class="lab"><label for="hoverSites">Auto-hover on</label><button type="button" class="help" popovertarget="helpHoverSites" aria-label="About auto-hover">?</button></div>
+        <div class="help-pop" id="helpHoverSites" popover><p>On these websites the card opens when you rest the pointer on a word, no key needed. One website per line.</p><p>Quicker: the toolbar menu, <b>On this website</b>.</p></div>
         <textarea id="hoverSites" rows="2" placeholder="youtube.com" spellcheck="false" title="One website per line"></textarea>
       </div>
       <div class="row">
         <label for="pron" data-tip="In the card, the subtitles, the transcript and on the website">Pronunciation</label>
         <div class="ctl">
           <select id="pron" data-seg>
-            <option value="zhuyin" data-short="注音" lang="zh-Hant">注音</option>
+            <option value="zhuyin" data-short="Zhuyin" title="ㄓㄨˋ ㄧㄣ">Zhuyin</option>
             <option value="pinyin" data-short="Pinyin">Pinyin</option>
           </select>
         </div>
@@ -113,7 +117,8 @@
 
     <div class="group" data-when="hoverMode!=off">
       <div class="row stack">
-        <label for="disabledSites">Lookup stays off on</label>
+        <div class="lab"><label for="disabledSites">Lookup stays off on</label><button type="button" class="help" popovertarget="helpOffSites" aria-label="About websites without lookup">?</button></div>
+        <div class="help-pop" id="helpOffSites" popover><p>No card on these websites, by hover or by key. One website per line.</p><p>Quicker: the toolbar menu, <b>On this website</b> → off.</p></div>
         <textarea id="disabledSites" rows="2" placeholder="mail.google.com" spellcheck="false" title="One website per line"></textarea>
       </div>
     </div>
@@ -147,7 +152,17 @@
     </div>
     <div class="group" data-when="ytEnabled">
       <div class="row"><label for="pauseOnHover">Pause while hovering the subtitles</label><input type="checkbox" id="pauseOnHover" role="switch"></div>
-      <div class="row"><label for="autoFreshOnClick">Clicking a new word stamps it <span lang="zh-Hant" class="zh">新</span> Fresh</label><input type="checkbox" id="autoFreshOnClick" role="switch"></div>
+      <div class="row">
+        <label for="clickStamp">Clicking a new word stamps it</label>
+        <div class="ctl">
+          <select id="clickStamp" data-seg>
+            <option value="fresh">新 Fresh</option>
+            <option value="learning">學 Learning</option>
+            <option value="known">熟 Known</option>
+            <option value="off" data-short="Off">off</option>
+          </select>
+        </div>
+      </div>
       <div class="row"><label for="shadowFactor" data-tip="How long Shadowing waits, in lengths of the line you just heard">Shadowing pause</label><input type="number" id="shadowFactor" min="0.5" max="4" step="0.25" data-unit="×"></div>
     </div>
   </section>
@@ -181,7 +196,8 @@
     </div>
     <div class="group" data-when="voice=azure">
       <div class="row">
-        <label for="azureKey">Azure key</label>
+        <div class="lab"><label for="azureKey">Azure key</label><button type="button" class="help" popovertarget="helpAzure" aria-label="About the Azure voice">?</button></div>
+        <div class="help-pop" id="helpAzure" popover><p>A more natural Taiwan voice (Microsoft Azure). Its free tier covers far more than you’ll use.</p><p><a href="https://portal.azure.com/#create/Microsoft.CognitiveServicesSpeechServices" target="_blank">Create a Speech resource</a> (free F0 tier), open <b>Keys and Endpoint</b>, and paste Key 1 here. Check finds the region.</p><p>Without a key, the card uses Google’s voice.</p></div>
         <div class="ctl">
           <input type="password" id="azureKey" autocomplete="off" spellcheck="false" placeholder="Paste your key">
           <button type="button" id="checkAzure">Check</button>
@@ -205,7 +221,8 @@
   <section id="gemini" class="sec">
     <div class="sec-head">
       <h2>Gemini</h2>
-      <a class="info" href="https://chinese.cristianbagrin.com/brain/guide#gemini" target="_blank" aria-label="How Gemini helps" data-tip="Optional. AI subtitles for videos without captions, and extra example sentences.">?</a>
+      <button type="button" class="help" popovertarget="helpGemini" aria-label="About Gemini">?</button>
+      <div class="help-pop" id="helpGemini" popover><p>Optional, with your own free key from Google:</p><ul><li>Subtitles for YouTube videos without Chinese captions (other languages come out in Taiwanese Chinese)</li><li>New example sentences in the card</li></ul><p><a href="https://aistudio.google.com/apikey" target="_blank">Get a key</a> in Google AI Studio, paste it here, then Check.</p></div>
       <a class="pill" href="https://aistudio.google.com/apikey" target="_blank">Get a free key<i class="out" aria-hidden="true"></i></a>
     </div>
     <div class="group">
@@ -243,8 +260,7 @@
   <section id="help" class="sec">
     <h2>About</h2>
     <div class="group pad chris">
-      <img src="chris.webp" alt="" width="64" height="64">
-      <div class="who-text"><h3>Made by Chris</h3><p>Ideas, bugs, questions go straight to him.</p></div>
+      <a class="me" href="https://cristianbagrin.com/" target="_blank"><img src="chris.webp" alt="" width="64" height="64"><div class="who-text"><h3>Made by Chris</h3><p>Ideas, bugs, questions go straight to him.</p></div></a>
       <a class="btn" id="feedback" href="mailto:chris@cristianbagrin.com">Give feedback</a>
     </div>
     <div class="group">

@@ -153,11 +153,11 @@
     let parts = sylls.map(zhuyinParts);
     if (parts.some((p) => !p)) return null;
     let box2 = doc.createElement("span");
-    return box2.className = "zyw", chars.forEach((ch, i) => box2.append(zhuyinChar(ch, parts[i], doc))), box2;
+    return box2.className = "zyw over", chars.forEach((ch, i) => box2.append(zhuyinChar(ch, parts[i], doc))), box2;
   }
   function zhuyinChar(ch, p, doc = document) {
     let c = doc.createElement("span"), n = [...p.letters].length + (p.er ? 1 : 0);
-    return c.className = `zy n${Math.min(4, n)}`, c.dataset.zy = p.letters + p.er, c.dataset.tone = p.tone, c.textContent = ch, c;
+    return c.className = `zy n${Math.min(4, n)}`, c.dataset.zy = p.letters + p.er, c.dataset.tone = p.tone, c.dataset.over = p.letters + p.tone + p.er, c.textContent = ch, c;
   }
 
   // src/shared/types.ts
@@ -171,7 +171,7 @@
     pron: "zhuyin",
     translation: "blur",
     pauseOnHover: !0,
-    autoFreshOnClick: !0,
+    clickStamp: "fresh",
     subFontSize: 30,
     subStyle: "light",
     shadowFactor: 1.5,
@@ -191,7 +191,7 @@
   };
   function normalizeSettings(raw) {
     let r = { ...raw ?? {} };
-    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), r.hoverMode === "shift" && (r.hoverMode = "alt"), delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, r.pron !== "pinyin" && r.pron !== "zhuyin" && delete r.pron, { ...DEFAULT_SETTINGS, ...r };
+    return r.pinyin === void 0 && (r.subPinyin !== void 0 || r.cardPinyin !== void 0) && (r.pinyin = r.subPinyin === !0 || r.cardPinyin !== "hover"), r.voice === void 0 && typeof r.azureKey == "string" && r.azureKey && (r.voice = "azure"), r.hoverMode === "shift" && (r.hoverMode = "alt"), r.clickStamp === void 0 && r.autoFreshOnClick === !1 && (r.clickStamp = "off"), delete r.autoFreshOnClick, ["fresh", "learning", "known", "off"].includes(r.clickStamp) || delete r.clickStamp, delete r.subPinyin, delete r.cardPinyin, delete r.markUntracked, r.pron !== "pinyin" && r.pron !== "zhuyin" && delete r.pron, { ...DEFAULT_SETTINGS, ...r };
   }
   function cardMode(s, host2) {
     return s.hoverMode === "off" || s.disabledSites.includes(host2) ? "off" : s.hoverMode === "hover" ? s.altSites.includes(host2) ? "alt" : "hover" : s.hoverSites.includes(host2) ? "hover" : "alt";
@@ -595,7 +595,7 @@
     next: () => "next line \u25B6",
     loop: (s) => s.looping ? "\u21BB looping this line" : "loop off",
     shadow: (s) => s.shadowing ? "shadowing on" : "shadowing off",
-    pinyin: () => `${state.settings.pron === "zhuyin" ? "\u6CE8\u97F3" : "pinyin"} ${state.settings.pinyin ? "on" : "off"}`,
+    pinyin: () => `${state.settings.pron === "zhuyin" ? "zhuyin" : "pinyin"} ${state.settings.pinyin ? "on" : "off"}`,
     transcript: (s) => s.transcript.open ? "transcript open" : "transcript closed",
     english: () => `English ${state.settings.translation === "show" ? "shown" : state.settings.translation === "blur" ? "blurred" : "hidden"}`
   };
@@ -681,7 +681,7 @@
         el(
           "div",
           "chips",
-          chip(s.pron === "zhuyin" ? "\u6CE8\u97F3" : "Pinyin", "pinyin", s.pinyin, () => save({ pinyin: !s.pinyin }), "Pronunciation over the words"),
+          chip(s.pron === "zhuyin" ? "Zhuyin" : "Pinyin", "pinyin", s.pinyin, () => save({ pinyin: !s.pinyin }), "Pronunciation over the words"),
           chip(s.translation === "blur" ? "English (blur)" : "English", "english", s.translation !== "hide", () => save({ translation: MODES[(MODES.indexOf(s.translation) + 1) % 3] }), "Shown, blurred until you hover, or hidden"),
           chip("Transcript", "transcript", this.subs.transcript.open, () => this.subs.transcript.toggle())
         )
@@ -1476,16 +1476,18 @@ ruby.zy rt { font-size: 0.36em; opacity: 0.85; }
         at: Date.now(),
         src: "yt"
       }, cursor = e instanceof MouseEvent ? { x: e.clientX, y: e.clientY } : void 0;
-      if (await this.popup.show({
+      await this.popup.show({
         matches,
         rect: span.getBoundingClientRect(),
         cursor,
         src: "yt",
         ctx: ctx2,
         pinned
-      }), pinned && state.settings.autoFreshOnClick) {
+      });
+      let stamp = state.settings.clickStamp;
+      if (pinned && stamp !== "off") {
         let w2 = matches[0].word, st = state.status(w2);
-        st ? st === "fresh" && this.clickStamped === w2 && (this.popup.setStatus(null, !1), this.clickStamped = "") : (this.popup.setStatus("fresh", !1), this.clickStamped = w2);
+        st ? st === stamp && this.clickStamped === w2 && (this.popup.setStatus(null, !1), this.clickStamped = "") : (this.popup.setStatus(stamp, !1), this.clickStamped = w2);
       }
     }
     onTokenHover(e) {
@@ -2214,9 +2216,8 @@ ruby.zy rt { font-size: 0.36em; opacity: 0.85; }
 .head.st-learning { background: var(--learning-mark); }
 .head.st-known { background: var(--known-mark); }
 .py { font-size: 1.07em; color: var(--text3); letter-spacing: 0.01em; }
-/* \u6CE8\u97F3: beside each character of the headword; on its own line for a long phrase. */
-.head.zyhead { --zy: 0.45em; --zy-ink: var(--text2); padding-right: 0; }
-.head.zyhead .zy::after, .head.zyhead .zy::before { font-weight: 400; }
+/* Zhuyin: over each character of the headword; on its own line for a long phrase. */
+.head.zyhead { --zy: 0.46em; --zy-ink: var(--text2); }
 
 /* How common the word is, in words (the tooltip says what that means for you). */
 .freq { margin-left: auto; display: flex; align-items: center; gap: 0.45em; font-size: 0.86em; color: var(--text3); white-space: nowrap; cursor: default; }
@@ -2382,7 +2383,7 @@ ruby.zy rt { font-size: 0.36em; opacity: 0.85; }
 
   // src/shared/zhuyin.css
   var zhuyin_default = `/*
- * \u6CE8\u97F3 beside each character, as Taiwan prints it: the letters in a column on the character's
+ * Zhuyin beside each character, as Taiwan prints it: the letters in a column on the character's
  * right, the tone mark to the right of the last letter, the neutral tone's dot on top.
  * Drawn from data attributes (src/shared/zhuyin.ts, zhuyinChar), so the element's text stays the
  * character. Size it with --zy (the letters' size, in em of the character); color with --zy-ink.
@@ -2411,6 +2412,21 @@ ruby.zy rt { font-size: 0.36em; opacity: 0.85; }
 .zy.n2::before { top: calc(50% + 0.08em); }
 .zy.n3::before { top: calc(50% + 0.6em); }
 .zy.n4::before { top: calc(50% + 1.12em); }
+
+/* Over each character instead (.zyw.over, the card's headword): one line, centered, like ruby. */
+.zyw.over { align-items: flex-end; }
+.zyw.over .zy { flex-direction: column; padding-right: 0; }
+.zyw.over .zy + .zy { margin-left: 0.04em; }
+.zyw.over .zy::before { content: none; }
+.zyw.over .zy::after {
+  content: attr(data-over);
+  order: -1;
+  width: auto;
+  margin: 0 0 0.3em;
+  line-height: 1;
+  white-space: nowrap;
+  word-break: normal;
+}
 `;
 
   // src/content/popup.ts

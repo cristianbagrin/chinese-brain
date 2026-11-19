@@ -212,39 +212,42 @@
     let order = { K: 0, L: 1, F: 2, "-": 3 };
     return rows.sort((a, b) => order[code(a.now)] - order[code(b.now)] || a.date - b.date), { rows, savedNow, watches };
   }
+  var IMPORT_EXAMPLE = [
+    "# Chinese Brain word list: one word per line, then a comma and K (known), L (learning) or F (fresh). No letter means known.",
+    "\u81FA\u5317,K",
+    "\u6377\u904B,L",
+    "\u591C\u5E02,F",
+    ""
+  ].join(`
+`), IMPORT_PROMPT = [
+    "Turn my Chinese word list (below or attached) into this exact format, so I can import it into Chinese Brain:",
+    "",
+    "- One word per line, in Traditional characters as used in Taiwan (convert Simplified ones).",
+    "- After each word, a comma and one letter for how well I know it: K known, L learning, F fresh (new to me).",
+    "- If my list shows how well I know each word (Anki intervals or due dates, a column, a mark), use that. Otherwise use K.",
+    "- Only the words: no pinyin, meanings, numbering or headings. Leave out duplicates and anything that isn't a Chinese word.",
+    "",
+    "Reply with the list only, in one code block, like this:",
+    "",
+    "\u81FA\u5317,K",
+    "\u6377\u904B,L",
+    "\u591C\u5E02,F",
+    "",
+    "My list:",
+    ""
+  ].join(`
+`);
   function parseWordList(text) {
     let out = [];
     for (let raw of text.split(/\r?\n/)) {
       let line = raw.trim();
       if (!line || line.startsWith("#")) continue;
-      let cols = line.split(/\t|,|;/).map((c) => c.trim()), m = /[㐀-鿿豈-﫿]+/.exec(cols[0]) ?? /[㐀-鿿豈-﫿]+/.exec(line);
+      let spaced = /^(\S+)\s+([KLF])$/i.exec(line), cols = spaced ? [spaced[1], spaced[2]] : line.split(/\t|,|;/).map((c) => c.trim()), m = /[㐀-鿿豈-﫿]+/.exec(cols[0]) ?? /[㐀-鿿豈-﫿]+/.exec(line);
       if (!m) continue;
       let codeCol = cols.find((c, i) => i > 0 && /^[KLF]$/i.test(c))?.toUpperCase(), s = codeCol === "L" ? "learning" : codeCol === "F" ? "fresh" : "known", dateCol = cols.find((c) => /^\d{4}-\d{2}-\d{2}$/.test(c)), t = dateCol ? (/* @__PURE__ */ new Date(`${dateCol}T12:00:00`)).getTime() : 0;
       out.push({ w: m[0], s, t });
     }
     return out;
-  }
-  function buildPracticePrompt(words2, saved2 = {}, max = 40) {
-    let mine = words2.filter((w) => w.s !== "known").sort((a, b) => b.updated - a.updated).slice(0, max), known = words2.filter((w) => w.s === "known").length, rows = mine.map((w) => {
-      let met = shownSentence(w.ctx ?? [], w.w, saved2[w.w]);
-      return [w.w, w.p?.toLowerCase(), w.g, met?.text].map((x) => clean(x)).filter(Boolean).join(" \xB7 ");
-    });
-    return [
-      "I am learning Taiwanese Chinese. Please be my tutor for a short practice session.",
-      "",
-      `Below are ${mine.length} words I am studying right now (word \xB7 pinyin \xB7 meaning \xB7 the sentence I met it in). I already know about ${known.toLocaleString("en-US")} other words, so keep everything else simple.`,
-      "",
-      "Rules: Traditional characters and Taiwan usage only (no \u5152\u5316, Taiwan vocabulary and readings). Add pinyin only when I ask.",
-      "",
-      "1. Write a short story or dialogue (about 150 characters) that uses as many of these words as fit naturally. Mark each of my words in **bold**.",
-      "2. Then quiz me on 8 of the words, one question at a time: a new sentence with a blank, and wait for my answer. Tell me if I was right, explain briefly in English, and move on.",
-      "3. At the end, list the words I got wrong.",
-      "",
-      "My words:",
-      ...rows,
-      ""
-    ].join(`
-`);
   }
 
   // src/shared/sounds.ts
@@ -316,8 +319,82 @@
   }
   var MAC = /Mac|iPhone|iPad/.test(navigator.platform);
 
+  // src/pages/help.css
+  var help_default = `/*
+ * The "?" next to a setting and the short note it opens, right there (help.ts). The note grows out
+ * of its "?" (transform-origin follows the trigger), fades in fast and out faster, and can be
+ * reversed mid-way: transitions, not keyframes. Pages tune it with --help-* custom properties.
+ */
+button.help {
+  display: inline-grid; place-items: center; flex: none; vertical-align: middle;
+  width: 22px; height: 22px; padding: 0; margin: 0 0 0 6px; border: 0; border-radius: 50%;
+  background: var(--help-fill, rgba(30, 26, 24, 0.07)); color: var(--help-ink2, #6b635d);
+  font: 600 13px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.12s ease;
+  /* A bigger target than it looks (fingers). */
+  position: relative;
+}
+button.help::before { content: ''; position: absolute; inset: -8px; }
+button.help:active { transform: scale(0.92); }
+button.help[aria-expanded='true'] { background: var(--help-accent, #c8202f); color: #fff; }
+@media (hover: hover) and (pointer: fine) {
+  button.help:hover:not([aria-expanded='true']) { background: var(--help-fill2, rgba(30, 26, 24, 0.12)); color: var(--help-ink, #1e1a18); }
+}
+button.help:focus-visible { outline: 2px solid var(--help-accent, #c8202f); outline-offset: 2px; }
+
+.help-pop {
+  position: fixed; inset: auto; margin: 0; box-sizing: border-box;
+  width: max-content; max-width: min(300px, calc(100vw - 16px)); padding: 12px 14px;
+  border: 0; border-radius: 12px; background: var(--help-bg, #fff); color: var(--help-ink, #1e1a18);
+  box-shadow: 0 0 0 1px rgba(30, 26, 24, 0.08), 0 12px 32px -8px rgba(30, 26, 24, 0.28), 0 2px 6px rgba(30, 26, 24, 0.06);
+  font: 400 14px/1.45 -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; text-align: left;
+  letter-spacing: normal; text-transform: none; white-space: normal; overflow-wrap: break-word;
+  opacity: 1; transform: none;
+  transition: opacity 0.15s cubic-bezier(0.23, 1, 0.32, 1), transform 0.2s cubic-bezier(0.23, 1, 0.32, 1),
+    overlay 0.2s allow-discrete, display 0.2s allow-discrete;
+}
+.help-pop:not(:popover-open) { opacity: 0; transform: scale(0.96); transition-duration: 0.1s, 0.12s, 0.12s, 0.12s; }
+@starting-style { .help-pop:popover-open { opacity: 0; transform: scale(0.96); } }
+.help-pop p { margin: 0; }
+.help-pop p + p, .help-pop p + ul, .help-pop ul + p { margin-top: 8px; }
+.help-pop ul { margin: 0; padding-left: 18px; }
+.help-pop b, .help-pop strong { font-weight: 600; }
+.help-pop a { color: var(--help-link, #a3192a); font-weight: 500; }
+.help-pop code, .help-pop kbd { font: 500 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 1px 4px; border-radius: 4px; background: var(--help-fill, rgba(30, 26, 24, 0.07)); }
+.help-pop [lang='zh-Hant'] { font-size: 1.08em; }
+
+@media (prefers-reduced-motion: reduce) {
+  .help-pop, .help-pop:not(:popover-open) { transform: none; }
+  @starting-style { .help-pop:popover-open { transform: none; } }
+}
+`;
+
+  // src/pages/help.ts
+  function helpPopovers(root2 = document) {
+    document.adoptedStyleSheets.includes(sheet) || (sheet.replaceSync(help_default), document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet]);
+    for (let pop of root2.querySelectorAll(".help-pop[popover]")) {
+      if (pop.dataset.ready) continue;
+      pop.dataset.ready = "1";
+      let trigger = document.querySelector(`[popovertarget="${pop.id}"]`);
+      if (!trigger) continue;
+      pop.hasAttribute("aria-label") || pop.setAttribute("aria-label", trigger.getAttribute("aria-label") ?? "Help"), pop.setAttribute("role", "dialog");
+      let raf = 0, place = () => {
+        cancelAnimationFrame(raf), raf = requestAnimationFrame(() => position(pop, trigger));
+      };
+      pop.addEventListener("beforetoggle", (e) => {
+        let open = e.newState === "open";
+        trigger.setAttribute("aria-expanded", String(open)), open ? (place(), addEventListener("scroll", place, { capture: !0, passive: !0 }), addEventListener("resize", place)) : (removeEventListener("scroll", place, { capture: !0 }), removeEventListener("resize", place));
+      }), trigger.setAttribute("aria-expanded", "false");
+    }
+  }
+  var sheet = new CSSStyleSheet(), GAP = 8, EDGE = 8;
+  function position(pop, trigger) {
+    let t = trigger.getBoundingClientRect(), w = pop.offsetWidth, h2 = pop.offsetHeight, vw = document.documentElement.clientWidth, vh = innerHeight, below = t.bottom + GAP + h2 <= vh - EDGE || t.top - GAP - h2 < EDGE, top = below ? t.bottom + GAP : t.top - GAP - h2, left = Math.max(EDGE, Math.min(t.left - 10, vw - EDGE - w));
+    pop.style.top = `${Math.round(top)}px`, pop.style.left = `${Math.round(left)}px`, pop.style.transformOrigin = `${Math.round(t.left + t.width / 2 - left)}px ${below ? 0 : h2}px`;
+  }
+
   // src/shared/zhuyin.ts
-  var PRONS = ["zhuyin", "pinyin"], PRON_LABEL = { zhuyin: "\u6CE8\u97F3", pinyin: "Pinyin" }, INITIALS = {
+  var PRONS = ["zhuyin", "pinyin"], PRON_LABEL = { zhuyin: "Zhuyin", pinyin: "Pinyin" }, INITIALS = {
     b: "\u3105",
     p: "\u3106",
     m: "\u3107",
@@ -649,7 +726,7 @@
     let now = sitePron();
     box.replaceChildren(
       ...PRONS.map((p) => {
-        let b = h("button", { type: "button", "aria-pressed": String(p === now), lang: p === "zhuyin" ? "zh-Hant" : "en" }, PRON_LABEL[p]);
+        let b = h("button", { type: "button", "aria-pressed": String(p === now), lang: "en" }, PRON_LABEL[p]);
         return b.addEventListener("click", () => p !== sitePron() && setSitePron(p)), b;
       })
     );
@@ -729,9 +806,6 @@
     }), $("filter").addEventListener("click", (e) => {
       let b = e.target.closest("button");
       b && setFilter(b.dataset.f);
-    }), $("practice").addEventListener("click", async () => {
-      let learning = words.some((w) => w.s !== "known");
-      learning && await navigator.clipboard.writeText(buildPracticePrompt(words, saved)), $("practiceOk").textContent = learning ? "Copied. Paste it into your AI chat." : "Stamp some words \u65B0 or \u5B78 first.";
     }), $("exportNew").addEventListener("click", () => exportNew((text) => download(`chinese-brain-${today()}.tsv`, text, TSV))), $("copyNew").addEventListener(
       "click",
       () => exportNew(async (text) => {
@@ -739,12 +813,16 @@
       })
     ), $("exportAll").addEventListener("click", async () => {
       ({ words, logs, saved } = await src.load()), download(`chinese-brain-all-${today()}.tsv`, buildClaudeExport(words, logs, 0, saved), TSV);
-    }), $("importTool").hidden = !src.importList, $("knownFile").addEventListener("change", async (e) => {
+    }), $("importTool").hidden = !src.importList, helpPopovers();
+    let copied = async (text, what) => {
+      await navigator.clipboard.writeText(text), $("knownOk").textContent = what;
+    };
+    $("importPrompt").addEventListener("click", () => copied(IMPORT_PROMPT, "Prompt copied. Add your list in the AI chat.")), $("exampleCopy").addEventListener("click", () => copied(IMPORT_EXAMPLE, "Example copied.")), $("exampleGet").addEventListener("click", () => download("chinese-brain-words.csv", IMPORT_EXAMPLE, "text/csv;charset=utf-8")), $("knownFile").addEventListener("change", async (e) => {
       let f = e.target.files?.[0];
       f && ($("knownText").value = await f.text());
     }), $("knownGo").addEventListener("click", async () => {
       let items = parseWordList($("knownText").value);
-      if (!items.length) return void ($("knownOk").textContent = "Nothing to import: one word per line.");
+      if (!items.length) return void ($("knownOk").textContent = "No Chinese words in it. Copy the example to see the format.");
       let n = await src.importList(items);
       await src.mark() || await src.mark(Date.now()), $("knownOk").textContent = `${n} word${n === 1 ? "" : "s"} added or updated.`, $("knownText").value = "", await load();
     }), document.addEventListener("visibilitychange", () => {

@@ -36,3 +36,12 @@ test('picking a website’s mode in the toolbar menu writes the right list', () 
   const a = normalizeSettings({ hoverMode: 'alt' });
   assert.deepEqual(setSiteMode(a, 'b.com', 'hover'), { altSites: [], hoverSites: ['b.com'], disabledSites: [] });
 });
+
+test('clicking a new word: the old on/off switch becomes a pile', () => {
+  assert.equal(normalizeSettings({}).clickStamp, 'fresh');
+  assert.equal(normalizeSettings({ autoFreshOnClick: false }).clickStamp, 'off');
+  assert.equal(normalizeSettings({ autoFreshOnClick: true }).clickStamp, 'fresh');
+  assert.equal(normalizeSettings({ clickStamp: 'known' }).clickStamp, 'known');
+  assert.equal(normalizeSettings({ clickStamp: 'nonsense' }).clickStamp, 'fresh');
+  assert.ok(!('autoFreshOnClick' in normalizeSettings({ autoFreshOnClick: false })));
+});

@@ -3,7 +3,7 @@ import { numberedToMarked } from './pinyin.ts';
 /** How readings are written: 注音 (Zhuyin, Bopomofo; Taiwan's own) or Hanyu Pinyin. */
 export type Pron = 'zhuyin' | 'pinyin';
 export const PRONS: Pron[] = ['zhuyin', 'pinyin'];
-export const PRON_LABEL: Record<Pron, string> = { zhuyin: '注音', pinyin: 'Pinyin' };
+export const PRON_LABEL: Record<Pron, string> = { zhuyin: 'Zhuyin', pinyin: 'Pinyin' };
 
 const INITIALS: Record<string, string> = {
   b: 'ㄅ', p: 'ㄆ', m: 'ㄇ', f: 'ㄈ', d: 'ㄉ', t: 'ㄊ', n: 'ㄋ', l: 'ㄌ', g: 'ㄍ', k: 'ㄎ', h: 'ㄏ',
@@ -200,10 +200,10 @@ export function pronMarked(marked: string, mode: Pron, count?: number): string {
 }
 
 /**
- * A word with each character's zhuyin in a column on its right, the way Taiwan prints it. The
- * zhuyin is drawn by CSS from data attributes (see `.zy` in the stylesheets), so the text of the
- * element stays the word itself: selecting, copying and the hover lookup see only the characters.
- * Null when the readings don't pair up with the characters.
+ * A word with each character's zhuyin over it, like ruby (and like the YouTube subtitles): easier
+ * to read at a glance than the printed column. The zhuyin is drawn by CSS from data attributes
+ * (see `.zy` in the stylesheets), so the text of the element stays the word itself: selecting,
+ * copying and the hover lookup see only the characters. Null when the readings don't pair up.
  */
 export function zhuyinWord(word: string, numbered: string, doc: Document = document): HTMLElement | null {
   const chars = [...word];
@@ -212,18 +212,22 @@ export function zhuyinWord(word: string, numbered: string, doc: Document = docum
   const parts = sylls.map(zhuyinParts);
   if (parts.some((p) => !p)) return null;
   const box = doc.createElement('span');
-  box.className = 'zyw';
+  box.className = 'zyw over';
   chars.forEach((ch, i) => box.append(zhuyinChar(ch, parts[i]!, doc)));
   return box;
 }
 
-/** One character with its zhuyin column (data-zy letters, data-tone, data-er; n1..n4 = how many letters). */
+/**
+ * One character with its zhuyin: data-zy (the column's letters), data-tone, n1..n4 (how many
+ * letters); data-over is the whole syllable on one line, for zhuyin over the character.
+ */
 export function zhuyinChar(ch: string, p: ZhuyinParts, doc: Document = document): HTMLElement {
   const c = doc.createElement('span');
   const n = [...p.letters].length + (p.er ? 1 : 0);
   c.className = `zy n${Math.min(4, n)}`;
   c.dataset.zy = p.letters + p.er;
   c.dataset.tone = p.tone;
+  c.dataset.over = p.letters + p.tone + p.er;
   c.textContent = ch;
   return c;
 }

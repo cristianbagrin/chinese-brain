@@ -3,8 +3,12 @@ import { state } from '../content/state.ts';
 import { DEFAULT_SETTINGS, type Settings } from '../shared/types.ts';
 import { KEY_ACTIONS, keyLabel, keyName, keyOf, type KeyAction } from '../shared/keys.ts';
 import type { AccountInfo } from '../background/sync.ts';
-import type { WordRecord } from '../shared/types.ts';
+import type { Status, WordRecord } from '../shared/types.ts';
 import { $, ago, ALT, DASHBOARD, download, feedbackLink, shortcutLabel, today } from './common.ts';
+import { helpPopovers } from './help.ts';
+import { playStamp } from '../shared/sounds.ts';
+import { Popup } from '../content/popup.ts';
+import type { LookupMatch } from '../shared/types.ts';
 
 type Key = keyof Settings;
 type Field = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
@@ -60,8 +64,32 @@ async function save(key: Key, el: Field) {
   clearTimeout(savedTimer);
   savedTimer = setTimeout(() => tag.classList.remove('show'), 1400);
   showWhen();
+  // Show, don't tell: switching sounds on, or picking a pile, plays its stamp.
+  if (key === 'sounds' && value) playStamp('fresh');
+  if (key === 'clickStamp' && value !== 'off' && settings.sounds) playStamp(value as Status);
+  if (key === 'cardSize' || key === 'pron') void preview(el);
   if (key === 'azureKey') setStatus('azureStatus', '');
   if (key === 'geminiKey') setStatus('geminiStatus', '');
+}
+
+/** The real card, next to the control you just changed (card size, pronunciation): see it, not a description. */
+let card: Popup | undefined;
+async function preview(near: Field) {
+  const matches: LookupMatch[] = await browser.runtime.sendMessage({ type: 'lookup', text: '臺北' });
+  if (!matches?.length) return;
+  if (!card) {
+    card = new Popup();
+    const close = (e: Event) => {
+      if (!card?.visible || card.contains(e.target)) return;
+      if (e instanceof KeyboardEvent && e.key !== 'Escape') return;
+      card.hide();
+    };
+    document.addEventListener('pointerdown', close, true);
+    document.addEventListener('keydown', close, true);
+    addEventListener('scroll', () => card?.visible && card.hide(), { passive: true });
+  }
+  const row = (near.closest('.row') ?? near).getBoundingClientRect();
+  void card.show({ matches: matches.slice(0, 1), rect: new DOMRect(row.right - 220, row.top, 200, row.height), src: 'web', pinned: true });
 }
 
 /** Websites whose word colors you switched on their own: click one to let it follow "every website" again. */
@@ -327,10 +355,12 @@ let recording: (() => void) | undefined;
 
 function showKeys() {
   for (const [id, group] of [['keysCard', 'card'], ['keysYt', 'yt']] as const) {
+    const actions = (Object.keys(KEY_ACTIONS) as KeyAction[]).filter((a) => KEY_ACTIONS[a].group === group);
+    // Two columns, read down the first, then the second.
+    const rows = Math.ceil(actions.length / 2);
+    $(id).style.gridTemplateRows = `repeat(${rows}, auto)`;
     $(id).replaceChildren(
-      ...(Object.keys(KEY_ACTIONS) as KeyAction[])
-        .filter((a) => KEY_ACTIONS[a].group === group)
-        .map((a) => {
+      ...actions.map((a, i) => {
           const key = keyOf(settings, a);
           const b = document.createElement('button');
           b.type = 'button';
@@ -339,6 +369,8 @@ function showKeys() {
           b.title = 'Click, then press the new key (Backspace: no key)';
           b.addEventListener('click', () => record(a, b));
           const row = document.createElement('div');
+          if (i >= rows) row.classList.add('col2');
+          if (i % rows === 0) row.classList.add('top');
           row.append(KEY_ACTIONS[a].label, b);
           return row;
         }),
@@ -386,6 +418,7 @@ $('resetKeys').addEventListener('click', () => void saveKeys({}));
 
 // Key names as this computer calls them.
 for (const el of document.querySelectorAll('.altKey')) el.textContent = ALT;
+helpPopovers();
 $('altOption').textContent = `while holding ${ALT}`;
 $('altOption').dataset.short = `Hold ${ALT}`;
 browser.commands
