@@ -429,13 +429,13 @@ browser.runtime.onMessage.addListener((msg: Msg | { type: string; [k: string]: u
   return undefined;
 });
 
-/** Download through the browser's save-as dialog; true once the file is saved, false if cancelled. */
+/** Download through the browser's save-as dialog; true once the file is saved, false if canceled. */
 async function saveAs(url: string, filename: string): Promise<boolean> {
   let id: number;
   try {
     id = await browser.downloads.download({ url, filename, saveAs: true });
   } catch {
-    return false; // Firefox: the dialog was cancelled
+    return false; // Firefox: the dialog was canceled
   }
   // Chrome starts the download before its dialog; a cancel shows up as an interruption.
   return new Promise((ok) => {

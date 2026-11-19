@@ -191,6 +191,20 @@ Since 1.5.0 (optional accounts) the stores' data questions have new answers:
 These are the store notes: every change. The website's What's new page
 (`site/public/brain/whats-new.html`) is written by hand from them: only what a reader would notice.
 
+1.9.0 (November 19, 2026):
+
+```
+• Zhuyin sits over each character in the card, like the subtitles, easier to read at a glance.
+• Import any word list: the Dashboard gives you the format and a ready prompt. Paste it into any AI with your Anki export, spreadsheet or photo of a list, then paste the answer back.
+• A "?" next to settings explains them right there (Gemini, Azure voice, per-website settings, Import, sync).
+• Clicking a new word in the subtitles can stamp it Fresh, Learning or Known, or nothing.
+• Switching stamp sounds on plays one; changing the card size or pronunciation in Settings shows the card.
+• "↓ New" in the toolbar menu asks where to save, starting in the folder you used last.
+• The toolbar menu fits long website names.
+• Settings: click your account to manage it; "Auto-hover on" is the new name for websites where the card opens without a key; shortcuts read down each column.
+• Practice with AI is gone from the Dashboard.
+```
+
 1.8.0 (November 18, 2026):
 
 ```
