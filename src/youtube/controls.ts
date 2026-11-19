@@ -218,7 +218,7 @@ export class Controls {
     if (g.state !== 'error') {
       if (!this.subs.trackName.startsWith('Gemini')) return null;
       const redo = el('button', 'chip', 'Redo subtitles');
-      redo.title = 'Throw these subtitles away and make new ones (for example with another model)';
+      redo.title = 'Throw these away and make new ones (another model, say)';
       redo.addEventListener('click', () => void this.subs.redoGemini());
       return el('div', 'gem', redo);
     }

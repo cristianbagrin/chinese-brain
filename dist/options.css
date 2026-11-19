@@ -140,7 +140,7 @@ input[type='checkbox']:checked:active::after { transform: translateX(14px); }
 .seg button:hover { background: none; color: var(--ink); }
 .seg button:active { transform: none; }
 .seg button[aria-checked='true'] { color: var(--ink); font-weight: 600; }
-.seg .thumb { position: absolute; z-index: 0; top: 2px; left: 0; height: 32px; width: 0; border-radius: 8px; background: var(--panel); box-shadow: 0 1px 3px rgba(30, 26, 24, 0.12), 0 0 0 0.5px rgba(30, 26, 24, 0.06); transition: transform 0.35s var(--ease), width 0.35s var(--ease); }
+.seg .thumb { position: absolute; z-index: 0; top: 2px; left: 0; height: 32px; width: 0; border-radius: 8px; background: var(--panel); box-shadow: 0 1px 3px rgba(30, 26, 24, 0.12), 0 0 0 0.5px rgba(30, 26, 24, 0.06); transition: transform 0.25s var(--ease), width 0.25s var(--ease); }
 .seg.still .thumb { transition: none; }
 
 /* Steppers (made from the number fields by options.ts). */
@@ -184,7 +184,7 @@ kbd, .key {
 
 /* Websites that keep their own word-color setting. */
 .sites { display: flex; flex-wrap: wrap; gap: 8px; }
-.sites button { height: 32px; padding: 0 8px 0 12px; border-radius: 999px; font-size: 15px; gap: 8px; }
+.sites button { height: auto; min-height: 32px; max-width: 100%; padding: 4px 8px 4px 12px; border-radius: 16px; font-size: 15px; gap: 8px; overflow-wrap: anywhere; text-align: left; }
 .sites button b { font-weight: 600; font-size: 14px; }
 .sites button.on b { color: var(--ok); }
 .sites button.off b { color: var(--ink3); }

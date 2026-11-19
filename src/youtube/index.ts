@@ -474,7 +474,7 @@ export class YouTubeSubs {
   }
 
   private applyGemini(lines: GeminiLine[], translated: boolean) {
-    this.src = { languageCode: 'zh-TW', name: translated ? 'Gemini (translated into Mandarin)' : 'Gemini transcript' };
+    this.src = { languageCode: 'zh-TW', name: translated ? 'Gemini (translated)' : 'Gemini transcript' };
     this.requestedTr = true;
     this.trCues = lines.map((l) => ({ start: l.start, end: l.end, text: l.en }));
     this.trans = lines.map((l) => l.en);

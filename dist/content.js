@@ -717,7 +717,7 @@
       if (g.state !== "error") {
         if (!this.subs.trackName.startsWith("Gemini")) return null;
         let redo = el("button", "chip", "Redo subtitles");
-        return redo.title = "Throw these subtitles away and make new ones (for example with another model)", redo.addEventListener("click", () => void this.subs.redoGemini()), el("div", "gem", redo);
+        return redo.title = "Throw these away and make new ones (another model, say)", redo.addEventListener("click", () => void this.subs.redoGemini()), el("div", "gem", redo);
       }
       let b = el("button", "chip", "Retry missing parts");
       return b.addEventListener("click", () => void this.subs.transcribeWithGemini()), el("div", "", el("div", "note err", g.error ?? "Something went wrong."), el("div", "gem", b));
@@ -1320,7 +1320,7 @@ ruby.zy rt { font-size: 0.36em; opacity: 0.85; }
       p.videoId !== this.videoId || this.gemini.state !== "working" || (this.gemini = { state: "working", done: p.done, total: p.total, pct: p.pct }, p.lines.length && p.lines.length !== this.cues.length && this.applyGemini(p.lines, !1), this.controls.render());
     }
     applyGemini(lines, translated) {
-      this.src = { languageCode: "zh-TW", name: translated ? "Gemini (translated into Mandarin)" : "Gemini transcript" }, this.requestedTr = !0, this.trCues = lines.map((l) => ({ start: l.start, end: l.end, text: l.en })), this.trans = lines.map((l) => l.en), this.setSource(lines.map((l) => ({ start: l.start, end: l.end, text: l.zh })));
+      this.src = { languageCode: "zh-TW", name: translated ? "Gemini (translated)" : "Gemini transcript" }, this.requestedTr = !0, this.trCues = lines.map((l) => ({ start: l.start, end: l.end, text: l.en })), this.trans = lines.map((l) => l.en), this.setSource(lines.map((l) => ({ start: l.start, end: l.end, text: l.zh })));
     }
     get hasSubs() {
       return this.cues.length > 0;
@@ -2217,7 +2217,7 @@ ruby.zy rt { font-size: 0.36em; opacity: 0.85; }
 .head.st-known { background: var(--known-mark); }
 .py { font-size: 1.07em; color: var(--text3); letter-spacing: 0.01em; }
 /* Zhuyin: over each character of the headword; on its own line for a long phrase. */
-.head.zyhead { --zy: 0.46em; --zy-ink: var(--text2); }
+.head.zyhead { --zy: 0.42em; --zy-ink: var(--text2); }
 
 /* How common the word is, in words (the tooltip says what that means for you). */
 .freq { margin-left: auto; display: flex; align-items: center; gap: 0.45em; font-size: 0.86em; color: var(--text3); white-space: nowrap; cursor: default; }
@@ -2416,7 +2416,8 @@ ruby.zy rt { font-size: 0.36em; opacity: 0.85; }
 /* Over each character instead (.zyw.over, the card's headword): one line, centered, like ruby. */
 .zyw.over { align-items: flex-end; }
 .zyw.over .zy { flex-direction: column; padding-right: 0; }
-.zyw.over .zy + .zy { margin-left: 0.04em; }
+/* A little air between characters, so each syllable reads as its own (zhuyin runs wider than a character). */
+.zyw.over .zy + .zy { margin-left: 0.14em; }
 .zyw.over .zy::before { content: none; }
 .zyw.over .zy::after {
   content: attr(data-over);
@@ -2426,6 +2427,7 @@ ruby.zy rt { font-size: 0.36em; opacity: 0.85; }
   line-height: 1;
   white-space: nowrap;
   word-break: normal;
+  letter-spacing: -0.06em;
 }
 `;
 

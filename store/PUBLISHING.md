@@ -93,7 +93,7 @@ chinesebrain
 **Summary** (250 characters max)
 
 ```
-Learn Taiwanese Chinese while you read and watch. Hover any Chinese word for 注音 or Taiwan pinyin, meanings and natural example sentences; get dual Chinese + English subtitles on YouTube; keep one word list with Fresh, Learning and Known.
+Learn Taiwanese Chinese while you read and watch. Hover any Chinese word for zhuyin or Taiwan pinyin, meanings and natural example sentences; get dual Chinese + English subtitles on YouTube; keep one word list with Fresh, Learning and Known.
 ```
 
 **Description**
@@ -102,10 +102,10 @@ Learn Taiwanese Chinese while you read and watch. Hover any Chinese word for 注
 Chinese Brain turns everything you read and watch into Taiwanese Chinese practice.
 
 HOVER ANY CHINESE WORD
-• Traditional characters with Taiwan's standard readings (教育部), in 注音 beside each character or in pinyin
+• Traditional characters with Taiwan's standard readings (教育部), in zhuyin over each character or in pinyin
 • How common the word is, in plain words: essential, very common, common, less common, rare
 • The meaning, and a top-down breakdown: 臺北市 → 臺北 → 臺 · 北, then 市
-• Two natural Taiwan-Mandarin example sentences, picked so the other words are ones you know. Play them aloud, save the ones you want to learn, delete the ones you don't
+• Two natural Taiwanese Chinese example sentences, picked so the other words are ones you know. Play them aloud, save the ones you want to learn, delete the ones you don't
 • The sentence you're reading and the last ones you met the word in: save them for your export, trimmed if you like
 • Click any word inside the card to look it up; ← → to go back and forth
 • Copy any example sentence with one click
@@ -118,7 +118,7 @@ SELECT ANYTHING
 ONE WORD LIST, THREE STATUSES
 • 新 Fresh · 學 Learning · 熟 Known: press 1, 2 or 3
 • The same colors in the card, the subtitles, the transcript, your Dashboard, and (optional) on every page; Option+Shift+C (Alt+Shift+C) turns them on or off for one website
-• Import your known-words list; export what changed each week as a small TSV
+• Import any word list (a ready AI prompt converts an Anki export, a spreadsheet or a photo); export what changed each week as a small TSV
 
 YOUTUBE DUAL SUBTITLES
 • Chinese + English lines over the video; every word is hoverable and clickable

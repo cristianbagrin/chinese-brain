@@ -198,3 +198,5 @@
 .dash #welcome .ghost .piles { justify-content: center; }
 .dash #welcome .ghost p { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 14px 0 0; font-size: 22px; }
 .dash #welcome .ghost .w { padding: 0 6px; border-radius: 6px; }
+/* Phones: iOS zooms into a field with text under 16px and doesn't zoom back. */
+@media (pointer: coarse) { .dash input, .dash select, .dash textarea { font-size: 16px; } }

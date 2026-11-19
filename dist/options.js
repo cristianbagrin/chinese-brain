@@ -661,7 +661,7 @@ button.help:focus-visible { outline: 2px solid var(--help-accent, #c8202f); outl
 .head.st-known { background: var(--known-mark); }
 .py { font-size: 1.07em; color: var(--text3); letter-spacing: 0.01em; }
 /* Zhuyin: over each character of the headword; on its own line for a long phrase. */
-.head.zyhead { --zy: 0.46em; --zy-ink: var(--text2); }
+.head.zyhead { --zy: 0.42em; --zy-ink: var(--text2); }
 
 /* How common the word is, in words (the tooltip says what that means for you). */
 .freq { margin-left: auto; display: flex; align-items: center; gap: 0.45em; font-size: 0.86em; color: var(--text3); white-space: nowrap; cursor: default; }
@@ -860,7 +860,8 @@ button.help:focus-visible { outline: 2px solid var(--help-accent, #c8202f); outl
 /* Over each character instead (.zyw.over, the card's headword): one line, centered, like ruby. */
 .zyw.over { align-items: flex-end; }
 .zyw.over .zy { flex-direction: column; padding-right: 0; }
-.zyw.over .zy + .zy { margin-left: 0.04em; }
+/* A little air between characters, so each syllable reads as its own (zhuyin runs wider than a character). */
+.zyw.over .zy + .zy { margin-left: 0.14em; }
 .zyw.over .zy::before { content: none; }
 .zyw.over .zy::after {
   content: attr(data-over);
@@ -870,6 +871,7 @@ button.help:focus-visible { outline: 2px solid var(--help-accent, #c8202f); outl
   line-height: 1;
   white-space: nowrap;
   word-break: normal;
+  letter-spacing: -0.06em;
 }
 `;
 

@@ -53,7 +53,7 @@
 .head.st-known { background: var(--known-mark); }
 .py { font-size: 1.07em; color: var(--text3); letter-spacing: 0.01em; }
 /* Zhuyin: over each character of the headword; on its own line for a long phrase. */
-.head.zyhead { --zy: 0.46em; --zy-ink: var(--text2); }
+.head.zyhead { --zy: 0.42em; --zy-ink: var(--text2); }
 
 /* How common the word is, in words (the tooltip says what that means for you). */
 .freq { margin-left: auto; display: flex; align-items: center; gap: 0.45em; font-size: 0.86em; color: var(--text3); white-space: nowrap; cursor: default; }

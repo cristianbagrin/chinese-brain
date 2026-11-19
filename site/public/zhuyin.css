@@ -32,7 +32,8 @@
 /* Over each character instead (.zyw.over, the card's headword): one line, centered, like ruby. */
 .zyw.over { align-items: flex-end; }
 .zyw.over .zy { flex-direction: column; padding-right: 0; }
-.zyw.over .zy + .zy { margin-left: 0.04em; }
+/* A little air between characters, so each syllable reads as its own (zhuyin runs wider than a character). */
+.zyw.over .zy + .zy { margin-left: 0.14em; }
 .zyw.over .zy::before { content: none; }
 .zyw.over .zy::after {
   content: attr(data-over);
@@ -42,4 +43,5 @@
   line-height: 1;
   white-space: nowrap;
   word-break: normal;
+  letter-spacing: -0.06em;
 }
