@@ -2,7 +2,9 @@
 // Chinese Brain's website. Every account is its own Durable Object with a small SQLite database (the
 // password hash, sessions, and each app's synced items), found by email. Each app syncs its own keys:
 // Chinese Brain's have no prefix, the others' start with @<app>/ (see APPS), and an app only ever reads
-// and writes its own. After an email change the new address is an alias that points at the account.
+// and writes its own. `@account/` is the account's own, shared by every app: its keyring (the master key
+// that apps wrap their data keys under, see public/acct/keyring.js). After an email change the new address
+// is an alias that points at the account.
 // Nothing here needs setting up besides the RESEND_API_KEY secret for password-reset emails
 // (and, to see who signed up at /admin, an ADMIN_KEY secret of your choosing; to change the
 // pages' words at /edit, an EDIT_KEY secret: see "Editing the pages" below).
@@ -16,7 +18,9 @@ const PAGE = 1000;
 const SYNCED = /^(w:|sav:|exh:|gex:).{1,60}$|^settings$/;
 /** The other apps and what they're called in emails. Chinese Brain is the default (no prefix). */
 const APPS = { ap: 'At Peace', mio: 'Money in Order', tdw: 'Ten Dollar Words' };
-const APP_KEY = /^@([a-z]{2,4})\/[^\0]{1,200}$/;
+const APP_KEY = /^@([a-z]{2,8})\/[^\0]{1,200}$/;
+/** `app` for the items every app shares (sync with app: 'account'). Written only with a precondition (see _sync). */
+const SHARED = 'account';
 /** Which keys belong to `app`: '' is Chinese Brain. */
 const keyOf = (app, k) => (app ? APP_KEY.test(k) && k.startsWith(`@${app}/`) : SYNCED.test(k));
 const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@.]{2,}$/;
@@ -91,6 +95,7 @@ export class Account extends DurableObject {
       CREATE TABLE IF NOT EXISTS emails (h TEXT PRIMARY KEY, email TEXT, exp INTEGER);
       CREATE TABLE IF NOT EXISTS items (k TEXT PRIMARY KEY, v TEXT, t INTEGER, seq INTEGER);
       CREATE INDEX IF NOT EXISTS items_seq ON items (seq);
+      CREATE TABLE IF NOT EXISTS guarded (k TEXT PRIMARY KEY);
     `);
   }
 
@@ -273,12 +278,21 @@ export class Account extends DurableObject {
     return { email: this.get('email'), exported: new Date().toISOString(), items };
   }
 
-  /** Take this device's changes (the newer one wins, per item) and hand back everyone else's. */
+  /**
+   * Take this device's changes (the newer one wins, per item) and hand back everyone else's.
+   *
+   * A change with `if` (the `s` its item had when this device read it, 0 for none) is a compare-and-set: it
+   * lands only if the item is still at that `s`, whatever the times say, and is otherwise refused (listed in
+   * `rejected`, and the item as it is now comes back). An item once written that way is guarded: a change
+   * without `if` no longer replaces it, so an older app that knows nothing of preconditions can't write over a
+   * keyring a newer one wrote. `@account/` items always need `if`.
+   */
   _sync(_h, since, changes, app = '') {
     const now = Date.now();
     const seq0 = Number(this.get('seq') ?? 0);
     let seq = seq0;
     const mine = new Set();
+    const rejected = new Set();
     // How many items the account holds is kept, not counted: counting reads every row.
     let count = this.get('count');
     count = count === undefined ? this.sql.exec('SELECT COUNT(*) AS n FROM items').one().n : Number(count);
@@ -290,13 +304,26 @@ export class Account extends DurableObject {
       const v = c.v == null ? null : canon(c.v);
       if (v && v.length > MAX_VALUE) continue;
       const t = Math.min(Number(c.t) || 0, now);
-      const old = this.sql.exec('SELECT v, t FROM items WHERE k = ?', c.k).toArray()[0];
+      const old = this.sql.exec('SELECT v, t, seq FROM items WHERE k = ?', c.k).toArray()[0];
+      const cond = c.if !== undefined && c.if !== null;
+      if (cond) {
+        if (!Number.isSafeInteger(c.if) || c.if !== (old?.seq ?? 0)) {
+          rejected.add(c.k);
+          continue;
+        }
+      } else if (app === SHARED || this.sql.exec('SELECT 1 FROM guarded WHERE k = ?', c.k).toArray().length) {
+        rejected.add(c.k);
+        continue;
+      }
       if (!old && count >= MAX_ITEMS) return fail(413, 'full', 'This account’s word list is full.');
       let next = v;
-      if (old?.v && v && word) {
+      if (cond) {
+        // The precondition held: this change replaces the item as it is.
+      } else if (old?.v && v && word) {
         // The same word changed in two browsers: keep both sides (see mergeWord).
         next = canon(mergeWord(JSON.parse(old.v), c.v));
       } else if (old && old.t > t) continue; // a newer change from another browser stays
+      if (cond) this.sql.exec('INSERT OR IGNORE INTO guarded (k) VALUES (?)', c.k);
       if (next === v) mine.add(c.k); // a merged word goes back to the browser that sent it, too
       if (old && next === old.v) continue; // nothing new: no write, and nothing for the others to fetch
       if (!old) count++;
@@ -309,10 +336,17 @@ export class Account extends DurableObject {
     const rows = this.sql.exec(`SELECT k, v, t, seq FROM items WHERE seq > ? AND ${mineOnly} ORDER BY seq LIMIT ?`, Number(since) || 0, app ? `@${app}` : '@', PAGE + 1).toArray();
     const more = rows.length > PAGE;
     const page = rows.slice(0, PAGE);
+    // A refused change: the item as it is now, so the device can see what it lost to.
+    for (const k of rejected) {
+      if (page.some((r) => r.k === k)) continue;
+      const r = this.sql.exec('SELECT k, v, t, seq FROM items WHERE k = ?', k).toArray()[0];
+      if (r) page.push(r);
+    }
     return {
-      seq: more ? page[page.length - 1].seq : seq,
+      seq: more ? rows[PAGE - 1].seq : seq,
       more,
-      changes: page.filter((r) => !mine.has(r.k)).map((r) => ({ k: r.k, v: r.v == null ? null : JSON.parse(r.v), t: r.t })),
+      changes: page.filter((r) => !mine.has(r.k)).map((r) => ({ k: r.k, v: r.v == null ? null : JSON.parse(r.v), t: r.t, s: r.seq })),
+      ...(rejected.size ? { rejected: [...rejected] } : {}),
     };
   }
 
@@ -477,6 +511,7 @@ async function byEmail(env, email) {
 function appOf(v) {
   const app = String(v ?? '');
   if (app === '' || app === 'brain') return '';
+  if (app === SHARED) return app;
   if (!Object.hasOwn(APPS, app)) throw new Fail(400, 'app', 'Unknown app.');
   return app;
 }

@@ -44,6 +44,22 @@
         <li><a href="https://tendollarwords.cristianbagrin.com"><img src="/acct/app-tdw.webp" width="32" height="32" alt="">Ten Dollar Words</a><span id="n-tdw"></span></li>
       </ul>
     </section>
+    <form class="card" id="rkForm" hidden>
+      <h2>Recovery key</h2>
+      <p class="lead" id="rkLead" data-js-text></p>
+      <div id="rkAsk" hidden>
+        <label>Password<input type="password" id="rkPw" autocomplete="current-password"></label>
+        <label id="rkOldLabel" hidden>Recovery key<input type="text" id="rkOld" class="rkey-in" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XX"></label>
+        <p class="msg" id="rkMsg" role="status"></p>
+        <button class="btn primary" id="rkGo">Make a new one</button>
+      </div>
+      <div id="rkShow" hidden>
+        <p class="rkey" id="rkKey" data-js-text></p>
+        <div class="rowbtn"><button type="button" class="btn secondary" id="rkCopy">Copy</button><button type="button" class="btn secondary" id="rkDownload">Download</button></div>
+        <label class="check"><input type="checkbox" id="rkSaved">I saved it</label>
+        <button type="button" class="btn primary" id="rkDone" disabled>Done</button>
+      </div>
+    </form>
     <form class="card" id="emailForm">
       <h2>Change email</h2>
       <p class="lead" id="emailLead" data-js-text>We’ll send a link to the new address. Your email changes once you open it.</p>
@@ -69,6 +85,7 @@
   </div>
 </main>
 <script src="/cb.js"></script>
+<script src="/acct/keyring.js"></script>
 <script src="/account.js"></script>
 <footer><div class="wrap">
   <a class="maker" href="https://cristianbagrin.com"><img class="face" src="/chris.webp" width="36" height="36" alt=""><span>Made by Cristian Bagrin</span></a>

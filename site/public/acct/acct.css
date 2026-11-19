@@ -64,6 +64,11 @@ input:focus{outline:none;border-color:var(--link);box-shadow:0 0 0 3px rgb(27 95
 .apps a:hover{color:var(--link)}
 .apps img{width:32px;height:32px;border-radius:8px;flex:none}
 .apps span{font:500 .9rem/1.3 var(--ui);color:var(--quiet)}
+.rkey{margin:0 0 1rem;padding:.9rem 1rem;font:600 1.15rem/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em;word-spacing:.2em;background:#fff;border:1.5px dashed var(--line);border-radius:.6rem;user-select:all;overflow-wrap:anywhere}
+.rkey-in{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase}
+#rkShow .rowbtn{margin-bottom:1rem}
+.check{display:flex;align-items:center;gap:.6rem;color:var(--ink)}
+.check input{width:auto;margin:0;accent-color:var(--seal)}
 .note{margin:0 0 1rem;padding:.8rem 1rem;font:400 .98rem/1.5 var(--body);background:rgb(182 221 189/.35);border-radius:.6rem}
 
 /* bottom */

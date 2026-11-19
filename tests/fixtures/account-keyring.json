@@ -1,0 +1,29 @@
+{
+  "password": "fixture password ünïcode",
+  "recovery": "4TG9-BXCH-F7TA-GMXY-N23N-Z0NX-M0",
+  "mk": "NOisLIuPCTeyOE9rz4bAuYnzwHV7xXjeaFe7kiWE+aA=",
+  "dk": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+  "ring": {
+    "v": 1,
+    "id": "baaed6fa197d88d9",
+    "salt": "W60+lQ/Cq220qEs4LcfRuA==",
+    "pw": {
+      "iv": "YTI4JqFY+SKywyLu",
+      "ct": "/NqVpkC15XOyxxa4g/ltjL8IEnzemfwuzfMZ+FpmT8MlzAKC9sp8mmzrUF/MYj1B"
+    },
+    "rk": {
+      "iv": "ZH681y8w7hRB1L5I",
+      "ct": "7UBUNWYn8MuiSwLbs9ENf7WU487TM3kVhf9UFZpa0ebNViLFtZGKuF3ssoLnpE+v"
+    },
+    "rkid": "006e9ee4f3fad5cf",
+    "created": 1795090881359
+  },
+  "mio": {
+    "iv": "rr8cxvfL1jEb0lkI",
+    "ct": "VxPdo0Ud+aQtSWyBWO1bnLXnI+dItv8CdNLXCjnWJYG+kMG7s0yfzzPeh0k9Ymvy"
+  },
+  "tdw": {
+    "iv": "RmrCM2fNQfmejW5g",
+    "ct": "Izxbqa9OMFybhul9DdDpVqVB2wExJdyou/z9tIl9qLByqgMsOh2o2pWVygTiRHkk"
+  }
+}

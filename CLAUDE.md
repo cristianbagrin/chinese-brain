@@ -26,3 +26,7 @@
   served, tied to the words they replaced (`site/src/copy.ts`). Run `node site/sync.mjs` before changing
   page text by hand (`--apply` writes his edits into `site/public`); words that scripts write go in an
   element marked `data-js-text`, so the editor leaves them alone.
+- One recovery key for the whole account: `@account/keyring` (sync `app: 'account'`, any app) holds the account's
+  master key, and each app that encrypts wraps its data key under it. The scheme and the rules every app keeps are in
+  `site/public/acct/keyring.js`. Keyrings are written with `if` (compare-and-set, see `_sync`); an item once written
+  that way can't be replaced by a write without it, which keeps older app versions from writing over a newer keyring.
