@@ -13,7 +13,7 @@ type Env = {
   GEMINI_KEY?: string;
   POLLINATIONS_KEY?: string;
 };
-export type Item = { id: string; job: 'card' | 'grade' | 'essay' | 'image'; ord: number; data: { title: string; show: Record<string, unknown>; prompt: string; json?: boolean; claude?: unknown; board?: unknown } };
+export type Item = { id: string; job: 'card' | 'grade' | 'essay' | 'image'; ord: number; data: { title: string; show: Record<string, unknown>; prompt: string; json?: boolean; claude?: unknown; board?: unknown; prompts?: Record<string, string> } };
 type Model = { model: string; kind: 'text' | 'image'; label: string };
 
 const kindOf = (job: string) => (job === 'image' ? 'image' : 'text');
@@ -53,13 +53,15 @@ export async function run(env: Env, budgetMs: number) {
   await Promise.all(ms.map(async (m) => {
     for (const it of its.filter((x) => kindOf(x.job) === m.kind && !rs.has(`${x.id}|${m.model}`))) {
       if (Date.now() > until) return void (more = true);
+      // "model#style" answers the item's prompt for that style (the picture round tries several styles on one model)
+      const prompt = it.data.prompts?.[m.model.split('#')[1] ?? ''] ?? it.data.prompt;
       try {
         let value: string;
         if (m.kind === 'image') {
-          const img = await AI.image(env, m.model, it.data.prompt);
+          const img = await AI.image(env, m.model, prompt);
           value = `taste/${it.id}/${m.model.replace(/[^a-z0-9.-]+/gi, '_')}`;
           await env.FILES.put(value, img.bytes, { httpMetadata: { contentType: img.type } });
-        } else value = (await AI.text(env, m.model, it.data.prompt, { json: it.data.json })).text;
+        } else value = (await AI.text(env, m.model, prompt, { json: it.data.json })).text;
         await env.CBP.prepare('INSERT OR REPLACE INTO taste_runs (item, model, out, err, at) VALUES (?, ?, ?, NULL, ?)').bind(it.id, m.model, value, Date.now()).run();
         done.push(`${m.model} ${it.id}`);
       } catch (e) {

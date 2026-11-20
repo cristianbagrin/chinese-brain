@@ -8,7 +8,7 @@ already has is kept as `board` for reference only (not shown in the test):
   card   15 study cards: the board's card prompt; board = the card Opus 5.5 wrote on the board
   grade  30 test answers: the board's grading prompt; board = the board's grade where it graded one, else below
   essay  6 essays: the weekly review's marking rules; board = the marks the review put on the board
-  image  10 card pictures in his flashcard style
+  image  10 card pictures, each in six drawn styles from one model (STYLES)
 Models taking the test: MODELS below. Key: CBP_PUSH_KEY in ~/.cbp-push.env.
 """
 import json, os, re, sys, urllib.request
@@ -18,12 +18,7 @@ SITE = 'https://chinese.cristianbagrin.com'
 MODELS = [  # text: is Opus worth twice Sonnet's price? (Gemini was tried first: slow, often refused, dropped)
     {'model': 'anthropic:claude-sonnet-5-5', 'kind': 'text', 'label': 'Claude Sonnet 5.5'},
     {'model': 'anthropic:claude-opus-5-5', 'kind': 'text', 'label': 'Claude Opus 5.5'},
-    # images: what Pollinations credits can pay for. The paid-only ones (Nano Banana, GPT Image, Seedream, FLUX.2 Pro) need a
-    # top-up there; Gemini's free tier draws no pictures at all
-    {'model': 'pollinations:black-forest-labs/flux.2-flex', 'kind': 'image', 'label': 'FLUX.2 Flex'},
-    {'model': 'pollinations:black-forest-labs/flux.1.1-pro', 'kind': 'image', 'label': 'FLUX 1.1 Pro'},
-    {'model': 'pollinations:microsoft/mai-image-2.7', 'kind': 'image', 'label': 'MAI Image 2.7'},
-]
+]  # + one picture "model" per style, below
 
 # ---------------------------------------------------------------- cards (board/js/cards.js, cardPrompt)
 CARD_FORMAT = """Write the card as lines that each start with one of these tags, in this order. Nothing else: no headings, no markdown except **bold**, no closing remarks.
@@ -175,17 +170,36 @@ STYLE = ("A tactile Taiwanese picture-book illustration (台灣繪本): chunky w
          "tone. Never a mostly black-and-white image with an isolated bright accent. Pure solid white (#FFFFFF) background with at least "
          "65% empty white space, one unified scene, no split panels, simple hands (at most two items per person), faces matching the "
          "mood. Strictly wordless: zero text, no letters, no Chinese characters, no numbers, no symbols. Square. The scene: ")
+# the picture round: one model, six drawn styles. His first notes (2026-11-20): the meaning must read at a glance, faces and
+# bodies acting it out (值得 = delighted, not sad); drawn and flat beats 3D
+PICTURE_MODEL = 'pollinations:black-forest-labs/flux.1.1-pro'
+RULES = (" Flat 2D illustration, no 3D rendering. Big, readable facial expressions and body language that act out the meaning, "
+         "so someone could guess the word from the picture alone. Plain white background with lots of empty space, one unified "
+         "scene, no split panels. Strictly wordless: no text, letters, Chinese characters, numbers or symbols. Square. The scene: ")
+STYLES = {  # key, label, the look
+    'book': ('Picture book', STYLE.rsplit(' The scene: ', 1)[0]),
+    'flat': ('Flat shapes', "A flat editorial illustration made of bold simple shapes, no gradients, no outlines, a small warm palette, "
+                            "people drawn as friendly simplified figures."),
+    'ink': ('Ink brush', "A Chinese ink-brush drawing: confident black brush lines with dry-brush texture and one soft color wash, "
+                         "loose and lively like a sketchbook page."),
+    'comic': ('Comic', "A clean comic-book panel: crisp even line art, flat bright colors, exaggerated cartoon expressions and "
+                       "small motion lines."),
+    'paper': ('Cut paper', "A cut-paper collage: shapes cut from colored craft paper with slightly rough edges, flat and layered, "
+                           "a handmade feel."),
+    'riso': ('Risograph', "A two-color risograph print in teal and marigold only, with grainy ink texture and slight misregistration, "
+                          "colors overlapping where they meet."),
+}
 IMAGES = [  # word, what it means, the scene (designed to rule out its nearest confusion)
-    ('值得', 'worth it', 'a tired young man at the end of a long, winding line of people outside a small noodle stall, holding up a steaming bowl of beef noodles that glows warm amber; the long line behind him is pale and faded, the bowl is the richest color in the picture; on a simple balance scale beside him the single bowl outweighs a heavy grey pile of hours'),
-    ('拒絕', 'to refuse', 'a grandmother at a round dinner table firmly pushing back a red envelope that a young man offers her with both hands, her palm flat like a wall between them, a kind but immovable smile; the envelope and her pushing hand in the deepest tones'),
-    ('接受', 'to accept', 'an old shopkeeper reaching out with both open hands to take a small wrapped gift from a shy student, his hands cupped wide to receive it; the gift and his receiving hands in the richest warm tones'),
-    ('浪費', 'to waste', 'a boy at a night market tossing a nearly full bubble tea into an overflowing bin while a full bowl of rice beside him goes cold, a sad stray cat watching; the spilled tea and the full untouched food in the deepest tones'),
-    ('捨不得', "can't bear to part with", 'a grandmother hugging a worn old rice cooker to her chest while her grandson holds out a shiny new one; she turns away from the new one, eyes closed, holding the old one tight; the old cooker and her hug in the richest warm tones'),
-    ('孝順', 'filial, good to one\'s parents', 'a grown son kneeling to wash his elderly father\'s feet in a wooden basin of warm water on a quiet evening, the father smiling down; the basin of water and the son\'s careful hands in the deepest warm tones'),
-    ('心意', 'the thought behind a gift', 'a small child giving a lopsided hand-folded paper flower to her mother, who holds it as if it were gold, a soft glow coming from the paper flower; a fancy store-bought gift box sits ignored and pale on the side'),
-    ('負責', 'to be responsible for', 'one young woman carrying a whole stack of party plates and a cake toward a table while three friends behind her each hold only a balloon; she is clearly the one in charge of it all; the stack she carries in the deepest tones'),
-    ('顧孫', 'to babysit the grandkids', 'a grandmother on a low stool in a Taiwanese apartment doorway watching two toddlers play with blocks at her feet while the parents wave goodbye in pale tones at the far edge; the grandmother and the children in the richest warm tones'),
-    ('其中', 'among them', 'a woven basket of a dozen pale green guavas seen from above, and among them one single guava that is ripe, deep pink and glowing, a small hand reaching for exactly that one; every other guava in quiet pale green'),
+    ('值得', 'worth it', 'a young man at the front of a very long line outside a small noodle stall, finally holding his steaming bowl of beef noodles, eyes shut in pure delight after the first bite; the long tired line stretches far behind him'),
+    ('拒絕', 'to refuse', 'a grandmother at a round dinner table firmly pushing back a red envelope that a young man offers her with both hands, her palm held up flat like a wall, shaking her head with a kind but immovable smile'),
+    ('接受', 'to accept', 'an old shopkeeper happily taking a small wrapped gift from a shy student with both open hands, bowing slightly, clearly receiving it'),
+    ('浪費', 'to waste', 'a boy at a night market tossing a nearly full bubble tea into an overflowing bin while a full bowl of rice beside him goes cold, a stray cat staring at him in disbelief'),
+    ('捨不得', "can't bear to part with", 'a grandmother hugging a worn old rice cooker to her chest while her grandson holds out a shiny new one; she turns away from the new one, eyes closed, holding the old one tight'),
+    ('孝順', 'filial, good to one\'s parents', 'a grown son kneeling to wash his elderly father\'s feet in a wooden basin of warm water on a quiet evening, the father smiling down at him'),
+    ('心意', 'the thought behind a gift', 'a small child giving a lopsided hand-folded paper flower to her mother, who holds it to her heart, moved; a fancy store-bought gift box sits ignored on the side'),
+    ('負責', 'to be responsible for', 'one young woman carrying a whole stack of party plates and a cake toward a table, clipboard under her arm, while three friends behind her each hold only a balloon'),
+    ('顧孫', 'to babysit the grandkids', 'a grandmother on a low stool in a Taiwanese apartment doorway watching two toddlers play with blocks at her feet while the parents wave goodbye far in the background'),
+    ('其中', 'among them', 'a woven basket of a dozen green guavas seen from above, and among them one single ripe pink guava, a small hand reaching for exactly that one'),
 ]
 
 
@@ -244,7 +258,8 @@ def main():
 
     # images
     for w, gloss, scene in IMAGES:
-        add('image', f'image-{w}', w, {'word': w, 'gloss': gloss}, STYLE + scene, None, False)
+        add('image', f'picture-{w}', w, {'word': w, 'gloss': gloss}, STYLE + scene, None, False)
+        items[-1]['data']['prompts'] = {k: look + RULES + scene for k, (_, look) in STYLES.items()}
 
     counts = {}
     for it in items:
@@ -254,7 +269,7 @@ def main():
         print(items[16]['data']['prompt'][:1500])
         return
     k = os.environ.get('CBP_PUSH_KEY') or next(l.split('=', 1)[1].strip() for l in (Path.home() / '.cbp-push.env').read_text().splitlines() if l.startswith('CBP_PUSH_KEY='))
-    req = urllib.request.Request(site + '/api/plus/push/taste', data=json.dumps({'items': items, 'models': MODELS}, ensure_ascii=False).encode(), method='POST',
+    req = urllib.request.Request(site + '/api/plus/push/taste', data=json.dumps({'items': items, 'models': MODELS + [{'model': f'{PICTURE_MODEL}#{k}', 'kind': 'image', 'label': label} for k, (label, _) in STYLES.items()]}, ensure_ascii=False).encode(), method='POST',
                                  headers={'Authorization': f'Bearer {k}', 'Content-Type': 'application/json', 'User-Agent': 'cbp-taste'})
     print(urllib.request.urlopen(req, timeout=120).read().decode())
 

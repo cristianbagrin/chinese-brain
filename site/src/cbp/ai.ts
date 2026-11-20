@@ -65,9 +65,10 @@ export async function image(env: Env, model: string, prompt: string) {
   return { bytes: await r.arrayBuffer(), type };
 }
 
+/** "where:model#variant" → [where, model]; the variant (a picture style, say) is the caller's business. */
 function split(model: string): [string, string] {
   const i = model.indexOf(':');
-  return [model.slice(0, i), model.slice(i + 1)];
+  return [model.slice(0, i), model.slice(i + 1).split('#')[0]];
 }
 
 /** Nano Banana on the Gemini key: the picture comes back inside the answer. */
