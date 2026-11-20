@@ -16,13 +16,15 @@
       { "name": "ACCOUNT", "class_name": "Account" },
       { "name": "LIMITER", "class_name": "Limiter" },
       { "name": "DIRECTORY", "class_name": "Directory" },
-      { "name": "COPY", "class_name": "Copy" }
+      { "name": "COPY", "class_name": "Copy" },
+      { "name": "RELAY", "class_name": "Relay" }
     ]
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["Account", "Limiter"] },
     { "tag": "v2", "new_sqlite_classes": ["Directory"] },
-    { "tag": "v3", "new_sqlite_classes": ["Copy"] }
+    { "tag": "v3", "new_sqlite_classes": ["Copy"] },
+    { "tag": "v4", "new_sqlite_classes": ["Relay"] }
   ],
   // chinesebrain.cristianbagrin.com is a short address that forwards to /brain.
   "routes": [
@@ -58,7 +60,8 @@
           { "name": "ACCOUNT", "class_name": "Account", "script_name": "chinesebrain" },
           { "name": "LIMITER", "class_name": "Limiter", "script_name": "chinesebrain" },
           { "name": "DIRECTORY", "class_name": "Directory", "script_name": "chinesebrain" },
-          { "name": "COPY", "class_name": "Copy", "script_name": "chinesebrain" }
+          { "name": "COPY", "class_name": "Copy", "script_name": "chinesebrain" },
+          { "name": "RELAY", "class_name": "Relay", "script_name": "chinesebrain" }
         ]
       },
       "routes": [{ "pattern": "chinese-staging.cristianbagrin.com", "custom_domain": true }],

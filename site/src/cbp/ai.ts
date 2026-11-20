@@ -3,7 +3,16 @@
 //   POLLINATIONS_KEY  Chris's Pollinations key (images; its credits pay for them)
 // A model is named by where it runs: "gemini:<model>" or "pollinations:<model>".
 
-type Env = { GEMINI_KEY?: string; POLLINATIONS_KEY?: string };
+type Relay = { call(url: string, init: { method: string; headers: Record<string, string>; body?: string }): Promise<{ status: number; type: string; body: ArrayBuffer }> };
+type Env = { GEMINI_KEY?: string; POLLINATIONS_KEY?: string; RELAY?: { idFromName(n: string): unknown; get(id: unknown, o?: { locationHint?: string }): Relay } };
+
+/** Google refuses requests from some places (Cloudflare often serves Taiwan from Hong Kong), so Gemini calls go
+ *  through the Relay Durable Object, which lives in western North America (worker.js). */
+async function gfetch(env: Env, url: string, init: { method: string; headers: Record<string, string>; body?: string }) {
+  if (!env.RELAY) return fetch(url, init);
+  const r = await env.RELAY.get(env.RELAY.idFromName('us'), { locationHint: 'wnam' }).call(url, init);
+  return new Response(r.body, { status: r.status, headers: { 'Content-Type': r.type } });
+}
 
 /** The provider said "not now" (a free tier's daily or per-minute limit). Try again later. */
 export class Quota extends Error {}
@@ -14,7 +23,7 @@ export async function text(env: Env, model: string, prompt: string, opts: { json
   const [where, name] = split(model);
   if (where !== 'gemini') throw new Error(`No text route for ${model}.`);
   if (!env.GEMINI_KEY) throw new Quota('No GEMINI_KEY yet.'); // not a failure: it waits for the key
-  const r = await fetch(`${GEMINI}/models/${name}:generateContent`, {
+  const r = await gfetch(env, `${GEMINI}/models/${name}:generateContent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY },
     body: JSON.stringify({
@@ -33,7 +42,7 @@ export async function text(env: Env, model: string, prompt: string, opts: { json
 /** The Gemini models this key can call (for choosing which take the test). */
 export async function geminiModels(env: Env) {
   if (!env.GEMINI_KEY) throw new Error('No GEMINI_KEY.');
-  const r = await fetch(`${GEMINI}/models?pageSize=200`, { headers: { 'x-goog-api-key': env.GEMINI_KEY } });
+  const r = await gfetch(env, `${GEMINI}/models?pageSize=200`, { method: 'GET', headers: { 'x-goog-api-key': env.GEMINI_KEY } });
   if (!r.ok) throw new Error(`models: ${r.status} ${(await r.text()).slice(0, 300)}`);
   const d = (await r.json()) as { models?: { name: string; displayName?: string; supportedGenerationMethods?: string[] }[] };
   return (d.models ?? []).filter((m) => m.supportedGenerationMethods?.includes('generateContent')).map((m) => ({ name: m.name.replace(/^models\//, ''), label: m.displayName ?? '' }));

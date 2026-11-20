@@ -417,6 +417,15 @@ export class Limiter extends DurableObject {
  * deploy: { v: version, edits: { name: { to?: new HTML, gone?: true, was: the source's words, page, at } } }.
  * The one before the last save is kept too ("previous"), in case a save goes wrong.
  */
+// Calls that some providers refuse from where the Worker happens to run (Gemini: not from Hong Kong, which is where
+// Cloudflare often serves Taiwan). One instance, created with a western-North-America location hint (src/cbp/ai.ts).
+export class Relay extends DurableObject {
+  async call(url, init) {
+    const r = await fetch(url, init);
+    return { status: r.status, type: r.headers.get('Content-Type') ?? '', body: await r.arrayBuffer() };
+  }
+}
+
 export class Copy extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
