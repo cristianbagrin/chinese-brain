@@ -1,0 +1,93 @@
+/* the test card. Owner: B, writing + tests (split out of today.css on 2026-11-01). Gold band on top, baked in (2026-11-01). */
+/* ---------- the test: the one boxed thing on the page, framed in gold, the gold band on top ---------- */
+.quiz{background:var(--surface);border:1.5px solid var(--gold-edge);border-radius:calc(14px * var(--k));overflow:hidden}
+/* a finished test is no longer "now": the gold goes neutral */
+.quiz.q-fin{border-color:var(--hair)}
+.quiz.q-fin .q-top{background:var(--wash)}
+.quiz p{margin:0}
+.q-top{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s1) var(--s4);min-height:calc(36px * var(--k));padding:calc(7px * var(--k)) calc(24px * var(--k));background:var(--gold-wash)}
+.q-pips{display:inline-flex;align-items:center;gap:calc(7px * var(--k))}
+.q-lab{font-size:var(--fs-xs);color:var(--gold-ink);opacity:.8}
+.q-body{display:grid;gap:var(--s4);padding:calc(20px * var(--k)) calc(24px * var(--k)) calc(22px * var(--k))}
+.q-body>*{max-width:calc(720px * var(--k))}
+.q-ask{font-size:var(--fs-l);line-height:1.45;color:var(--ink);text-wrap:pretty;overflow-wrap:anywhere}
+.q-ask .zh{font-size:1.04em}
+/* a reading item: the characters only, big */
+.q-read{font-family:var(--zh);font-size:calc(27px * var(--k));line-height:1.55;letter-spacing:.02em;color:var(--ink);overflow-wrap:anywhere}
+.q-ans{display:grid;gap:var(--s2)}
+/* his answer is his writing: the pen */
+.q-in{display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;cursor:text;outline:0;font-family:var(--pen);font-size:calc(19px * var(--k) * var(--pen-k));-webkit-text-stroke:var(--pen-stroke) currentColor;line-height:1.5;
+  padding:calc(9px * var(--k)) calc(14px * var(--k));border:1.5px solid var(--wash-2);border-radius:calc(10px * var(--k));background:var(--bg);color:var(--ink);resize:none;
+  min-height:calc(66px * var(--k));transition:border-color .15s,box-shadow .15s,background .15s}
+.q-in:empty::before{content:attr(data-ph);color:var(--ink-4);-webkit-text-stroke:0;font-family:var(--ui);font-size:var(--fs-m);pointer-events:none}
+.q-in:focus,.q-in:focus-visible{outline:none;border-color:var(--gold-edge);background:var(--surface);box-shadow:0 0 0 calc(3px * var(--k)) var(--gold-wash)}
+/* the clock: the reading allowance first, then 20 s */
+.q-clock{height:calc(3px * var(--k));border-radius:2px;overflow:hidden;transition:background .3s}
+.q-clock.run{background:var(--wash)}
+.q-clock i{display:block;height:100%;width:0;background:var(--gold-edge)}
+.q-clock.run i{animation:qfill 20s linear forwards}
+.q-clock.late i{background:var(--red-soft)}
+@keyframes qfill{to{width:100%}}
+.q-row{display:flex;gap:var(--s3);align-items:center;flex-wrap:wrap}
+.quiz .btn{padding:calc(8px * var(--k)) calc(20px * var(--k));font-size:var(--fs-s)}
+.q-listen{background:var(--wash);font-size:var(--fs-s);padding:calc(7px * var(--k)) calc(14px * var(--k))}
+.q-listen:hover{background:var(--wash-2)}
+.q-heard{font-family:var(--zh);font-size:var(--fs-l);color:var(--ink-2)}
+
+/* pips: now is gold; the rest by color and shape (green right, half green partly, red diamond missed, grey no evidence) */
+.qp{display:inline-block;flex:none;width:calc(10px * var(--k));height:calc(10px * var(--k));border-radius:50%}
+.qp.o{box-shadow:inset 0 0 0 1.5px var(--ink-4)}
+.qp.c{background:var(--gold);box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--gold-edge)}
+.qp.g{box-shadow:inset 0 0 0 2px var(--gold-edge);animation:qpulse 1.2s ease-in-out infinite}
+.qp.s{background:var(--green)}
+.qp.p{box-shadow:inset 0 0 0 1.5px var(--green);background:linear-gradient(90deg,var(--green) 50%,transparent 50%)}
+.qp.f{background:var(--red);border-radius:2px;transform:rotate(45deg) scale(.8)}
+.qp.n{background:var(--wash-2);box-shadow:inset 0 0 0 1.5px var(--ink-4)}
+@keyframes qpulse{50%{opacity:.35}}
+
+/* right after he answers: the result, the natural line (what differs underlined), his answer quietly, why */
+.q-verdict{display:grid;gap:var(--s2)}
+.q-res{display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-xs);color:var(--ink-3)}
+.q-res .qp{width:calc(13px * var(--k));height:calc(13px * var(--k))}
+.q-nat{font-size:calc(23px * var(--k));line-height:1.5;color:var(--ink);overflow-wrap:anywhere}
+.q-nat u,.q-sn u{text-decoration:underline 2px var(--ink-4);text-underline-offset:calc(6px * var(--k));text-decoration-skip-ink:none}
+.q-you{display:flex;gap:var(--s3);align-items:baseline;font-size:var(--fs-s);color:var(--ink-3);overflow-wrap:anywhere}
+.q-you .zh{font-size:calc(20px * var(--k))}
+.q-k{flex:none;min-width:calc(44px * var(--k));font-size:var(--fs-xs);color:var(--ink-4)}
+/* what he typed, in his pen */
+.q-mine .zh{font-family:var(--pen);font-size:calc(19px * var(--k) * var(--pen-k));-webkit-text-stroke:var(--pen-stroke) currentColor}
+.q-why{font-size:var(--fs-s);line-height:1.55;color:var(--ink-2);overflow-wrap:anywhere}
+.q-why .zh{font-size:calc(20px * var(--k))}
+.q-verdict+.q-row{margin-top:var(--s1)}
+
+/* the finished test: the results light up one by one with the score, then the card folds away (test.js QZ_fold) */
+.q-end{gap:var(--s3) var(--s5);padding-block:calc(12px * var(--k));min-height:0}
+.q-big{display:inline-flex;align-items:center;gap:calc(10px * var(--k))}
+.q-big .qp{width:calc(16px * var(--k));height:calc(16px * var(--k))}
+.q-big .qp.f{border-radius:3px}
+.q-score{font-size:calc(22px * var(--k));color:var(--ink-3);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.q-score b{font-weight:600;color:var(--ink)}
+.q-fin .q-big .qp,.q-fin .q-score{animation:qlit .5s var(--spring) both;animation-delay:calc(var(--i) * 90ms + 120ms)}
+@keyframes qlit{from{opacity:0;transform:scale(.3)}60%{opacity:1;transform:scale(1.25)}to{opacity:1}}
+.q-fin .q-big .qp.f{animation-name:qlitf}
+@keyframes qlitf{from{opacity:0;transform:rotate(45deg) scale(.2)}60%{opacity:1;transform:rotate(45deg) scale(1)}to{opacity:1;transform:rotate(45deg) scale(.8)}}
+
+@media (max-width:600px){
+  .q-top{padding-inline:calc(16px * var(--k))}
+  .q-body,.q-rows{padding:calc(16px * var(--k)) calc(16px * var(--k)) calc(18px * var(--k))}
+  .q-read{font-size:calc(25px * var(--k))}
+  .q-nat{font-size:calc(21px * var(--k))}
+}
+
+/* a monthly-test scene: a photo, with real text laid over it */
+.qscene{position:relative;border-radius:10px;overflow:hidden;background:var(--wash);aspect-ratio:4/3;max-width:calc(480px * var(--k));width:100%}
+.qscene img{width:100%;height:100%;object-fit:cover;display:block}
+.qnotice{position:absolute;left:50%;top:50%;width:min(68%,340px);transform:translate(-50%,-52%) rotate(-1.5deg);background:#FFFDF4;color:#1F1B14;padding:clamp(10px,2.4vw,16px) clamp(12px,2.8vw,18px);box-shadow:0 6px 18px rgba(0,0,0,.3);font:400 calc(clamp(15px,2.6vw,17px) * var(--k))/1.6 "LXGW WenKai TC",var(--zh);white-space:pre-line}
+.qnotice b{display:block;text-align:center;font-size:1.3em;letter-spacing:.08em;margin-bottom:4px}
+.qmenu{position:absolute;right:5%;top:7%;width:min(52%,280px);background:#1D2A24;color:#F4F1E4;border-radius:6px;padding:clamp(8px,1.8vw,14px);box-shadow:0 6px 16px rgba(0,0,0,.35);font:400 calc(clamp(15px,2.4vw,16.5px) * var(--k))/1.55 "LXGW WenKai TC",var(--zh);white-space:pre-line}
+.qmenu b{display:block;color:#B9F5DC;font-size:1.15em;margin-bottom:2px}
+.qpaper{background:#F4EFE2;color:#1B1813;border-radius:4px;padding:16px 20px;transform:rotate(.5deg);box-shadow:0 3px 10px rgba(0,0,0,.12);display:grid;gap:8px;max-width:calc(480px * var(--k))}
+.qpaper small{font:600 calc(11px * var(--k))/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:#6B6352;border-bottom:2px solid #1B1813;padding-bottom:6px}
+.qpaper b{font:900 calc(clamp(24px,4.6vw,30px) * var(--k))/1.3 "Noto Serif TC","Songti TC",serif}
+.qpaper span{font:400 calc(18px * var(--k))/1.7 "Noto Serif TC","Songti TC",serif;color:#3A352B;white-space:pre-line}
+

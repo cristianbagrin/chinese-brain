@@ -35,3 +35,8 @@
   master key, and each app that encrypts wraps its data key under it. The scheme and the rules every app keeps are in
   `site/public/acct/keyring.js`. Keyrings are written with `if` (compare-and-set, see `_sync`); an item once written
   that way can't be replaced by a write without it, which keeps older app versions from writing over a newer keyring.
+- **Chinese Brain Plus** (`/plus`, plan: life/chinese/online-plan): the engine is `site/src/cbp/engine.ts` (words.py ported; check with
+  `scripts/cbp-parity.ts`), its data the CBP D1 (`files`, `docs`, `checks`; `site/src/cbp/plus.ts`). Until the website is the
+  source, the Mac's nightly task pushes life/chinese with `scripts/cbp-push.py` (key in `~/.cbp-push.env`) and the website
+  is read-only. The board's code is copied in with `scripts/cbp-board.py` (never edit `site/public/plus/board` by hand);
+  `plus/runtime.js` stands in for claude.ai's database. Claude sessions read it through the connector at `/mcp/<CBP_MCP_KEY>`.

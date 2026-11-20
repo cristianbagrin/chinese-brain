@@ -1,25 +1,60 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="locked">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Chinese Brain Plus</title>
 <link rel="icon" href="/icon.png">
-<link rel="stylesheet" href="/style.css">
 <meta name="robots" content="noindex">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}html.locked body{visibility:hidden}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..650&family=Noto+Sans+TC:wght@400..600&family=LXGW+WenKai+TC:wght@400;700&family=Noto+Serif+TC:wght@500;700;900&display=swap">
+<link rel="stylesheet" href="/plus/board/css/base.css">
+<link rel="stylesheet" href="/plus/board/css/today.css">
+<link rel="stylesheet" href="/plus/board/css/test.css">
+<link rel="stylesheet" href="/plus/board/css/paper.css">
+<link rel="stylesheet" href="/plus/board/css/write.css">
+<link rel="stylesheet" href="/plus/board/css/essays.css">
+<link rel="stylesheet" href="/plus/board/css/improve.css">
+<link rel="stylesheet" href="/plus/board/css/progress.css">
+<link rel="stylesheet" href="/plus/board/css/fun.css">
+<link rel="stylesheet" href="/plus/board/css/lab.css">
+<link rel="stylesheet" href="/plus/board/css/cards.css">
 </head>
 <body>
-<div id="app" hidden>
-  <header><div class="wrap">
-    <a class="home" href="/plus"><img src="/icon.png" alt="">Chinese Brain Plus</a>
-    <nav><a href="/brain/dashboard">Word list</a><a class="signin" href="/account" data-account>Account</a></nav>
-  </div></header>
-  <main class="wrap">
-    <h1 data-js-text id="hello"></h1>
-    <div class="card" id="demo" hidden><p data-js-text>Switch test: on.</p></div>
-  </main>
-</div>
-<script src="/plus.js"></script>
-<script src="/site.js"></script>
+<header class="appbar" id="bar">
+  <div class="bar-in">
+    <nav class="seg" id="tabs" role="tablist" aria-label="Board">
+      <span class="thumb" aria-hidden="true"></span>
+      <button type="button" role="tab" id="tab-today" aria-controls="view-today" aria-selected="true">Today<i class="dot gold" id="dot-today" hidden></i></button>
+      <button type="button" role="tab" id="tab-essays" aria-controls="view-essays" aria-selected="false" tabindex="-1">Essays<i class="dot" id="dot-essays" hidden></i></button>
+      <button type="button" role="tab" id="tab-progress" aria-controls="view-progress" aria-selected="false" tabindex="-1">Progress</button>
+    </nav>
+    <span class="bar-r"><span class="toc" id="toc" hidden></span>
+    <button class="labbtn" id="settingsbtn" type="button" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false"></button>
+    <button class="snd" id="snd" type="button" aria-label="Sound" aria-pressed="true"></button></span>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- Today: each block is a direct child of .today so today.css places them (grid areas) -->
+  <section class="view" id="view-today" role="tabpanel" aria-labelledby="tab-today">
+    <div class="today">
+      <section class="quiz" aria-label="Test" id="quiz" hidden></section>
+      <section class="write" aria-label="Today's essay" id="write"></section>
+      <section class="next" aria-label="Next up" id="next"></section>
+      <section class="improve-today" aria-label="To improve" id="improve-today"></section>
+      <section class="habit-today" aria-label="Habit" id="habit-today"></section>
+      <div class="companion" id="companion" aria-hidden="true"></div>
+    </div>
+  </section>
+  <section class="view" id="view-essays" role="tabpanel" aria-labelledby="tab-essays" hidden></section>
+  <section class="view" id="view-progress" role="tabpanel" aria-labelledby="tab-progress" hidden></section>
+  <p class="note" id="note" hidden></p>
+</main>
+<div class="settings" id="settings" hidden></div>
+<script src="/plus/runtime.js"></script>
+<script src="/plus.js" data-board="js/core.js js/store.js js/test.js js/nextup.js js/cards.js js/write.js js/essays.js js/improve.js js/habit.js js/progress.js js/fun.js js/lab.js js/boot.js"></script>
 </body>
 </html>

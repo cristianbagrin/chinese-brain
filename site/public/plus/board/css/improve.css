@@ -1,0 +1,101 @@
+/* To improve: the list beside the diary (Essays) and its open items on Today (#improve-today). Owner: essays agent
+   Rows edit like Notion; the right version is the text (red underline on what changed), what he wrote sits under it,
+   struck. Crossed off is Notion's to-do: a ticked box, the text grey and struck, in place till Monday. */
+
+/* crossed-off text, the board's one standard (Notion's): the text greyed but easy to read, a thin light line that
+   sits low through it. Any crossed-off or struck text on the board: class="x-out" (inline). */
+:root{--x-ink:var(--ink-3);--x-line:rgba(21,23,28,.26);--x-th:1px;--x-y:60%}
+.x-out{color:var(--x-ink);text-decoration:none;background:linear-gradient(var(--x-line),var(--x-line)) 0 var(--x-y) / 100% var(--x-th) no-repeat;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.x-out u.d{text-decoration:none}
+.x-draw{animation:xdraw .38s var(--ease) both}
+@keyframes xdraw{from{background-size:0 var(--x-th);color:inherit}}
+
+.es-side{min-width:0}
+@media (min-width:960px){.es-stick{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--bar) + var(--s5));max-height:calc(100vh - var(--bar) - env(safe-area-inset-top,0px) - var(--s6));overflow-y:auto;overscroll-behavior:contain;padding:0 var(--s3) var(--s5) 40px;margin-left:-40px}}
+
+/* the label */
+.im-head{display:flex;align-items:center;justify-content:space-between;gap:var(--s3);min-height:30px;margin:0 0 var(--s3)}
+.im-head .side-h{margin:0}
+
+/* rows: box, the right version, what he wrote; hover shows the remove button */
+.es-row{position:relative}
+.es-ri{position:relative;display:grid;grid-template-columns:22px minmax(0,1fr);gap:0 var(--s3);align-items:start;padding:10px 12px;margin:0 -12px;border-radius:var(--r-s);transition:background .15s}
+.es-row.jump .es-ri{cursor:pointer}
+.es-ri:hover,.es-ri:focus-within{background:var(--wash)}
+.es-t{min-width:0;display:grid;gap:2px;justify-items:start}
+.es-t>*{max-width:100%}
+.es-w{font-family:var(--zh);font-weight:400;font-size:var(--es-imp,21px);line-height:1.5;color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere;outline:0;border-radius:4px;min-height:1.5em;cursor:text}
+.es-w .es-en,.imt-t .es-en{font:inherit}
+.es-w u.d,.imt-t u.d{text-decoration-line:underline;text-decoration-color:var(--red);text-decoration-thickness:2px;text-underline-offset:.3em;text-decoration-skip-ink:none}
+.es-w:empty::before{content:attr(data-ph);color:var(--ink-4);pointer-events:none}
+.es-w:focus{box-shadow:0 0 0 6px var(--surface);background:var(--surface)}
+.es-o{font-family:var(--zh);font-size:calc(var(--es-imp,21px) * .86);line-height:1.5;overflow-wrap:anywhere;user-select:text}
+.es-o .es-en{font:inherit}
+/* the box: Notion's to-do checkbox; ticked, it fills and the tick draws itself */
+.es-box{position:relative;display:grid;place-items:center;width:18px;height:18px;margin-top:.42em;border-radius:3px;border:1.5px solid var(--ink-3);background:var(--surface);color:var(--on-ink);cursor:pointer;padding:0;transition:background .15s,border-color .15s,transform .12s}
+.es-box svg{width:14px;height:14px;stroke-dasharray:13;stroke-dashoffset:13;transition:stroke-dashoffset .22s var(--ease) .05s}
+.es-box:hover{background:var(--wash)}
+.es-box:active{transform:scale(.88)}
+.es-box.on{background:var(--green);border-color:var(--green)}
+.es-box.on svg{stroke-dashoffset:0}
+.es-box.on:hover{background:var(--green-deep);border-color:var(--green-deep)}
+.es-acts{position:absolute;top:9px;right:8px;display:flex;align-items:center;gap:2px;padding-left:24px;background:linear-gradient(90deg,transparent,var(--wash) 20px);opacity:0;pointer-events:none;transition:opacity .15s}
+.es-ri:hover .es-acts{opacity:1;pointer-events:auto}
+/* while he types in the text, the hover actions step aside (not on a click on × itself) */
+.es-ri:has([data-f]:focus) .es-acts{opacity:0;pointer-events:none}
+.es-ab{border:0;background:none;width:28px;height:28px;display:grid;place-items:center;border-radius:6px;color:var(--ink-3);cursor:pointer}
+.es-ab:hover{background:var(--wash-2);color:var(--ink)}
+
+/* the gutter: + inserts below, the grip drags */
+.es-gut{position:absolute;right:calc(100% - 6px);top:11px;display:flex;align-items:center;opacity:0;transition:opacity .15s}
+.es-ri:hover .es-gut,.es-row.drag .es-gut{opacity:1}
+.es-plus,.es-grip{border:0;background:none;padding:0;width:18px;height:24px;display:grid;place-items:center;color:var(--ink-4);border-radius:5px;cursor:pointer}
+.es-grip{cursor:grab;touch-action:none}
+.es-plus:hover,.es-grip:hover{background:var(--wash-2);color:var(--ink-2)}
+.es-row.drag{z-index:5}
+.es-row.drag .es-ri{background:var(--surface);box-shadow:0 0 0 1px var(--hair),0 14px 32px -8px rgba(21,23,28,.22);transform:scale(1.015);transition:box-shadow .2s,transform .2s}
+.es-row.drag .es-grip{cursor:grabbing}
+.es-row.shift{transition:transform .22s var(--ease)}
+.es-row.flash .es-ri{animation:imflash 1.6s var(--ease)}
+@keyframes imflash{0%,30%{background:var(--gold-wash)}100%{background:transparent}}
+
+/* crossed-off rows: in place till Monday, then in the fold; one with somewhere to go (where he got it right) is a
+   link-quiet row, the rest don't react */
+.es-row.done .es-w{cursor:inherit}
+.es-row.done:not(.jump) .es-ri:hover{background:none}
+.es-row.fresh .es-ri{animation:imflash 1.2s var(--ease)}
+
+.im-new{display:flex;align-items:center;gap:var(--s3);width:calc(100% + 24px);margin:2px -12px 0;padding:8px 12px;border:0;background:none;border-radius:var(--r-s);font-size:var(--fs-s);color:var(--ink-3);cursor:pointer;text-align:left;transition:background .15s,color .15s}
+.im-new span{width:22px;text-align:center;font-size:20px;line-height:1;font-weight:300}
+.im-new:hover{background:var(--wash);color:var(--ink-2)}
+.im-empty{margin:0;padding:10px 0 4px 34px;font-size:var(--fs-s);color:var(--ink-3)}
+.im-err{color:var(--red);padding-left:0}
+.im-fold{display:inline-flex;align-items:center;gap:8px;margin-top:var(--s6);padding:6px 0;border:0;background:none;font-size:var(--fs-s);color:var(--ink-3);cursor:pointer}
+.im-fold svg{transition:transform .2s var(--ease)}
+.im-fold[aria-expanded="true"] svg{transform:rotate(90deg)}
+.im-fold:hover{color:var(--ink-2)}
+.im-n{color:var(--ink-4);font-variant-numeric:tabular-nums}
+.im-done{margin-top:var(--s2)}
+
+@media (hover:none){
+  .es-gut{opacity:.6}.es-plus{display:none}
+  .es-acts{opacity:.7;pointer-events:auto;background:none}
+  .es-t{padding-right:28px}
+}
+@media (max-width:959px){
+  .es-stick{padding-left:28px}
+  .es-stick .im-head,.es-stick .im-new,.es-stick .im-fold{margin-left:-28px}
+  .im-new{width:calc(100% + 40px)}
+}
+
+/* Today: the same list, big, each a line he can click to go to its sentence; the box ticks it off */
+#improve-today .im-head{margin-bottom:var(--s2)}
+.imt{list-style:none;margin:0;padding:0}
+/* on a wide Today the list runs in two columns, so it all fits on screen with the essay */
+@media (min-width:1180px){.imt{columns:2;column-gap:var(--s7)}.imt-li{break-inside:avoid}}
+.imt-in{display:grid;grid-template-columns:18px minmax(0,1fr);gap:0 var(--s3);align-items:start;padding:7px 10px;margin:0 -10px;border-radius:var(--r-s);cursor:pointer;transition:background .15s}
+.imt-in:hover{background:var(--wash)}
+.imt-li.done:not(.jump) .imt-in{cursor:default;background:none}
+.imt-t{font-family:var(--zh);font-weight:400;font-size:var(--fs-l);line-height:1.6;color:var(--ink);overflow-wrap:anywhere}
+.imt-in .es-box{margin-top:.38em}
+#improve-today .im-empty{padding-left:0}

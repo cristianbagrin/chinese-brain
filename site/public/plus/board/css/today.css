@@ -1,0 +1,99 @@
+/* Today: the layout, Next up, the habit heatmap. Owner: C */
+
+/* ---------- layout ----------
+   Phone and narrow: one column in reading order (the test when open, the essay, Next up, To improve, the year, the forest).
+   Middle (960–1179): the test and the essay on the left; Next up, the forest, the year and To improve on the right.
+   Wide (≥1180, the 1280–1440 laptop): three columns. Left: the test, then the essay. Then Next up, and the forest beside
+   it, as tall as the list (fun.js); the year runs under both; To improve under that. So at 1440×820 and 1280×760 the
+   year and the tree are on screen with the test and the essay. nextup.js stacks each column on its own (4px rows, a span
+   per block), so no block waits on another column's rows. Space separates the blocks: no boxes, no lines. */
+.today{display:grid;grid-template-columns:minmax(0,1fr);row-gap:var(--s7);align-items:start}
+.today>*{min-width:0}
+#next{position:relative}
+@media (max-width:959px){.today>#companion{margin-top:calc(var(--s5) * -1)}}
+@media (min-width:960px){
+  .today{column-gap:clamp(32px,3.4vw,64px);row-gap:0;grid-auto-flow:row dense;grid-template-columns:minmax(0,1fr) clamp(340px,34%,440px)}
+  .today>#quiz,.today>#write{grid-column:1}
+  .today>#next,.today>#improve-today,.today>#habit-today,.today>#companion{grid-column:2}
+  /* placement order: the forest and the year are placed before To improve, so To improve comes after them */
+  .today>#companion{order:1}.today>#habit-today{order:2}.today>#improve-today{order:3}
+  .today>#quiz{margin-bottom:var(--s6)}
+  .today>#next{margin-bottom:var(--s6)}
+  .today>#companion{margin-bottom:var(--s3)}
+  .today>#habit-today{margin-bottom:var(--s7)}
+  .today.nu-stack{grid-auto-rows:4px}
+  .today.nu-stack>*{grid-row-end:span var(--nu-span,1)}
+}
+@media (min-width:1180px){
+  .today{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr) minmax(0,.78fr)}
+  .today>#companion{grid-column:3}
+  .today>#habit-today,.today>#improve-today{grid-column:2/4}
+  .today>#habit-today{margin-bottom:var(--s6)}
+  .today>#next{margin-bottom:var(--s5)}
+  .today>#companion{margin-bottom:var(--s5)}
+}
+
+/* ---------- Next up: clean rows, the word big; then the later words, quiet ---------- */
+.nu-top{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:var(--s5);row-gap:var(--s3)}
+.nu-row{position:relative;grid-column:1/-1;display:grid;grid-template-columns:subgrid;align-items:center;outline-offset:6px}
+.nu-w{font-size:calc(40px * var(--k));line-height:1.15;color:var(--ink);white-space:nowrap}
+.nu-m{display:flex;flex-direction:column;min-width:0}
+.nu-py{font-size:var(--fs-m);line-height:1.4;color:var(--ink-2)}
+.nu-gl{font-size:var(--fs-m);line-height:1.4;color:var(--ink-3);overflow-wrap:anywhere}
+.nu-gl .zh{font-size:calc(18px * var(--k))}
+.nu-row.on .nu-gl{color:var(--ink-2)}
+/* the popover: only what isn't on screen (the example) */
+.nu-pop{position:absolute;z-index:6;width:max-content;max-width:min(calc(360px * var(--k)),100%);box-sizing:border-box;display:grid;gap:calc(3px * var(--k));padding:var(--s3) var(--s4) calc(13px * var(--k));background:var(--surface);border-radius:var(--r);box-shadow:0 0 0 1px var(--hair),0 14px 34px rgba(21,23,28,.13);pointer-events:none;animation:nupop .16s var(--ease) both}
+.nu-pop[hidden]{display:none}
+.nu-pop .nu-py{font-size:var(--fs-m);color:var(--ink-2)}
+.nu-pop .nu-gl{font-size:var(--fs-m);color:var(--ink)}
+.nu-pop .nu-ex{font-family:var(--zh);font-size:var(--fs-l);line-height:1.5;color:var(--ink)}
+.nu-pop .nu-ex .zh{font-size:1em}
+.nu-pop .nu-gl+.nu-ex{margin-top:calc(6px * var(--k))}
+@keyframes nupop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@media (max-width:420px){.nu-w{font-size:calc(36px * var(--k))}.nu-top{column-gap:var(--s4)}}
+
+/* recent-tries glyphs (core's tries()): the same shapes as the test's pips */
+.tries{display:inline-flex;gap:calc(4px * var(--k));align-items:center;flex:none}
+.t{width:calc(10px * var(--k));height:calc(10px * var(--k));display:inline-block;flex:none}
+.t.s{border-radius:50%;background:var(--green)}
+.t.f{background:var(--red);transform:rotate(45deg) scale(.8);border-radius:2px}
+.t.p{border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--green);background:linear-gradient(90deg,var(--green) 50%,transparent 50%)}
+
+/* ---------- the year: a heatmap, one column a week (habit.js) ----------
+   Cells fill the width (up to a cap), so the year grows rightward a column each Monday. Greens: cards or a test alone,
+   an essay, an essay and one more, all three. Before he started: a paler blank. Today: the gold ring. */
+.hm{container-type:inline-size;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+  --hm-lw:calc(16px * var(--k));--hm-max:calc(18px * var(--k));
+  --hm-0:var(--wash-2);--hm-pre:#EFF0F4;--hm-1:#CFE6D8;--hm-2:#86C19E;--hm-3:#4A9A6D;--hm-4:var(--green-deep)}
+.hm-full{--hm-max:calc(30px * var(--k))}
+.hm-in{--p:min(var(--hm-max),calc((100cqw - var(--hm-lw)) / var(--w)));--gap:max(2px,calc(var(--p) * .2));--c:calc(var(--p) - var(--gap));
+  display:grid;grid-template-columns:var(--hm-lw) auto;grid-template-rows:auto auto;row-gap:var(--s1)}
+.hm-mo{grid-column:2;display:grid;grid-template-columns:repeat(var(--w),var(--c));column-gap:var(--gap);height:calc(16px * var(--k))}
+.hm-mo span{font-size:var(--fs-xs);line-height:1.1;color:var(--ink-4);white-space:nowrap;overflow:visible;width:0}
+.hm-mo span.now{color:var(--ink-2)}
+.hm-mo span.later{opacity:.6}
+.hm-wd{grid-column:1;display:grid;grid-template-rows:repeat(7,var(--c));row-gap:var(--gap)}
+.hm-wd span{font-size:calc(11px * var(--k));line-height:var(--c);color:var(--ink-4)}
+.hm-g{grid-column:2;display:grid;grid-template-rows:repeat(7,var(--c));grid-auto-flow:column;grid-auto-columns:var(--c);gap:var(--gap)}
+.hm-c{display:block;border-radius:28%;background:var(--hm-0);transition:transform .15s var(--ease)}
+.hm-c.pre{background:var(--hm-pre)}
+.hm-c.l1{background:var(--hm-1)}.hm-c.l2{background:var(--hm-2)}.hm-c.l3{background:var(--hm-3)}.hm-c.l4{background:var(--hm-4)}
+.hm-c.today{box-shadow:0 0 0 calc(1.5px * var(--k)) var(--bg),0 0 0 calc(3.5px * var(--k)) var(--gold)}
+.hm-c.today.l0{background:var(--gold-wash)}
+.hm-c.off{visibility:hidden}
+.hm-c[data-tip]{cursor:default}
+.hm-c.hb-hot{transform:scale(1.3)}
+.hm-c.pop{animation:hmpop .7s var(--spring)}
+@keyframes hmpop{0%{transform:scale(.4)}60%{transform:scale(1.35)}100%{transform:none}}
+/* the key's glyphs inside the tip */
+.hm-k{display:inline-block;flex:none;width:calc(10px * var(--k));height:calc(10px * var(--k));border-radius:28%;background:var(--hm-2,#86C19E)}
+.hm-k.l1{background:#CFE6D8}.hm-k.l2{background:#86C19E}
+@media (prefers-reduced-motion:reduce){.hm-c{transition:none}.hm-c.pop{animation:none}}
+
+/* the tip: one floating note for anything with data-tip (habit.js); Progress's month charts use it too */
+.hb-tip{position:fixed;z-index:30;left:0;top:0;display:grid;gap:calc(4px * var(--k));max-width:calc(280px * var(--k));padding:calc(10px * var(--k)) calc(14px * var(--k)) calc(11px * var(--k));background:var(--surface);border-radius:var(--r-s);box-shadow:0 1px 2px var(--shade),0 8px 24px var(--shade);font-size:var(--fs-s);color:var(--ink-2);pointer-events:none}
+.hb-tip[hidden]{display:none}
+.hb-th{font-size:var(--fs-xs);color:var(--ink-3)}
+.hb-tl{display:flex;align-items:center;gap:var(--s2);color:var(--ink);font-size:var(--fs-m)}
+.hb-tl.q{color:var(--ink-3)}

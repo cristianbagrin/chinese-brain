@@ -1,0 +1,137 @@
+/* ---------- base: the design system. Owner: lead. Agents use these tokens; they don't edit this file. ---------- */
+:root{
+  color-scheme: light;
+  /* Layout: near full width. Space separates things, not boxes or lines: a hairline only where two
+     different things touch, a box only for the one thing that is "now" (the test). */
+
+  /* ground and ink: a cool off-white, the Chinese Brain family (never beige) */
+  --bg:#FAFAFC; --surface:#FFFFFF; --wash:#F2F3F7; --wash-2:#E8EAF0; --hair:#E4E6EC;
+  --ink:#15171C; --ink-2:#474C57; --ink-3:#757B87; --ink-4:#ADB2BC;
+
+  /* meaning, one job each, everywhere:
+     red   = needs fixing (a mistake, a fail) and Brain's own seal
+     green = done or right (a pass, a written day, a crossed-off item, a well-done mark)
+     gold  = now (the open test, today)                 grey = neutral, "more natural" */
+  --red:#B83A3A; --red-wash:#FAEDEC; --red-soft:#E9B9B6;
+  --green:#3C8A5F; --green-wash:#E7F3EC; --green-soft:#AAD3BA; --green-deep:#2A6B47;
+  --gold:#F2C230; --gold-wash:#FEF6DA; --gold-edge:#E2B627; --gold-ink:#7A5D00;
+  /* lanes, tiny marks only: everyday slate, Taiwan plum blossom (梅花), test ochre */
+  --lane-life:#7D93B8; --lane-tw:#C25B80; --lane-test:#C8962E;
+  --on-ink:#FFFFFF; --glass:rgba(250,250,252,.86); --shade:rgba(21,23,28,.10);
+
+  /* type: Latin UI (Inter), display Chinese (words, examples, the list: WenKai), pen Chinese (his writing: WenKai,
+     a touch bigger and thicker). 2026-11-01: fonts baked in (Inter, WenKai, WenKai); the font experiments are gone. */
+  --latin:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --zh:"LXGW WenKai TC","Noto Sans TC","PingFang TC","Heiti TC",sans-serif;
+  --pen:"LXGW WenKai TC","Noto Sans TC","PingFang TC","Heiti TC",sans-serif;
+  --ui:var(--latin);
+  /* his writing in WenKai: bigger than the text around it (--pen-k) and a hair thicker (--pen-stroke, a text stroke,
+     since WenKai only ships 400 and 700). His picks (2026-11-01): 117% on Today, 110% on Essays, 0.25px. Use .pen, or font-size:calc(X * var(--pen-k)) and
+     -webkit-text-stroke:var(--pen-stroke) currentColor, on every surface that shows his own Chinese writing. */
+  
+}
+#view-essays{--k:1;--pen-k:1.10}
+/* the size scale: every size on the board is a token times --k (a Lab slider, "Board size"; default .92, "just
+   above the comfort zone" before). The Essays view keeps --k:1 (he likes it as is). New sizes in any file:
+   use a token, or calc(Npx * var(--k)), never a bare px font size. */
+:root,#view-essays{
+  --fs-xs:calc(14px * var(--k)); --fs-s:calc(15.5px * var(--k)); --fs-m:calc(17px * var(--k)); --fs-l:calc(20px * var(--k));
+  --fs-xl:calc(26px * var(--k)); --fs-2xl:calc(38px * var(--k)); --fs-3xl:calc(60px * var(--k));
+  --essay:calc(20px * var(--k)); --essay-lh:1.6;
+  --s1:calc(4px * var(--k)); --s2:calc(8px * var(--k)); --s3:calc(12px * var(--k)); --s4:calc(16px * var(--k));
+  --s5:calc(24px * var(--k)); --s6:calc(32px * var(--k)); --s7:calc(48px * var(--k)); --s8:calc(64px * var(--k)); --s9:calc(96px * var(--k));
+}
+:root{--k:.92; --pen-k:1.17; --pen-stroke:.25px;
+  --page:1680px; --bar:calc(60px * var(--k)); --r:12px; --r-s:8px;
+  --ease:cubic-bezier(.22,.9,.24,1); --spring:cubic-bezier(.3,1.35,.5,1);
+
+  /* legacy names from the old board, mapped onto the new tokens; delete each once nothing uses it */
+  --paper:var(--bg); --panel:var(--surface); --panel-2:var(--bg); --well:var(--wash);
+  --rule:var(--hair); --rule-2:var(--wash-2); --line:var(--hair); --old:var(--ink-4);
+  --life:var(--green); --life-pale:var(--green-wash); --tw:var(--red); --test:var(--lane-test);
+  --pass:var(--green); --fail:var(--red); --part:var(--gold-edge);
+  --fix:var(--red-wash); --better:var(--wash); --good:var(--green-wash); --word:var(--wash); --good-ink:var(--green-deep);
+  --fix-u:var(--red); --better-u:var(--ink-4); --word-u:var(--ink-3); --good-u:var(--green);
+  --row:36px;
+}
+
+*{box-sizing:border-box}
+html{background:var(--bg);scroll-padding-top:calc(env(safe-area-inset-top,0px) + var(--bar) + 16px)}
+body{background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:var(--fs-m);line-height:1.5;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.zh{font-family:var(--zh);font-weight:400}
+.pen{font-family:var(--pen);-webkit-text-stroke:var(--pen-stroke) currentColor}
+button,input,textarea{font:inherit;color:inherit}
+button{-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radius:6px}
+h1,h2,h3{font-weight:500;margin:0;text-wrap:balance}
+.wrap{max-width:var(--page);margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px),4vw);padding-right:max(16px,env(safe-area-inset-right,0px),4vw);padding-block:var(--s7) var(--s9)}
+@media (min-width:1600px){.wrap{padding-left:max(16px,env(safe-area-inset-left,0px),64px);padding-right:max(16px,env(safe-area-inset-right,0px),64px)}}
+
+/* a quiet section label: what a block is, said once, small and grey (never bold, never a box) */
+.side-h,.label{font-family:var(--ui);font-size:var(--fs-s);font-weight:400;color:var(--ink-3);letter-spacing:.005em;margin:0 0 var(--s3)}
+
+/* app bar: glass, a hairline only once the page scrolls under it */
+.appbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:8;background:var(--glass);-webkit-backdrop-filter:saturate(1.6) blur(16px);backdrop-filter:saturate(1.6) blur(16px);transition:box-shadow .25s}
+.appbar.lift{box-shadow:0 1px 0 var(--hair)}
+.bar-in{max-width:var(--page);margin:0 auto;height:var(--bar);display:flex;align-items:center;gap:var(--s6);padding-left:max(16px,env(safe-area-inset-left,0px),4vw);padding-right:max(16px,env(safe-area-inset-right,0px),4vw)}
+@media (min-width:1600px){.bar-in{padding-left:max(16px,env(safe-area-inset-left,0px),64px);padding-right:max(16px,env(safe-area-inset-right,0px),64px)}}
+.seg{position:relative;display:inline-flex;gap:var(--s5);height:var(--bar);align-items:stretch}
+.seg button{position:relative;border:0;background:none;padding:0 2px;font-size:var(--fs-m);font-weight:450;color:var(--ink-3);cursor:pointer;transition:color .2s}
+.seg button:hover{color:var(--ink-2)}
+.seg button[aria-selected="true"]{color:var(--ink)}
+.seg .thumb{position:absolute;bottom:0;left:0;width:0;height:2px;border-radius:2px;background:var(--ink)}
+.seg.ready .thumb{transition:transform .36s var(--ease),width .36s var(--ease)}
+.dot{position:absolute;top:16px;right:-9px;width:7px;height:7px;border-radius:50%;background:var(--red)}
+.dot.gold{background:var(--gold);box-shadow:inset 0 0 0 1px var(--gold-edge)}
+.bar-r{margin-left:auto;display:flex;align-items:center;gap:var(--s2);min-width:0}
+.toc{font-size:var(--fs-m);color:var(--ink-3);white-space:nowrap;margin-right:var(--s3)}
+.toc b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.toc .s{display:none}
+@media (max-width:520px){.bar-in{gap:var(--s4)}.seg{gap:var(--s4)}.seg button{font-size:16px}.toc .l{display:none}.toc .s{display:inline}.toc{margin-right:0}.bar-r{gap:2px}.snd,.labbtn{width:34px;height:34px}}
+/* on a phone the countdown is just the number: TOCFL is the one countdown */
+@media (max-width:440px){.toc>.s:nth-child(2){display:none}}
+.snd,.labbtn{border:0;background:none;width:38px;height:38px;display:grid;place-items:center;border-radius:10px;color:var(--ink-3);cursor:pointer;flex:none;transition:color .15s,background .15s}
+.snd:hover,.labbtn:hover,.labbtn[aria-expanded="true"]{background:var(--wash);color:var(--ink-2)}
+.snd:active,.labbtn:active{transform:scale(.92)}
+@media (prefers-reduced-transparency:reduce){.appbar{background:var(--bg);-webkit-backdrop-filter:none;backdrop-filter:none}}
+
+/* views ease in */
+.view{animation:viewin .32s var(--ease) both}
+@keyframes viewin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* buttons: ink pill for the one action, quiet text buttons for the rest */
+.btn{display:inline-flex;align-items:center;gap:var(--s2);border:0;background:var(--ink);color:var(--on-ink);border-radius:999px;padding:10px 22px;font-size:var(--fs-m);font-weight:550;cursor:pointer;transition:transform .15s,opacity .15s}
+.btn:hover:not(:disabled){transform:translateY(-1px)}
+.btn:active:not(:disabled){transform:scale(.97)}
+.btn:disabled{opacity:.3;cursor:default}
+.btn-q{display:inline-flex;align-items:center;gap:var(--s2);border:0;background:none;color:var(--ink-2);border-radius:999px;padding:8px 14px;font-size:var(--fs-s);font-weight:500;cursor:pointer;transition:background .15s,color .15s}
+.btn-q:hover{background:var(--wash);color:var(--ink)}
+.btn-q:active{transform:scale(.97)}
+
+/* Brain's seal: one shape for the 改 stamp and any other seal */
+.seal{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:6px;background:var(--red);color:var(--on-ink);font:700 15px/1 "LXGW WenKai TC","Noto Sans TC",sans-serif;transform:rotate(-6deg);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.28)}
+
+/* undo toast */
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:20;display:flex;align-items:center;gap:14px;background:var(--ink);color:var(--on-ink);border-radius:999px;padding:9px 9px 9px 18px;font-size:var(--fs-s);font-weight:500;box-shadow:0 10px 30px rgba(21,23,28,.22);transform:translate(-50%,0);animation:toastin .32s var(--spring)}
+.toast.out{opacity:0;transform:translate(-50%,12px);transition:opacity .2s,transform .2s}
+.toast button{border:0;background:rgba(255,255,255,.14);color:var(--on-ink);border-radius:999px;padding:5px 14px;font-weight:600;cursor:pointer}
+.toast button:hover{background:rgba(255,255,255,.24)}
+@keyframes toastin{from{opacity:0;transform:translate(-50%,16px) scale(.96)}to{opacity:1;transform:translate(-50%,0)}}
+
+.note{margin:var(--s7) 0 0;font-size:var(--fs-s);color:var(--ink-3)}
+
+/* legacy components from the old board; each view's owner replaces them, then they go */
+.card{background:var(--surface);border:1px solid var(--hair);border-radius:var(--r)}
+.hd{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:48px;padding:10px 18px;border-bottom:1px solid var(--hair)}
+.h{margin:0;font-size:var(--fs-m);font-weight:600;color:var(--ink)}
+.num{font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.chip.today{background:var(--gold);color:var(--ink)}
+.sw{display:inline-flex;align-items:center;gap:8px;border:0;background:none;cursor:pointer;font-size:var(--fs-s);font-weight:500;color:var(--ink-2);padding:6px 2px;border-radius:8px;white-space:nowrap}
+.sw i{width:34px;height:20px;border-radius:999px;background:var(--wash-2);position:relative;transition:background .2s}
+.sw i::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .25s var(--ease)}
+.sw[aria-checked="true"] i{background:var(--ink-2)}
+.sw[aria-checked="true"] i::after{transform:translateX(14px)}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation-duration:.001s!important}}

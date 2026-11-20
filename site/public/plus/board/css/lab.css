@@ -1,0 +1,17 @@
+/* Settings: a popover under the gear. Owner: lead. Type is fixed 16px+ (not scaled by --k), so it never gets small. */
+:root[data-text-size="larger"]{--k:1.05}
+.settings{position:fixed;z-index:30;top:calc(env(safe-area-inset-top,0px) + var(--bar) + 6px);right:max(16px,env(safe-area-inset-right,0px),4vw);width:min(380px,calc(100vw - 32px));max-height:calc(100vh - var(--bar) - 40px);overflow:auto;background:var(--surface);border-radius:14px;box-shadow:0 18px 50px rgba(21,23,28,.16),0 0 0 1px var(--hair);animation:stin .2s var(--ease)}
+@keyframes stin{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.settings{animation:none}}
+.st-in{padding:var(--s4) var(--s5) var(--s5)}
+.st-top{display:flex;align-items:center;gap:var(--s2);margin:0 calc(-1 * var(--s3)) var(--s3) 0}
+.st-top b{margin-right:auto;font-weight:600;font-size:17px}
+.st-top .btn-q{font-size:16px}
+.st-x{width:32px;height:32px;border:0;border-radius:50%;background:none;font-size:22px;line-height:1;color:var(--ink-3);cursor:pointer}
+.st-x:hover{background:var(--wash);color:var(--ink)}
+.st-row{display:grid;gap:8px;padding:var(--s3) 0}
+.st-l{font-size:16px;color:var(--ink)}
+.st-o{display:flex;flex-wrap:wrap;gap:6px}
+.st-o button{border:1px solid var(--hair);background:var(--surface);border-radius:999px;padding:6px 14px;font-size:16px;font-weight:500;color:var(--ink-2);cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.st-o button:hover{border-color:var(--ink-4)}
+.st-o button[aria-checked="true"]{background:var(--ink);border-color:var(--ink);color:var(--on-ink)}

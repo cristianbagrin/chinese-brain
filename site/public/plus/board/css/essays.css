@@ -1,0 +1,135 @@
+/* Essays: one diary, newest day first, in Mon–Sun weeks; the To improve list alongside (sticky) on wide screens,
+   after the diary on phones. Space separates days and weeks: no lines, no card. Owner: essays agent */
+:root{--es-text:21px;--es-imp:22.5px}
+.es{--es-w:760px;display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s8)}
+@media (min-width:960px){.es{grid-template-columns:minmax(0,1fr) minmax(320px,400px);column-gap:clamp(48px,6vw,112px)}}
+.es-main{min-width:0}
+/* English inside Chinese gets the English face (used across the board by mix()) */
+.es-en{font-family:var(--ui);font-weight:400;font-size:.92em}
+
+/* My version: at the right end of the newest week's line, and it stays in reach as he scrolls (a soft pill once it
+   floats over the pages) */
+.es-top{position:sticky;top:calc(var(--bar) + 8px);z-index:5;height:0;max-width:var(--es-w);display:flex;justify-content:flex-end}
+.es-top .es-sw{height:max-content;transition:background .2s,box-shadow .2s,padding .2s}
+.es-top.stuck .es-sw{padding:6px 10px 6px 14px;margin-right:-10px;background:color-mix(in srgb,var(--bg) 86%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:999px;box-shadow:0 0 0 1px var(--hair),0 6px 18px -8px rgba(21,23,28,.18)}
+.es-wh{padding-right:150px}
+.es-sw{display:inline-flex;align-items:center;gap:10px;border:0;background:none;padding:6px 2px;font-size:var(--fs-xs);font-weight:400;color:var(--ink-3);cursor:pointer;border-radius:8px;white-space:nowrap}
+.es-sw i{position:relative;width:32px;height:19px;border-radius:999px;background:var(--wash-2);transition:background .2s}
+.es-sw i::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:var(--surface);box-shadow:0 1px 2px rgba(21,23,28,.22);transition:transform .25s var(--ease)}
+.es-sw[aria-checked="true"] i{background:var(--ink-2)}
+.es-sw[aria-checked="true"] i::after{transform:translateX(13px)}
+.es-sw:hover{color:var(--ink)}
+
+/* phones and tablets: To improve sits above the diary, folded to one line (the open items as small dots) */
+.es-disc{display:none}
+@media (max-width:959px){
+  .es{gap:var(--s5)}
+  .es-side{order:-1}
+  .es-side.open{margin-bottom:var(--s5)}
+  .es-disc{display:flex;align-items:center;gap:var(--s3);width:100%;min-height:44px;padding:0;border:0;background:none;text-align:left;font-size:var(--fs-s);color:var(--ink-3);cursor:pointer}
+  .es-disc svg{margin-left:auto;transition:transform .2s var(--ease)}
+  .es-disc[aria-expanded="true"] svg{transform:rotate(90deg)}
+  .es-dd{display:inline-flex;flex-wrap:wrap;align-items:center;gap:5px;max-width:60%}
+  .es-dd i{width:7px;height:7px;border-radius:50%;background:var(--red-soft)}
+  .es-side:not(.open) .es-stick{display:none}
+  .es-side.open .im-head .side-h{display:none}
+  .es-side.open .im-head{margin-left:0;justify-content:flex-end;min-height:0;margin-bottom:0}
+}
+
+/* weeks and days: "Week N" with its seven dots, then the days, newest first, each a sheet of paper (paper.css draws
+   the sheet; here only the space between them) */
+.es-days{position:relative;min-width:0}
+.es-wk+.es-wk{margin-top:var(--s9)}
+.es-wh{display:flex;align-items:center;gap:var(--s4);max-width:var(--es-w);margin:0 0 var(--s5)}
+.es-wh h2{font-size:var(--fs-l);font-weight:500;color:var(--ink-2);letter-spacing:.005em;font-variant-numeric:tabular-nums}
+.es-dots{display:inline-flex;gap:5px}
+.es-dots i{width:9px;height:9px;border-radius:50%;background:var(--wash-2)}
+.es-dots i.on{background:var(--green)}
+.es-dots i.now{background:var(--gold-wash);box-shadow:inset 0 0 0 2px var(--gold-edge)}
+.es-dots i.later{background:none;box-shadow:inset 0 0 0 1.5px var(--wash-2)}
+.es-day{position:relative;max-width:var(--es-w)}
+/* on the sheet (paper.css): the ruling follows this text's line height; the header sits in the clean top band and
+   the first line of text starts where the ruling does */
+.es-day.paper{--paper-row:calc(var(--es-text,21px) * var(--pen-k) * var(--essay-lh));--paper-top:calc(68px * var(--k))}
+.es-day.paper .es-dh{position:absolute;top:calc(18px * var(--k));left:var(--paper-x);right:calc(var(--paper-x) - 12px);margin:0}
+.es-day.paper .es-text{margin-top:calc(-1 * var(--s2))}
+.es-day+.es-day{margin-top:var(--s6)}
+.es-dh{display:flex;align-items:center;gap:var(--s3);min-height:30px;margin-bottom:var(--s2);font-size:var(--fs-s);color:var(--ink-3)}
+.es-dh b{font-weight:500;color:var(--ink-2)}
+.es-dh .saved{margin-left:auto;font-size:var(--fs-xs);font-weight:400;color:var(--ink-3);opacity:0;transition:opacity .5s}
+.es-dh .saved.on{opacity:1;transition:none}
+.es-dh .saved.err{opacity:1;color:var(--red)}
+
+/* the essay: reading and editing share one box and one type, so nothing moves when he starts or stops editing */
+.es-text{font-family:var(--pen);font-weight:400;font-size:calc(var(--es-text,21px) * var(--pen-k));line-height:var(--essay-lh);-webkit-text-stroke:var(--pen-stroke) currentColor;color:var(--paper-ink,var(--ink));white-space:pre-wrap;overflow-wrap:anywhere;
+  margin:0 calc(-1 * var(--s4));padding:var(--s2) var(--s4);border-radius:var(--r);outline:0;cursor:default;
+  transition:background .3s var(--ease),box-shadow .3s var(--ease)}
+.es-text p{margin:0}
+.es-text p+p{margin-top:.55em} /* a little more than the gap between lines, so a paragraph never reads like a wrapped line */
+.es-text .es-en{font:inherit}
+/* editing happens on the page itself: no box, no ring, only the caret */
+.es-text:focus-visible{box-shadow:none}
+.editing .es-text{cursor:text;caret-color:var(--ink)}
+
+/* marks: one highlighter for every kind of correction, super light, the way a real one goes on: a band a little
+   off the line, a hair tilted, darker where the pen started and stopped, and never past the characters it marks
+   (his pick 2026-11-01). Each mark's own tilt and band come from essays.js (ES_messy). Only the changed characters; well done is plain text. */
+html{--hl-rgb:255 210 0;--es-hl-a:.3}
+@property --a{syntax:'<number>';inherits:true;initial-value:.3}
+.es-text u.d,.es-was,.cd-main .hl{
+  --a:var(--es-hl-a,.3);
+  text-decoration:none;
+  border-radius:.3em .55em .35em .6em / .5em .3em .55em .35em;
+  background-image:
+    linear-gradient(var(--hl-t,180deg),transparent var(--hl-0,20%),rgb(var(--hl-rgb) / var(--a)) calc(var(--hl-0,20%) + 3%),rgb(var(--hl-rgb) / calc(var(--a) * .82)) 55%,rgb(var(--hl-rgb) / var(--a)) calc(var(--hl-1,88%) - 3%),transparent var(--hl-1,88%)),
+    linear-gradient(90deg,rgb(var(--hl-rgb) / calc(var(--a) * var(--hl-e,.6))) 0,transparent .5em,transparent calc(100% - .45em),rgb(var(--hl-rgb) / calc(var(--a) * var(--hl-e,.6))) 100%);
+  background-size:100% 100%,100% 56%;background-position:0 0,0 66%;background-repeat:no-repeat;
+  -webkit-box-decoration-break:clone;box-decoration-break:clone;transition:--a .15s}
+.es-c[data-k] u.d{cursor:pointer}
+.es-c.on u.d{--a:calc(var(--es-hl-a,.3) * 1.75)}
+.es-n{border-radius:3px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.es-n:focus-visible{outline:2px solid var(--ink-4);outline-offset:2px}
+.es-c.flash .es-n{animation:esflash 1.9s var(--ease)}
+@keyframes esflash{0%,35%{background:var(--gold-wash)}100%{background:transparent;box-shadow:0 0 0 3px rgba(242,194,48,0)}}
+/* a place in his text he was sent to (a crossed-off item: where he got it right): it lights up, then fades */
+.es-spot{position:absolute;z-index:3;pointer-events:none;border-radius:4px;background:var(--gold-wash);box-shadow:0 0 0 3px var(--gold);mix-blend-mode:multiply;animation:esspot 2.2s var(--ease) forwards}
+@keyframes esspot{0%,40%{opacity:1}100%{opacity:0}}
+/* My version: what he wrote, struck (the board's crossed-off style, .x-out in improve.css), before the correction */
+.es-c s{margin-right:.3em}
+.es-hide-mine .es-c s{display:none}
+/* on his list: a small red dot that takes no room */
+.es-pin{display:inline-block;width:0;height:0;position:relative;vertical-align:top}
+.es-pin::after{content:"";position:absolute;left:2px;top:.25em;width:6px;height:6px;border-radius:50%;background:var(--red);animation:espop .35s var(--spring)}
+@keyframes espop{0%{transform:scale(0)}100%{transform:scale(1)}}
+/* editing: his words, with the spots Claude corrected faintly highlighted until he rewrites them */
+.es-was{--a:calc(var(--es-hl-a,.3) * .5)}
+/* the card window borrows the highlighter: the word in its sentences, the story's hook (cards.js) */
+.cd-main mark.hl{background-color:transparent;color:inherit;padding:0 .08em}
+.es-was.gone{--a:0}
+.editing .es-was,.back .es-n{animation:esin .35s var(--ease)}
+@keyframes esin{from{opacity:.25}to{opacity:1}}
+.es-none{margin:0;font-size:var(--fs-m);color:var(--ink-3)}
+.es-more{margin-top:var(--s8);color:var(--ink-3)}
+
+/* the tip: Brain's card. What he wrote, a note that adds something, the list button */
+.es-tip{position:absolute;z-index:6;width:min(340px,100%);background:var(--surface);border-radius:var(--r);box-shadow:0 0 0 1px var(--hair),0 16px 40px -10px rgba(21,23,28,.2);padding:var(--s4) 18px;display:grid;gap:var(--s2);justify-items:start;transform-origin:var(--ox,24px) 100%;animation:tipin .18s var(--ease)}
+.es-tip.below{transform-origin:var(--ox,24px) 0}
+@keyframes tipin{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+.es-tip p{margin:0}
+.es-tw{font-family:var(--pen);font-size:calc(var(--fs-l) * var(--pen-k));line-height:1.5}
+.es-tw .es-en{font:inherit}
+.es-tn{font-size:var(--fs-m);line-height:1.55;color:var(--ink-2)}
+.es-tn .zh{font-size:1.1em;color:var(--ink)}
+.es-add{margin-top:var(--s2);display:inline-flex;align-items:center;gap:6px;border:0;background:var(--ink);color:var(--on-ink);border-radius:999px;padding:7px 16px;font-size:var(--fs-s);font-weight:550;cursor:pointer;transition:transform .15s,background .15s,color .15s}
+.es-add:hover{transform:translateY(-1px)}
+.es-add:active{transform:scale(.96)}
+.es-add[aria-pressed="true"]{background:var(--wash);color:var(--ink-2);padding-left:12px}
+
+@media (max-width:559px){
+  .es-wk+.es-wk{margin-top:var(--s8)}
+  .es-text{margin:0 calc(-1 * var(--s3));padding:var(--s1) var(--s3)}
+  .es-day.paper .es-text{margin-top:calc(-1 * var(--s1))}
+}
+
+/* a day reviewed in the last five days (essays.js ES_fresh): the 閱 stamp pressed in fresh ink, bigger. */
+.es-day.fresh .paper-stamp.read{--st:calc(52px * var(--k));opacity:1;background:#D9302C;filter:saturate(1.15)}

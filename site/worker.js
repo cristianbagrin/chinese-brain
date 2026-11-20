@@ -920,6 +920,8 @@ const STORES = {
   chrome: 'https://chromewebstore.google.com/detail/chinese-brain/pdhgpdlkjdkehlpoomonehbnhiplgaao',
 };
 
+const PLUS_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; media-src 'self' blob: data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+
 /** Addresses from before the extension's pages moved under /brain. */
 const MOVED = { '/welcome': '/brain/guide#welcome', '/brain/welcome': '/brain/guide#welcome', '/privacy': '/brain/privacy', '/dashboard': '/brain/dashboard', '/guide': '/brain/guide', '/whats-new': '/brain/whats-new' };
 
@@ -963,6 +965,14 @@ export default {
       return Response.redirect(`${env.SITE}${to}${url.search}${hash ? `#${hash}` : ''}`, 301);
     }
     if (path === '/brain/firefox' || path === '/brain/chrome') return Response.redirect(STORES[path.slice(7)], 302);
+    // Chinese Brain Plus: the board, which loads its fonts from Google (the site's own CSP allows none).
+    if (path === '/plus') {
+      const res = await pageFile(env, request, '/plus');
+      const h = new Headers(res.headers);
+      h.set('Content-Security-Policy', PLUS_CSP);
+      h.set('Cache-Control', 'no-store');
+      return new Response(res.body, { status: res.status, headers: h });
+    }
     // Until the main site exists, the front page is Chinese Brain's.
     if (path === '') return servePage(request, env, await pageFile(env, request, `/brain${url.search}`), { key: '/brain' });
     const res = await pageFile(env, request, url.pathname + url.search);

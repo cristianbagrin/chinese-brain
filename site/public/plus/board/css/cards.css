@@ -1,0 +1,172 @@
+/* ---------- cards: the card window. Owner: card maker.
+   One wide window over the dimmed board (the board behind is inert). Its parts are blocks (data-area: head, ex, chars,
+   story, know, plus the follow-up thread), placed in two columns that read as pairs: the word, its characters and their
+   story on the left; the sentences and what's worth knowing on the right. Type is reading size, not display size: English 16.5px (his pick, 2026-11-19), Chinese lines
+   22px, the word itself the one big thing at 46px (smaller since 2026-11-19, so the card fits one screen more often). ---------- */
+.nu-row{cursor:pointer}
+.cd-any{margin-top:var(--s4)}
+.cd-any input{width:100%;max-width:16em;font:inherit;font-size:var(--fs-l);font-family:var(--zh);color:var(--ink);background:transparent;
+  border:0;border-bottom:1.5px solid var(--hair);padding:var(--s1) 0;outline:none;transition:border-color .2s var(--ease)}
+.cd-any input::placeholder{color:var(--ink-4);font-family:var(--ui)}
+.cd-any input:focus{border-bottom-color:var(--ink-3)}
+
+html.cd-on{overflow:hidden}
+html.cd-on .toast{z-index:70}
+.cd-back{position:fixed;inset:0;z-index:60;background:rgba(21,23,28,0);transition:background-color .24s cubic-bezier(.4,0,.2,1);
+  display:flex;justify-content:center;align-items:center;padding:24px}
+.cd-back.in{background:rgba(21,23,28,.3)}
+.cd-sheet{--gap:28px;width:min(1400px,100%);height:min(940px,100%);display:flex;flex-direction:column;background:var(--surface);border-radius:20px;overflow:hidden;
+  box-shadow:0 0 0 1px rgba(21,23,28,.06),0 40px 100px -30px rgba(21,23,28,.4);
+  opacity:0;transform:translateY(16px) scale(.985);
+  /* closing: it fades and sinks away on the same path it came in by, eased at both ends (no snap) */
+  transition:transform .24s cubic-bezier(.4,0,.2,1),opacity .2s cubic-bezier(.4,0,.2,1)}
+/* opening: a quick spring up, the fade a touch shorter so it's solid before it settles */
+.cd-back.in .cd-sheet{opacity:1;transform:none;transition:transform .34s var(--spring),opacity .18s var(--ease)}
+
+/* the bar: the word tabs, ‹ ›, Images, Card it, × */
+.cd-bar{flex:none;display:flex;align-items:center;gap:8px;padding:8px 12px 8px 16px;border-bottom:1px solid var(--hair)}
+.cd-sp{flex:1}
+.cd-tabs{display:flex;gap:4px;min-width:0;overflow-x:auto}
+.cd-tab{font:inherit;border:0;background:none;cursor:pointer;padding:6px 14px;border-radius:10px;color:var(--ink-3);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.cd-tab .zh{font-size:22px;line-height:1.2}
+.cd-tab:hover{color:var(--ink);background:var(--wash)}
+.cd-tab[aria-selected="true"]{color:var(--ink);background:var(--wash)}
+.cd-tab:only-child{pointer-events:none;background:none;padding-left:4px}
+.cd-tick{font-style:normal;font-size:15.5px;color:var(--green)}
+.cd-tab.todo .zh{color:var(--ink-4)}
+.cd-tab.todo[aria-selected="true"] .zh{color:var(--ink-3)}
+.cd-tx{font-style:normal;font-size:18px;line-height:1;width:20px;height:20px;display:grid;place-items:center;border-radius:50%;margin-right:-6px;color:var(--ink-4);opacity:0;transition:opacity .15s,background .15s}
+.cd-tab:hover .cd-tx,.cd-tab[aria-selected="true"] .cd-tx{opacity:1}
+.cd-tx:hover{background:var(--wash-2);color:var(--ink)}
+.cd-nav[hidden]{display:none}
+.cd-nav{display:inline-flex;gap:2px;margin-right:4px}
+.cd-ib{font:inherit;font-size:26px;line-height:1;width:40px;height:40px;border:0;border-radius:50%;background:none;color:var(--ink-2);cursor:pointer}
+.cd-ib:hover:not(:disabled){background:var(--wash);color:var(--ink)}
+.cd-ib:disabled{opacity:.3;cursor:default}
+.cd-btn{font:inherit;font-size:16px;line-height:1;border-radius:999px;padding:11px 18px;cursor:pointer;border:0;background:var(--wash);color:var(--ink-2);text-decoration:none;
+  transition:background .15s,color .15s,transform .1s}
+.cd-btn:hover:not(:disabled){background:var(--wash-2);color:var(--ink)}
+.cd-btn:active:not(:disabled){transform:scale(.96)}
+.cd-btn:disabled{opacity:.35;cursor:default}
+.cd-write{background:var(--ink);color:var(--on-ink)}
+.cd-write:hover:not(:disabled){background:#2A2E37;color:var(--on-ink)}
+.cd-write kbd{font:inherit;opacity:.6;margin-left:6px}
+.cd-done{background:var(--ink);color:var(--on-ink);min-width:96px}
+.cd-done:hover:not(:disabled){background:#2A2E37;color:var(--on-ink)}
+.cd-done[aria-pressed="true"]{background:var(--green-wash);color:var(--green-deep)}
+.cd-done[aria-pressed="true"]::before{content:"✓ "}
+.cd-x{font:inherit;font-size:28px;line-height:1;width:42px;height:42px;border:0;background:none;color:var(--ink-3);cursor:pointer;border-radius:50%;margin-left:2px}
+.cd-x:hover{background:var(--wash);color:var(--ink)}
+
+/* ---------- the blocks (shared by every layout) ---------- */
+.cd-main{flex:1;min-height:0;color:var(--ink);font-size:16.5px;line-height:1.6}
+.cd-main p{margin:0}
+.cd-main b{font-weight:600}
+.cd-main .zh{font-family:var(--zh)}
+.cd-blk{min-width:0}
+.cd-h{font-family:var(--ui);font-size:16.5px;font-weight:500;color:var(--ink-3);margin:0 0 6px}
+
+.cd-head{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.cd-w{font-family:var(--zh);font-weight:700;font-size:46px;line-height:1;letter-spacing:.02em;margin:0}
+.cd-hm{display:flex;flex-direction:column;gap:2px;min-width:0}
+.cd-py{font-size:20px;line-height:1.25;color:var(--ink-2)}
+.cd-en{font-size:19px;line-height:1.35}
+.cd-why{font-size:16px;color:var(--ink-2);margin:0 0 14px !important;padding:8px 12px;border-radius:10px;background:var(--wash);display:inline-block}
+.cd-why .zh{font-size:18px}
+.cd-head .cd-wait{flex-basis:100%}
+
+/* sentences: Chinese, then English; the pinyin only while he asks for it (a click on the sentence). The word itself
+   carries the essays' highlighter (essays.css, .cd-main .hl) */
+.cd-sent{display:grid;gap:6px;cursor:pointer;border-radius:10px;margin:0 -10px;padding:6px 10px;transition:background .15s}
+.cd-sent:hover{background:var(--bg)}
+.cd-sent:focus-visible{outline:2px solid var(--ink-4);outline-offset:0}
+.cd-sent+.cd-sent{margin-top:4px}
+.cd-sent:not(.py) .cd-spy{display:none}
+/* a click copies the sentence for Anki (a green flash and the save chime); a hold shows its pinyin (cards.js). No text selection:
+   a press is never a drag-select. */
+.cd-sent{position:relative;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:background .15s,transform .15s var(--ease)}
+.cd-sent.press{background:var(--wash);transform:scale(.995)}
+.cd-sent.copied{background:var(--green-wash);transition:background 0s}
+.cd-sent:not(.copied){transition:background .18s,transform .15s var(--ease)}
+.cd-szh{font-size:22px;line-height:1.5}
+.cd-t{color:inherit}
+.cd-szh .cd-sp{font-style:normal;font-family:var(--ui);font-size:15.5px;color:var(--ink-3);display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--wash);margin-right:8px;vertical-align:3px}
+.cd-spy{font-size:16.5px;line-height:1.45;color:var(--ink-3);margin-top:2px !important}
+.cd-sen{font-size:16.5px;line-height:1.45;color:var(--ink-2)}
+
+/* characters: one container each */
+.cd-chars{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;align-items:start}
+.cd-ch{background:var(--bg);border-radius:14px;padding:16px 18px;box-shadow:inset 0 0 0 1px var(--hair)}
+.cd-ch.known{display:flex;align-items:center;gap:14px;background:none;box-shadow:inset 0 0 0 1px var(--wash-2);padding:10px 16px}
+.cd-chtop{display:flex;align-items:center;gap:14px}
+.cd-big{font-size:40px;line-height:1;font-weight:700}
+.cd-ch.known .cd-big{font-size:34px;font-weight:400;color:var(--ink-2)}
+.cd-chm{font-size:16.5px;line-height:1.35}
+.cd-ch.known .cd-chm{color:var(--ink-2)}
+.cd-parts,.cd-subs{list-style:none;margin:0;padding:0}
+.cd-parts{display:grid;gap:8px;margin-top:14px}
+.cd-part{display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:12px;align-items:center}
+.cd-pc{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--hair);font-size:24px;line-height:1}
+.cd-pm{font-size:16.5px;line-height:1.4}
+.cd-part.known .cd-pc,.cd-subs li.known .cd-pc{background:none;box-shadow:none;color:var(--ink-3)}
+.cd-part.known .cd-pm,.cd-subs li.known .cd-pm{color:var(--ink-3)}
+.cd-part.ask .cd-pc{box-shadow:inset 0 0 0 1.5px var(--gold-edge);background:var(--gold-wash)}
+.cd-q2{grid-column:2;display:flex;gap:6px;margin-top:6px}
+.cd-q2 button{font:inherit;font-size:16.5px;line-height:1;border:0;border-radius:999px;padding:7px 12px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--hair);color:var(--ink-2);cursor:pointer}
+.cd-q2 button:hover{box-shadow:inset 0 0 0 1px var(--ink-4);color:var(--ink)}
+.cd-q2 button[aria-pressed="true"]{background:var(--ink);box-shadow:none;color:var(--on-ink)}
+.cd-subs{grid-column:2;display:grid;gap:4px;margin-top:6px;padding-left:10px;border-left:2px solid var(--wash-2)}
+.cd-subs li{display:flex;align-items:center;gap:10px}
+.cd-subs .cd-pc{width:32px;height:32px;font-size:19px;border-radius:8px}
+
+.cd-logic{margin-top:12px !important;padding-top:10px;border-top:1px solid var(--hair);font-size:16.5px;line-height:1.6;color:var(--ink-2)}
+
+.cd-story{font-size:16.5px;line-height:1.6}
+.cd-hook{margin-top:10px !important;font-size:16.5px;line-height:1.5;font-weight:500}
+.cd-know{margin:0;padding:0;list-style:none;display:grid;gap:12px}
+.cd-know li{font-size:16.5px;line-height:1.6}
+.cd-know .zh,.cd-story .zh,.cd-hook .zh,.cd-logic .zh,.cd-a .zh{font-size:1.1em}
+
+/* the follow-ups */
+.cd-thread{display:grid;gap:22px;min-width:0}
+.cd-thread[hidden]{display:none}
+.cd-turn{display:grid;gap:10px}
+.cd-me{justify-self:start;font-size:19px;line-height:1.45;background:var(--wash);padding:7px 14px;border-radius:14px 14px 14px 4px}
+.cd-a{display:grid;gap:8px;font-size:16.5px;line-height:1.6}
+.cd-a ul{margin:0;padding-left:1.2em;display:grid;gap:6px}
+.cd-wait{color:var(--ink-3)}
+.cd-wait::after{content:"";display:inline-block;width:.5em;height:.5em;margin-left:.5em;border-radius:50%;background:var(--ink-4);vertical-align:middle;animation:cd-pulse 1s ease-in-out infinite}
+@keyframes cd-pulse{50%{opacity:.25;transform:scale(.7)}}
+
+.cd-ask{flex:none;display:flex;gap:8px;padding:8px 14px 10px;border-top:1px solid var(--hair)}
+.cd-q{flex:1;min-width:0;font:inherit;font-size:18px;padding:9px 18px;border:0;border-radius:999px;outline:none;background:var(--wash);color:var(--ink);
+  box-shadow:inset 0 0 0 1.5px transparent;transition:box-shadow .15s,background .15s}
+.cd-q::placeholder{color:var(--ink-3)}
+.cd-q:focus{background:var(--surface);box-shadow:inset 0 0 0 1.5px var(--ink-4)}
+.cd-send{flex:none;font:inherit;font-size:19px;width:40px;height:40px;border-radius:50%;border:0;background:var(--ink);color:var(--on-ink);cursor:pointer}
+.cd-send:disabled,.cd-q:disabled{opacity:.4;cursor:default}
+
+/* ---------- the layout: two columns, each stacked on its own (no shared rows, so a long column never leaves a gap in
+   the other), scrolling together; the follow-ups under both ---------- */
+.cd-main{overflow-y:auto;overscroll-behavior:contain;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);
+  grid-template-areas:"l r" "t t";align-items:start;gap:16px 40px;padding:16px 32px 22px}
+.cd-colL{grid-area:l}.cd-colR{grid-area:r}
+.cd-colL,.cd-colR,.cd-left{display:grid;gap:16px;min-width:0;align-content:start}
+.cd-thread{grid-area:t;border-top:1px solid var(--hair);padding-top:18px}
+.cd-chars{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.cd-ch{padding:10px 14px}
+.cd-parts{margin-top:8px;gap:6px}
+
+@media (prefers-reduced-motion:reduce){.cd-wait::after{animation:none}.cd-sheet{transition:opacity .15s!important;transform:none!important}}
+/* narrower windows: one column, whatever the layout */
+@media (max-width:1000px){
+  .cd-back{padding:12px}
+  .cd-main{display:flex;flex-direction:column;gap:22px;padding:18px 22px 26px}
+  .cd-colL,.cd-colR,.cd-left{display:contents}
+  .cd-headwrap{order:0}[data-area="ex"]{order:1}[data-area="chars"]{order:2}[data-area="story"]{order:3}[data-area="know"]{order:4}.cd-more{order:5}.cd-thread{order:6}
+}
+@media (max-width:640px){
+  .cd-back{padding:0}
+  .cd-sheet{border-radius:0;height:100%}
+  .cd-nav{display:none}
+}

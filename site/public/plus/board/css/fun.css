@@ -1,0 +1,31 @@
+/* ---------- fun: celebrations, the forest, the cat. Owner: C ---------- */
+/* the celebration overlay: one fixed canvas, never takes a click, removed when the moment is over */
+.fun-fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:40}
+/* over the card window while it's open (Card it's confetti); still under the toast */
+html.cd-on .fun-fx{z-index:65}
+/* the forest on Today: open, no box, no line. Beside Next up, fun.js makes it as tall as the list. The canvas reaches
+   past the box (fun.js sizes it) so a crown is never cut at the edge; it takes no clicks, so what's under it still does. */
+#companion{position:relative;height:calc(260px * var(--k));touch-action:pan-y;-webkit-tap-highlight-color:transparent}
+@media (min-width:960px) and (max-width:1179px){#companion{height:calc(300px * var(--k))}}
+#companion .fun-cv,.fo-cv{position:absolute;left:0;top:0;display:block;pointer-events:none}
+/* the cat: its own layer over the page, placed by fun.js; under the app bar, popovers and tips; never takes a pointer */
+.fun-cat{position:absolute;left:0;top:0;z-index:5;pointer-events:none;will-change:transform}
+.fun-cat[hidden]{display:none}
+.fun-cat canvas{display:block}
+/* the forest on Progress (FUN.forest(el), or an empty #pr-forest): a tree a month, the month under it */
+.fo{position:relative;padding-top:calc(190px * var(--k))}
+.fo-row{position:relative;height:calc(var(--fs-xs) * 1.4 + var(--s1));margin-top:var(--s1)}
+.fo-m{position:absolute;top:0;text-align:center;font-size:var(--fs-xs);color:var(--ink-4);padding-top:var(--s1);cursor:default;-webkit-tap-highlight-color:transparent}
+/* the month's note: plain text under its name while the pointer is on its tree (not a floating box over the trees) */
+.fo-note{position:absolute;left:50%;top:100%;display:grid;justify-items:center;gap:1px;padding-top:var(--s1);white-space:nowrap;
+  font-size:var(--fs-s);line-height:1.35;color:var(--ink-2);opacity:0;transform:translate(-50%,-3px);transition:opacity .18s,transform .18s var(--ease);pointer-events:none}
+.fo-note span:first-child{font-family:var(--zh);color:var(--ink)}
+.fo-m:hover .fo-note,.fo-m.on .fo-note{opacity:1;transform:translate(-50%,0)}
+.fo-m:first-child .fo-note{left:0;transform:translate(0,-3px);justify-items:start}
+.fo-m:first-child:hover .fo-note,.fo-m:first-child.on .fo-note{transform:none}
+.fo-m:last-child .fo-note{left:auto;right:0;transform:translate(0,-3px);justify-items:end}
+.fo-m:last-child:hover .fo-note,.fo-m:last-child.on .fo-note{transform:none}
+.fo-m.now{color:var(--ink-2)}
+.fo-m.later{opacity:.55}
+/* the whole column above the label shows the month's note (the sway and the swish answer only the tree itself) */
+.fo-m::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:calc(190px * var(--k))}
