@@ -80,8 +80,9 @@ export async function run(env: Env, budgetMs: number) {
 // ---------- what Chris sees ----------
 /** Every item whose answers are all in, each answer under a number only. */
 export async function board(env: Env) {
-  const [its, ms, rs, picks] = await Promise.all([items(env), models(env), runs(env), env.CBP.prepare('SELECT item, pick FROM taste_picks').all<{ item: string; pick: string }>()]);
+  const [its, ms, rs, picks] = await Promise.all([items(env), models(env), runs(env), env.CBP.prepare('SELECT item, pick, note FROM taste_picks').all<{ item: string; pick: string; note: string }>()]);
   const picked = new Map(picks.results.map((p) => [p.item, p.pick]));
+  const notes = new Map(picks.results.map((p) => [p.item, p.note]));
   let waiting = 0;
   const ready = [];
   for (const it of its) {
@@ -96,6 +97,7 @@ export async function board(env: Env) {
       id: it.id, job: it.job, title: it.data.title, show: it.data.show,
       answers: answers.map((a, n) => ({ n, out: it.job === 'image' ? (a!.out ? true : null) : a!.out, failed: !a!.out })),
       pick: p == null ? null : p === 'none' ? 'none' : names.indexOf(p),
+      note: notes.get(it.id) ?? '',
     });
   }
   return { items: ready, waiting, total: its.length };
@@ -107,7 +109,14 @@ export async function pick(env: Env, id: string, n: number | 'none') {
   const names = lineup(it, await models(env));
   const value = n === 'none' ? 'none' : names[n];
   if (!value) throw new Error('No such answer.');
-  await env.CBP.prepare('INSERT OR REPLACE INTO taste_picks (item, pick, at) VALUES (?, ?, ?)').bind(id, value, Date.now()).run();
+  await env.CBP.prepare('INSERT INTO taste_picks (item, pick, at) VALUES (?, ?, ?) ON CONFLICT (item) DO UPDATE SET pick = excluded.pick, at = excluded.at').bind(id, value, Date.now()).run();
+  return { ok: true };
+}
+
+/** His reason for a pick. Saved on its own, so a pick changed later keeps it. */
+export async function note(env: Env, id: string, text: string) {
+  const r = await env.CBP.prepare('UPDATE taste_picks SET note = ? WHERE item = ?').bind(text.slice(0, 4000), id).run() as { meta?: { changes?: number } };
+  if (!r.meta?.changes) throw new Error('Pick one first.');
   return { ok: true };
 }
 

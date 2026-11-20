@@ -657,7 +657,7 @@ async function api(request, env, path) {
     return account.call(secret, method, ...args);
   };
   // Chinese Brain Plus: everything under plus/ needs the account's `plus` switch.
-  if (path.startsWith('plus/') && path !== 'plus/me' && (request.method === 'GET' || path === 'plus/taste/pick')) {
+  if (path.startsWith('plus/') && path !== 'plus/me' && (request.method === 'GET' || path === 'plus/taste/pick' || path === 'plus/taste/note')) {
     const me = await authed('me');
     if (me?.fail) return me;
     if (!(await flagsOf(env, accountId(bearer))).includes('plus')) throw new Fail(404, 'not_found', 'Not found.');
@@ -667,6 +667,7 @@ async function api(request, env, path) {
     if (path === 'plus/taste/results') return taste.results(env);
     if (path === 'plus/taste/img') return taste.img(env, q.get('item') ?? '', Number(q.get('n')));
     if (path === 'plus/taste/pick') return taste.pick(env, String(body.item ?? ''), body.n === 'none' ? 'none' : Number(body.n));
+    if (path === 'plus/taste/note') return taste.note(env, String(body.item ?? ''), String(body.note ?? ''));
     const out = await plus.read(env, path.slice(5), q);
     if (out === undefined) throw new Fail(404, 'not_found', 'Not found.');
     return out;
