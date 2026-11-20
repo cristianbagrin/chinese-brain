@@ -3,20 +3,21 @@
 
     python3 scripts/cbp-taste.py <life/chinese folder> [--site URL] [--dry]
 
-Four jobs, each with the exact prompt the board (or the weekly review) uses, and Claude's answer:
-  card   15 study cards: the board's card prompt; Claude's = the card Opus 5.5 wrote on the board
-  grade  30 test answers: the board's grading prompt; Claude's = the board's grade where it graded one, else below
-  essay  6 essays: the weekly review's marking rules; Claude's = the marks the review put on the board
-  image  10 card pictures in his flashcard style (no Claude side: image models only)
+Four jobs, each with the exact prompt the board (or the weekly review) uses. Every model answers fresh; what the board
+already has is kept as `board` for reference only (not shown in the test):
+  card   15 study cards: the board's card prompt; board = the card Opus 5.5 wrote on the board
+  grade  30 test answers: the board's grading prompt; board = the board's grade where it graded one, else below
+  essay  6 essays: the weekly review's marking rules; board = the marks the review put on the board
+  image  10 card pictures in his flashcard style
 Models taking the test: MODELS below. Key: CBP_PUSH_KEY in ~/.cbp-push.env.
 """
 import json, os, re, sys, urllib.request
 from pathlib import Path
 
 SITE = 'https://chinese.cristianbagrin.com'
-MODELS = [  # who answers besides Claude
-    {'model': 'gemini:gemini-3.8-flash', 'kind': 'text', 'label': 'Gemini 3.8 Flash (free)'},
-    {'model': 'gemini:gemini-3.5-flash-lite', 'kind': 'text', 'label': 'Gemini 3.5 Flash-Lite (free)'},
+MODELS = [  # text: is Opus worth twice Sonnet's price? (Gemini was tried first: slow, often refused, dropped)
+    {'model': 'anthropic:claude-sonnet-5-5', 'kind': 'text', 'label': 'Claude Sonnet 5.5'},
+    {'model': 'anthropic:claude-opus-5-5', 'kind': 'text', 'label': 'Claude Opus 5.5'},
     # images: what Pollinations credits can pay for. The paid-only ones (Nano Banana, GPT Image, Seedream, FLUX.2 Pro) need a
     # top-up there; Gemini's free tier draws no pictures at all
     {'model': 'pollinations:black-forest-labs/flux.2-flex', 'kind': 'image', 'label': 'FLUX.2 Flex'},
@@ -201,7 +202,7 @@ def main():
     def add(job, iid, title, show, prompt, claude, as_json):
         nonlocal ord_
         ord_ += 1
-        items.append({'id': iid, 'job': job, 'ord': ord_, 'data': {'title': title, 'show': show, 'prompt': prompt, 'json': as_json, 'claude': claude}})
+        items.append({'id': iid, 'job': job, 'ord': ord_, 'data': {'title': title, 'show': show, 'prompt': prompt, 'json': as_json, 'board': claude}})
 
     # cards: the 15 newest Opus cards
     kit, data = rd('board/cardkit.json'), rd('board/data.json')

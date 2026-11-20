@@ -1,18 +1,19 @@
 // The taste test (Stage 2 of Chinese Brain Plus): the same study cards, test grades, essay corrections and card
-// pictures from Claude and from other models, shown to Chris side by side without saying which is which. He picks
-// the best of each; a free model wins a job if he picks it at least as often as Claude.
-// The samples and Claude's answers come from his own board (scripts/cbp-taste.py); the other models answer here,
-// a few at a time (an hourly cron and /api/plus/push/taste-run), since free tiers allow only so many calls a day.
+// pictures from several models, shown to Chris side by side without saying which is which. He picks the best of each.
+// Text: Claude Sonnet vs Opus (is Opus worth twice the price?); pictures: the Pollinations models his credit covers.
+// The samples come from his own board (scripts/cbp-taste.py); the models answer here, a few at a time (an hourly
+// cron and /api/plus/push/taste-run). An item with a fixed answer in `data.claude` adds it to the lineup.
 import * as AI from './ai.ts';
 
 type Stmt = { bind(...v: unknown[]): Stmt; first<T>(): Promise<T | null>; all<T>(): Promise<{ results: T[] }>; run(): Promise<unknown> };
 type Env = {
   CBP: { prepare(sql: string): Stmt; batch(s: Stmt[]): Promise<unknown[]> };
   FILES: { put(key: string, v: ArrayBuffer, o?: unknown): Promise<unknown>; get(key: string): Promise<{ body: ReadableStream; httpMetadata?: { contentType?: string } } | null> };
+  ANTHROPIC_API_KEY?: string;
   GEMINI_KEY?: string;
   POLLINATIONS_KEY?: string;
 };
-export type Item = { id: string; job: 'card' | 'grade' | 'essay' | 'image'; ord: number; data: { title: string; show: Record<string, unknown>; prompt: string; json?: boolean; claude?: unknown } };
+export type Item = { id: string; job: 'card' | 'grade' | 'essay' | 'image'; ord: number; data: { title: string; show: Record<string, unknown>; prompt: string; json?: boolean; claude?: unknown; board?: unknown } };
 type Model = { model: string; kind: 'text' | 'image'; label: string };
 
 const kindOf = (job: string) => (job === 'image' ? 'image' : 'text');
@@ -31,7 +32,7 @@ async function runs(env: Env) {
 
 /** Everyone answering an item, in a fixed shuffled order (the same each time, so a pick keeps meaning the same model). */
 function lineup(it: Item, ms: Model[]) {
-  const names = [...(it.job === 'image' ? [] : ['claude']), ...ms.filter((m) => m.kind === kindOf(it.job)).map((m) => m.model)].sort();
+  const names = [...(it.data.claude != null ? ['claude'] : []), ...ms.filter((m) => m.kind === kindOf(it.job)).map((m) => m.model)].sort();
   let h = 2166136261;
   for (const c of it.id) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
   for (let i = names.length - 1; i > 0; i--) {
@@ -43,19 +44,15 @@ function lineup(it: Item, ms: Model[]) {
 }
 
 // ---------- the other models answer ----------
-/** Answers what's missing until the time is up or every model is out of quota. Returns what happened. */
+/** Answers what's missing until the time is up or every model is out of quota. Returns what happened.
+ *  Every model works through its own list at the same time, so a slow one never holds up the rest. */
 export async function run(env: Env, budgetMs: number) {
   const until = Date.now() + budgetMs, done: string[] = [], out: string[] = [];
   const [its, ms, rs] = await Promise.all([items(env), models(env), runs(env)]);
-  // each model takes one sample per turn, so a slow or busy one never holds up the rest
-  // the model furthest behind goes first, so a fast one never starves a slow one when time runs out
-  const todo = ms.map((m) => ({ m, left: its.filter((it) => kindOf(it.job) === m.kind && !rs.has(`${it.id}|${m.model}`)) })).sort((a, b) => b.left.length - a.left.length);
-  const stopped = (m: string) => out.some((o) => o.startsWith(m + ':'));
-  while (todo.some((t) => t.left.length && !stopped(t.m.model))) {
-    for (const { m, left } of todo) {
-      const it = !stopped(m.model) && left.shift();
-      if (!it) continue;
-      if (Date.now() > until) return { done, out, more: true };
+  let more = false;
+  await Promise.all(ms.map(async (m) => {
+    for (const it of its.filter((x) => kindOf(x.job) === m.kind && !rs.has(`${x.id}|${m.model}`))) {
+      if (Date.now() > until) return void (more = true);
       try {
         let value: string;
         if (m.kind === 'image') {
@@ -66,15 +63,13 @@ export async function run(env: Env, budgetMs: number) {
         await env.CBP.prepare('INSERT OR REPLACE INTO taste_runs (item, model, out, err, at) VALUES (?, ?, ?, NULL, ?)').bind(it.id, m.model, value, Date.now()).run();
         done.push(`${m.model} ${it.id}`);
       } catch (e) {
-        if (e instanceof AI.Quota) out.push(`${m.model}: ${String((e as Error).message).slice(0, 200)}`); // done for now; the next run tries again
-        else {
-          await env.CBP.prepare('INSERT OR REPLACE INTO taste_runs (item, model, out, err, at) VALUES (?, ?, NULL, ?, ?)').bind(it.id, m.model, String((e as Error).message).slice(0, 1000), Date.now()).run();
-          done.push(`${m.model} ${it.id} failed`);
-        }
+        if (e instanceof AI.Quota) return void out.push(`${m.model}: ${String((e as Error).message).slice(0, 200)}`); // done for now; the next run tries again
+        await env.CBP.prepare('INSERT OR REPLACE INTO taste_runs (item, model, out, err, at) VALUES (?, ?, NULL, ?, ?)').bind(it.id, m.model, String((e as Error).message).slice(0, 1000), Date.now()).run();
+        done.push(`${m.model} ${it.id} failed`);
       }
     }
-  }
-  return { done, out, more: false };
+  }));
+  return { done, out, more };
 }
 
 // ---------- what Chris sees ----------

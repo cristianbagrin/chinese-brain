@@ -421,7 +421,13 @@ export class Limiter extends DurableObject {
 // Cloudflare often serves Taiwan). One instance, created with a western-North-America location hint (src/cbp/ai.ts).
 export class Relay extends DurableObject {
   async call(url, init) {
-    const r = await fetch(url, init);
+    // a model that hangs gives up after two minutes instead of holding everything behind it
+    let r;
+    try {
+      r = await fetch(url, { ...init, signal: AbortSignal.timeout(295_000) });
+    } catch (e) {
+      return { status: 504, type: 'text/plain', body: new TextEncoder().encode(`timed out: ${e?.message ?? e}`).buffer };
+    }
     return { status: r.status, type: r.headers.get('Content-Type') ?? '', body: await r.arrayBuffer() };
   }
 }
@@ -630,8 +636,18 @@ async function plusMachine(request, env, url) {
     if (url.pathname === '/api/plus/push') return json(await plus.push(env, await request.json()));
     // the taste test: its samples and models, a run now, and which Gemini models the key can call
     if (url.pathname === '/api/plus/push/taste') return json(await taste.load(env, await request.json()));
-    if (url.pathname === '/api/plus/push/taste-run') return json(await taste.run(env, 25_000));
+    if (url.pathname === '/api/plus/push/taste-run') return json(await taste.run(env, Math.min(280, Number(url.searchParams.get('s')) || 25) * 1000));
     if (url.pathname === '/api/plus/push/models') return json(await ai.geminiModels(env));
+    if (url.pathname === '/api/plus/push/probe') {
+      const { model, prompt } = await request.json();
+      const t0 = Date.now();
+      try {
+        const r = await ai.text(env, model, prompt || 'Reply with one word: hello');
+        return json({ ok: true, secs: (Date.now() - t0) / 1000, text: r.text.slice(0, 300), usage: r.usage });
+      } catch (e) {
+        return json({ ok: false, secs: (Date.now() - t0) / 1000, error: String(e?.message ?? e).slice(0, 600) });
+      }
+    }
   } catch (e) {
     console.error(e);
     return json({ error: String(e?.message ?? e) }, 500);
