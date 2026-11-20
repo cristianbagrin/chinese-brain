@@ -11,6 +11,8 @@
 import { DurableObject } from 'cloudflare:workers';
 import { annotate, clean, PAGES } from './src/copy.ts';
 import * as plus from './src/cbp/plus.ts';
+import * as taste from './src/cbp/taste.ts';
+import * as ai from './src/cbp/ai.ts';
 
 const MAX_BODY = 1_500_000;
 const MAX_ITEMS = 60_000;
@@ -617,6 +619,10 @@ async function plusMachine(request, env, url) {
   try {
     if (url.pathname === '/api/plus/push/manifest') return json(await plus.manifest(env));
     if (url.pathname === '/api/plus/push') return json(await plus.push(env, await request.json()));
+    // the taste test: its samples and models, a run now, and which Gemini models the key can call
+    if (url.pathname === '/api/plus/push/taste') return json(await taste.load(env, await request.json()));
+    if (url.pathname === '/api/plus/push/taste-run') return json(await taste.run(env, 25_000));
+    if (url.pathname === '/api/plus/push/models') return json(await ai.geminiModels(env));
   } catch (e) {
     console.error(e);
     return json({ error: String(e?.message ?? e) }, 500);
@@ -642,11 +648,17 @@ async function api(request, env, path) {
     return account.call(secret, method, ...args);
   };
   // Chinese Brain Plus: everything under plus/ needs the account's `plus` switch.
-  if (request.method === 'GET' && path.startsWith('plus/') && path !== 'plus/me') {
+  if (path.startsWith('plus/') && path !== 'plus/me' && (request.method === 'GET' || path === 'plus/taste/pick')) {
     const me = await authed('me');
     if (me?.fail) return me;
     if (!(await flagsOf(env, accountId(bearer))).includes('plus')) throw new Fail(404, 'not_found', 'Not found.');
-    const out = await plus.read(env, path.slice(5), new URL(request.url).searchParams);
+    const q = new URL(request.url).searchParams;
+    // the taste test (src/cbp/taste.ts)
+    if (path === 'plus/taste') return taste.board(env);
+    if (path === 'plus/taste/results') return taste.results(env);
+    if (path === 'plus/taste/img') return taste.img(env, q.get('item') ?? '', Number(q.get('n')));
+    if (path === 'plus/taste/pick') return taste.pick(env, String(body.item ?? ''), body.n === 'none' ? 'none' : Number(body.n));
+    const out = await plus.read(env, path.slice(5), q);
     if (out === undefined) throw new Fail(404, 'not_found', 'Not found.');
     return out;
   }
@@ -926,6 +938,10 @@ const PLUS_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsaf
 const MOVED = { '/welcome': '/brain/guide#welcome', '/brain/welcome': '/brain/guide#welcome', '/privacy': '/brain/privacy', '/dashboard': '/brain/dashboard', '/guide': '/brain/guide', '/whats-new': '/brain/whats-new' };
 
 export default {
+  // hourly: the taste test's other models answer a few more samples (free tiers allow only so many a day)
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(taste.run(env, 240_000).then((r) => console.log('taste', JSON.stringify(r))));
+  },
   async fetch(request, env) {
     const url = new URL(request.url);
     if (env.STAGING && !STAGING_OPEN.test(url.pathname) && !(await stagingPass(request, env))) {
@@ -938,6 +954,7 @@ export default {
       try {
         if (env.STAGING && request.method === 'POST' && url.pathname === '/api/staging/enter') return await stagingEnter(request, env);
         const out = await api(request, env, url.pathname.slice(5));
+        if (out instanceof Response) return out;
         if (out?.fail) return json({ error: out.fail.message, code: out.fail.code }, out.fail.status);
         return json(out);
       } catch (e) {
@@ -966,8 +983,8 @@ export default {
     }
     if (path === '/brain/firefox' || path === '/brain/chrome') return Response.redirect(STORES[path.slice(7)], 302);
     // Chinese Brain Plus: the board, which loads its fonts from Google (the site's own CSP allows none).
-    if (path === '/plus') {
-      const res = await pageFile(env, request, '/plus');
+    if (path === '/plus' || path === '/plus/taste') {
+      const res = await pageFile(env, request, path);
       const h = new Headers(res.headers);
       h.set('Content-Security-Policy', PLUS_CSP);
       h.set('Cache-Control', 'no-store');

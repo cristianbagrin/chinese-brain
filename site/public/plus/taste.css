@@ -1,0 +1,105 @@
+/* The taste test: a cupping sheet. Straw paper, plum ink for the pick, olive for what's done. */
+:root{
+  color-scheme:light;
+  --ground:#F6F4E8; --paper:#FFFEF8; --line:#E3E0CC; --straw:#CCCCA0;
+  --ink:#2A1F27; --ink-2:#5B4F57; --ink-3:#8C8288;
+  --plum:#843265; --plum-wash:#F3E5EE; --olive:#5E7A1C; --olive-wash:#E9F0D6; --rose:#B4463E; --rose-wash:#F8E4E1;
+  --ui:"Instrument Sans",system-ui,sans-serif; --head:"Newsreader",Georgia,serif;
+  --zh:"LXGW WenKai TC","PingFang TC","Noto Sans TC",sans-serif;
+}
+*{box-sizing:border-box}
+html.locked body{visibility:hidden}
+body{margin:0;background:var(--ground);color:var(--ink);font:16px/1.55 var(--ui);-webkit-font-smoothing:antialiased}
+[hidden]{display:none!important}
+.zh,:lang(zh-Hant){font-family:var(--zh)}
+button{font:inherit;color:inherit;cursor:pointer}
+
+.bar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:24px;padding:14px max(16px,4vw);background:color-mix(in srgb,var(--ground) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.jobs{display:flex;gap:6px;flex-wrap:wrap}
+.jobs button{border:0;background:none;border-radius:999px;padding:6px 14px;font-weight:550;color:var(--ink-2);display:inline-flex;gap:8px;align-items:baseline}
+.jobs button small{font-weight:450;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.jobs button[aria-current="true"]{background:var(--ink);color:var(--paper)}
+.jobs button[aria-current="true"] small{color:var(--straw)}
+.jobs button.done small{color:var(--olive)}
+.jobs button.done[aria-current="true"] small{color:#C9DB97}
+.left{margin-left:auto;color:var(--ink-3);font-size:14px;white-space:nowrap}
+
+.sheet{max-width:1600px;margin:0 auto;padding:28px max(16px,4vw) 96px}
+.head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.head h1{margin:0;font:600 clamp(30px,4vw,44px)/1.1 var(--head);letter-spacing:-.01em}
+.head h1 .zh{font:700 clamp(36px,5vw,56px)/1.1 var(--zh)}
+.head .gloss{color:var(--ink-2);font-size:18px}
+.head .nav{margin-left:auto;display:flex;gap:4px}
+.head .nav button{border:1px solid var(--line);background:var(--paper);border-radius:10px;width:40px;height:36px;font-size:18px;color:var(--ink-2)}
+.head .nav button:disabled{opacity:.35;cursor:default}
+
+/* what's being judged: the situation and his answer, or his essay */
+.ctx{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-bottom:22px;display:grid;gap:8px;max-width:980px}
+.ctx .k{font-size:13px;color:var(--ink-3);letter-spacing:.02em;text-transform:uppercase}
+.ctx .row{display:grid;grid-template-columns:110px 1fr;gap:12px;align-items:baseline}
+.ctx .ans{font:400 22px/1.5 var(--zh)}
+.ctx .heard{font:400 20px/1.5 var(--zh);color:var(--ink-2)}
+.ctx .rule{color:var(--ink-2);font-size:15px}
+.ctx .essay{font:400 21px/1.75 var(--zh);white-space:pre-wrap}
+@media (max-width:600px){.ctx .row{grid-template-columns:1fr;gap:2px}}
+
+/* the glasses: one column per answer, a letter on each, nothing else to tell them apart */
+.glasses{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px;align-items:start}
+.glass{position:relative;background:var(--paper);border:1.5px solid var(--line);border-radius:16px;padding:18px 20px 16px;display:flex;flex-direction:column;gap:12px;transition:border-color .15s,box-shadow .15s}
+.glass:hover{border-color:var(--straw)}
+.glass.picked{border-color:var(--plum);box-shadow:0 0 0 3px var(--plum-wash)}
+.glass .tag{display:flex;align-items:center;justify-content:space-between}
+.glass .letter{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font:600 19px/1 var(--head);background:var(--ground);color:var(--ink)}
+.glass.picked .letter{background:var(--plum);color:#fff}
+.glass .take{border:0;background:var(--ink);color:var(--paper);border-radius:999px;padding:7px 18px;font-weight:550}
+.glass.picked .take{background:var(--plum)}
+.glass .failed{color:var(--ink-3);font-style:italic}
+.glass img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;background:var(--ground)}
+
+/* a card in the board's line format */
+.card{display:grid;gap:7px}
+.card .l{display:grid;grid-template-columns:62px 1fr;gap:10px;align-items:baseline}
+.card .t{font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em}
+.card .v{font:400 17px/1.55 var(--zh);overflow-wrap:anywhere}
+.card .l.word .v{font:700 30px/1.2 var(--zh)}
+.card .l.char{margin-top:6px}
+.card .l.char .v{font-size:20px}
+.card .l.part .v,.card .l.sub .v{color:var(--ink-2)}
+.card .l.sub .v{padding-left:14px}
+.card .l.story .v,.card .l.hook .v{font-family:var(--ui)}
+.card b{color:var(--plum)}
+
+/* a grade */
+.verdict{display:grid;gap:9px}
+.res{justify-self:start;border-radius:999px;padding:3px 12px;font-weight:600;font-size:14px;letter-spacing:.03em;text-transform:uppercase}
+.res.pass{background:var(--olive-wash);color:var(--olive)}
+.res.partial{background:#F4EDCF;color:#806512}
+.res.fail{background:var(--rose-wash);color:var(--rose)}
+.res.none{background:#ECEAE4;color:var(--ink-2)}
+.verdict .nat{font:400 21px/1.5 var(--zh)}
+.verdict .why,.verdict .fu{color:var(--ink-2)}
+.verdict .fu::before{content:"Next ask: ";color:var(--ink-3)}
+
+/* essay marks */
+.marks{display:grid;gap:12px}
+.mark{display:grid;gap:3px;padding-left:12px;border-left:3px solid var(--line)}
+.mark.fix{border-color:var(--rose)}.mark.better{border-color:var(--straw)}.mark.word{border-color:#7E9BB8}.mark.good{border-color:var(--olive)}
+.mark .mt{font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em}
+.mark .mine{font:400 18px/1.5 var(--zh);color:var(--ink-2);text-decoration:line-through 1px var(--ink-3)}
+.mark.good .mine{text-decoration:none;color:var(--ink)}
+.mark .nat{font:400 19px/1.5 var(--zh)}
+.mark .note{color:var(--ink-2);font-size:15px}
+.raw{white-space:pre-wrap;font:400 15px/1.5 var(--zh);color:var(--ink-2)}
+
+.nogood{margin-top:18px;border:0;background:none;color:var(--ink-3);text-decoration:underline;text-underline-offset:4px}
+.nogood[aria-pressed="true"]{color:var(--plum);font-weight:600}
+.empty{color:var(--ink-2);font-size:18px;max-width:640px}
+
+/* results */
+.results{display:grid;gap:18px;max-width:760px}
+.results section{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 22px}
+.results h2{margin:0 0 10px;font:600 24px/1.2 var(--head)}
+.results .bar-row{display:grid;grid-template-columns:minmax(150px,240px) 1fr 32px;gap:12px;align-items:center;margin:6px 0}
+.results .track{height:12px;border-radius:6px;background:var(--ground);overflow:hidden}
+.results .fill{height:100%;background:var(--plum);border-radius:6px}
+.results .fill.claude{background:var(--ink)}

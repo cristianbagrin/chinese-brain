@@ -10,7 +10,7 @@
   "name": "chinesebrain",
   "main": "worker.js",
   "compatibility_date": "2026-11-01",
-  "assets": { "directory": "./public", "binding": "ASSETS", "not_found_handling": "none", "run_worker_first": ["/api/*", "/mcp/*", "/plus", "/", "/brain", "/brain/guide", "/brain/whats-new", "/brain/privacy", "/brain/dashboard", "/account", "/reset", "/edit", "/edit/*", "/welcome", "/brain/welcome", "/privacy", "/dashboard", "/guide", "/whats-new", "/brain/firefox", "/brain/chrome"] },
+  "assets": { "directory": "./public", "binding": "ASSETS", "not_found_handling": "none", "run_worker_first": ["/api/*", "/mcp/*", "/plus", "/plus/taste", "/", "/brain", "/brain/guide", "/brain/whats-new", "/brain/privacy", "/brain/dashboard", "/account", "/reset", "/edit", "/edit/*", "/welcome", "/brain/welcome", "/privacy", "/dashboard", "/guide", "/whats-new", "/brain/firefox", "/brain/chrome"] },
   "durable_objects": {
     "bindings": [
       { "name": "ACCOUNT", "class_name": "Account" },
@@ -43,6 +43,8 @@
     { "binding": "FLAGS", "database_name": "cbp", "database_id": "45d4396a-c2d2-402e-8c0f-243fd2de4491", "migrations_dir": "migrations" }
   ],
   "r2_buckets": [{ "binding": "FILES", "bucket_name": "cbp-files" }],
+  // hourly: the taste test (src/cbp/taste.ts). Secrets for it: GEMINI_KEY, POLLINATIONS_KEY.
+  "triggers": { "crons": ["23 * * * *"] },
   "env": {
     // https://chinese-staging.cristianbagrin.com: the next version, open only to accounts with the
     // `staging` switch. Same accounts and switches as the live site (the Durable Objects and FLAGS are
@@ -71,7 +73,8 @@
         { "binding": "CBP", "database_name": "cbp-staging", "database_id": "4e6022bf-7adc-4a61-a2d8-39f4ba192824", "migrations_dir": "migrations" },
         { "binding": "FLAGS", "database_name": "cbp", "database_id": "45d4396a-c2d2-402e-8c0f-243fd2de4491", "migrations_dir": "migrations" }
       ],
-      "r2_buckets": [{ "binding": "FILES", "bucket_name": "cbp-files-staging" }]
+      "r2_buckets": [{ "binding": "FILES", "bucket_name": "cbp-files-staging" }],
+      "triggers": { "crons": [] }
     }
   }
 }
