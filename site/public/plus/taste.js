@@ -9,7 +9,7 @@
   } catch {}
   const api = (path, body) =>
     fetch('/api/plus/' + path, { method: body ? 'POST' : 'GET', headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body && JSON.stringify(body) });
-  const me = token ? await api('me').catch(() => null) : null;
+  const me = token ? await api('plus/me').catch(() => null) : null;
   if (!me?.ok) return location.replace('/404');
 
   const $ = (id) => document.getElementById(id);

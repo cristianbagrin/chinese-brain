@@ -203,10 +203,18 @@ export class Account extends DurableObject {
     return this[`_${method}`](h, ...args);
   }
 
+  /** Who this is, and nothing else: one row, for checks on every request (_me counts every item; the Plus pages
+   *  call on every picture and save, which ran past the free tier's daily rows-read limit on 2026-11-20). */
+  _who() {
+    return { email: this.get('email') };
+  }
+
   _me() {
-    const n = this.sql.exec("SELECT COUNT(*) AS n FROM items WHERE v IS NOT NULL AND k LIKE 'w:%'").one().n;
+    // key ranges, not LIKE: each count reads only its own items, not the whole table again
+    const count = (from, to) => this.sql.exec('SELECT COUNT(*) AS n FROM items WHERE k >= ? AND k < ? AND v IS NOT NULL', from, to).one().n;
+    const n = count('w:', 'w;');
     const apps = { brain: n };
-    for (const app of Object.keys(APPS)) apps[app] = this.sql.exec('SELECT COUNT(*) AS n FROM items WHERE v IS NOT NULL AND k LIKE ?', `@${app}/%`).one().n;
+    for (const app of Object.keys(APPS)) apps[app] = count(`@${app}/`, `@${app}0`);
     const pending = this.made ? this.sql.exec('SELECT email FROM emails WHERE exp > ? ORDER BY exp DESC LIMIT 1', Date.now()).toArray()[0]?.email : undefined;
     return { email: this.get('email'), created: Number(this.get('created')), words: n, apps, pendingEmail: pending ?? null };
   }
@@ -674,7 +682,7 @@ async function api(request, env, path) {
   };
   // Chinese Brain Plus: everything under plus/ needs the account's `plus` switch.
   if (path.startsWith('plus/') && path !== 'plus/me' && (request.method === 'GET' || path === 'plus/taste/pick' || path === 'plus/taste/note')) {
-    const me = await authed('me');
+    const me = await authed('who');
     if (me?.fail) return me;
     if (!(await flagsOf(env, accountId(bearer))).includes('plus')) throw new Fail(404, 'not_found', 'Not found.');
     const q = new URL(request.url).searchParams;
@@ -738,7 +746,7 @@ async function api(request, env, path) {
       return listFlags(env);
     }
     case 'GET plus/me': {
-      const me = await authed('me');
+      const me = await authed('who');
       if (me?.fail) return me;
       const flags = await flagsOf(env, accountId(bearer));
       if (!flags.includes('plus')) throw new Fail(404, 'not_found', 'Not found.');
