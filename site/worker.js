@@ -10,6 +10,7 @@
 // pages' words at /edit, an EDIT_KEY secret: see "Editing the pages" below).
 import { DurableObject } from 'cloudflare:workers';
 import { annotate, clean, PAGES } from './src/copy.ts';
+import * as plus from './src/cbp/plus.ts';
 
 const MAX_BODY = 1_500_000;
 const MAX_ITEMS = 60_000;
@@ -563,7 +564,7 @@ async function listFlags(env) {
 // as usual, /staging trades the session for a 30-day cookie, and every request checks that cookie
 // and the switch. Signing in and the account pages stay open, so there's a way in.
 
-const STAGING_OPEN = /^\/(staging(\.js)?|account(\.js)?|reset|cb\.js|site\.js|style\.css|icon\.png|chris\.webp|acct\/.*|fonts\/.*|api\/.*)$/;
+const STAGING_OPEN = /^\/(staging(\.js)?|account(\.js)?|reset|cb\.js|site\.js|style\.css|icon\.png|chris\.webp|acct\/.*|fonts\/.*|api\/.*|mcp\/.*)$/;
 const STAGING_DAYS = 30;
 
 async function hmac(env, text) {
@@ -593,6 +594,36 @@ async function stagingEnter(request, env) {
   return res;
 }
 
+// ---------- Chinese Brain Plus: the machines ----------
+// POST /api/plus/push/manifest and /api/plus/push: the Mac (Bearer CBP_PUSH_KEY), while it is the source.
+// POST /mcp/<CBP_MCP_KEY>: the connector Claude sessions add (MCP, JSON-RPC over HTTP).
+async function plusMachine(request, env, url) {
+  const nope = () => new Response('Not found', { status: 404 });
+  if (url.pathname.startsWith('/mcp/')) {
+    const key = url.pathname.slice(5);
+    if (!env.CBP_MCP_KEY || !same(await sha(key), await sha(env.CBP_MCP_KEY))) return nope();
+    if (request.method !== 'POST') return new Response(null, { status: 405, headers: { Allow: 'POST' } });
+    let msg;
+    try {
+      msg = await request.json();
+    } catch {
+      return json({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } }, 400);
+    }
+    const out = Array.isArray(msg) ? (await Promise.all(msg.map((m) => plus.mcp(env, m)))).filter(Boolean) : await plus.mcp(env, msg);
+    return out && (!Array.isArray(out) || out.length) ? json(out) : new Response(null, { status: 202 });
+  }
+  const bearer = (request.headers.get('Authorization') ?? '').replace(/^Bearer /, '');
+  if (!env.CBP_PUSH_KEY || request.method !== 'POST' || !same(await sha(bearer), await sha(env.CBP_PUSH_KEY))) return nope();
+  try {
+    if (url.pathname === '/api/plus/push/manifest') return json(await plus.manifest(env));
+    if (url.pathname === '/api/plus/push') return json(await plus.push(env, await request.json()));
+  } catch (e) {
+    console.error(e);
+    return json({ error: String(e?.message ?? e) }, 500);
+  }
+  return nope();
+}
+
 async function api(request, env, path) {
   if (request.method === 'GET' && path === 'health') return { ok: true, email: !!env.RESEND_API_KEY };
   const bearer = (request.headers.get('Authorization') ?? '').replace(/^Bearer /, '');
@@ -610,6 +641,15 @@ async function api(request, env, path) {
     const { account, secret } = byToken(env, bearer);
     return account.call(secret, method, ...args);
   };
+  // Chinese Brain Plus: everything under plus/ needs the account's `plus` switch.
+  if (request.method === 'GET' && path.startsWith('plus/') && path !== 'plus/me') {
+    const me = await authed('me');
+    if (me?.fail) return me;
+    if (!(await flagsOf(env, accountId(bearer))).includes('plus')) throw new Fail(404, 'not_found', 'Not found.');
+    const out = await plus.read(env, path.slice(5), new URL(request.url).searchParams);
+    if (out === undefined) throw new Fail(404, 'not_found', 'Not found.');
+    return out;
+  }
   switch (`${request.method} ${path}`) {
     case 'POST signup': {
       const { email, password } = credentials(body);
@@ -889,6 +929,8 @@ export default {
     if (env.STAGING && !STAGING_OPEN.test(url.pathname) && !(await stagingPass(request, env))) {
       return Response.redirect(`${url.origin}/staging`, 302);
     }
+    // The Mac's push to Chinese Brain Plus (scripts/cbp-push.py) and Claude's connector: each with its own secret.
+    if (url.pathname.startsWith('/api/plus/push') || url.pathname.startsWith('/mcp/')) return plusMachine(request, env, url);
     if (url.pathname.startsWith('/api/')) {
       if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
       try {

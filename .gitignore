@@ -6,3 +6,4 @@ release/
 __pycache__/
 .claude/worktrees/
 .wrangler/
+.dev.vars
