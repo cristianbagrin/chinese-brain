@@ -1,12 +1,12 @@
 /* ---------- Settings: the few choices he keeps on this device. Owner: lead
    Modules register with LAB.define(id,label,[[value,label],...],default,group) (the API keeps its old name) and
-   re-render on BUS 'lab'. Choices are saved under lab:<id>. ?lab=cat:stays in the URL picks one for screenshots.
+   re-render on BUS 'lab'. Choices are saved under lab:<id>. ?lab=card-ahead:on in the URL picks one for screenshots.
    The panel is a popover under the gear; a click outside, ×, the gear or Esc close it. ---------- */
 (()=>{
   LAB.define('text-size','Text size',[['normal','Normal'],['larger','Larger']],'normal','Board');
   const btn=document.getElementById('settingsbtn'), box=document.getElementById('settings');
   btn.innerHTML='<svg width="19" height="19" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="2.7" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 2.2v2.1M10 15.7v2.1M2.2 10h2.1M15.7 10h2.1M4.5 4.5l1.5 1.5M14 14l1.5 1.5M15.5 4.5L14 6M6 14l-1.5 1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>';
-  const ORDER=['text-size','cat','card-model','card-ahead'];
+  const ORDER=['text-size','card-model','card-ahead'];
   const ids=()=>[...ORDER.filter(id=>LAB.defs[id]),...LAB.order.filter(id=>!ORDER.includes(id))];
   const row=(label,opts,attrs)=>`<div class="st-row"><span class="st-l">${esc(label)}</span><span class="st-o" role="radiogroup" aria-label="${esc(label)}">${opts.map(([v,l,on])=>`<button type="button" role="radio" aria-checked="${on}" ${attrs(v)}>${esc(l)}</button>`).join('')}</span></div>`;
   function draw(){

@@ -40,7 +40,7 @@ function startEssays(db){
 
 let live=false;
 // a fresh open starts at the top. The page arrives in pieces (the test, the essays, the forest), and something in that
-// (the browser restoring an old position, or the host page) pushed it down, hiding the cat on the test under the bar
+// (the browser restoring an old position, or the host page) pushed it down, hiding the test under the bar
 // (2026-11-04). So on Today, for the first seconds, until he scrolls, types or clicks, any scroll goes back to the top.
 try{history.scrollRestoration='manual';}catch(e){}
 (()=>{

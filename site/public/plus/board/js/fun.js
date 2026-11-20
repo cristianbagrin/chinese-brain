@@ -1,4 +1,4 @@
-/* ---------- fun: celebrations, the forest and the cat. Owner: C
+/* ---------- fun: celebrations and the forest. Owner: C
    FUN.celebrate(kind,opts): test, crossoff (a tiny burst at opts.x,opts.y). (Essay, week and new-card moments went
    2026-11-01: there is no finishing step any more, and Claude adds the cards, so he'd never see them.)
    Canvas and its own physics, no library; one fixed overlay that never takes a click and goes away when done.
@@ -9,9 +9,7 @@
    month's tree stands in front and this year's earlier months recede behind it; Progress shows the year, Jan to Dec,
    each tree over its month in the heatmap (a sapling for a month with nothing). The forest starts again each January.
    Only a tree itself answers the pointer: it sways, and leaves swish as fast as the hand moves (quieter for a small one).
-   The cat: a layer of its own over Today. It sleeps under this month's tree, pops over to sit on the test card while
-   a test is open, peeks over the writing sheet while he writes, and goes home to sit up once he has written. Idle
-   life: blinks, ears, tail, yawns, grooming, batting at a leaf, naps. Never takes a click; a click on it gets a purr. ---------- */
+   (The cat that lived here is gone, 2026-11-20; what it taught is in ../online-plan/character-lessons.md.) ---------- */
 (()=>{
 const TAU=Math.PI*2;
 const rm=()=>{try{return REDUCED();}catch(e){return false;}};
@@ -153,18 +151,7 @@ function celebrate(kind,o){
 }
 
 
-/* ---------- the sounds of living things: a purr, and leaves swishing under the hand. Quiet; never on their own. ---------- */
-// a purr: soft low pulses, about 25 a second, one breath in and a longer one out
-// (2026-11-04: louder, and brighter, since a laptop speaker drops most of what sits under 300 Hz: the purr's rumble
-// now reaches up to where small speakers play, so it carries at half volume)
-SOUNDS.purr=(c,t)=>{
-  for(const [s0,len,hz,g] of [[0,.6,28,.19],[.7,.95,24,.26]]){
-    const n=Math.round(len*hz);
-    for(let i=0;i<n;i++){const u=i/n,e=Math.sin(Math.PI*u),at=t+s0+i/hz+(R()-.5)*.004,a=g*(.3+.7*e)*(.85+.3*R());
-      hiss(c,at,.034,a,'lowpass',420+260*e,.9);
-      hiss(c,at,.028,a*.35,'bandpass',900+200*e,1.1);}
-  }
-};
+/* ---------- the sound of living things: leaves swishing under the hand. Quiet; never on its own. ---------- */
 // leaves under a moving hand: a swish that follows the pointer. A looped breath of noise whose loudness and brightness
 // ride the hand's speed (silent when it stops), with dry leaf ticks scattered in as fast as it moves.
 // only once the board has made a sound after a click: a hover alone never starts audio
@@ -491,8 +478,6 @@ function cpLayout(){
   CP.T=treeLayout(cur,{cx,by,h:H*.88,w:W*.84});
   CP.past=ms.slice(0,-1).reverse().slice(0,SLOTS.length).map((mi,i)=>({mi,s:SLOTS[i],g:0,w:0,live:null}));
   CP.order=CP.past.slice().sort((a,b)=>a.s[1]-b.s[1]);
-  // the cat's place: on the ground beside this month's trunk, never off the edge
-  const k=kk();CP.home={x:clamp(cx-Math.max(54*k,W*.3),44*k,W-44*k),y:by};
 }
 const pastImg=p=>treeImage(p.mi,CP.h*p.s[2],p.s[3],CP.dpr,CP.w*.55);
 function cpDraw(dt){
@@ -672,400 +657,34 @@ function pfAll(){
   PF.forEach(M=>{M.sig='';pfRender(M);});
 }
 
-/* ---------- the cat: its own layer over Today. Soft, round, a little blue-grey tabby ----------
-   Places (page coordinates, from the blocks' boxes): home = beside this month's tree; the test card's top edge while a
-   test waits for answers; peeking over the writing sheet while he writes. Between them it pops: a crouch, a spring up
-   into a puff, and it pops out of a puff at the new place (his idea, 2026-11-01; with reduced motion it's simply there).
-   Settled, it lives: breathing, blinks, ears, tail, and a few seconds after it arrives, then every 10-25 s, one clear
-   thing (a stretch, a hop round, a yawn, a wash, a swipe at a leaf; over the sheet a yawn or a paw tap), so a short
-   visit sees one or two. At home it naps until he starts writing. The layer never takes a pointer event. */
-LAB.define('cat','The cat',[['roams','Walks to where you are'],['stays','Stays by the tree']],'roams','Today');
-const CAT={fur:'#A6AEBB',top:'#BCC3CE',low:'#959DAB',dark:'#868F9E',light:'#E3E6EB',pink:'#EE9FAE',inner:'#F3C3CC',ink:'#2D3139',mouth:'#7E4352'};
-const KT={el:null,cv:null,c:null,dpr:1,W:0,H:0,s:.36,x:0,y:0,spot:null,pose:'loaf',face:-1,walk:null,shown:false,
-  t:0,A:0,act:null,nextAct:4,nb:2,bk:-9,dbl:false,ne:6,et:-9,es:1,hu:-9,heart:-9,h0:-9,wake:-99,arrived:0,peek:1,
-  typed:-1e9,res:0,purrAt:0,boot:0,ptr:{x:-1e4,y:-1e4},ov:{spot:null,mood:null},
-  warp:null,sx:1,sy:1,lift:0,ox:0,rot:0,sq:1,sqv:0,
-  fh:-1,fb:-1,ft:-1,turn:null,Ah:0,Ahv:0,At:0,Atv:0,Av:0,pk:1,pw1:1,pw2:1,eo:0,ev:0,tw:0,yawned:false,slow:1};
-const wroteToday=()=>(ES.essays||[]).some(e=>e&&e.date===essayToday()&&String(e.text||'').trim());
-const testWaiting=()=>{try{const q=document.getElementById('quiz');return !!(q&&!q.hidden&&typeof testOpen==='function'&&testOpen()&&steps().some(s=>!(s.a&&s.a.answer)));}catch(e){return false;}};
-const writing=()=>{const a=document.activeElement;return !!(a&&a.isContentEditable&&a.closest('#write'))||performance.now()-KT.typed<15000;};
-function wantSpot(){
-  if(KT.ov.spot)return KT.ov.spot;
-  if(LAB.get('cat')==='stays')return 'home';
-  return writing()?'write':testWaiting()?'quiz':'home';
-}
-// where a place puts the cat, kept inside the window's sides: its whole layer (tail, stretch, puff) stays on the page,
-// the same rule as the trees' canvas (spill) (2026-11-04: it got cut off at the edges)
-function spotPt(name){
-  const p=spotRaw(name);if(!p)return p;
-  const half=KT.W/2+4, dw=document.documentElement.clientWidth;
-  p.x=dw>2*half?clamp(p.x,scrollX+half,scrollX+dw-half):scrollX+dw/2;
-  return p;
-}
-function spotRaw(name){
-  const k=kk(),box=el=>{if(!el||el.hidden)return null;const r=el.getBoundingClientRect();return r.width&&r.height?r:null;};
-  if(name==='quiz'){const r=box(document.getElementById('quiz'));return r&&{x:r.right+scrollX-70*k,y:r.top+scrollY+1,pose:'loaf'};}
-  if(name==='write'){const r=box(document.getElementById('w-paper'))||box(document.getElementById('write'));return r&&{x:r.right+scrollX-84*k,y:r.top+scrollY+3,pose:'peek'};}
-  const r=CP.home&&box(CP.el);return r&&{x:r.left+scrollX+CP.home.x,y:r.top+scrollY+CP.home.y,pose:'loaf'};
-}
-function moodTarget(){
-  if(KT.ov.mood)return {asleep:0,drowsy:.45,awake:1}[KT.ov.mood];
-  if(KT.spot!=='home'||wroteToday())return 1;
-  if(KT.t-Math.max(KT.arrived,KT.wake)<25)return .8;
-  return 0;
-}
-// where it should be, and the move there
-function catResolve(force){
-  const want=VIEW==='today'?wantSpot():null;
-  let p=want&&spotPt(want),to=want;if(!p&&want&&want!=='home'){p=spotPt('home');to='home';}
-  const show=!!p;
-  if(show!==KT.shown){KT.shown=show;KT.el.hidden=!show;}
-  if(!p)return;
-  if(!KT.spot||rm()||force==='snap'||performance.now()<KT.boot){
-    KT.x=p.x;KT.y=p.y;if(KT.spot!==to){KT.spot=to;KT.arrived=KT.t;}KT.pose=p.pose;KT.warp=null;KT.turn=null;
-    KT.fh=KT.fb=KT.ft=KT.face;KT.pk=KT.pw1=KT.pw2=1;KT.sx=KT.sy=1;KT.lift=KT.ox=KT.rot=0;return;}
-  if(KT.warp){const w=KT.warp;w.to=to;w.pose=p.pose;w.x1=p.x;w.y1=p.y;return;}
-  const d=Math.hypot(p.x-KT.x,p.y-KT.y);
-  if(to===KT.spot&&d<36){KT.x=p.x;KT.y=p.y;return;}
-  KT.act=null;
-  // which way it's going; a cat that faces the wrong way turns round first
-  const dir=Math.abs(p.x-KT.x)<40?KT.face:Math.sign(p.x-KT.x);
-  const turn=KT.pose!=='peek'&&dir!==KT.face&&!KT.turn;
-  KT.warp={ph:'out',t0:KT.t,x1:p.x,y1:p.y,to,pose:p.pose,from:KT.pose,dir,pre:turn?.72:.14,puffed:false,landed:false};
-  if(turn)catTurn(.72/PACE);
-  KT.et=KT.t;KT.es=dir;
-}
-// a soft puff where it vanishes or appears (the celebration overlay; viewport coordinates)
-function catPuff(x,y,big){
-  const k=kk(),vx=x-scrollX,vy=y-scrollY;
-  ring(vx,vy,(big?30:24)*k,'#C3C9D4',.42,2.2);
-  burst(vx,vy,big?14:10,{dir:-Math.PI/2,spread:TAU,v0:60,v1:150,life:.45,lifeR:.25,g:.25,drag:3,colors:['#DDE1E8','#C9CFD9','#EEF0F4',CAT.fur],kinds:[['dot',1]]});
-}
-/* motion: every move eases in the way it eases out (a cubic in-out), anticipation before it goes, squash and stretch
-   on the way, and the parts arrive one after another (head, then body, then tail; paws, then ears) */
-const io=u=>u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2;
-const seg=(u,a,b)=>clamp((u-a)/(b-a),0,1);
-const bell=u=>Math.sin(Math.PI*clamp(u,0,1));
-// a critically damped follower: it starts as slowly as it stops (an exponential chase starts with a jump)
-function follow(o,k,vk,to,w,dt){for(let n=Math.ceil(dt/.016),h=dt/n;n>0;n--){o[vk]+=(w*w*(to-o[k])-2*w*o[vk])*h;o[k]+=o[vk]*h;}}
-// turning round: the head goes first, the body follows, the tail comes last; side-on it is narrow, never a sliver
-function catTurn(d){const K=KT;if(K.pose==='peek')return;K.turn={t0:K.t,d:d||.85/PACE,from:K.fb,to:-K.face,landed:false};K.face=-K.face;K.tw=Math.max(K.tw,.6);}
-function turnStep(){
-  const K=KT,T=K.turn;if(!T){K.fh=K.fb=K.ft=K.face;return;}
-  const u=clamp((K.t-T.t0)/T.d,0,1),f=(a,b)=>lerp(T.from,T.to,io(seg(u,a,b)));
-  K.fh=f(.08,.5);K.fb=f(.22,.74);K.ft=f(.38,1);
-  // a dip to gather, up onto its feet through the middle, and down again
-  const dip=bell(seg(u,0,.26)),up=bell(seg(u,.2,.78));
-  K.sx*=1+.06*dip-.04*up;K.sy*=1-.08*dip+.06*up;K.lift+=12*up;
-  if(u>.74&&!T.landed){T.landed=true;K.sqv-=1.6;}
-  if(u>=1)K.turn=null;
-}
-const OUT_PEEK=.62,IN_LOAF=.95,IN_PEEK=1.05;
-// its moves run a little brisker than drawn (2026-11-04: "slightly more responsive"); the timings above are at PACE 1
-const PACE=1.3;
-function catWarp(){
-  const K=KT,w=K.warp,e=(K.t-w.t0)*PACE,s=K.s*kk();
-  if(w.ph==='out'){
-    if(w.from==='peek'){
-      // ducking behind the sheet: the paws let go first, the head rises a touch, then sinks out of sight
-      K.pw1=1-io(seg(e,0,.22));K.pw2=1-io(seg(e,.07,.3));
-      K.pk=1+.07*bell(seg(e,.1,.28))-io(seg(e,.24,OUT_PEEK));
-      if(e>=OUT_PEEK)warpSwap(w,s);
-      return;
-    }
-    // a look where it's going (and the turn, if it faced away), a crouch with a wiggle, then the spring up
-    const e2=e-w.pre;if(e2<0)return;
-    const c=io(seg(e2,0,.4))*(1-io(seg(e2,.4,.48))),l=seg(e2,.42,.74),str=bell(seg(e2,.4,.66));
-    K.sx*=(1+.2*c)*(1-.22*str);K.sy*=(1-.32*c)*(1+.38*str);
-    K.rot+=Math.sin(e2*TAU*4.2)*.04*bell(seg(e2,.12,.42))*-w.dir;
-    K.lift+=110*l*(2-l);K.ox+=w.dir*40*io(l);
-    const g=io(seg(e2,.58,.76));K.sx*=1-g;K.sy*=1-g*.9;
-    if(e2>=.58&&!w.puffed){w.puffed=true;catPuff(K.x+K.ox*s,K.y-(K.lift+55)*s,false);}
-    if(e2>=.76)warpSwap(w,s);
-    return;
-  }
-  if(w.pose==='peek'){
-    // up from behind the sheet: the head rises and settles, the ears pop up after it, then each paw lands on the edge
-    K.pk=io(seg(e,.08,.5))+.06*bell(seg(e,.38,.66));
-    K.pw1=io(seg(e,.46,.66));K.pw2=io(seg(e,.6,.82));
-    if(e<.42){K.eo=.5;K.ev=0;}
-    if(e>=IN_PEEK){K.warp=null;K.spot=w.to;K.arrived=K.t;K.nextAct=K.t+2.5+R()*3.5;}
-    return;
-  }
-  // dropping in from the puff: small and tall as it falls, a squash on landing that springs back, the tail and ears catch up
-  const f=seg(e,0,.32),gr=io(seg(e,0,.24));
-  K.lift+=58*(1-f*f);K.ox-=w.dir*26*(1-f)*(1-f);K.sx*=(.3+.7*gr)*(1-.14*(1-f)*(f>0?1:0));K.sy*=(.3+.7*gr)*(1+.24*(1-f));
-  if(f>=1&&!w.landed){w.landed=true;K.sqv-=4.2;K.tw=1;K.ev+=7;}
-  if(e>=IN_LOAF){K.warp=null;K.spot=w.to;K.arrived=K.t;K.nextAct=K.t+2.5+R()*3.5;}
-}
-// the moment between: gone here, a puff there
-function warpSwap(w,s){
-  const K=KT;
-  if(w.from==='peek')catPuff(K.x,K.y-10*s,false);
-  K.x=w.x1;K.y=w.y1;K.pose=w.pose;w.ph='in';w.t0=K.t;
-  if(w.from==='peek'&&w.pose!=='peek')K.face=w.dir;
-  K.fh=K.fb=K.ft=K.face;K.turn=null;
-  if(w.pose==='peek'){K.pk=0;K.pw1=K.pw2=0;catPuff(K.x,K.y-14*s,true);}
-  else{K.pk=K.pw1=K.pw2=1;catPuff(K.x,K.y-(58+40)*s,true);}
-  K.sx=K.sy=0;
-}
-const ACTS={yawn:1.9,groom:3.6,play:2.8,flick:1.1,stretch:2.6,hop:1.25/PACE,tap:1.4,turn:.9/PACE};
-function catStep(dt0){
-  const K=KT,still=rm(),dt=dt0*K.slow;K.t+=dt;
-  if(K.t>K.res){K.res=K.t+.12*K.slow;catResolve();}
-  K.sx=K.sy=1;K.lift=K.ox=K.rot=0;
-  if(!still){turnStep();if(K.warp)catWarp();}
-  if(!K.warp&&!K.turn){K.fh=K.fb=K.ft=K.face;}
-  if(!K.warp){K.pk=1;K.pw1=K.pw2=1;}
-  // a landing squash springs back; the ears flatten from a bump and spring up again; the tail swings and slows
-  K.sqv+=(1-K.sq)*190*dt;K.sqv*=Math.exp(-dt*12);K.sq=clamp(K.sq+K.sqv*dt,.68,1.2);
-  K.ev+=(-K.eo*240-K.ev*13)*dt;K.eo=clamp(K.eo+K.ev*dt,-.2,.6);
-  K.tw*=Math.exp(-dt*2.2);
-  // settling: the eyes go first, then the head comes down, then the tail curls in (and the same order waking up)
-  const At0=moodTarget();let At=At0;
-  if(At<.3&&K.A>.62&&!K.warp&&!still){if(!K.yawned&&!K.act){K.act={k:'yawn',t0:K.t,d:ACTS.yawn};K.lastAct='yawn';K.yawned=true;}if(K.act&&K.act.k==='yawn')At=K.A;}
-  if(At0>.5)K.yawned=false;
-  if(still){K.A=K.Ah=K.At=At;K.Av=K.Ahv=K.Atv=0;}
-  else{follow(K,'A','Av',At,2.5,dt);follow(K,'Ah','Ahv',K.A,3.1,dt);follow(K,'At','Atv',K.Ah,2.2,dt);}
-  if(still){K.blink=0;K.ear=0;K.eo=0;K.tw=0;return;}
-  if(K.t>K.nb){K.bk=K.t;K.nb=K.t+2.6+R()*4.2;K.dbl=R()<.22;}
-  const bu=(K.t-K.bk)/.16;K.blink=bu>=0&&bu<1?Math.sin(Math.PI*bu):(K.dbl&&bu>=1.5&&bu<2.5?Math.sin(Math.PI*(bu-1.5)):0);
-  if(K.t>K.ne){K.et=K.t;K.ne=K.t+5+R()*9;K.es=R()<.5?-1:1;}
-  const eu=(K.t-K.et)/.32;K.ear=eu>=0&&eu<1?Math.sin(Math.PI*eu)*(1-eu)*1.6:0;
-  // one clear thing now and then, never the same twice running
-  if(!K.warp&&!K.act&&!K.turn&&K.t>K.nextAct){
-    const awake=K.A>.6,last=K.lastAct;
-    let opts=K.pose==='peek'?(awake?['yawn','tap','tap']:[]):awake?['stretch','hop','yawn','groom','play','play','flick','turn']:['flick','stretch'];
-    if(opts.length>1)opts=opts.filter(k=>k!==last);
-    if(opts.length)catAct(pick(opts));
-    K.nextAct=K.t+10+R()*15;
-  }
-  const a=K.act;
-  if(a&&a.k==='hop'){
-    // the hop round: down to gather, up (stretched as it leaves the ground), round in the air, a squash coming down
-    const u=actU(),c=io(seg(u,0,.26))*(1-io(seg(u,.26,.34))),air=seg(u,.28,.72),str=bell(seg(u,.26,.44))+bell(seg(u,.6,.74))*.6;
-    K.sx*=(1+.13*c)*(1-.12*str);K.sy*=(1-.2*c)*(1+.18*str);K.lift+=44*4*air*(1-air);
-    if(u>.3&&!a.turned){a.turned=true;catTurn(.42*a.d);}
-    if(u>.72&&!a.landed){a.landed=true;K.sqv-=3.4;K.tw=1;K.ev+=5;}
-  }
-  if(a&&a.k==='turn'&&!a.turned){a.turned=true;catTurn(a.d);}
-  if(a&&K.t-a.t0>a.d)K.act=null;
-}
-function catAct(k){const K=KT;if(k==='turn'&&K.pose==='peek')return;K.act={k,t0:K.t,d:ACTS[k]||2};K.lastAct=k;}
-const sm=u=>u*u*(3-2*u);
-const actEnv=(k)=>{const a=KT.act;if(!a||a.k!==k)return 0;const u=(KT.t-a.t0)/a.d;return u<.2?sm(u/.2):u>.8?sm((1-u)/.2):1;};
-const actU=()=>KT.act?(KT.t-KT.act.t0)/KT.act.d:0;
-const catBusy=()=>KT.warp||KT.act||KT.turn||Math.abs(KT.Av)+Math.abs(KT.Ahv)+Math.abs(KT.Atv)>.004||Math.abs(KT.ev)>.05||Math.abs(KT.sqv)>.05||KT.tw>.03;
-
-/* --- drawing (units; the surface it sits on is y=0) --- */
-function catHead(c,S,t){
-  const K=KT,A=S.A;
-  const yawn=S.yawn,lick=S.lick;
-  const earDroop=lerp(.42,0,A)+yawn*.22+K.eo;
-  [[-25,-27,-.42-earDroop,K.es<0?K.ear:0],[23,-29,.36+earDroop,K.es>0?K.ear:0]].forEach(([x,y,rot,tw])=>{
-    c.save();c.translate(x,y);c.rotate(rot+tw*.22*Math.sign(rot));
-    c.fillStyle=CAT.fur;c.beginPath();c.moveTo(-15,7);c.quadraticCurveTo(-9,-12,-2.5,-24);c.quadraticCurveTo(0,-28.5,2.5,-24);c.quadraticCurveTo(9,-12,15,7);c.closePath();c.fill();
-    c.fillStyle=CAT.inner;c.beginPath();c.moveTo(-8,4);c.quadraticCurveTo(-5,-8,-1.2,-16);c.quadraticCurveTo(0,-18,1.2,-16);c.quadraticCurveTo(5,-8,8,4);c.closePath();c.fill();
-    c.restore();});
-  const hg=c.createRadialGradient(-10,-16,4,-4,0,52);hg.addColorStop(0,CAT.top);hg.addColorStop(1,CAT.fur);
-  c.fillStyle=hg;c.beginPath();c.moveTo(-46,3);c.bezierCurveTo(-47,-22,-25,-37,0,-37);c.bezierCurveTo(25,-37,47,-22,46,3);c.bezierCurveTo(45,25,23,34,0,34);c.bezierCurveTo(-23,34,-45,25,-46,3);c.closePath();c.fill();
-  c.strokeStyle=CAT.dark;c.globalAlpha=.6;c.lineCap='round';
-  [[-12,-34,-11,-26,2.6],[-3,-36,-3,-25,3],[6,-34,5,-26,2.6]].forEach(([a,b,d,e,w])=>{c.lineWidth=w;c.beginPath();c.moveTo(a,b);c.lineTo(d,e);c.stroke();});
-  c.globalAlpha=1;
-  c.fillStyle=CAT.light;[[-11,15],[3,15]].forEach(([x,y])=>{c.beginPath();c.ellipse(x,y+yawn*2,11.5,8.6+yawn*3,0,0,TAU);c.fill();});
-  c.fillStyle=rgba(CAT.pink,.42);[[-33,12],[25,12]].forEach(([x,y])=>{c.beginPath();c.ellipse(x,y,7,4.2,0,0,TAU);c.fill();});
-  // eyes: closed curves asleep, half-open drowsy, round and bright awake; squeezed shut in a yawn or a wash
-  const open=clamp(A*1.25-.2,0,1)*(1-(K.blink||0));
-  c.lineCap='round';c.strokeStyle=CAT.ink;c.lineWidth=2.4;
-  [[-21,2],[13,2]].forEach(([x,y])=>{
-    if(S.happy>.5||yawn>.35||lick>.4){c.beginPath();c.arc(x,y+3.5,6.2,Math.PI*1.15,Math.PI*1.85);c.stroke();return;}
-    if(open<.14){c.beginPath();c.arc(x,y-3.2,6.4,Math.PI*.18,Math.PI*.82);c.stroke();return;}
-    const ex=x+S.look[0],ey=y+S.look[1];
-    c.fillStyle=CAT.ink;c.beginPath();c.ellipse(ex,ey,6.4,7.6*open,0,0,TAU);c.fill();
-    if(open>.4){c.fillStyle='#fff';c.beginPath();c.arc(ex-2+S.look[0]*.3,ey-2.8*open,2.3,0,TAU);c.fill();c.globalAlpha=.8;c.beginPath();c.arc(ex+2.2,ey+2.6*open,1,0,TAU);c.fill();c.globalAlpha=1;}
-  });
-  c.fillStyle=CAT.pink;c.beginPath();c.moveTo(-7.4,9.2);c.quadraticCurveTo(-4,7.6,-.6,9.2);c.quadraticCurveTo(-1.4,12.4,-4,13);c.quadraticCurveTo(-6.6,12.4,-7.4,9.2);c.fill();
-  if(yawn>.08){
-    // the yawn: a small pink O under the nose, a curl of tongue
-    c.fillStyle=CAT.mouth;c.beginPath();c.ellipse(-4,20+yawn*2,3.2+yawn*3.6,1+yawn*8.5,0,0,TAU);c.fill();
-    c.fillStyle=CAT.pink;c.beginPath();c.ellipse(-4,24+yawn*5,2.6+yawn*2.4,1+yawn*2.6,0,0,TAU);c.fill();
-  }else{
-    c.strokeStyle=CAT.ink;c.globalAlpha=.75;c.lineWidth=1.6;c.beginPath();c.moveTo(-4,13);c.lineTo(-4,14.6);c.arc(-7.1,14.6,3.1,0,Math.PI*.95);c.moveTo(-4,14.6);c.arc(-.9,14.6,3.1,Math.PI,Math.PI*.05,true);c.stroke();c.globalAlpha=1;
-    if(lick>.4&&Math.sin(S.lp*TAU*2.2)>0){c.fillStyle=CAT.pink;c.beginPath();c.ellipse(-4,19,2.6,3.4,0,0,TAU);c.fill();}
-  }
-  c.strokeStyle=CAT.ink;c.globalAlpha=.22;c.lineWidth=1;[[-31,10,-49,6],[-31,15,-48,17],[23,10,39,6],[23,15,38,17]].forEach(([a,b,d,e])=>{c.beginPath();c.moveTo(a,b);c.quadraticCurveTo((a+d)/2,(b+e)/2-1.5,d,e);c.stroke();});
-  c.globalAlpha=1;
-  // asleep: a little bubble breathes in and out of his nose
-  if(S.bubble>0){
-    const per=3.9,cyc=Math.floor(t/per),ph=(t/per)%1,big=cyc%4===3,inf=Math.pow((1-Math.cos(ph*TAU))/2,1.3),r=1.5+inf*(big?10:6.5);
-    if(!(big&&ph>.5)){const bx=-9-r*.85,by=12+r*.35;
-      c.globalAlpha=S.bubble;c.fillStyle='rgba(186,214,236,.32)';c.strokeStyle='rgba(118,156,196,.65)';c.lineWidth=1.1;
-      c.beginPath();c.arc(bx,by,r,0,TAU);c.fill();c.stroke();
-      c.strokeStyle='rgba(255,255,255,.9)';c.lineWidth=1.2;c.beginPath();c.arc(bx,by,r*.62,Math.PI*1.1,Math.PI*1.45);c.stroke();c.globalAlpha=1;}
-  }
-}
-function paw(c,x,y,rot){c.save();c.translate(x,y);c.rotate(rot||0);c.fillStyle=CAT.light;c.beginPath();c.ellipse(0,0,11.5,7.2,0,0,TAU);c.fill();
-  c.strokeStyle='rgba(45,49,57,.22)';c.lineWidth=1.1;[-3.5,3.5].forEach(d=>{c.beginPath();c.moveTo(d-1.5,5.5);c.lineTo(d-1.5,2.2);c.stroke();});c.restore();}
-function heartAt(c,x,y,sz,a){c.globalAlpha=a;c.fillStyle=pal().plum;c.beginPath();c.moveTo(x,y+sz*.4);c.bezierCurveTo(x-sz*1.15,y-sz*.3,x-sz*.5,y-sz*1.1,x,y-sz*.42);c.bezierCurveTo(x+sz*.5,y-sz*1.1,x+sz*1.15,y-sz*.3,x,y+sz*.4);c.fill();c.globalAlpha=1;}
-// the loaf: lying when asleep, head up and tail up when awake. Head, body and tail each face their own way, so a
-// turn passes through side-on in stages (fb, fh, ft: -1 faces left, 1 faces right)
-const wide=f=>-(Math.sign(f)||1)*(.34+.66*Math.abs(f));
-function catLoaf(c,S,t){
-  const K=KT,A=S.A,Ah=S.Ah,At=S.At,still=rm(),per=A>.6?2.9:3.9,br=still?0:Math.sin(t*TAU/per);
-  const hu=(t-K.h0)/.5,hop=hu>0&&hu<1?Math.sin(Math.PI*hu)*9:0;
-  // where each part sits follows the turn smoothly (-fb runs 1 → 0 → -1); its own drawing is mirrored at its widest
-  const bX=-K.fb,bw=wide(K.fb),hw=-(Math.sign(K.fh)||1)*(.86+.14*Math.abs(K.fh)),tw=wide(K.ft),m=Math.sign(bw);
-  // the stretch: front paws out, chest down, the back end up and long
-  const st=actEnv('stretch')*(still?0:1);
-  c.save();c.translate(0,-hop);c.scale(1+.2*st,1-.16*st);c.rotate(.1*st*m);
-  const ta=clamp((At-.6)/.4,0,1),fl=actEnv('flick');
-  const sway=still?0:Math.sin(t*1.15)*(4+10*ta)+fl*Math.sin((t-(K.act?K.act.t0:0))*14)*12;
-  // the tail lags: after a landing or a turn it swings on and slows down
-  const lag=still?0:K.tw*Math.sin(t*8.5);
-  const wrap=[82,-13,116,-6,104,6,44,0],up=[82,-26,124,-36,128,-86,110+sway+lag*22,-108+Math.abs(lag)*10];
-  const tp=wrap.map((v,i)=>lerp(v,up[i],ta));if(ta<.5&&!still){tp[6]+=Math.sin(t*.9)*2.2+fl*Math.sin(t*16)*5+lag*10;tp[7]+=Math.sin(t*.9+1)*1.2;}
-  const drawTail=()=>{c.save();c.translate(82*bX,0);c.scale(tw,1);c.translate(-82,0);
-    c.fillStyle=CAT.fur;taper(c,tp,15,10.5,0);
-    const u=.78,L2=(a,b)=>[lerp(a[0],b[0],u),lerp(a[1],b[1],u)],p0=[tp[0],tp[1]],p1=[tp[2],tp[3]],p2=[tp[4],tp[5]],p3=[tp[6],tp[7]];
-    const a=L2(p0,p1),b=L2(p1,p2),d=L2(p2,p3),e=L2(a,b),f=L2(b,d),mm=L2(e,f);
-    c.fillStyle=CAT.dark;c.globalAlpha=.2+.5*ta;taper(c,[mm[0],mm[1],f[0],f[1],d[0],d[1],p3[0],p3[1]],lerp(15,10.5,u)+.4,10.9,0);c.globalAlpha=1;c.restore();};
-  if(ta>=.5)drawTail();
-  c.save();c.scale(bw,1);c.scale(1-br*.006,1+br*.022);
-  const bg=c.createLinearGradient(0,-86,0,0);bg.addColorStop(0,CAT.top);bg.addColorStop(.55,CAT.fur);bg.addColorStop(1,CAT.low);
-  c.fillStyle=bg;c.beginPath();c.moveTo(-62,0);c.bezierCurveTo(-88,0,-92,-46,-66,-63);c.bezierCurveTo(-40,-84,32,-88,66,-66);c.bezierCurveTo(92,-52,98,-10,78,0);c.closePath();c.fill();
-  c.strokeStyle=CAT.dark;c.globalAlpha=.28;c.lineCap='round';c.lineWidth=4.5;
-  [[10,-80,4,-62],[30,-78,25,-60],[50,-72,47,-56]].forEach(([a,b,d,e])=>{c.beginPath();c.moveTo(a,b);c.quadraticCurveTo(a+5,(b+e)/2,d,e);c.stroke();});
-  c.globalAlpha=1;c.restore();
-  if(ta<.5)drawTail();
-  // the head, and what the front paws are up to (worked out facing left, then placed by the body's turn)
-  const g=S.lick,pl=actEnv('play'),pounce=pl>0?Math.max(0,Math.sin(actU()*TAU*2.2))*pl:0;
-  const hx=lerp(-52,-48,Ah)-g*4,hy=lerp(-60,-82,Ah)+(still?0:br*.8)-S.yawn*3+g*3,tilt=lerp(-.14,0,Ah)+(still?0:Math.sin(t*.5)*.025*Ah)+g*.16-S.yawn*.06+pl*-.1;
-  const pu=actU(),swipe=pl*Math.max(0,Math.sin(pu*TAU*2.2));
-  const p0=[lerp(-60,-104,swipe),lerp(-4,-58,swipe)];
-  if(pounce>.01)c.translate(-8*pounce*m,-6*pounce);
-  if(g>.01){p0[0]=lerp(-60,hx+8,g);p0[1]=lerp(-4,hy+30,g)+Math.sin(S.lp*TAU*2.2)*3.5*g;}
-  paw(c,-35*bX,-2,0);
-  if(g<=.01&&swipe<=.01)paw(c,-60*bX,-4,0);
-  c.save();c.translate(hx*bX,hy);c.scale(hw,1);c.rotate(tilt);catHead(c,S,t);c.restore();
-  if(g>.01||swipe>.01){c.save();c.scale(m,1);c.fillStyle=CAT.fur;taper(c,[-50,-34,(p0[0]-50)/2-6,(p0[1]-34)/2,p0[0],p0[1]],16,12,0);paw(c,p0[0],p0[1],-g*.9-swipe*.6);c.restore();}
-  // the leaf it bats at
-  if(pl>0){const ly=lerp(-120,-6,clamp(pu*1.05,0,1)),lx=(-104+Math.sin(pu*9)*8)*m;c.save();c.translate(lx,ly);c.rotate(pu*6);piece(c,{k:'leaf',col:'#E8703A'},16);c.restore();}
-  const hu2=(t-K.heart)/1.5;
-  if(hu2>0&&hu2<1&&!still)heartAt(c,(hx+28)*bX+Math.sin(hu2*5)*4,hy-50-hu2*34,6+hu2*2,Math.sin(Math.PI*hu2)*.9);
-  c.restore();
-}
-// peeking over the top of the sheet: the head and two paws; the rest is behind the paper
-function catPeek(c,S,t){
-  const K=KT,dy=(1-K.pk)*95;
-  c.save();c.beginPath();c.rect(-160,-200,320,202);c.clip();c.translate(0,dy);
-  c.scale(1.18,1.18);
-  c.save();c.translate(-2,-38);c.rotate(Math.sin(t*.5)*.03);catHead(c,S,t);c.restore();
-  const tp=actEnv('tap'),tu=actU(),tap=tp>0?Math.max(0,Math.sin(tu*TAU*2))*tp:0;
-  // each paw comes up from behind the edge, a little over it, and lands
-  const py=v=>-3+(1-v)*34-(v<1?14*bell(v):0);
-  c.translate(0,-dy/1.18);paw(c,-24,py(K.pw1),.1);paw(c,20,py(K.pw2)-tap*16,-.1-tap*.3);c.translate(0,dy/1.18);
-  const hu2=(t-KT.heart)/1.5;
-  if(hu2>0&&hu2<1&&!rm())heartAt(c,30+Math.sin(hu2*5)*4,-88-hu2*30,6+hu2*2,Math.sin(Math.PI*hu2)*.9);
-  c.restore();
-}
-function catDraw(){
-  const K=KT,c=K.c;if(!c||!K.shown)return;
-  const k=kk(),s=K.s*k,W=K.W,H=K.H;
-  c.setTransform(K.dpr,0,0,K.dpr,0,0);c.clearRect(0,0,W,H);
-  const S={A:K.A,happy:0,yawn:Math.max(actEnv('yawn'),actEnv('stretch')*clamp((actU()-.25)*3,0,1)*clamp((.9-actU())*4,0,1)),lick:actEnv('groom'),lp:actU()*3.6,bubble:rm()?0:clamp(1-K.A*2.2,0,1),look:[0,0]};
-  S.happy=K.t<K.hu?clamp((K.hu-K.t)/.25,0,1)*clamp((K.t-(K.hu-1.8))/.15,0,1):0;
-  // the eyes follow the pointer when it's awake (the caret's spot, near enough, while he writes)
-  if(K.A>.3&&!K.warp){const hx=K.x-scrollX+(K.pose==='peek'?0:-50*s),hy=K.y-scrollY-(K.pose==='peek'?40:80)*s,px=K.ptr.x-hx,py=K.ptr.y-hy,dd=Math.hypot(px,py);
-    if(dd>1&&dd<1600){const m=Math.min(1,dd/240)*1.8;S.look=[px/dd*m,py/dd*m*.8];}}
-  if(K.act&&K.act.k==='play')S.look=[-1.6,-.4+actU()*1.6];
-  // before it goes, it looks where it's going
-  if(K.warp&&K.warp.ph==='out'&&K.warp.from!=='peek')S.look=[K.warp.dir*1.9,-.3];
-  if(K.pose!=='peek')S.look[0]*=-(Math.sign(K.fh)||1);
-  S.Ah=K.Ah;S.At=K.At;
-  K.el.style.transform=`translate(${Math.round(K.x-W/2)}px,${Math.round(K.y-H+6*k)}px)`;
-  c.save();c.translate(W/2,H-6*k);c.scale(s,s);
-  if(K.pose!=='peek'&&K.sx>.01){
-    // its shadow stays on the ground: smaller while it's up in the air, gone with it into the puff
-    const f=Math.max(.35,1-K.lift/110)*Math.min(1,K.sx*1.1),sg=c.createRadialGradient(0,0,0,0,0,108);
-    sg.addColorStop(0,'rgba(21,23,28,.12)');sg.addColorStop(1,'rgba(21,23,28,0)');
-    c.save();c.translate(12*-K.fb+K.ox*.6,2);c.scale(f,.075*f);c.fillStyle=sg;c.fillRect(-108,-108,216,216);c.restore();}
-  c.translate(K.ox,-K.lift);c.rotate(K.rot);
-  const sq=rm()?1:K.sq;c.scale((1+(1-sq)*.55)*K.sx,sq*K.sy);
-  if(K.sx<.01||K.sy<.01)c.scale(0,0);
-  if(K.pose==='peek')catPeek(c,S,K.t);
-  else catLoaf(c,S,K.t);
-  c.restore();
-}
-function catSize(){
-  const k=kk(),W=Math.round(170*k),H=Math.round(150*k),d=Math.min(2,devicePixelRatio||1);
-  if(W!==KT.W||H!==KT.H||d!==KT.dpr){KT.W=W;KT.H=H;KT.dpr=d;KT.cv.width=W*d;KT.cv.height=H*d;KT.cv.style.width=W+'px';KT.cv.style.height=H+'px';}
-}
-const catActive=()=>!document.hidden&&VIEW==='today'&&KT.shown;
-function catCheer(){const t=KT.t;KT.hu=t+1.8;KT.h0=t+.15;KT.heart=t+.3;KT.wake=t;}
-// a click on the cat (it never takes the click: anything under it still gets it) earns a purr
-function catPet(e){
-  if(VIEW!=='today'||!KT.shown||KT.warp||document.documentElement.classList.contains('cd-on'))return;
-  if(e.target.closest&&e.target.closest('button,a,input,textarea,select,label,[contenteditable],[role="button"],[role="tab"],[data-tip]'))return;
-  const s=KT.s*kk(),x=(e.pageX-KT.x)/s,y=(e.pageY-KT.y)/s;
-  const hit=KT.pose==='peek'?(x>-52&&x<50&&y>-112&&y<4):(x>-100&&x<100&&y>-150&&y<8);
-  if(!hit)return;
-  if(KT.A<.3){KT.wake=KT.t;KT.et=KT.t;KT.es=-KT.es;}else{KT.hu=KT.t+1.2;KT.heart=KT.t;}
-  const now=performance.now();if(now-KT.purrAt>2600){KT.purrAt=now;sfx('purr');}
-  kick();
-}
-function catMount(){
-  KT.el=document.createElement('div');KT.el.className='fun-cat';KT.el.setAttribute('aria-hidden','true');KT.el.hidden=true;
-  KT.cv=document.createElement('canvas');KT.el.appendChild(KT.cv);KT.c=KT.cv.getContext('2d');document.body.appendChild(KT.el);
-  // while the board is still arriving (the test, the essays), the cat is simply where it belongs: no pops around the page
-  KT.boot=performance.now()+2500;
-  catSize();
-  addEventListener('pointermove',e=>{KT.ptr.x=e.clientX;KT.ptr.y=e.clientY;},{passive:true});
-  document.addEventListener('pointerdown',catPet,{passive:true});
-  document.addEventListener('input',e=>{if(e.target&&e.target.closest&&e.target.closest('#write')){KT.typed=performance.now();if(KT.spot!=='write')catResolve();kick();}},true);
-  ['focusin','focusout'].forEach(ev=>document.addEventListener(ev,()=>setTimeout(()=>{catResolve();kick();},30)));
-  addEventListener('resize',()=>{catSize();catResolve('snap');kick();});
-  catResolve();
-}
-
 /* ---------- one loop for every living thing; it sleeps when nothing on screen moves ---------- */
 const LOOP={raf:0,last:0};
 function kick(){
-  const want=!rm()&&(cpActive()||catActive()||pfActive());
+  const want=!rm()&&(cpActive()||pfActive());
   if(want){if(!LOOP.raf){LOOP.last=performance.now();LOOP.raf=requestAnimationFrame(tick);}}
-  else{if(LOOP.raf){cancelAnimationFrame(LOOP.raf);LOOP.raf=0;}cpDraw(0);if(KT.c){catResolve();KT.A=KT.Ah=KT.At=moodTarget();catDraw();}}
+  else{if(LOOP.raf){cancelAnimationFrame(LOOP.raf);LOOP.raf=0;}cpDraw(0);}
 }
 function tick(now){
   LOOP.raf=requestAnimationFrame(tick);
-  const busy=catBusy()||CP.pop||CP.gust>.05||CP.gw>.05||CP.past.some(p=>p.g>.015||p.w>.015)||KT.t<KT.hu+1.5||pfActive();
+  const busy=CP.pop||CP.gust>.05||CP.gw>.05||CP.past.some(p=>p.g>.015||p.w>.015)||pfActive();
   const dt=(now-LOOP.last)/1000;if(dt<(busy?1/70:1/31))return;
   LOOP.last=now;const d=Math.min(dt,.1);
   if(cpActive()){CP.t+=d;cpDraw(d);}
-  if(KT.c&&VIEW==='today'&&!document.hidden){catStep(d);catDraw();}
   if(pfActive())pfTick(d);
-  if(!cpActive()&&!catActive()&&!pfActive()){cancelAnimationFrame(LOOP.raf);LOOP.raf=0;}
+  if(!cpActive()&&!pfActive()){cancelAnimationFrame(LOOP.raf);LOOP.raf=0;}
 }
 
 /* ---------- wiring ---------- */
-const refresh=()=>{cpData();cpDraw(0);pfAll();catResolve();kick();};
-BUS.on('essays',refresh);BUS.on('items',refresh);BUS.on('data',refresh);BUS.on('test',()=>setTimeout(()=>{catResolve();kick();},80));
-BUS.on('view',v=>{if(v==='progress')pfAll();if(v==='today')setTimeout(()=>{cpSize();catResolve('snap');kick();},30);else{catResolve();kick();}});
-BUS.on('lab',id=>{if(id==='cat'){catResolve();kick();}if(id==='board-k'){cpSize();catSize();catResolve('snap');}});
+const refresh=()=>{cpData();cpDraw(0);pfAll();kick();};
+BUS.on('essays',refresh);BUS.on('items',refresh);BUS.on('data',refresh);
+BUS.on('view',v=>{if(v==='progress')pfAll();if(v==='today')setTimeout(()=>{cpSize();kick();},30);else kick();});
+BUS.on('lab',id=>{if(id==='board-k')cpSize();});
 document.addEventListener('visibilitychange',kick);
-try{matchMedia('(prefers-reduced-motion:reduce)').addEventListener('change',()=>{catResolve('snap');kick();});}catch(e){}
-function mount(){cpMount();catMount();kick();}
+try{matchMedia('(prefers-reduced-motion:reduce)').addEventListener('change',kick);}catch(e){}
+function mount(){cpMount();kick();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
 
-// the time machine (preview.js) drives the cat: FUN.cat({spot:'home'|'quiz'|'write'|null, mood:'asleep'|'drowsy'|'awake'|null, act:'yawn'|'groom'|'play'|'flick'|'stretch'|'hop'|'turn'|'tap', slow:true|false})
-function catCmd(o){
-  o=o||{};
-  if('spot' in o)KT.ov.spot=o.spot||null;
-  if('mood' in o)KT.ov.mood=o.mood||null;
-  if(o.act&&!rm()&&!KT.warp&&!KT.turn)catAct(o.act);
-  if('slow' in o)KT.slow=o.slow?.25:1;
-  if(o.cheer)catCheer();
-  catResolve();kick();
-}
 // tests read how much each tree is stirring
 const stir=()=>({front:CP.gust,past:CP.past.map(p=>p.g),year:[...PF].map(M=>M.slots.map(s=>s.g))});
-window.FUN={celebrate,weekDays,forest,cat:catCmd,species:SPECIES,stir};
+window.FUN={celebrate,weekDays,forest,species:SPECIES,stir};
 })();

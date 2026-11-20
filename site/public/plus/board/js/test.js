@@ -84,20 +84,21 @@ async function grade(s){
 }
 let PLAYER=null;
 // the Azure recording when the item has one; the browser's voice if it is missing or will not play
-async function play(it,rate){
+// onEnd runs once it has finished playing
+async function play(it,rate,onEnd){
   try{PLAYER&&PLAYER.pause();speechSynthesis.cancel();}catch(e){}
   if(it.audio){
-    try{PLAYER=new Audio(it.audio);PLAYER.playbackRate=rate;await PLAYER.play();return true;}catch(e){console.error(e);}
+    try{PLAYER=new Audio(it.audio);PLAYER.playbackRate=rate;PLAYER.onended=onEnd;await PLAYER.play();return true;}catch(e){console.error(e);}
   }
-  return speak(it.hear,rate);
+  return speak(it.hear,rate,onEnd);
 }
-function speak(text,rate=1){
+function speak(text,rate=1,onEnd){
   try{
     if(!('speechSynthesis' in window)) return false;
     const u=new SpeechSynthesisUtterance(text), vs=speechSynthesis.getVoices();
     const v=vs.find(v=>/zh[-_]TW/i.test(v.lang))||vs.find(v=>/^zh/i.test(v.lang)&&!/HK|yue/i.test(v.lang));
     if(v){u.voice=v;u.lang=v.lang;}else u.lang='zh-TW';
-    u.rate=rate; speechSynthesis.cancel(); speechSynthesis.speak(u); return true;
+    u.rate=rate; if(onEnd) u.onend=onEnd; speechSynthesis.cancel(); speechSynthesis.speak(u); return true;
   }catch(e){return false;}
 }
 const SPEAKER='<svg width="16" height="16" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 5h2.5L8 2.2v9.6L4.5 9H2z" fill="currentColor"/><path d="M10 4.5a3.2 3.2 0 0 1 0 5M11.6 3a5.4 5.4 0 0 1 0 8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>';
@@ -138,7 +139,7 @@ function verdictHTML(s){
 }
 // the unsent attempt goes: the text, the clock (the next focus, Listen or keystroke starts a fresh one)
 function QZ_cancel(ta,btn,clock){
-  clearTimeout(Q.timer); Q.t0=null;
+  clearTimeout(Q.timer); clearTimeout(Q.heard); Q.t0=null;
   setText(ta,''); btn.disabled=true;
   clock.classList.remove('run','late'); clock.querySelector('i').style.animationDelay='';
 }
@@ -147,7 +148,7 @@ const QZ_pips=(S,on)=>S.map(s=>`<i class="${glyph(s,on)}"></i>`).join('');
 function renderQuiz(){
   const el=document.getElementById('quiz');
   dots();
-  if(!testOpen()){clearTimeout(Q.timer);el.classList.remove('q-fin');el.hidden=true;el.innerHTML='';return;}
+  if(!testOpen()){clearTimeout(Q.timer);clearTimeout(Q.heard);el.classList.remove('q-fin');el.hidden=true;el.innerHTML='';return;}
   el.hidden=false;
   const S=steps(), cur=S.find(s=>!s.a.answer);
   const view=Q.view!=null?S.find(s=>s.id===Q.view):null;
@@ -163,7 +164,7 @@ function renderQuiz(){
     }
     el.dataset.qkey=key;
   } else delete el.dataset.qkey;
-  clearTimeout(Q.timer);
+  clearTimeout(Q.timer); clearTimeout(Q.heard);
   if(view||cur) el.classList.remove('q-fin');
   const top=lab=>`<div class="q-top"><span class="q-pips" role="img" aria-label="${S.filter(s=>s.a.answer).length} of ${S.length} answered">${QZ_pips(S,view?null:cur)}</span>${lab?`<span class="q-lab">${esc(lab)}</span>`:''}</div>`;
   if(view){
@@ -193,9 +194,13 @@ function renderQuiz(){
     const start=()=>{if(!Q.t0){Q.t0=Date.now();arm();}};
     clock.querySelector('i').addEventListener('animationend',()=>clock.classList.add('late'));
     if(hear){
+      // the clock starts once he has heard it all (or begins answering), not when he presses Listen;
+      // in case the browser never says it finished, it starts on its own after a generous wait
       const say=async r=>{
-        start();
-        if(!await play(it,r)){const h=document.getElementById('q-heard');h.hidden=false;h.innerHTML=zh(it.hear);}
+        clearTimeout(Q.heard);
+        if(await play(it,r,()=>{clearTimeout(Q.heard);start();})){if(!Q.t0)Q.heard=setTimeout(start,20000);return;}
+        const h=document.getElementById('q-heard');h.hidden=false;h.innerHTML=zh(it.hear);
+        if(!Q.t0){Q.t0=Date.now()+Math.min(25000,Math.max(3000,2500+(it.hear.match(/[㐀-鿿]/g)||[]).length*400));arm();}
       };
       document.getElementById('q-listen').onclick=()=>say(1);
       const slow=document.getElementById('q-slow'); if(slow) slow.onclick=()=>say(0.8);

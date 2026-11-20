@@ -184,7 +184,7 @@ export async function mcp(env: Env, msg: { id?: unknown; method?: string; params
   const ok = (result: unknown) => ({ jsonrpc: '2.0', id: msg.id, result });
   switch (msg.method) {
     case 'initialize':
-      return ok({ protocolVersion: (msg.params?.protocolVersion as string) ?? '2025-06-18', capabilities: { tools: {} }, serverInfo: { name: 'Chinese Brain Plus', version: '1' } });
+      return ok({ protocolVersion: (msg.params?.protocolVersion as string) ?? '2025-06-18', capabilities: { tools: {} }, serverInfo: { name: 'Chinese Brain', version: '1' } });
     case 'ping':
       return ok({});
     case 'tools/list':

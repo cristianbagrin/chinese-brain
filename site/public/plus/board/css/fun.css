@@ -1,4 +1,4 @@
-/* ---------- fun: celebrations, the forest, the cat. Owner: C ---------- */
+/* ---------- fun: celebrations and the forest. Owner: C ---------- */
 /* the celebration overlay: one fixed canvas, never takes a click, removed when the moment is over */
 .fun-fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:40}
 /* over the card window while it's open (Card it's confetti); still under the toast */
@@ -8,10 +8,6 @@ html.cd-on .fun-fx{z-index:65}
 #companion{position:relative;height:calc(260px * var(--k));touch-action:pan-y;-webkit-tap-highlight-color:transparent}
 @media (min-width:960px) and (max-width:1179px){#companion{height:calc(300px * var(--k))}}
 #companion .fun-cv,.fo-cv{position:absolute;left:0;top:0;display:block;pointer-events:none}
-/* the cat: its own layer over the page, placed by fun.js; under the app bar, popovers and tips; never takes a pointer */
-.fun-cat{position:absolute;left:0;top:0;z-index:5;pointer-events:none;will-change:transform}
-.fun-cat[hidden]{display:none}
-.fun-cat canvas{display:block}
 /* the forest on Progress (FUN.forest(el), or an empty #pr-forest): a tree a month, the month under it */
 .fo{position:relative;padding-top:calc(190px * var(--k))}
 .fo-row{position:relative;height:calc(var(--fs-xs) * 1.4 + var(--s1));margin-top:var(--s1)}
