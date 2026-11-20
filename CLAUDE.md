@@ -40,3 +40,6 @@
   source, the Mac's nightly task pushes life/chinese with `scripts/cbp-push.py` (key in `~/.cbp-push.env`) and the website
   is read-only. The board's code is copied in with `scripts/cbp-board.py` (never edit `site/public/plus/board` by hand);
   `plus/runtime.js` stands in for claude.ai's database. Claude sessions read it through the connector at `/mcp/<CBP_MCP_KEY>`.
+- **Durable Objects free tier: 5 million rows read a day across all Account objects**, and past it every page that
+  touches accounts fails until 00:00 UTC. Anything called per request (auth checks, polling, each image) reads one row
+  (`_who`), never a count or a scan; `_me` is for pages that show the counts.
