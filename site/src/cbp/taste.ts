@@ -47,9 +47,13 @@ function lineup(it: Item, ms: Model[]) {
 export async function run(env: Env, budgetMs: number) {
   const until = Date.now() + budgetMs, done: string[] = [], out: string[] = [];
   const [its, ms, rs] = await Promise.all([items(env), models(env), runs(env)]);
-  for (const m of ms) {
-    for (const it of its) {
-      if (kindOf(it.job) !== m.kind || rs.has(`${it.id}|${m.model}`)) continue;
+  // each model takes one sample per turn, so a slow or busy one never holds up the rest
+  const todo = ms.map((m) => ({ m, left: its.filter((it) => kindOf(it.job) === m.kind && !rs.has(`${it.id}|${m.model}`)) }));
+  const stopped = (m: string) => out.some((o) => o.startsWith(m + ':'));
+  while (todo.some((t) => t.left.length && !stopped(t.m.model))) {
+    for (const { m, left } of todo) {
+      const it = !stopped(m.model) && left.shift();
+      if (!it) continue;
       if (Date.now() > until) return { done, out, more: true };
       try {
         let value: string;
@@ -61,12 +65,11 @@ export async function run(env: Env, budgetMs: number) {
         await env.CBP.prepare('INSERT OR REPLACE INTO taste_runs (item, model, out, err, at) VALUES (?, ?, ?, NULL, ?)').bind(it.id, m.model, value, Date.now()).run();
         done.push(`${m.model} ${it.id}`);
       } catch (e) {
-        if (e instanceof AI.Quota) {
-          out.push(m.model);
-          break; // this model is done for now; the next run tries again
+        if (e instanceof AI.Quota) out.push(`${m.model}: ${String((e as Error).message).slice(0, 200)}`); // done for now; the next run tries again
+        else {
+          await env.CBP.prepare('INSERT OR REPLACE INTO taste_runs (item, model, out, err, at) VALUES (?, ?, NULL, ?, ?)').bind(it.id, m.model, String((e as Error).message).slice(0, 1000), Date.now()).run();
+          done.push(`${m.model} ${it.id} failed`);
         }
-        await env.CBP.prepare('INSERT OR REPLACE INTO taste_runs (item, model, out, err, at) VALUES (?, ?, NULL, ?, ?)').bind(it.id, m.model, String((e as Error).message).slice(0, 1000), Date.now()).run();
-        done.push(`${m.model} ${it.id} failed`);
       }
     }
   }

@@ -16,11 +16,12 @@ from pathlib import Path
 SITE = 'https://chinese.cristianbagrin.com'
 MODELS = [  # who answers besides Claude
     {'model': 'gemini:gemini-3.8-flash', 'kind': 'text', 'label': 'Gemini 3.8 Flash (free)'},
-    {'model': 'gemini:gemini-3.8-flash-lite', 'kind': 'text', 'label': 'Gemini 3.8 Flash-Lite (free)'},
-    {'model': 'pollinations:black-forest-labs/flux.2-pro', 'kind': 'image', 'label': 'FLUX.2 Pro'},
-    {'model': 'pollinations:google/gemini-3.1-flash-image', 'kind': 'image', 'label': 'Gemini (Nano Banana 2)'},
-    {'model': 'pollinations:openai/gpt-image-2', 'kind': 'image', 'label': 'GPT Image 2'},
-    {'model': 'pollinations:bytedance/seedream-5.0-flash', 'kind': 'image', 'label': 'Seedream 5 Flash'},
+    {'model': 'gemini:gemini-3.5-flash-lite', 'kind': 'text', 'label': 'Gemini 3.5 Flash-Lite (free)'},
+    # images: what Pollinations credits can pay for. The paid-only ones (Nano Banana, GPT Image, Seedream, FLUX.2 Pro) need a
+    # top-up there; Gemini's free tier draws no pictures at all
+    {'model': 'pollinations:black-forest-labs/flux.2-flex', 'kind': 'image', 'label': 'FLUX.2 Flex'},
+    {'model': 'pollinations:black-forest-labs/flux.1.1-pro', 'kind': 'image', 'label': 'FLUX 1.1 Pro'},
+    {'model': 'pollinations:microsoft/mai-image-2.7', 'kind': 'image', 'label': 'MAI Image 2.7'},
 ]
 
 # ---------------------------------------------------------------- cards (board/js/cards.js, cardPrompt)

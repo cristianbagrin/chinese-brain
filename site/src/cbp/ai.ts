@@ -51,6 +51,7 @@ export async function geminiModels(env: Env) {
 /** One square image; returns its bytes and type. */
 export async function image(env: Env, model: string, prompt: string) {
   const [where, name] = split(model);
+  if (where === 'gemini') return geminiImage(env, name, prompt);
   if (where !== 'pollinations') throw new Error(`No image route for ${model}.`);
   if (!env.POLLINATIONS_KEY) throw new Quota('No POLLINATIONS_KEY yet.');
   const q = new URLSearchParams({ model: name, width: '1024', height: '1024', nologo: 'true', enhance: 'false', seed: String(Math.floor(Math.random() * 1e6)) });
@@ -64,4 +65,22 @@ export async function image(env: Env, model: string, prompt: string) {
 function split(model: string): [string, string] {
   const i = model.indexOf(':');
   return [model.slice(0, i), model.slice(i + 1)];
+}
+
+/** Nano Banana on the Gemini key: the picture comes back inside the answer. */
+async function geminiImage(env: Env, name: string, prompt: string) {
+  if (!env.GEMINI_KEY) throw new Quota('No GEMINI_KEY yet.');
+  const r = await gfetch(env, `${GEMINI}/models/${name}:generateContent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY },
+    body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '1:1' } } }),
+  });
+  if (r.status === 429 || r.status === 503) throw new Quota(`gemini:${name}: ${r.status} ${(await r.text()).slice(0, 300)}`);
+  if (!r.ok) throw new Error(`gemini:${name}: ${r.status} ${(await r.text()).slice(0, 500)}`);
+  const d = (await r.json()) as { candidates?: { content?: { parts?: { inlineData?: { mimeType: string; data: string } }[] } }[] };
+  const img = (d.candidates?.[0]?.content?.parts ?? []).find((p) => p.inlineData)?.inlineData;
+  if (!img) throw new Error(`gemini:${name}: no picture ${JSON.stringify(d).slice(0, 300)}`);
+  const bin = atob(img.data), bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return { bytes: bytes.buffer, type: img.mimeType };
 }
