@@ -48,7 +48,8 @@ export async function run(env: Env, budgetMs: number) {
   const until = Date.now() + budgetMs, done: string[] = [], out: string[] = [];
   const [its, ms, rs] = await Promise.all([items(env), models(env), runs(env)]);
   // each model takes one sample per turn, so a slow or busy one never holds up the rest
-  const todo = ms.map((m) => ({ m, left: its.filter((it) => kindOf(it.job) === m.kind && !rs.has(`${it.id}|${m.model}`)) }));
+  // the model furthest behind goes first, so a fast one never starves a slow one when time runs out
+  const todo = ms.map((m) => ({ m, left: its.filter((it) => kindOf(it.job) === m.kind && !rs.has(`${it.id}|${m.model}`)) })).sort((a, b) => b.left.length - a.left.length);
   const stopped = (m: string) => out.some((o) => o.startsWith(m + ':'));
   while (todo.some((t) => t.left.length && !stopped(t.m.model))) {
     for (const { m, left } of todo) {
