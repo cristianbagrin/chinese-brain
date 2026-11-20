@@ -107,7 +107,7 @@ async function claude(env: Env, name: string, prompt: string) {
     m = await client.messages.create({ model: name, max_tokens: 16000, thinking: { type: 'adaptive' }, output_config: { effort: 'medium' }, messages: [{ role: 'user', content: prompt }] });
   } catch (e) {
     const st = (e as { status?: number }).status;
-    if (e instanceof Anthropic.RateLimitError || e instanceof Anthropic.APIConnectionError || st === 529 || st === 503 || st === 504) throw new Quota(`anthropic:${name}: ${String((e as Error).message).slice(0, 300)}`);
+    if (e instanceof Anthropic.RateLimitError || e instanceof Anthropic.APIConnectionError || st === 529 || st === 503 || st === 504 || /credit balance/i.test(String((e as Error).message))) throw new Quota(`anthropic:${name}: ${String((e as Error).message).slice(0, 300)}`);
     throw e;
   }
   if (m.stop_reason === 'refusal') throw new Error(`anthropic:${name}: refused`);
