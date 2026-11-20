@@ -26,6 +26,11 @@
   served, tied to the words they replaced (`site/src/copy.ts`). Run `node site/sync.mjs` before changing
   page text by hand (`--apply` writes his edits into `site/public`); words that scripts write go in an
   element marked `data-js-text`, so the editor leaves them alone.
+- **Nothing new reaches people unswitched.** New parts check a release switch (`SWITCHES` in `site/worker.js`,
+  stored in the `cbp` D1 `flags` table): on for Chris's account while he tries it, on for Everyone to release.
+  He flips them on `/admin`. Try changes first on staging, https://chinese-staging.cristianbagrin.com
+  (`npx wrangler deploy --env staging` in `site/`; same accounts and switches, its own CBP data), open only to
+  accounts with the `staging` switch. Chinese Brain Plus is `/plus`, behind the `plus` switch.
 - One recovery key for the whole account: `@account/keyring` (sync `app: 'account'`, any app) holds the account's
   master key, and each app that encrypts wraps its data key under it. The scheme and the rules every app keeps are in
   `site/public/acct/keyring.js`. Keyrings are written with `if` (compare-and-set, see `_sync`); an item once written

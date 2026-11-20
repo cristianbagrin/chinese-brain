@@ -35,5 +35,43 @@
     "ACCOUNT_SITE": "https://account.cristianbagrin.com",
     "MAIL_FROM": "Cristian Bagrin <noreply@cristianbagrin.com>",
     "SUPPORT": "chris@cristianbagrin.com"
+  },
+  // Chinese Brain Plus: its database (CBP; FLAGS holds the release switches, see worker.js) and its
+  // files (images, audio). Tables: `npx wrangler d1 migrations apply cbp --remote`.
+  "d1_databases": [
+    { "binding": "CBP", "database_name": "cbp", "database_id": "45d4396a-c2d2-402e-8c0f-243fd2de4491", "migrations_dir": "migrations" },
+    { "binding": "FLAGS", "database_name": "cbp", "database_id": "45d4396a-c2d2-402e-8c0f-243fd2de4491", "migrations_dir": "migrations" }
+  ],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "cbp-files" }],
+  "env": {
+    // https://chinese-staging.cristianbagrin.com: the next version, open only to accounts with the
+    // `staging` switch. Same accounts and switches as the live site (the Durable Objects and FLAGS are
+    // production's); its own CBP database and files, so trying things never touches real data.
+    // Deploy: `npx wrangler deploy --env staging`. Needs one secret: STAGING_KEY (any long random string).
+    "staging": {
+      "name": "chinesebrain-staging",
+      "assets": { "directory": "./public", "binding": "ASSETS", "not_found_handling": "none", "run_worker_first": true },
+      "durable_objects": {
+        "bindings": [
+          { "name": "ACCOUNT", "class_name": "Account", "script_name": "chinesebrain" },
+          { "name": "LIMITER", "class_name": "Limiter", "script_name": "chinesebrain" },
+          { "name": "DIRECTORY", "class_name": "Directory", "script_name": "chinesebrain" },
+          { "name": "COPY", "class_name": "Copy", "script_name": "chinesebrain" }
+        ]
+      },
+      "routes": [{ "pattern": "chinese-staging.cristianbagrin.com", "custom_domain": true }],
+      "vars": {
+        "SITE": "https://chinese-staging.cristianbagrin.com",
+        "ACCOUNT_SITE": "https://chinese-staging.cristianbagrin.com",
+        "MAIL_FROM": "Cristian Bagrin <noreply@cristianbagrin.com>",
+        "SUPPORT": "chris@cristianbagrin.com",
+        "STAGING": "1"
+      },
+      "d1_databases": [
+        { "binding": "CBP", "database_name": "cbp-staging", "database_id": "4e6022bf-7adc-4a61-a2d8-39f4ba192824", "migrations_dir": "migrations" },
+        { "binding": "FLAGS", "database_name": "cbp", "database_id": "45d4396a-c2d2-402e-8c0f-243fd2de4491", "migrations_dir": "migrations" }
+      ],
+      "r2_buckets": [{ "binding": "FILES", "bucket_name": "cbp-files-staging" }]
+    }
   }
 }

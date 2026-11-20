@@ -516,6 +516,83 @@ function appOf(v) {
   return app;
 }
 
+// ---------- Release switches ----------
+// Anything new ships behind a switch: on for one account (Chris) while he tries it, then on for
+// everyone ('*') to release it. Switches live in the CBP database's `flags` table (FLAGS binding:
+// production's database, read by staging too) and are flipped on /admin. No redeploy.
+
+/** Every switch the admin page shows. Add one here before code checks it. */
+const SWITCHES = { plus: 'Chinese Brain Plus', staging: 'Staging site', 'plus.demo': 'Plus: switch test' };
+
+async function owner(env, bearer) {
+  if (!env.ADMIN_KEY || !same(await sha(bearer), await sha(env.ADMIN_KEY))) throw new Fail(404, 'not_found', 'Not found.');
+}
+
+const accountId = (bearer) => String(bearer).split('.')[0];
+
+async function flagsOf(env, id) {
+  if (!env.FLAGS) return [];
+  const { results } = await env.FLAGS.prepare("SELECT DISTINCT flag FROM flags WHERE who = ? OR who = '*'").bind(id).all();
+  return results.map((r) => r.flag);
+}
+
+async function setFlag(env, who, flag, on) {
+  await (on
+    ? env.FLAGS.prepare('INSERT INTO flags (who, flag, at) VALUES (?, ?, ?) ON CONFLICT DO NOTHING').bind(who, flag, Date.now())
+    : env.FLAGS.prepare('DELETE FROM flags WHERE who = ? AND flag = ?').bind(who, flag)
+  ).run();
+}
+
+/** The switches, and who has each: '*' for everyone, else by email (accounts from the directory). */
+async function listFlags(env) {
+  const { results } = await env.FLAGS.prepare('SELECT who, flag FROM flags').all();
+  const byWho = new Map();
+  for (const r of results) byWho.set(r.who, [...(byWho.get(r.who) ?? []), r.flag]);
+  const { users } = await env.DIRECTORY.get(env.DIRECTORY.idFromName('all')).list();
+  const people = {};
+  for (const u of users) {
+    const id = (await byEmail(env, u.email)).id.toString();
+    if (byWho.has(id)) people[u.email] = byWho.get(id);
+  }
+  return { switches: SWITCHES, everyone: byWho.get('*') ?? [], people };
+}
+
+// ---------- Staging ----------
+// chinese-staging.cristianbagrin.com runs the next version of this Worker (wrangler.jsonc, env
+// "staging") on the same accounts. Only an account with the `staging` switch gets in: it signs in
+// as usual, /staging trades the session for a 30-day cookie, and every request checks that cookie
+// and the switch. Signing in and the account pages stay open, so there's a way in.
+
+const STAGING_OPEN = /^\/(staging(\.js)?|account(\.js)?|reset|cb\.js|site\.js|style\.css|icon\.png|chris\.webp|acct\/.*|fonts\/.*|api\/.*)$/;
+const STAGING_DAYS = 30;
+
+async function hmac(env, text) {
+  const key = await crypto.subtle.importKey('raw', enc.encode(env.STAGING_KEY), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return b64(await crypto.subtle.sign('HMAC', key, enc.encode(text)));
+}
+
+async function stagingPass(request, env) {
+  const cookie = (request.headers.get('Cookie') ?? '').match(/(?:^|;\s*)stg=([^;]+)/)?.[1];
+  if (!cookie || !env.STAGING_KEY) return false;
+  const [id, exp, sig] = decodeURIComponent(cookie).split('|');
+  if (!sig || Number(exp) < Date.now() || !same(sig, await hmac(env, `${id}|${exp}`))) return false;
+  return (await flagsOf(env, id)).includes('staging');
+}
+
+async function stagingEnter(request, env) {
+  const bearer = (request.headers.get('Authorization') ?? '').replace(/^Bearer /, '');
+  const { account, secret } = byToken(env, bearer);
+  const me = await account.call(secret, 'me');
+  if (me?.fail) throw new Fail(401, 'signed_out', 'You’re signed out. Sign in again.');
+  const id = accountId(bearer);
+  if (!(await flagsOf(env, id)).includes('staging')) throw new Fail(403, 'not_yours', 'This account can’t open staging.');
+  const exp = Date.now() + STAGING_DAYS * 86_400_000;
+  const value = encodeURIComponent(`${id}|${exp}|${await hmac(env, `${id}|${exp}`)}`);
+  const res = json({ ok: true });
+  res.headers.set('Set-Cookie', `stg=${value}; Max-Age=${STAGING_DAYS * 86_400}; Path=/; HttpOnly; Secure; SameSite=Lax`);
+  return res;
+}
+
 async function api(request, env, path) {
   if (request.method === 'GET' && path === 'health') return { ok: true, email: !!env.RESEND_API_KEY };
   const bearer = (request.headers.get('Authorization') ?? '').replace(/^Bearer /, '');
@@ -568,8 +645,26 @@ async function api(request, env, path) {
     }
     case 'GET admin/users': {
       // For the owner: set the ADMIN_KEY secret, then open /admin.
-      if (!env.ADMIN_KEY || !same(await sha(bearer), await sha(env.ADMIN_KEY))) throw new Fail(404, 'not_found', 'Not found.');
+      await owner(env, bearer);
       return env.DIRECTORY.get(env.DIRECTORY.idFromName('all')).list();
+    }
+    case 'GET admin/flags':
+      await owner(env, bearer);
+      return listFlags(env);
+    case 'POST admin/flags': {
+      await owner(env, bearer);
+      const flag = String(body.flag ?? '');
+      if (!Object.hasOwn(SWITCHES, flag)) throw new Fail(400, 'flag', 'Unknown switch.');
+      const who = body.email === '*' ? '*' : (await byEmail(env, String(body.email ?? '').trim().toLowerCase())).id.toString();
+      await setFlag(env, who, flag, !!body.on);
+      return listFlags(env);
+    }
+    case 'GET plus/me': {
+      const me = await authed('me');
+      if (me?.fail) return me;
+      const flags = await flagsOf(env, accountId(bearer));
+      if (!flags.includes('plus')) throw new Fail(404, 'not_found', 'Not found.');
+      return { email: me.email, flags };
     }
     case 'GET me':
       return authed('me');
@@ -791,9 +886,13 @@ const MOVED = { '/welcome': '/brain/guide#welcome', '/brain/welcome': '/brain/gu
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (env.STAGING && !STAGING_OPEN.test(url.pathname) && !(await stagingPass(request, env))) {
+      return Response.redirect(`${url.origin}/staging`, 302);
+    }
     if (url.pathname.startsWith('/api/')) {
       if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
       try {
+        if (env.STAGING && request.method === 'POST' && url.pathname === '/api/staging/enter') return await stagingEnter(request, env);
         const out = await api(request, env, url.pathname.slice(5));
         if (out?.fail) return json({ error: out.fail.message, code: out.fail.code }, out.fail.status);
         return json(out);
