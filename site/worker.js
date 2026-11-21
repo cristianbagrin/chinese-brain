@@ -13,6 +13,7 @@ import { annotate, clean, PAGES } from './src/copy.ts';
 import * as plus from './src/cbp/plus.ts';
 import * as taste from './src/cbp/taste.ts';
 import * as ai from './src/cbp/ai.ts';
+import * as cards from './src/cbp/cards.ts';
 
 const MAX_BODY = 1_500_000;
 const MAX_ITEMS = 60_000;
@@ -567,7 +568,7 @@ function appOf(v) {
 // production's database, read by staging too) and are flipped on /admin. No redeploy.
 
 /** Every switch the admin page shows. Add one here before code checks it. */
-const SWITCHES = { plus: 'Chinese Brain Plus', staging: 'Staging site', 'plus.demo': 'Plus: switch test' };
+const SWITCHES = { plus: 'Chinese Brain Plus', 'plus.write': 'Plus: changes saved on the website', staging: 'Staging site', 'plus.demo': 'Plus: switch test' };
 
 async function owner(env, bearer) {
   if (!env.ADMIN_KEY || !same(await sha(bearer), await sha(env.ADMIN_KEY))) throw new Fail(404, 'not_found', 'Not found.');
@@ -661,6 +662,11 @@ async function plusMachine(request, env, url) {
   try {
     if (url.pathname === '/api/plus/push/manifest') return json(await plus.manifest(env));
     if (url.pathname === '/api/plus/push') return json(await plus.push(env, await request.json()));
+    // once the website is the source: the Mac pulls what changed, and the switch-over itself
+    if (url.pathname === '/api/plus/push/pull') return json(await plus.pull(env, await request.json()));
+    if (url.pathname === '/api/plus/push/switch') return json(await plus.switchOver(env));
+    // a test's audio and pictures (media.py), kept like the card window's
+    if (url.pathname === '/api/plus/push/media') return json({ url: await cards.keepMedia(env, await request.arrayBuffer(), request.headers.get('Content-Type') ?? '') });
     // the taste test: its samples and models, a run now, and which Gemini models the key can call
     if (url.pathname === '/api/plus/push/taste') return json(await taste.load(env, await request.json()));
     if (url.pathname === '/api/plus/push/taste-run') return json(await taste.run(env, Math.min(280, Number(url.searchParams.get('s')) || 25) * 1000));
@@ -682,6 +688,23 @@ async function plusMachine(request, env, url) {
   return nope();
 }
 
+/** POST /api/plus/upload: a picture he pasted or dropped into a card (the body is the file). */
+async function plusUpload(request, env) {
+  const bearer = (request.headers.get('Authorization') ?? '').replace(/^Bearer /, '');
+  try {
+    const { account, secret } = byToken(env, bearer);
+    const me = await account.call(secret, 'who');
+    if (me?.fail) return json({ error: me.fail.message, code: me.fail.code }, me.fail.status);
+    if (!(await flagsOf(env, accountId(bearer))).includes('plus')) return json({ error: 'Not found.', code: 'not_found' }, 404);
+    return json({ url: await cards.keepMedia(env, await request.arrayBuffer(), request.headers.get('Content-Type') ?? '') });
+  } catch (e) {
+    if (e instanceof Fail) return json({ error: e.message, code: e.code }, e.status);
+    if (e instanceof cards.Bad) return json({ error: e.message, code: 'invalid_argument' }, 400);
+    console.error(e);
+    return json({ error: 'Something went wrong on our side.', code: 'server' }, 500);
+  }
+}
+
 async function api(request, env, path) {
   if (request.method === 'GET' && path === 'health') return { ok: true, email: !!env.RESEND_API_KEY };
   const bearer = (request.headers.get('Authorization') ?? '').replace(/^Bearer /, '');
@@ -700,17 +723,38 @@ async function api(request, env, path) {
     return account.call(secret, method, ...args);
   };
   // Chinese Brain Plus: everything under plus/ needs the account's `plus` switch.
-  if (path.startsWith('plus/') && path !== 'plus/me' && (request.method === 'GET' || path === 'plus/taste/pick' || path === 'plus/taste/note')) {
+  if (path.startsWith('plus/') && path !== 'plus/me') {
     const me = await authed('who');
     if (me?.fail) return me;
-    if (!(await flagsOf(env, accountId(bearer))).includes('plus')) throw new Fail(404, 'not_found', 'Not found.');
+    const flags = await flagsOf(env, accountId(bearer));
+    if (!flags.includes('plus')) throw new Fail(404, 'not_found', 'Not found.');
     const q = new URL(request.url).searchParams;
-    // the taste test (src/cbp/taste.ts)
+    try {
+      if (request.method === 'POST') {
+        // the taste test (src/cbp/taste.ts)
+        if (path === 'plus/taste/pick') return taste.pick(env, String(body.item ?? ''), body.n === 'none' ? 'none' : Number(body.n));
+        if (path === 'plus/taste/note') return taste.note(env, String(body.item ?? ''), String(body.note ?? ''));
+        // the board's own documents, once the website is the source and this account may change them
+        if (path === 'plus/db') {
+          if (!flags.includes('plus.write')) throw new Fail(403, 'read_only', 'Read-only for now.');
+          return await plus.write(env, body);
+        }
+        // the card window (src/cbp/cards.ts)
+        if (path === 'plus/sample') return await cards.sample(env, body);
+        if (path === 'plus/pictures') return await cards.pictures(env, body);
+        if (path === 'plus/keep') return { url: await cards.keepFromWeb(env, String(body.url ?? '')) };
+        if (path === 'plus/voice') return await cards.voice(env, body);
+        throw new Fail(404, 'not_found', 'Not found.');
+      }
+    } catch (e) {
+      if (e instanceof plus.WriteError) throw new Fail(e.code === 'read_only' ? 403 : 400, e.code, e.message);
+      if (e instanceof cards.Bad) throw new Fail(400, 'invalid_argument', e.message);
+      if (e instanceof ai.Quota) throw new Fail(429, 'rate_limited', 'Not now: try again in a while.');
+      throw e;
+    }
     if (path === 'plus/taste') return taste.board(env);
     if (path === 'plus/taste/results') return taste.results(env);
     if (path === 'plus/taste/img') return taste.img(env, q.get('item') ?? '', Number(q.get('n')));
-    if (path === 'plus/taste/pick') return taste.pick(env, String(body.item ?? ''), body.n === 'none' ? 'none' : Number(body.n));
-    if (path === 'plus/taste/note') return taste.note(env, String(body.item ?? ''), String(body.note ?? ''));
     const out = await plus.read(env, path.slice(5), q);
     if (out === undefined) throw new Fail(404, 'not_found', 'Not found.');
     return out;
@@ -1002,6 +1046,10 @@ export default {
     }
     // The Mac's push to Chinese Brain Plus (scripts/cbp-push.py) and Claude's connector: each with its own secret.
     if (url.pathname.startsWith('/api/plus/push') || url.pathname.startsWith('/mcp/')) return plusMachine(request, env, url);
+    // Chinese Brain Plus's pictures and sounds: by unguessable name, or a search result with this server's signature
+    if (request.method === 'GET' && url.pathname.startsWith('/api/plus/media/')) return cards.media(env, url.pathname.slice(16));
+    if (request.method === 'GET' && url.pathname === '/api/plus/img') return cards.img(env, url.searchParams.get('u') ?? '', url.searchParams.get('s') ?? '');
+    if (request.method === 'POST' && url.pathname === '/api/plus/upload') return plusUpload(request, env);
     if (url.pathname.startsWith('/api/')) {
       if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
       try {

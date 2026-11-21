@@ -56,32 +56,126 @@ export async function manifest(env: Env) {
   return {
     files: Object.fromEntries(f.results.map((r) => [r.name, r.sha])),
     docs: Object.fromEntries(d.results.map((r) => [`${r.col}/${r.id}`, r.sha])),
+    source: await source(env),
   };
 }
 
 type Push = {
   files?: Record<string, string | null>;
-  docs?: { col: string; id: string; data: unknown }[];
+  docs?: { col: string; id: string; data: unknown; op?: 'set' | 'update' }[];
   check?: { day: string; outputs: Record<string, string> };
+  /** Once the website is the source: the fingerprint each change was made from (null: it didn't exist). A change
+   *  whose base no longer matches is not made; it comes back in `conflicts` and nothing is lost. */
+  bases?: { files?: Record<string, string | null>; docs?: Record<string, string | null> };
 };
+
+/** The day the website became the source, or null while the Mac still is. */
+export async function source(env: Env) {
+  const r = await env.CBP.prepare("SELECT v FROM meta WHERE k = 'source'").first<{ v: string }>();
+  return r?.v ?? null;
+}
+
+const fileSha = async (env: Env, name: string) => (await env.CBP.prepare('SELECT sha FROM files WHERE name = ?').bind(name).first<{ sha: string }>())?.sha ?? null;
+const docRow = (env: Env, col: string, id: string) => env.CBP.prepare('SELECT data, sha, updated FROM docs WHERE col = ? AND id = ?').bind(col, id).first<{ data: string; sha: string; updated: number }>();
 
 export async function push(env: Env, body: Push) {
   const at = Date.now();
+  const src = await source(env);
   const stmts: D1Stmt[] = [];
+  const conflicts: string[] = [];
+  // while the Mac is the source it overwrites; afterwards every change must say what it was made from
+  const fresh = async (key: string, base: string | null | undefined, now: string | null) => {
+    if (!src) return true;
+    if (base === undefined || base !== now) {
+      conflicts.push(key);
+      return false;
+    }
+    return true;
+  };
   for (const [name, text] of Object.entries(body.files ?? {})) {
+    if (!(await fresh(name, body.bases?.files?.[name], await fileSha(env, name)))) continue;
     if (text === null) stmts.push(env.CBP.prepare('DELETE FROM files WHERE name = ?').bind(name));
     else stmts.push(env.CBP.prepare('INSERT INTO files (name, text, sha, updated) VALUES (?, ?, ?, ?) ON CONFLICT (name) DO UPDATE SET text = excluded.text, sha = excluded.sha, updated = excluded.updated').bind(name, text, await hex(text), at));
   }
   for (const d of body.docs ?? []) {
-    if (d.data === null) stmts.push(env.CBP.prepare('DELETE FROM docs WHERE col = ? AND id = ?').bind(d.col, d.id));
-    else {
-      const data = JSON.stringify(d.data);
-      stmts.push(env.CBP.prepare('INSERT INTO docs (col, id, data, sha, updated) VALUES (?, ?, ?, ?, ?) ON CONFLICT (col, id) DO UPDATE SET data = excluded.data, sha = excluded.sha, updated = excluded.updated').bind(d.col, d.id, data, await hex(data), at));
-    }
+    const k = `${d.col}/${d.id}`, row = await docRow(env, d.col, d.id);
+    if (!(await fresh(k, body.bases?.docs?.[k], row?.sha ?? null))) continue;
+    let data = d.data;
+    if (d.op === 'update' && data !== null) data = { ...(row ? JSON.parse(row.data) : {}), ...(data as object) };
+    if (src && row) stmts.push(...keep(env, d.col, d.id, row));
+    if (data === null) stmts.push(env.CBP.prepare('DELETE FROM docs WHERE col = ? AND id = ?').bind(d.col, d.id));
+    else stmts.push(putDoc(env, d.col, d.id, JSON.stringify(data), await hex(JSON.stringify(data)), at));
   }
   for (let i = 0; i < stmts.length; i += 50) await env.CBP.batch(stmts.slice(i, i + 50));
   const checks = body.check ? await check(env, body.check.day, body.check.outputs) : null;
-  return { files: Object.keys(body.files ?? {}).length, docs: (body.docs ?? []).length, checks };
+  return { files: Object.keys(body.files ?? {}).length, docs: (body.docs ?? []).length, checks, conflicts, source: src };
+}
+
+const putDoc = (env: Env, col: string, id: string, data: string, sha: string, at: number) =>
+  env.CBP.prepare('INSERT INTO docs (col, id, data, sha, updated) VALUES (?, ?, ?, ?, ?) ON CONFLICT (col, id) DO UPDATE SET data = excluded.data, sha = excluded.sha, updated = excluded.updated').bind(col, id, data, sha, at);
+/** The version about to be replaced goes into history, unless one was kept in the last ten minutes. */
+const keep = (env: Env, col: string, id: string, row: { data: string; updated: number }) => [
+  env.CBP.prepare('INSERT INTO history (col, id, data, at) SELECT ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM history WHERE col = ? AND id = ? AND at > ?)').bind(col, id, row.data, row.updated, col, id, Date.now() - 600_000),
+];
+
+/** The Mac asks for the texts it doesn't have yet (by name, and documents by "col/id"). */
+export async function pull(env: Env, want: { files?: string[]; docs?: string[] }) {
+  const files: Record<string, { text: string; sha: string }> = {};
+  for (const n of (want.files ?? []).slice(0, 500)) {
+    const r = await env.CBP.prepare('SELECT text, sha FROM files WHERE name = ?').bind(n).first<{ text: string; sha: string }>();
+    if (r) files[n] = r;
+  }
+  const docs: Record<string, { data: unknown; sha: string }> = {};
+  for (const k of (want.docs ?? []).slice(0, 2000)) {
+    const i = k.indexOf('/');
+    const r = await docRow(env, k.slice(0, i), k.slice(i + 1));
+    if (r) docs[k] = { data: JSON.parse(r.data), sha: r.sha };
+  }
+  return { files, docs, source: await source(env) };
+}
+
+/** Three nights running in which every check matched, ending today or yesterday (Taipei): the website becomes the
+ *  source. Once it is, it stays. */
+export async function switchOver(env: Env) {
+  const now = await source(env);
+  if (now) return { source: now, switched: false };
+  const { results } = await env.CBP.prepare('SELECT day, SUM(ok) AS ok, COUNT(*) AS n FROM checks GROUP BY day ORDER BY day DESC LIMIT 3').all<{ day: string; ok: number; n: number }>();
+  const good = results.length === 3 && results.every((r) => r.n >= 4 && r.ok === r.n) && results.every((r, i) => i === 0 || E.plus(r.day, 1) === results[i - 1].day) && E.cmp(results[0].day, E.plus(today(), -1)) >= 0;
+  if (!good) return { source: null, switched: false, nights: results };
+  await env.CBP.prepare("INSERT INTO meta (k, v) VALUES ('source', ?) ON CONFLICT (k) DO NOTHING").bind(today()).run();
+  return { source: await source(env), switched: true };
+}
+
+// ---------- the board's writes (website as the source) ----------
+/** What /plus may change: the board's own documents. board/data and board/cardkit stay the nightly's. */
+const WRITABLE = new Set(['essays', 'reviews', 'improve', 'cards', 'notes']);
+export class WriteError extends Error {
+  code: string;
+  constructor(code: string, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+export async function write(env: Env, w: { col?: unknown; id?: unknown; op?: unknown; data?: unknown }) {
+  const col = String(w.col ?? ''), id = String(w.id ?? ''), op = String(w.op ?? '');
+  if (!(WRITABLE.has(col) || (col === 'board' && id === 'test')) || !/^[\w.-]{1,120}$/.test(id)) throw new WriteError('permission_denied', 'Not writable.');
+  if (!(await source(env))) throw new WriteError('read_only', 'Read-only until the website is the source.');
+  const row = await docRow(env, col, id);
+  let data: unknown;
+  if (op === 'delete') data = null;
+  else if (op === 'set') data = w.data;
+  else if (op === 'update') {
+    if (!row) throw new WriteError('invalid_argument', 'No such document.');
+    data = { ...JSON.parse(row.data), ...(w.data as object) };
+  } else throw new WriteError('invalid_argument', 'Unknown write.');
+  if (data !== null && (typeof data !== 'object' || Array.isArray(data))) throw new WriteError('invalid_argument', 'A document is an object.');
+  const stmts = row ? keep(env, col, id, row) : [];
+  const text = data === null ? '' : JSON.stringify(data);
+  if (text.length > 900_000) throw new WriteError('invalid_argument', 'Too big.');
+  const sha = data === null ? null : await hex(text);
+  stmts.push(data === null ? env.CBP.prepare('DELETE FROM docs WHERE col = ? AND id = ?').bind(col, id) : putDoc(env, col, id, text, sha!, Date.now()));
+  await env.CBP.batch(stmts);
+  return { ok: true, sha };
 }
 
 /** The engine's answers, by the names the Mac uses for words.py's (same command, same day). */
@@ -136,6 +230,8 @@ export async function read(env: Env, what: string, q: URLSearchParams) {
     }
     case 'checks':
       return checks(env);
+    case 'source':
+      return { source: await source(env) };
     default:
       return undefined;
   }

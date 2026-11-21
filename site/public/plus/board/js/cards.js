@@ -47,13 +47,15 @@ char: 字 | its meaning                       (one per character of the word, in
 part: 扌 | hand                              (a component of the char above)
 part: 巨 | giant, huge | ask                 (a common character on neither of his lists: meaning only, not taken apart; the board asks him if he knows it)
 sub: 隹 | short-tailed bird                  (a component of the part above, when that part is unfamiliar)
-logic: one line: why these parts make this character
-story: the story, one paragraph
-hook: the one-line mnemonic
-know: one proactive-knowledge point          (2 to 4 of them)
+story: the story, 2 or 3 short sentences, with the characters and parts written inside it in Chinese
+know: one proactive-knowledge point, one sentence     (2 to 4; two strong ones beat four)
 second: word | why he should learn it right now, one short line     (only when your judgment says so)
 
-For a character he knows, write its char line and nothing under it. Write no "do you know…" question: the ask flag does that. Skip "Suggested next": the board shows his queue.`;
+For a character he knows, write its char line and nothing under it. Write no "do you know…" question: the ask flag does that. Skip "Suggested next": the board shows his queue.
+
+The story is the one place the characters get made sense of. It explains them through their parts the way a Taiwanese friend would, down to earth, so he sees it every time he looks at the character ("耂 is an old person hunched over with long hair, the top of 老"). Wild and funny when it helps it stick, never long. No separate logic or mnemonic lines.
+
+Before you send, check: every line is as short as it can be; every word and phrase is what people in Taiwan say (mainland-only usage is wrong here: 揹黑鍋, not 背鍋); every pinyin tone mark is right; the story is 2 or 3 sentences and has the characters in it; each know point is about real use (which word a Taiwanese person reaches for, register, collocations), not grammar talk; nothing is introduced by a label or title before the point ("The 'progress' trap: …" becomes just the point); Chinese text has only Chinese punctuation.`;
 
 function cardPrompt(kit,word){
   const saved=(kit.saved||{})[word.replace(/臺/g,'台')]||[];   // words.py kit keys them in 台 form

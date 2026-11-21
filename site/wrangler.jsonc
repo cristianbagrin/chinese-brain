@@ -77,6 +77,8 @@
         { "binding": "FLAGS", "database_name": "cbp", "database_id": "45d4396a-c2d2-402e-8c0f-243fd2de4491", "migrations_dir": "migrations" }
       ],
       "r2_buckets": [{ "binding": "FILES", "bucket_name": "cbp-files-staging" }],
+      // production's AI (the Brains entrypoint in worker.js): staging has no AI keys of its own
+      "services": [{ "binding": "BRAINS", "service": "chinesebrain", "entrypoint": "Brains" }],
       "triggers": { "crons": [] }
     }
   }

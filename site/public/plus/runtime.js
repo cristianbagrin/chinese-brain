@@ -1,5 +1,6 @@
-// Chinese Brain Plus: what the board expects from claude.ai (window.claude.use('db')), served from the CBP database.
-// Read-only while the Mac is still the source: a write fails, and the board keeps its copy on this device.
+// Chinese Brain Plus: what the board expects from claude.ai (window.claude.use('db') and use('sample')), served from
+// the CBP database and the server's Claude (Sonnet 5.5). Writes need the website to be the source and the account's
+// `plus.write` switch; until then a write fails with code read_only and the board keeps its copy on this device.
 (() => {
   const token = () => {
     try {
@@ -27,8 +28,17 @@
     const docs = list.map((x) => docSnap(x.id, x.data));
     return { docs, size: docs.length, empty: !docs.length };
   };
-  const readOnly = async () => {
-    throw Object.assign(new Error('Read-only for now.'), { code: 'read_only' });
+  const post = async (path, body) => {
+    const r = await fetch('/api/plus/' + path, { method: 'POST', headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw Object.assign(new Error(j.error || 'It didn’t come through.'), { code: j.code || (r.status === 429 ? 'rate_limited' : 'unavailable') });
+    return j;
+  };
+  // a write, then everything watching that collection hears about it at once
+  const write = async (col, id, op, data) => {
+    const out = await post('db', { col, id, op, data: data === undefined ? null : clone(data) });
+    subs.forEach((s) => s.q.col === col && (!s.q.id || s.q.id === id) && pull(s));
+    return out;
   };
 
   // onSnapshot: the first answer now, then again whenever it changed (checked each minute and on coming back)
@@ -60,10 +70,20 @@
       id, path,
       onSnapshot: (cb, err) => watch({ col, id }, cb, err),
       get: async () => docSnap(id, await get({ col, id })),
-      set: readOnly, update: readOnly, delete: readOnly,
+      set: (data) => write(col, id, 'set', data),
+      update: (data) => write(col, id, 'update', data),
+      delete: () => write(col, id, 'delete'),
     };
   }
   const collection = (name) => ({ path: name, doc: (id) => doc(`${name}/${id}`), onSnapshot: (cb, err) => watch({ col: name }, cb, err) });
   const db = Object.freeze({ doc, collection });
-  window.claude = { use: async (n) => (n === 'db' ? db : null) };
+
+  // sample: Claude on the server. The answer comes whole (onText hears it once, at the end).
+  const sample = async (input, opts = {}) => {
+    const { text, model } = await post('sample', { input, effort: opts.effort });
+    opts.onText?.({ text });
+    return { text, modelApplied: model };
+  };
+  sample.limits = async () => ({ images: false });
+  window.claude = { use: async (n) => (n === 'db' ? db : n === 'sample' ? sample : null) };
 })();

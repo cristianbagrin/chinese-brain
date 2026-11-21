@@ -12,11 +12,16 @@
   const res = await fetch('/api/plus/me', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
   if (res?.status === 401) return signIn();
   if (!res?.ok) return location.replace('/404');
-  for (const f of board) {
+  // then the review card, which hooks into the board's card window (plus/review.js)
+  for (const src of [...board.map((f) => `/plus/board/${f}`), '/plus/review.js']) {
     const s = document.createElement('script');
-    s.src = `/plus/board/${f}`;
+    s.src = src;
     s.async = false;
     document.body.append(s);
   }
+  const css = document.createElement('link');
+  css.rel = 'stylesheet';
+  css.href = '/plus/review.css';
+  document.head.append(css);
   document.documentElement.classList.remove('locked');
 })();

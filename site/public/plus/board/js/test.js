@@ -12,7 +12,16 @@ const testOpen=()=>TEST&&Array.isArray(TEST.items)&&TEST.items.length&&!TEST.fil
 function steps(){
   const out=[];
   if(!TEST) return out;
-  (TEST.items||[]).forEach((it,n)=>{out.push({id:n+'',it,a:it,retry:false});if(it.retry)out.push({id:n+'r',it,a:it.retry,retry:true});});
+  const items=TEST.items||[];
+  items.forEach((it,n)=>out.push({id:n+'',it,a:it,retry:false}));
+  // a second try waits after the question its `after` names (a random later one, picked when it's made), so it never
+  // follows its own question and gives it away; older ones without it sit right after their question
+  items.forEach((it,n)=>{
+    if(!it.retry) return;
+    const at=Math.min(items.length-1,Math.max(n,Number.isInteger(it.retry.after)?it.retry.after:n));
+    const k=out.findIndex(x=>!x.retry&&+x.id>at);
+    out.splice(k<0?out.length:k,0,{id:n+'r',it,a:it.retry,retry:true});
+  });
   return out;
 }
 // one pip per step: now (gold), still to do (ring), being checked (pulsing), or its result by color and shape
@@ -43,14 +52,17 @@ What the answer must show: ${it.check}
 A model answer: ${it.model}
 
 - Ignore the characters the transcriber picked (在/再, 的/得, 他/她) and punctuation; grade words, word order and completeness.
+- A slip that turns what he clearly meant into other characters: grade what he meant, and start why with "Likely meant …". Read the answer aloud in your head: sound-alikes can hide the target itself (回答 huídá for 會打 huì dǎ hides 打赤腳 in 您也回答赤腳走嗎).
 - pass: the target is used correctly and every part of the ask is answered.
 - partial: the target is right but part of the ask is missing, or the target is only half right.
 - fail: the target is wrong, or missing where the situation required it (a dropped half, a question instead of the statement asked for, English in its place).
 - none: no evidence either way: a synonym or paraphrase in place of the target, or a use where he couldn't have gone wrong.${it.hear?`
-- This is a listening item: pass means his reply shows he understood "${it.target}" in the line he heard.`:''}${it.read?`
+- This is a listening item: pass means his reply shows he understood "${it.target}" in the line he heard. Repeating the word back from that line without showing what it means is none, not partial.`:''}${it.read?`
 - This is a reading item: pass means his reply shows he understood "${it.target}" in the line he read; an answer that skips it or gets it wrong is a fail, not none.`:''}
-- natural: how a Taiwanese person would say what he meant, Traditional characters, Taiwan usage, one short line.
-- why: one short plain-English line about the target; a frame (兩碗 + noun) beats a grammar rule. Empty for a clean pass.
+
+The three text fields:
+- natural: ${/english/i.test((s.retry?s.a.ask:it.ask)||'')?'the situation asks for English, so natural is a good plain-English version of what the line says. English only, not Chinese.':'how a Taiwanese friend would say what he meant, in one short line: Traditional characters, Taiwan usage, Chinese punctuation (，。？！ never , . ? !). Keep his tone: casual stays casual, polite stays polite. Use words people really say every day and keep to his level; a new word only where it is clearly the natural choice.'}
+- why: one or two short, friendly, plain-English lines about the target: what to change and the frame to use (兩碗 + noun), never a grammar rule, never blaming. Say the point straight; no label or title before it. Empty for a clean pass.
 - followup: ${s.retry?'always ""':'only when result is none: a new everyday situation in English where the target is the only natural answer, never naming the target or a synonym of it. Otherwise ""'}.
 
 The situation: ${s.retry?s.a.ask:it.ask||''}${it.overlay&&!s.retry?`
@@ -58,7 +70,9 @@ The text in front of him (real text, the part to read): ${overlayText(it)}`:''}$
 ${s.photo?'The attached photo is exactly what he is looking at: grade anything he describes against it.':'He is looking at a photo: '+(it.alt||'')}`:''}${it.hear?`
 The line he heard: ${it.hear}`:''}${it.read&&!s.retry?`
 The line he read: ${it.read}`:''}
-His answer: ${a.answer}`;
+His answer: ${a.answer}
+
+Before you reply, check: natural is in the language the situation asks for; Chinese text has only Chinese punctuation; why is short, kind and starts with the point. Reply with the JSON only.`;
 }
 async function grade(s){
   const sm=await sampler();
@@ -73,7 +87,11 @@ async function grade(s){
     if(RES[r]){
       s.a.result=r; s.a.natural=String(out.natural||''); s.a.why=String(out.why||'');
       sfx(r==='none'?'tap':r);
-      if(r==='none'&&!s.retry&&out.followup&&!s.it.retry) s.it.retry={ask:String(out.followup),answer:null,secs:null,result:null,natural:null,why:null};
+      if(r==='none'&&!s.retry&&out.followup&&!s.it.retry){
+        const L=TEST.items.length, n=+s.id, nx=TEST.items.findIndex((x,i)=>i>n&&!x.answer);
+        const after=nx<0?L-1:nx+Math.floor(Math.random()*(L-nx));
+        s.it.retry={ask:String(out.followup),after,answer:null,secs:null,result:null,natural:null,why:null};
+      }
       if(steps().every(x=>x.a.answer)) TEST.done=TEST.done||K(today()); else TEST.done=null;
       save();
     }
