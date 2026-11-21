@@ -12,7 +12,7 @@
   // signed out: sign in, then come back; signed in without the switch: nothing here
   const signIn = () => location.replace('/account?next=' + encodeURIComponent(location.pathname));
   if (!token) return signIn();
-  const me = await api('plus/me').catch(() => null);
+  const me = await api('me').catch(() => null);
   if (me?.status === 401) return signIn();
   if (!me?.ok) return location.replace('/404');
 
