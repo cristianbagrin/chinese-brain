@@ -9,7 +9,11 @@
   } catch {}
   const api = (path, body) =>
     fetch('/api/plus/' + path, { method: body ? 'POST' : 'GET', headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body && JSON.stringify(body) });
-  const me = token ? await api('plus/me').catch(() => null) : null;
+  // signed out: sign in, then come back; signed in without the switch: nothing here
+  const signIn = () => location.replace('/account?next=' + encodeURIComponent(location.pathname));
+  if (!token) return signIn();
+  const me = await api('plus/me').catch(() => null);
+  if (me?.status === 401) return signIn();
   if (!me?.ok) return location.replace('/404');
 
   const $ = (id) => document.getElementById(id);

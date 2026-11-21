@@ -6,7 +6,11 @@
   try {
     token = localStorage.getItem('cb-token') ?? '';
   } catch {}
-  const res = token ? await fetch('/api/plus/me', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null) : null;
+  // signed out: sign in, then come back; signed in without the switch: nothing here
+  const signIn = () => location.replace('/account?next=' + encodeURIComponent(location.pathname));
+  if (!token) return signIn();
+  const res = await fetch('/api/plus/me', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
+  if (res?.status === 401) return signIn();
   if (!res?.ok) return location.replace('/404');
   for (const f of board) {
     const s = document.createElement('script');
