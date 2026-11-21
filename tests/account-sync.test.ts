@@ -9,7 +9,7 @@ import { test } from 'node:test';
 registerHooks({
   resolve(specifier, context, next) {
     if (specifier === 'cloudflare:workers') {
-      return { url: 'data:text/javascript,export class DurableObject { constructor(ctx, env) { this.ctx = ctx; this.env = env; } }', shortCircuit: true };
+      return { url: 'data:text/javascript,export class DurableObject { constructor(ctx, env) { this.ctx = ctx; this.env = env; } } export class WorkerEntrypoint { constructor(ctx, env) { this.ctx = ctx; this.env = env; } }', shortCircuit: true };
     }
     return next(specifier, context);
   },
