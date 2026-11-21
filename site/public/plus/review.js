@@ -76,7 +76,12 @@
   function state(w) {
     if (RV.st[w]) return RV.st[w];
     const n = RV.notes[cardId(w)];
-    if (n) return (RV.st[w] = { chinese: n.chinese || '', word: n.word || w, picture: n.picture || '', notes: n.notes || '', audio: n.audio || '', py: n.pinyin || '', pyFor: plain(n.chinese || ''), saved: true });
+    if (n) {
+      // the first notes (2026-11-21) kept the picture as one address and the notes as plain text
+      const picture = /^\/api\/plus\/media\/[^<\s]+$/.test(n.picture || '') ? `<img src="${esc(n.picture)}">` : n.picture || '';
+      const notes = /</.test(n.notes || '') ? n.notes : esc(n.notes || '').replace(/\n/g, '<br>');
+      return (RV.st[w] = { chinese: n.chinese || '', word: n.word || w, picture, notes, audio: n.audio || '', py: n.pinyin || '', pyFor: plain(n.chinese || ''), saved: true });
+    }
     const d = cardOf(w);
     if (!cardOK(d)) return null;
     const c = parseCard(d.text), first = c.mine[0] || c.ex[0], s = first ? fromSentence(first, c.word || w) : { chinese: '', py: '' };
