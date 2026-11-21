@@ -8,7 +8,7 @@ already has is kept as `board` for reference only (not shown in the test):
   card   15 study cards: the board's card prompt; board = the card Opus 5.5 wrote on the board
   grade  30 test answers: the board's grading prompt; board = the board's grade where it graded one, else below
   essay  6 essays: the weekly review's marking rules; board = the marks the review put on the board
-  image  10 card pictures, each in six drawn styles from one model (STYLES)
+  image  10 card pictures: Claude writes each prompt from his flashcard skill, three models draw it
 Models taking the test: MODELS below. Key: CBP_PUSH_KEY in ~/.cbp-push.env.
 """
 import json, os, re, sys, urllib.request
@@ -31,13 +31,15 @@ char: 字 | its meaning                       (one per character of the word, in
 part: 扌 | hand                              (a component of the char above)
 part: 巨 | giant, huge | ask                 (a common character on neither of his lists: meaning only, not taken apart; the board asks him if he knows it)
 sub: 隹 | short-tailed bird                  (a component of the part above, when that part is unfamiliar)
-logic: one line: why these parts make this character
-story: the story, one paragraph
-hook: the one-line mnemonic
-know: one proactive-knowledge point          (2 to 4 of them)
+story: the story, 2 or 3 short sentences, with the characters and parts written inside it in Chinese
+know: one proactive-knowledge point, one sentence     (2 to 4; two strong ones beat four)
 second: word | why he should learn it right now, one short line     (only when your judgment says so)
 
-For a character he knows, write its char line and nothing under it. Write no "do you know…" question: the ask flag does that. Skip "Suggested next": the board shows his queue."""
+For a character he knows, write its char line and nothing under it. Write no "do you know…" question: the ask flag does that. Skip "Suggested next": the board shows his queue.
+
+The story is the one place the characters get made sense of. It explains them through their parts the way a Taiwanese friend would, down to earth, so he sees it every time he looks at the character ("耂 is an old person hunched over with long hair, the top of 老"). Wild and funny when it helps it stick, never long. No separate logic or mnemonic lines.
+
+Before you send, check: every line is as short as it can be; every word and phrase is what people in Taiwan say (mainland-only usage is wrong here: 揹黑鍋, not 背鍋); every pinyin tone mark is right; the story is 2 or 3 sentences and has the characters in it; each know point is about real use (which word a Taiwanese person reaches for, register, collocations), not grammar talk; nothing is introduced by a label or title before the point ("The 'progress' trap: …" becomes just the point); Chinese text has only Chinese punctuation."""
 HAN = re.compile(r'[㐀-鿿⺀-⿕]')
 
 
@@ -80,10 +82,13 @@ def grade_prompt(it, answer, retry_ask=None):
     retry = retry_ask is not None
     extra = ''
     if it.get('hear'):
-        extra += f'\n- This is a listening item: pass means his reply shows he understood "{it["target"]}" in the line he heard.'
+        extra += f'\n- This is a listening item: pass means his reply shows he understood "{it["target"]}" in the line he heard. Repeating the word back from that line without showing what it means is none, not partial.'
     if it.get('read'):
         extra += f'\n- This is a reading item: pass means his reply shows he understood "{it["target"]}" in the line he read; an answer that skips it or gets it wrong is a fail, not none.'
     follow = 'always ""' if retry else 'only when result is none: a new everyday situation in English where the target is the only natural answer, never naming the target or a synonym of it. Otherwise ""'
+    ask = retry_ask if retry else it.get('ask', '')
+    natural = ('the situation asks for English, so natural is a good plain-English version of what the line says. English only, not Chinese.' if re.search('english', ask or '', re.I) else
+               'how a Taiwanese friend would say what he meant, in one short line: Traditional characters, Taiwan usage, Chinese punctuation (，。？！ never , . ? !). Keep his tone: casual stays casual, polite stays polite. Use words people really say every day and keep to his level; a new word only where it is clearly the natural choice.')
     tail = ''
     if it.get('hear'):
         tail += f"\nThe line he heard: {it['hear']}"
@@ -97,16 +102,21 @@ What the answer must show: {it['check']}
 A model answer: {it['model']}
 
 - Ignore the characters the transcriber picked (在/再, 的/得, 他/她) and punctuation; grade words, word order and completeness.
+- A slip that turns what he clearly meant into other characters: grade what he meant, and start why with "Likely meant …". Read the answer aloud in your head: sound-alikes can hide the target itself (回答 huídá for 會打 huì dǎ hides 打赤腳 in 您也回答赤腳走嗎).
 - pass: the target is used correctly and every part of the ask is answered.
 - partial: the target is right but part of the ask is missing, or the target is only half right.
 - fail: the target is wrong, or missing where the situation required it (a dropped half, a question instead of the statement asked for, English in its place).
 - none: no evidence either way: a synonym or paraphrase in place of the target, or a use where he couldn't have gone wrong.{extra}
-- natural: how a Taiwanese person would say what he meant, Traditional characters, Taiwan usage, one short line.
-- why: one short plain-English line about the target; a frame (兩碗 + noun) beats a grammar rule. Empty for a clean pass.
+
+The three text fields:
+- natural: {natural}
+- why: one or two short, friendly, plain-English lines about the target: what to change and the frame to use (兩碗 + noun), never a grammar rule, never blaming. Say the point straight; no label or title before it. Empty for a clean pass.
 - followup: {follow}.
 
 The situation: {retry_ask if retry else it.get('ask', '')}{tail}
-His answer: {answer}"""
+His answer: {answer}
+
+Before you reply, check: natural is in the language the situation asks for; Chinese text has only Chinese punctuation; why is short, kind and starts with the point. Reply with the JSON only."""
 
 
 def G(result, natural, why='', followup=''):
@@ -170,24 +180,21 @@ STYLE = ("A tactile Taiwanese picture-book illustration (台灣繪本): chunky w
          "tone. Never a mostly black-and-white image with an isolated bright accent. Pure solid white (#FFFFFF) background with at least "
          "65% empty white space, one unified scene, no split panels, simple hands (at most two items per person), faces matching the "
          "mood. Strictly wordless: zero text, no letters, no Chinese characters, no numbers, no symbols. Square. The scene: ")
-# the picture round: one model, six drawn styles. His first notes (2026-11-20): the meaning must read at a glance, faces and
-# bodies acting it out (值得 = delighted, not sad); drawn and flat beats 3D
-PICTURE_MODEL = 'pollinations:black-forest-labs/flux.1.1-pro'
-RULES = (" Flat 2D illustration, no 3D rendering. Big, readable facial expressions and body language that act out the meaning, "
-         "so someone could guess the word from the picture alone. Plain white background with lots of empty space, one unified "
-         "scene, no split panels. Strictly wordless: no text, letters, Chinese characters, numbers or symbols. Square. The scene: ")
-STYLES = {  # key, label, the look
-    'book': ('Picture book', STYLE.rsplit(' The scene: ', 1)[0]),
-    'flat': ('Flat shapes', "A flat editorial illustration made of bold simple shapes, no gradients, no outlines, a small warm palette, "
-                            "people drawn as friendly simplified figures."),
-    'ink': ('Ink brush', "A Chinese ink-brush drawing: confident black brush lines with dry-brush texture and one soft color wash, "
-                         "loose and lively like a sketchbook page."),
-    'comic': ('Comic', "A clean comic-book panel: crisp even line art, flat bright colors, exaggerated cartoon expressions and "
-                       "small motion lines."),
-    'paper': ('Cut paper', "A cut-paper collage: shapes cut from colored craft paper with slightly rough edges, flat and layered, "
-                           "a handmade feel."),
-    'riso': ('Risograph', "A two-color risograph print in teal and marigold only, with grainy ink texture and slight misregistration, "
-                          "colors overlapping where they meet."),
+# the last picture round (2026-11-21): Claude Sonnet wrote each prompt from his flashcard skill (reference/), the way a
+# real card would get its picture, and three models draw the same prompt. His notes on the first two rounds: the meaning
+# must land at a glance, funny and over the top beats polite, crayon picture-book style, words only when they help
+PICTURE_MODELS = [('pollinations:black-forest-labs/flux.1.1-pro', 'FLUX 1.1 Pro'), ('pollinations:black-forest-labs/flux.2-flex', 'FLUX.2 Flex'), ('pollinations:microsoft/mai-image-2.7', 'MAI Image 2.7')]
+PICTURE_PROMPTS = {
+    "值得": "Tactile Taiwanese picture-book illustration, chunky wax-crayon and oil-pastel edges, thick gouache brushwork, visible warm paper grain, flat hand-drawn look, not 3D or glossy. One harmonious palette of warm ochre, dusty terracotta and muted teal, with the deepest, most saturated tone reserved for the reward. Scene: a big-eyed, exhausted, sweaty boy with a giant grin, drenched and muddy, has dragged an enormous pale-grey boulder of homework books up a tiny hill. He holds up, with both hands, one huge glowing golden trophy-shaped bubble tea cup, tears of joy streaming and stars bursting around his face. A small balance scale beside him shows the pale heavy boulder tipping far upward, outweighed by the single tiny glowing cup. Exaggerated anime-style comedic expression, big readable face. Pure solid white #FFFFFF background, at least 70% empty white space, no clutter, single scene, no text.",
+    "拒絕": "Tactile Taiwanese picture-book style: chunky wax-crayon and oil-pastel edges, thick gouache brushwork, visible warm paper grain, flat hand-drawn look, never 3D or glossy. One harmonious palette of dusty rose, sage green and warm ochre, with the deepest saturated rose reserved for the key prop. Scene: a big round-faced man with a huge, exaggerated frown, eyes squeezed shut and chin raised, stiffly straight-armed, slams one giant palm out toward a smiling woman holding out a towering, wobbling plate of dumplings. His palm is pressed flat against the plate. Her hopeful face is wilting into comic shock, with sweat drops and crayon speed lines bursting off his palm. A small speech bubble above him reads \"不要!\". Pale, quiet tones for her and her clothing; deepest rose for his palm, the speed lines and the bubble. Pure solid white #FFFFFF background, at least 70% empty white space, no other objects, no captions or labels, single unified scene.",
+    "接受": "Tactile Taiwanese picture-book style: chunky wax-crayon and oil-pastel edges, thick gouache brushwork, visible warm paper grain, flat hand-drawn look, never 3D or glossy. One harmonious palette of dusty rose, warm ochre, and sage, with the deepest saturated rose reserved for the gift and the joyful heart aura. Scene: a big round-faced girl with huge sparkling eyes and a beaming open-mouthed smile, arms wide open, hugging a giant ribbon-wrapped gift box that a pale, small friend hands over. The box is pulled tight against her chest, her whole body leaning in, little crayon hearts bursting around her. Exaggerated, anime-like joy, readable at a glance. Pure solid white #FFFFFF background, over 70% empty white space, no clutter, single scene. Speech bubble in Traditional Chinese: \"好啊，謝謝！\" No other text.",
+    "浪費": "Tactile Taiwanese picture-book illustration, Style 3: chunky wax-crayon and oil-pastel edges, thick gouache brushwork, visible warm paper grain, flat hand-drawn look, never 3D or glossy. One harmonious palette of dusty teal, warm ochre, and pale peach, with the deepest saturated teal reserved for the wasted water. Scene: a big-eyed, horrified-then-oblivious man brushing his teeth at a small sink, the faucet gushing a huge, absurd torrent of deep teal water that pours over the sink, down the drain in swirling waves, and onto the floor. He stares dreamily at the ceiling, while a tiny, wide-eyed, gasping cat beside him watches the flood in shock. Exaggerated, readable faces and anime-style gag energy lines. Pure solid white #FFFFFF background, at least 65% empty white space, no room clutter, single unified scene. No text.",
+    "捨不得": "Tactile Taiwanese picture-book illustration in chunky wax-crayon and thick gouache, visible warm paper grain, flat hand-drawn look, never 3D or glossy. One soft palette of dusty rose, warm ochre and muted teal, with the deepest saturated rose reserved for the beloved object. Scene: a big-eyed child with tearful, wobbling-mouth face hugs a worn, patched teddy bear with both arms, clinging desperately, while a calm parent holds out a donation box labeled \"捐贈\" in pale teal. The child's feet are dug in, legs stretched backward in an over-the-top comic tug-of-war, with exaggerated streaming tears and little crayon heart-crack lines around the bear. Parent drawn in quiet pale tones. Pure solid white #FFFFFF background, at least 65% empty white space, no other clutter, single unified scene, no captions or labels. Only the short text \"捐贈\" on the box.",
+    "孝順": "Tactile Taiwanese picture-book style: chunky wax-crayon and oil-pastel edges, thick gouache brushwork, visible warm paper grain, flat hand-drawn look, not 3D or glossy. One harmonious palette of warm ochre, dusty rose and muted teal, with the deepest saturated tone saved for the bowl of soup and the glowing heart. Scene: a comically over-the-top devoted grown son with huge, readable, beaming eyes kneels on the floor, massaging his smiling elderly mother's feet with one hand. In the other hand he holds up a steaming soup bowl to her. She sits in a simple chair with a blissful, closed-eye smile. An oversized glowing rose-red heart floats between them, and little sparkle lines burst from the son. Pale washes for clothes and chair. Pure solid white #FFFFFF background, at least 70% empty white space, no furniture clutter, one unified scene, no panels. Speech bubble in Traditional Chinese: \"媽，我來！\" No other text, no captions or labels.",
+    "心意": "Tactile Taiwanese picture-book style: chunky wax-crayon and oil-pastel edges, thick gouache brushwork, visible warm paper grain, flat hand-drawn look, not 3D or glossy. One harmonious palette of dusty rose, warm ochre and sage, with the deepest saturated rose reserved for the gift's glowing heart. Scene: a child with big, beaming, teary-eyed face proudly holds up a lumpy, lopsided handmade gift box with a crooked ribbon and a huge glowing rose-red heart radiating from inside it. Across from the child, a parent in pale washed-out tones clutches the gift to their chest, eyes sparkling with exaggerated anime-style happy tears. The shabby wrapping, with taped corners and scribbled crayon patches, is obviously cheap, but the heart's glow dwarfs it. Pure solid white #FFFFFF background, at least 70% empty white space, no other objects, one unified scene. No text.",
+    "負責": "Tactile Taiwanese picture-book style: chunky wax-crayon and oil-pastel edges, thick gouache brushwork, visible warm paper grain, flat hand-drawn look, never 3D or glossy. One palette of dusty terracotta, ochre and muted teal, with the deepest terracotta on the key props. Scene: at a classroom, a pot of soup has tipped over. One small schoolboy steps forward from a row of three pale-teal classmates who all point at the mess and back away; he thumps his chest with one hand, a mop already in the other, with a big determined, wide-eyed face, over-the-top heroic, comic sparkle lines around him. Speech bubble above him: \"我來！\". Pure solid white #FFFFFF background, at least 65% empty white space, no other clutter, no captions or labels, one unified scene.",
+    "顧孫": "Tactile Taiwanese picture-book style: chunky wax-crayon and oil-pastel outlines, thick gouache brushwork, visible warm paper grain, flat hand-drawn look, not 3D or glossy. One harmonious palette of dusty rose, warm ochre, and sage, with the deepest saturated tones on the grandma and the kids. Scene: a cheerful grandmother sits on a small stool, wearing a floral apron and holding a baby bottle in one hand and a toy rattle in the other. Three over-the-top hyperactive grandkids swarm her. One kid hangs from her shoulders, one rides her lap pulling her glasses crooked, and one stands on the stool waving a wooden spoon. Her eyes are wide and her smile is exhausted but loving, with big readable faces and comic motion lines. Pure solid white #FFFFFF background, at least 65% empty white space, no furniture or clutter, one single scene. No text.",
+    "其中": "Tactile Taiwanese picture-book style: chunky wax-crayon and oil-pastel edges, thick gouache brushwork, visible warm paper grain, flat 2D drawing, no gloss. One harmonious palette of dusty teal, warm ochre, and pale cream, with the deepest saturated ochre-orange reserved for the focal item. Scene: a huge, round, comically surprised cartoon boy with big readable eyes and open mouth holds up one single plump orange persimmon, pinched between two fingers, pulled out of a big pale-teal woven basket crowded with dozens of pale, washed-out persimmons. A bold dotted arrow curves from the basket's crowd to the chosen fruit, which glows with deep orange crayon strokes. His other hand points proudly at it. The message: one picked from within a group. Pure solid white #FFFFFF background, over 65% empty white space, no clutter, single unified scene, no text."
 }
 IMAGES = [  # word, what it means, the scene (designed to rule out its nearest confusion)
     ('值得', 'worth it', 'a young man at the front of a very long line outside a small noodle stall, finally holding his steaming bowl of beef noodles, eyes shut in pure delight after the first bite; the long tired line stretches far behind him'),
@@ -258,18 +265,20 @@ def main():
 
     # images
     for w, gloss, scene in IMAGES:
-        add('image', f'picture-{w}', w, {'word': w, 'gloss': gloss}, STYLE + scene, None, False)
-        items[-1]['data']['prompts'] = {k: look + RULES + scene for k, (_, look) in STYLES.items()}
+        add('image', f'drawn-{w}', w, {'word': w, 'gloss': gloss}, PICTURE_PROMPTS[w], None, False)
 
     counts = {}
     for it in items:
         counts[it['job']] = counts.get(it['job'], 0) + 1
     print(counts)
+    if '--dump' in a:  # the items as JSON, for trying a prompt change without loading it
+        Path(a[a.index('--dump') + 1]).write_text(json.dumps(items, ensure_ascii=False), encoding='utf-8')
+        return
     if '--dry' in a:
         print(items[16]['data']['prompt'][:1500])
         return
     k = os.environ.get('CBP_PUSH_KEY') or next(l.split('=', 1)[1].strip() for l in (Path.home() / '.cbp-push.env').read_text().splitlines() if l.startswith('CBP_PUSH_KEY='))
-    req = urllib.request.Request(site + '/api/plus/push/taste', data=json.dumps({'items': items, 'models': MODELS + [{'model': f'{PICTURE_MODEL}#{k}', 'kind': 'image', 'label': label} for k, (label, _) in STYLES.items()]}, ensure_ascii=False).encode(), method='POST',
+    req = urllib.request.Request(site + '/api/plus/push/taste', data=json.dumps({'items': items, 'models': MODELS + [{'model': m, 'kind': 'image', 'label': label} for m, label in PICTURE_MODELS]}, ensure_ascii=False).encode(), method='POST',
                                  headers={'Authorization': f'Bearer {k}', 'Content-Type': 'application/json', 'User-Agent': 'cbp-taste'})
     print(urllib.request.urlopen(req, timeout=120).read().decode())
 

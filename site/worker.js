@@ -651,7 +651,7 @@ async function plusMachine(request, env, url) {
       const t0 = Date.now();
       try {
         const r = await ai.text(env, model, prompt || 'Reply with one word: hello');
-        return json({ ok: true, secs: (Date.now() - t0) / 1000, text: r.text.slice(0, 300), usage: r.usage });
+        return json({ ok: true, secs: (Date.now() - t0) / 1000, text: r.text, usage: r.usage });
       } catch (e) {
         return json({ ok: false, secs: (Date.now() - t0) / 1000, error: String(e?.message ?? e).slice(0, 600) });
       }
