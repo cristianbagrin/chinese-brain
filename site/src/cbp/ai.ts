@@ -6,7 +6,15 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 type Relay = { call(url: string, init: { method: string; headers: Record<string, string>; body?: string }): Promise<{ status: number; type: string; body: ArrayBuffer }> };
-type Env = { ANTHROPIC_API_KEY?: string; GEMINI_KEY?: string; POLLINATIONS_KEY?: string; RELAY?: { idFromName(n: string): unknown; get(id: unknown, o?: { locationHint?: string }): Relay } };
+/** Messages for Claude: a prompt alone, or the turns of a conversation. */
+export type Input = string | { role: 'user' | 'assistant'; content: string }[];
+export type TextOpts = { json?: boolean; effort?: 'low' | 'medium' | 'high' };
+/** Production's AI, for the staging copy (which has no keys of its own): the Brains entrypoint in worker.js. */
+type Brains = {
+  text(model: string, input: Input, opts: TextOpts): Promise<{ text: string; usage: Record<string, number> }>;
+  image(model: string, prompt: string): Promise<{ bytes: ArrayBuffer; type: string }>;
+};
+type Env = { ANTHROPIC_API_KEY?: string; GEMINI_KEY?: string; POLLINATIONS_KEY?: string; BRAINS?: Brains; RELAY?: { idFromName(n: string): unknown; get(id: unknown, o?: { locationHint?: string }): Relay } };
 
 /** Google and Anthropic refuse requests from some places (Cloudflare often serves Taiwan from Hong Kong), so their
  *  calls go through the Relay Durable Object, which lives in western North America (worker.js). */
@@ -21,9 +29,11 @@ export class Quota extends Error {}
 
 const GEMINI = 'https://generativelanguage.googleapis.com/v1beta';
 
-export async function text(env: Env, model: string, prompt: string, opts: { json?: boolean } = {}) {
+export async function text(env: Env, model: string, prompt: Input, opts: TextOpts = {}) {
   const [where, name] = split(model);
-  if (where === 'anthropic') return claude(env, name, prompt);
+  if (where === 'anthropic' && !env.ANTHROPIC_API_KEY && env.BRAINS) return quota(() => env.BRAINS!.text(model, prompt, opts));
+  if (where === 'anthropic') return claude(env, name, prompt, opts.effort);
+  if (typeof prompt !== 'string') throw new Error(`${model}: one prompt only.`);
   if (where !== 'gemini') throw new Error(`No text route for ${model}.`);
   if (!env.GEMINI_KEY) throw new Quota('No GEMINI_KEY yet.'); // not a failure: it waits for the key
   const r = await gfetch(env, `${GEMINI}/models/${name}:generateContent`, {
@@ -54,6 +64,7 @@ export async function geminiModels(env: Env) {
 /** One square image; returns its bytes and type. */
 export async function image(env: Env, model: string, prompt: string) {
   const [where, name] = split(model);
+  if (where === 'pollinations' && !env.POLLINATIONS_KEY && env.BRAINS) return quota(() => env.BRAINS!.image(model, prompt));
   if (where === 'gemini') return geminiImage(env, name, prompt);
   if (where !== 'pollinations') throw new Error(`No image route for ${model}.`);
   if (!env.POLLINATIONS_KEY) throw new Quota('No POLLINATIONS_KEY yet.');
@@ -63,6 +74,17 @@ export async function image(env: Env, model: string, prompt: string) {
   const type = r.headers.get('Content-Type') ?? '';
   if (!r.ok || !type.startsWith('image/')) throw new Error(`${model}: ${r.status} ${(await r.text()).slice(0, 400)}`);
   return { bytes: await r.arrayBuffer(), type };
+}
+
+/** A Quota thrown inside production arrives here as a plain Error with its message: make it a Quota again. */
+async function quota<T>(f: () => Promise<T>) {
+  try {
+    return await f();
+  } catch (e) {
+    const m = String((e as Error)?.message ?? e);
+    if (/^QUOTA: /.test(m)) throw new Quota(m.slice(7));
+    throw e;
+  }
 }
 
 /** "where:model#variant" → [where, model]; the variant (a picture style, say) is the caller's business. */
@@ -91,7 +113,7 @@ async function geminiImage(env: Env, name: string, prompt: string) {
 
 /** Claude through the official SDK, its requests sent by way of the Relay. Same thinking depth for every model,
  *  so a comparison between them is fair. */
-async function claude(env: Env, name: string, prompt: string) {
+async function claude(env: Env, name: string, prompt: Input, effort: TextOpts['effort'] = 'medium') {
   if (!env.ANTHROPIC_API_KEY) throw new Quota('No ANTHROPIC_API_KEY yet.');
   const client = new Anthropic({
     apiKey: env.ANTHROPIC_API_KEY,
@@ -105,7 +127,7 @@ async function claude(env: Env, name: string, prompt: string) {
   });
   let m;
   try {
-    m = await client.messages.create({ model: name, max_tokens: 16000, thinking: { type: 'adaptive' }, output_config: { effort: 'medium' }, messages: [{ role: 'user', content: prompt }] });
+    m = await client.messages.create({ model: name, max_tokens: 16000, thinking: { type: 'adaptive' }, output_config: { effort }, messages: typeof prompt === 'string' ? [{ role: 'user', content: prompt }] : prompt });
   } catch (e) {
     const st = (e as { status?: number }).status;
     if (e instanceof Anthropic.RateLimitError || e instanceof Anthropic.APIConnectionError || st === 529 || st === 503 || st === 504 || /credit balance/i.test(String((e as Error).message))) throw new Quota(`anthropic:${name}: ${String((e as Error).message).slice(0, 300)}`);

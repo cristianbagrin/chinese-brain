@@ -8,7 +8,7 @@
 // Nothing here needs setting up besides the RESEND_API_KEY secret for password-reset emails
 // (and, to see who signed up at /admin, an ADMIN_KEY secret of your choosing; to change the
 // pages' words at /edit, an EDIT_KEY secret: see "Editing the pages" below).
-import { DurableObject } from 'cloudflare:workers';
+import { DurableObject, WorkerEntrypoint } from 'cloudflare:workers';
 import { annotate, clean, PAGES } from './src/copy.ts';
 import * as plus from './src/cbp/plus.ts';
 import * as taste from './src/cbp/taste.ts';
@@ -437,6 +437,25 @@ export class Relay extends DurableObject {
       return { status: 504, type: 'text/plain', body: new TextEncoder().encode(`timed out: ${e?.message ?? e}`).buffer };
     }
     return { status: r.status, type: r.headers.get('Content-Type') ?? '', body: await r.arrayBuffer() };
+  }
+}
+
+/** Production's AI for the staging copy, which has no keys of its own (its BRAINS service binding, wrangler.jsonc):
+ *  text and pictures on production's keys. Only Workers on this Cloudflare account can bind to it. A provider's
+ *  "not now" crosses as an error starting "QUOTA: " (ai.ts turns it back into one). */
+export class Brains extends WorkerEntrypoint {
+  async text(model, input, opts) {
+    return brains(() => ai.text(this.env, model, input, opts));
+  }
+  async image(model, prompt) {
+    return brains(() => ai.image(this.env, model, prompt));
+  }
+}
+async function brains(f) {
+  try {
+    return await f();
+  } catch (e) {
+    throw new Error((e instanceof ai.Quota ? 'QUOTA: ' : '') + String(e?.message ?? e));
   }
 }
 
