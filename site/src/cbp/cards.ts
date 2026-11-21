@@ -1,7 +1,8 @@
 // Chinese Brain Plus, Stage 3: what the card window on /plus asks the server for.
 //   sample    Claude writes the study card (and answers questions about it, and grades tests): Sonnet 5.5, his pick
-//   pictures  for the review card: photos from Wikimedia Commons for a concrete word, two drawings in his flashcard style for
-//             the rest, each one tap from the other; the plan for a word is kept in docs `pics`
+//   photos    for the review card's pictures: Wikimedia Commons, straight from its servers
+//   drawings  two drawings in his flashcard style (prompts by Claude, kept with them in docs `pics`)
+//   grab      a picture from the web, kept in R2;  pinyin  the sentence's reading, done for him
 //   voice     the sentence read by an Azure Taiwan voice (YunJhe or HsiaoChen, picked at random)
 //   media     pictures and audio kept in R2 under an unguessable name, so <img> and <audio> can load them
 import * as ai from './ai.ts';
@@ -64,52 +65,39 @@ export async function media(env: Env, name: string) {
   return new Response(o.body, { headers: { 'Content-Type': o.httpMetadata?.contentType ?? 'application/octet-stream', 'Cache-Control': 'private, max-age=31536000, immutable' } });
 }
 
-// ---------- pictures from the web, through the Worker (the page's CSP allows only its own site) ----------
-const sig = async (env: Env, u: string) => (await hex(`img|${env.CBP_PUSH_KEY ?? ''}|${u}`)).slice(0, 32);
-const proxied = async (env: Env, u: string) => `/api/plus/img?u=${encodeURIComponent(u)}&s=${await sig(env, u)}`;
-async function fetchImage(u: string) {
-  const r = await fetch(u, { headers: { 'User-Agent': BOT, Accept: 'image/*' }, redirect: 'follow', cf: { cacheTtl: 86400 } } as RequestInit);
+// ---------- pictures from the web ----------
+/** A picture from anywhere on the web (one he pasted, a photo he picked), kept for good: the web's copy can vanish,
+ *  and the page shows only its own site's pictures (and Commons'). */
+export async function grab(env: Env, b: { url?: unknown }) {
+  const u = String(b.url ?? '');
+  if (!/^https:\/\/[^/]+\//.test(u) || /^https:\/\/(localhost|127\.|10\.|192\.168\.|\[)/.test(u)) throw new Bad('Not a picture address.');
+  const r = await fetch(u, { headers: { 'User-Agent': BOT, Accept: 'image/*' }, redirect: 'follow' });
   const type = (r.headers.get('Content-Type') ?? '').split(';')[0];
-  if (!r.ok || !type.startsWith('image/')) throw new Bad(`No picture at ${u.slice(0, 120)}`);
+  if (!r.ok || !type.startsWith('image/')) throw new Bad('No picture there.');
   const bytes = await r.arrayBuffer();
-  if (bytes.byteLength > 12_000_000) throw new Bad('Too big.');
-  return { bytes, type };
-}
-/** GET /api/plus/img: a search result, only with the signature this server gave it. */
-export async function img(env: Env, u: string, s: string) {
-  if (!/^https?:\/\//.test(u) || s !== (await sig(env, u))) return new Response('Not found', { status: 404 });
-  try {
-    const { bytes, type } = await fetchImage(u);
-    return new Response(bytes, { headers: { 'Content-Type': type, 'Cache-Control': 'private, max-age=86400' } });
-  } catch {
-    return new Response('Not found', { status: 404 });
-  }
-}
-/** The picture he picked from the search, kept for good (the web's copy can vanish). */
-export async function keepFromWeb(env: Env, proxiedUrl: string) {
-  const q = new URL(proxiedUrl, 'https://x').searchParams;
-  const u = q.get('u') ?? '';
-  if (!/^https?:\/\//.test(u) || q.get('s') !== (await sig(env, u))) throw new Bad('Not one of ours.');
-  const { bytes, type } = await fetchImage(u);
-  return keepMedia(env, bytes, type);
+  return { url: await keepMedia(env, bytes, type) };
 }
 
-/** Wikimedia Commons photos (its API is open to programs; Bing and DuckDuckGo turn a server away). Pictures come back
- *  800 px wide, the choices 300. */
-async function search(q: string) {
-  const u = `https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=${encodeURIComponent('filetype:bitmap ' + q)}&gsrnamespace=6&gsrlimit=12&prop=imageinfo&iiprop=url|mime&iiurlwidth=800`;
+/** Wikimedia Commons photos (its API is open to programs; Bing and DuckDuckGo turn a server away). Commons serves
+ *  thumbnails only at its standard widths: 330 for the choices, 960 for the card. The page loads them from Commons. */
+export async function photos(env: Env, b: { q?: unknown; offset?: unknown }) {
+  const q = String(b.q ?? '').trim().slice(0, 120);
+  if (!q) throw new Bad('Nothing to look for.');
+  const off = Math.max(0, Math.min(200, Number(b.offset) || 0));
+  const u = `https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=${encodeURIComponent('filetype:bitmap ' + q)}&gsrnamespace=6&gsrlimit=16&gsroffset=${off}&prop=imageinfo&iiprop=url|mime&iiurlwidth=960`;
   const r = await fetch(u, { headers: { 'User-Agent': BOT } });
-  if (!r.ok) throw new Error(`search: ${r.status}`);
+  if (!r.ok) throw new Error(`photos: ${r.status}`);
   const d = (await r.json()) as { query?: { pages?: Record<string, { index: number; imageinfo?: { thumburl?: string; mime?: string }[] }> } };
-  return Object.values(d.query?.pages ?? {})
+  const list = Object.values(d.query?.pages ?? {})
     .sort((x, y) => x.index - y.index)
     .map((p) => p.imageinfo?.[0])
-    .filter((i): i is { thumburl: string; mime: string } => !!i?.thumburl && /^image\/(jpeg|png|webp)/.test(i.mime ?? ''))
-    .slice(0, 10)
-    .map((i) => ({ full: i.thumburl, thumb: i.thumburl.replace(/\/800px-/, '/300px-') }));
+    .filter((i): i is { thumburl: string; mime: string } => !!i?.thumburl && /^image\/(jpeg|png|webp)/.test(i.mime ?? '') && /\/960px-/.test(i.thumburl))
+    .map((i) => i.thumburl.split('?')[0])
+    .map((u) => ({ full: u, thumb: u.replace('/960px-', '/330px-') }));
+  return { photos: list.slice(0, 12), next: off + 16 };
 }
 
-// ---------- the picture plan ----------
+// ---------- drawings ----------
 // His flashcard skill (life/chinese/reference/SKILL-taiwanese-mandarin-flashcards.md), the parts a prompt needs,
 // with his notes from the taste test: the meaning must land at a glance, funny and over the top beats polite.
 const PICTURE_RULES = `How his flashcard pictures work (his rules):
@@ -120,56 +108,48 @@ const PICTURE_RULES = `How his flashcard pictures work (his rules):
 - Funny and over the top beats polite; the meaning must land at a glance.
 - Words only when they genuinely help an abstract word: a short Traditional-Chinese speech bubble or sign. Never the target word itself, no captions or labels. Otherwise say "no text".`;
 
-type Plan = { concrete: boolean; query: string; prompts: string[] };
-type Pics = Plan & { word: string; search?: { full: string; thumb: string }[]; drawn?: (string | null)[]; errs?: string[] };
+type Plan = { word: string; query: string; prompts: string[]; drawn?: string[] };
 
 function planPrompt(word: string, meaning: string, sentence: string) {
-  return `Chris is making a flashcard for the Taiwan Mandarin word ${word}${meaning ? ` (${meaning})` : ''}${sentence ? `, in the sentence ${sentence}` : ''}. Its picture comes either from a photo search on Wikimedia Commons or from two drawings.
+  return `Chris is making a flashcard for the Taiwan Mandarin word ${word}${meaning ? ` (${meaning})` : ''}${sentence ? `, in the sentence ${sentence}` : ''}. Its picture: two drawings, and photos from Wikimedia Commons.
 
-concrete: true when a plain photo of a thing, animal, food, place or physical action shows the meaning at a glance (蘋果, 火車, 跑步, 夜市). false for anything abstract, a feeling, a judgment, a relation, grammar, or a word whose photos would mostly show something else.
-query: English search words for Wikimedia Commons photos that show it at a glance, with a word that rules out the wrong sense ("apple fruit", not "apple"); add Taiwan when Taiwan's version looks different (a Taiwan night market, a Taiwan scooter).
+query: English search words for Wikimedia Commons photos that show it at a glance, with a word that rules out the wrong sense ("apple fruit", not "apple"); add Taiwan when Taiwan's version looks different (a Taiwan night market, a Taiwan scooter). For an abstract word, the photo scene that shows it best.
 prompts: two picture prompts, two different takes on the word, each written for an image model, following his rules:
 
 ${PICTURE_RULES}
 
-Reply with only this JSON: {"concrete": boolean, "query": string, "prompts": [string, string]}`;
+Reply with only this JSON: {"query": string, "prompts": [string, string]}`;
 }
 
 const picsId = (word: string) => 'w' + [...word].map((c) => c.codePointAt(0)!.toString(16)).join('-');
-async function loadPics(env: Env, word: string) {
+async function loadPlan(env: Env, word: string) {
   const r = await env.CBP.prepare("SELECT data FROM docs WHERE col = 'pics' AND id = ?").bind(picsId(word)).first<{ data: string }>();
-  return r ? (JSON.parse(r.data) as Pics) : null;
+  const p = r ? (JSON.parse(r.data) as Plan) : null;
+  return p?.prompts?.length ? p : null;
 }
-async function savePics(env: Env, p: Pics) {
+async function savePlan(env: Env, p: Plan) {
   const data = JSON.stringify(p);
   await env.CBP.prepare("INSERT INTO docs (col, id, data, sha, updated) VALUES ('pics', ?, ?, ?, ?) ON CONFLICT (col, id) DO UPDATE SET data = excluded.data, sha = excluded.sha, updated = excluded.updated")
     .bind(picsId(p.word), data, await hex(data), Date.now()).run();
 }
 
-/** POST plus/pictures {word, meaning, sentence, want: 'auto' | 'search' | 'draw', again}: the pictures to choose from.
- *  'auto' gives the search for a concrete word and the drawings for the rest; the other kind comes when he asks. */
-export async function pictures(env: Env, b: { word?: unknown; meaning?: unknown; sentence?: unknown; want?: unknown; again?: unknown }) {
+/** POST plus/drawings {word, meaning, sentence, again}: two drawings in his flashcard style (kept, so a card opened
+ *  again shows the same ones; `again` draws two more), and Claude's search words for better photos. */
+export async function drawings(env: Env, b: { word?: unknown; meaning?: unknown; sentence?: unknown; again?: unknown }) {
   const word = String(b.word ?? '').trim().slice(0, 30);
   if (!word) throw new Bad('No word.');
-  let p = await loadPics(env, word);
+  let p = await loadPlan(env, word);
   if (!p) {
     const r = await ai.text(env, CARD_MODEL, planPrompt(word, String(b.meaning ?? '').slice(0, 200), String(b.sentence ?? '').slice(0, 300)), { effort: 'low' });
     const j = JSON.parse(/\{[\s\S]*\}/.exec(r.text)?.[0] ?? '{}');
     const prompts = (Array.isArray(j.prompts) ? j.prompts : []).map(String).filter(Boolean).slice(0, 2);
-    p = { word, concrete: !!j.concrete, query: String(j.query || word), prompts: prompts.length ? prompts : [word] };
-    await savePics(env, p);
+    p = { word, query: String(j.query || ''), prompts: prompts.length ? prompts : [word] };
+    await savePlan(env, p);
   }
-  const want = b.want === 'search' || b.want === 'draw' ? b.want : p.concrete ? 'search' : 'draw';
-  if (want === 'search' && (!p.search?.length || b.again)) {
-    p.search = await search(p.query);
-    if (!p.search.length && p.query !== word) p.search = await search(word);
-    await savePics(env, p);
-  }
-  if (want === 'draw' && (!p.drawn || b.again || p.drawn.some((x) => !x))) {
-    const errs: string[] = [];
-    p.drawn = await Promise.all(
+  const errs: string[] = [];
+  if (!p.drawn?.length || b.again) {
+    const made = await Promise.all(
       DRAWERS.map(async (m, i) => {
-        if (!b.again && p!.drawn?.[i]) return p!.drawn[i];
         try {
           const im = await ai.image(env, m, p!.prompts[i % p!.prompts.length]);
           return await keepMedia(env, im.bytes, im.type);
@@ -179,16 +159,21 @@ export async function pictures(env: Env, b: { word?: unknown; meaning?: unknown;
         }
       }),
     );
-    p.errs = errs;
-    await savePics(env, p);
+    p.drawn = [...made.filter((x): x is string => !!x), ...(p.drawn ?? [])].slice(0, 12);
+    await savePlan(env, p);
   }
-  return {
-    concrete: p.concrete,
-    want,
-    search: p.search ? await Promise.all(p.search.map(async (x) => ({ thumb: await proxied(env, x.thumb), full: await proxied(env, x.full) }))) : null,
-    drawn: p.drawn ?? null,
-    errs: p.errs ?? [],
-  };
+  return { drawn: p.drawn ?? [], query: p.query, errs };
+}
+
+// ---------- pinyin ----------
+/** POST plus/pinyin {text}: the sentence's Taiwan reading, for the Pinyin field he never has to see. */
+export async function pinyin(env: Env, b: { text?: unknown }) {
+  const text = String(b.text ?? '').trim().slice(0, 600);
+  if (!text) return { pinyin: '' };
+  const r = await ai.text(env, CARD_MODEL, `Write the pinyin of this Traditional Chinese text with tone marks, using Taiwan readings (垃圾 lèsè, 星期 xīngqí). Join the syllables of a word (Wǒmen míngtiān dā huǒchē), capitalize the first word of each sentence, keep the punctuation as English punctuation, and keep the line breaks and any "- " at the start of a line. Reply with the pinyin only.
+
+${text}`, { effort: 'low' });
+  return { pinyin: r.text.trim() };
 }
 
 // ---------- the voice ----------

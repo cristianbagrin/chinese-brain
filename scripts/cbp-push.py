@@ -304,12 +304,19 @@ def anki(d, site, k):
         return name
 
     one = lambda s: re.sub(r'[\t\r\n]+', ' ', str(s or ''))
+    # any field may hold pictures (as many as he put in): each goes into Anki's media folder under its cbp- name
+    media_in = lambda html: re.sub(r' data-from="[^"]*"', '', re.sub(r'src="(/api/plus/media/[^"]+)"', lambda m: f'src="{fetch(m.group(1))}"', str(html or '')))
     rows = []
     for ci, v in sorted(todo, key=lambda x: x[1]['data'].get('made') or ''):
         n = v['data']
-        pic, snd = fetch(n.get('picture')), fetch(n.get('audio'))
-        notes = '<br>'.join(str(n.get('notes') or '').split('\n'))
-        rows.append('\t'.join(one(x) for x in [n.get('chinese'), n.get('word'), f'<img src="{pic}">' if pic else '', notes, n.get('pinyin'), f'[sound:{snd}]' if snd else '']))
+        pic = n.get('picture') or ''
+        if pic.startswith('/api/plus/media/'):  # the first notes kept one address, not a field
+            pic = f'<img src="{pic}">'
+        snd = fetch(n.get('audio'))
+        notes = str(n.get('notes') or '')
+        if '<' not in notes:
+            notes = '<br>'.join(notes.split('\n'))
+        rows.append('\t'.join(one(media_in(x)) for x in [n.get('chinese'), n.get('word'), pic, notes, n.get('pinyin')]) + '\t' + (f'[sound:{snd}]' if snd else ''))
     day = datetime.date.today().isoformat()
     out = d / 'anki' / f'cbp-{day}.txt'
     out.parent.mkdir(exist_ok=True)

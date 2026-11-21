@@ -1,47 +1,76 @@
-/* Chinese Brain Plus: the review card under the study card (plus/review.js). Uses the board's tokens (board/css/base.css). */
+/* Chinese Brain Plus: the card he adds, under the study card (plus/review.js). Uses the board's tokens (board/css/base.css).
+   Fields like Anki's editor: a small label, then a field that takes anything. Nothing animates on typing or keys; presses
+   answer at once (scale on :active); the strip's tiles ease in only as pictures arrive. */
 .cd-done{display:none}
 .cd-main{grid-template-areas:"l r" "v v" "t t"}
-.rv{grid-area:v;display:grid;grid-template-columns:240px minmax(0,1fr) minmax(0,1.1fr);grid-template-areas:"p f c";gap:20px 28px;
-  border-top:1px solid var(--hair);padding-top:20px;margin-top:4px;align-items:start}
+.rv{--rv-ease:cubic-bezier(.23,1,.32,1);grid-area:v;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);
+  grid-template-areas:"f s" "f b";gap:14px 32px;align-items:start;border-top:1px solid var(--hair);padding-top:22px;margin-top:6px}
 .rv[hidden]{display:none}
-.rv.drop{outline:2px dashed var(--ink-4);outline-offset:6px;border-radius:12px}
-.rv-pic{grid-area:p;aspect-ratio:1;border-radius:14px;background:var(--wash);overflow:hidden;display:grid;place-items:center;outline:none}
-.rv-pic img{width:100%;height:100%;object-fit:cover;display:block}
-.rv-empty{color:var(--ink-3);font-size:var(--fs-s);padding:16px;text-align:center}
-.rv-fields{grid-area:f;display:grid;gap:10px;min-width:0}
-.rv-zh{font-family:var(--zh);font-size:calc(26px * var(--k));line-height:1.45;padding:6px 10px;border-radius:10px;outline:none}
-.rv-zh u{text-decoration-thickness:2px;text-underline-offset:4px}
-.rv-py{color:var(--ink-2);font-size:var(--fs-m);padding:2px 10px;border-radius:8px;outline:none}
-.rv-zh:hover,.rv-py:hover{background:var(--wash)}
-.rv-zh:focus,.rv-py:focus{background:var(--wash);box-shadow:inset 0 0 0 1px var(--wash-2)}
-.rv-notes{font:inherit;font-size:var(--fs-m);line-height:1.5;color:var(--ink);background:var(--wash);border:0;border-radius:10px;padding:10px 12px;resize:vertical;min-height:72px}
-.rv-notes:focus{outline:none;box-shadow:inset 0 0 0 1px var(--wash-2);background:var(--surface)}
-.rv-row{display:flex;align-items:center;gap:10px}
-.rv-sp{flex:1}
-.rv-say{width:44px;height:44px;border-radius:50%;border:1px solid var(--hair);background:var(--surface);color:var(--ink-2);cursor:pointer;display:grid;place-items:center}
-.rv-say kbd{font:600 var(--fs-s) var(--latin)}
-.rv-say.on{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
-.rv-say:disabled{opacity:.5;cursor:default}
-.rv-add{min-width:110px;justify-content:center;background:var(--ink);color:var(--on-ink)}
+
+/* ---------- fields ---------- */
+.rv-fields{grid-area:f;display:grid;gap:12px;min-width:0}
+.rv-field{position:relative;display:grid;gap:4px}
+.rv-l{font:500 12px/1 var(--latin);letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);padding-left:2px}
+.rv-f{min-height:44px;padding:10px 14px;border-radius:12px;background:var(--wash);color:var(--ink);font-size:var(--fs-m);line-height:1.55;
+  outline:none;overflow-wrap:anywhere;cursor:text;box-shadow:inset 0 0 0 1px transparent;transition:background-color .15s ease,box-shadow .15s ease}
+.rv-f:hover{background:var(--wash-2)}
+.rv-f:focus{background:var(--surface);box-shadow:inset 0 0 0 1.5px var(--ink-4),0 1px 2px var(--shade)}
+.rv-f.zh{font-family:var(--zh)}
+.rv-chinese .rv-f{font-size:calc(27px * var(--k));line-height:1.5;padding:12px 56px 12px 16px;min-height:64px}
+.rv-word .rv-f{font-size:calc(22px * var(--k))}
+.rv-notes .rv-f{min-height:76px}
+.rv-picture .rv-f{min-height:96px;display:block}
+/* Cmd+U marks a word: shown as a highlighter stroke (Anki keeps it as <u>) */
+.rv-f u{text-decoration:none;background:linear-gradient(transparent 12%,color-mix(in srgb,var(--gold) 55%,transparent) 12%,color-mix(in srgb,var(--gold) 55%,transparent) 88%,transparent 88%);
+  border-radius:3px;padding:0 1px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.rv-f img{max-height:150px;max-width:100%;border-radius:8px;vertical-align:middle;margin:2px 4px 2px 0}
+.rv-picture .rv-f img{height:120px;width:auto;object-fit:cover}
+.rv-f img:hover{outline:2px solid var(--ink-4);outline-offset:1px}
+
+/* V: the sentence read aloud */
+.rv-say{position:absolute;right:10px;top:calc(50% + 8px);transform:translateY(-50%);width:36px;height:36px;border-radius:50%;border:0;
+  background:var(--surface);color:var(--ink-3);font:600 13px/1 var(--latin);cursor:pointer;box-shadow:0 0 0 1px var(--hair);
+  transition:transform .12s var(--rv-ease),background-color .15s ease,color .15s ease}
+.rv-say:hover{color:var(--ink)}
+.rv-say:active{transform:translateY(-50%) scale(.94)}
+.rv-say.on{background:var(--ink);color:var(--on-ink);box-shadow:none}
+.rv-say.busy{color:transparent;background:var(--surface)}
+.rv-say.busy::after{content:"";position:absolute;inset:11px;border-radius:50%;border:2px solid var(--ink-4);border-top-color:var(--ink);animation:rv-spin .6s linear infinite}
+
+/* ---------- pictures to choose from: one strip, drawings first ---------- */
+.rv-strip{grid-area:s;display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;align-content:start;padding-top:18px}
+.rv-tile{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--wash);cursor:pointer;outline:none;
+  box-shadow:0 0 0 1px var(--hair);transition:transform .14s var(--rv-ease),box-shadow .14s ease;animation:rv-in .22s var(--rv-ease) both}
+.rv-tile img{width:100%;height:100%;object-fit:cover;display:block;-webkit-user-drag:element}
+.rv-tile.drawn{background:#fff}
+.rv-tile.drawn img{object-fit:contain}
+.rv-tile:hover{box-shadow:0 0 0 1px var(--ink-4)}
+.rv-tile:active{transform:scale(.96)}
+.rv-tile:focus-visible{box-shadow:0 0 0 2px var(--ink)}
+.rv-tile[aria-pressed=true]{box-shadow:0 0 0 2.5px var(--ink)}
+.rv-tile[aria-pressed=true]::after{content:"✓";position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:var(--ink);
+  color:var(--on-ink);font:600 12px/22px var(--latin);text-align:center}
+.rv-tile.wait{cursor:default;animation:rv-pulse 1.4s ease-in-out infinite;box-shadow:none}
+.rv-more{border:0;font:500 var(--fs-s) var(--latin);color:var(--ink-2)}
+.rv-more:disabled{opacity:.45;cursor:default}
+
+/* ---------- Add ---------- */
+.rv-bar{grid-area:b;display:flex;justify-content:flex-end;align-self:end}
+.rv-add{font:600 16px/1 var(--latin);min-width:128px;padding:14px 22px;border-radius:999px;border:0;background:var(--ink);color:var(--on-ink);cursor:pointer;
+  transition:transform .12s var(--rv-ease),background-color .15s ease,opacity .15s ease}
+.rv-add:active{transform:scale(.97)}
 .rv-add:disabled{opacity:.45;cursor:default}
-.rv-choose{grid-area:c;min-width:0;display:grid;gap:10px}
-.rv-tabs{display:flex;gap:4px;align-items:center}
-.rv-tabs [role=tab]{font:inherit;font-size:var(--fs-s);padding:6px 12px;border-radius:999px;border:0;background:none;color:var(--ink-3);cursor:pointer}
-.rv-tabs [role=tab][aria-selected=true]{background:var(--wash);color:var(--ink)}
-.rv-again{margin-left:auto;font:inherit;font-size:var(--fs-l);line-height:1;width:34px;height:34px;border-radius:50%;border:0;background:none;color:var(--ink-3);cursor:pointer}
-.rv-again:hover,.rv-tabs [role=tab]:hover{color:var(--ink)}
-.rv-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;min-height:60px}
-.rv-grid .cd-wait,.rv-none{grid-column:1/-1;color:var(--ink-3);font-size:var(--fs-s)}
-.rv-opt{padding:0;border:0;background:var(--wash);border-radius:10px;overflow:hidden;aspect-ratio:1;cursor:pointer;outline:2px solid transparent;outline-offset:2px;transition:outline-color .12s var(--ease),transform .12s var(--ease)}
-.rv-opt img{width:100%;height:100%;object-fit:cover;display:block}
-.rv-opt:hover{transform:scale(1.03)}
-.rv-opt[aria-pressed=true]{outline-color:var(--ink)}
+.rv-add.done{background:var(--green-wash);color:var(--green-deep)}
+
+@keyframes rv-in{from{opacity:0;transform:scale(.96)}}
+@keyframes rv-pulse{50%{opacity:.55}}
+@keyframes rv-spin{to{transform:rotate(1turn)}}
+@media (prefers-reduced-motion:reduce){.rv-tile{animation:none}.rv-tile.wait{animation:none;opacity:.7}}
+
 @media (max-width:1000px){
-  .rv{order:5;grid-template-columns:160px minmax(0,1fr);grid-template-areas:"p f" "c c"}
-  .rv-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .rv{order:5;grid-template-columns:minmax(0,1fr);grid-template-areas:"f" "s" "b"}
+  .rv-strip{padding-top:0}
+  .rv-bar{position:sticky;bottom:0;padding:10px 0 2px;background:linear-gradient(transparent,var(--surface) 35%)}
+  .rv-add{width:100%}
 }
-@media (max-width:640px){
-  .rv{grid-template-columns:1fr;grid-template-areas:"p" "f" "c"}
-  .rv-pic{max-width:260px}
-  .rv-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-}
+@media (max-width:640px){.rv-strip{grid-template-columns:repeat(3,minmax(0,1fr))}}

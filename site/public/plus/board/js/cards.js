@@ -47,15 +47,15 @@ char: 字 | its meaning                       (one per character of the word, in
 part: 扌 | hand                              (a component of the char above)
 part: 巨 | giant, huge | ask                 (a common character on neither of his lists: meaning only, not taken apart; the board asks him if he knows it)
 sub: 隹 | short-tailed bird                  (a component of the part above, when that part is unfamiliar)
-story: the story, 2 or 3 short sentences, with the characters and parts written inside it in Chinese
+how: the character's story, 1 or 2 short sentences   (last, under each character new to him; none under a character he knows)
 know: one proactive-knowledge point, one sentence     (2 to 4; two strong ones beat four)
 second: word | why he should learn it right now, one short line     (only when your judgment says so)
 
 For a character he knows, write its char line and nothing under it. Write no "do you know…" question: the ask flag does that. Skip "Suggested next": the board shows his queue.
 
-The story is the one place the characters get made sense of. It explains them through their parts the way a Taiwanese friend would, down to earth, so he sees it every time he looks at the character ("耂 is an old person hunched over with long hair, the top of 老"). Wild and funny when it helps it stick, never long. No separate logic or mnemonic lines.
+Each how: line is the story of one character new to him: how its parts make that character, with the parts written inside it in Chinese, the way a Taiwanese friend would explain it, down to earth, so he sees it every time he looks at the character ("耂 is an old person hunched over with long hair, the top of 老"). A character with no parts gets the story of its shape. Never a story of the word as a whole: joining the characters into the word he does himself. A word whose characters he all knows gets no how: lines. Wild and funny when it helps it stick, never long. No separate logic or mnemonic lines.
 
-Before you send, check: every line is as short as it can be; every word and phrase is what people in Taiwan say (mainland-only usage is wrong here: 揹黑鍋, not 背鍋); every pinyin tone mark is right; the story is 2 or 3 sentences and has the characters in it; each know point is about real use (which word a Taiwanese person reaches for, register, collocations), not grammar talk; nothing is introduced by a label or title before the point ("The 'progress' trap: …" becomes just the point); Chinese text has only Chinese punctuation.`;
+Before you send, check: every line is as short as it can be; every word and phrase is what people in Taiwan say (mainland-only usage is wrong here: 揹黑鍋, not 背鍋); every pinyin tone mark is right; every character new to him has a how: line of 1 or 2 sentences built from its parts, and no line tells a story of the whole word; each know point is about real use (which word a Taiwanese person reaches for, register, collocations), not grammar talk; nothing is introduced by a label or title before the point ("The 'progress' trap: …" becomes just the point); Chinese text has only Chinese punctuation.`;
 
 function cardPrompt(kit,word){
   const saved=(kit.saved||{})[word.replace(/臺/g,'台')]||[];   // words.py kit keys them in 台 form
@@ -97,7 +97,7 @@ function parseCard(t){
   let last=null;
   String(t||'').split('\n').forEach(raw=>{
     const l=raw.trim(); if(!l) return;
-    const m=/^(word|pinyin|meaning|mine|ex|char|part|sub|logic|story|hook|know|second|card)\s*[:：]\s*(.*)$/i.exec(l);
+    const m=/^(word|pinyin|meaning|mine|ex|char|part|sub|logic|how|story|hook|know|second|card)\s*[:：]\s*(.*)$/i.exec(l);
     if(!m){ // a wrapped line belongs to the field above it
       if(last&&typeof last.o[last.k]==='string') last.o[last.k]+=(last.o[last.k]?' ':'')+l;
       return;
@@ -111,7 +111,7 @@ function parseCard(t){
     else if(k==='char'){const x={c:f[0]||'',m:f.slice(1).join(' | '),parts:[],logic:''};c.chars.push(x);last={o:x,k:'m'};}
     else if(k==='part'&&ch){const ask=/^ask$/i.test(f[f.length-1]||'')&&f.length>2;const x={c:f[0]||'',m:(ask?f.slice(1,-1):f.slice(1)).join(' | '),ask,subs:[]};ch.parts.push(x);last={o:x,k:'m'};}
     else if(k==='sub'&&pt){const x={c:f[0]||'',m:f.slice(1).join(' | ')};pt.subs.push(x);last={o:x,k:'m'};}
-    else if(k==='logic'&&ch){ch.logic=v;last={o:ch,k:'logic'};}
+    else if((k==='logic'||k==='how')&&ch){ch.logic=v;last={o:ch,k:'logic'};}   // how: (from 2026-11-22) and the older logic: both sit under their character
     else if(k==='know'){c.know.push(v);last={o:c.know,k:c.know.length-1};}
     else if(k==='second'||k==='card'){const x={w:(f[0]||'').trim(),why:f.slice(1).join(' | ')};if(k==='second')c.second=x;else c.cards.push(x);last={o:x,k:'why'};}
   });
@@ -272,7 +272,7 @@ function charsHTML(c,word,d){
   const knows=d.knows||{};
   return c.chars.map(ch=>{
     const k=knownChar(ch.c);
-    if(k||!ch.parts.length) return `<div class="cd-ch${k?' known':''}"><span class="cd-big zh" lang="zh-Hant">${esc(ch.c)}</span><span class="cd-chm">${inl(ch.m)}</span></div>`;
+    if(k||!ch.parts.length) return `<div class="cd-ch${k?' known':''}"><span class="cd-big zh" lang="zh-Hant">${esc(ch.c)}</span><span class="cd-chm">${inl(ch.m)}</span>${!k&&ch.logic?`<p class="cd-logic">${inl(ch.logic)}</p>`:''}</div>`;
     return `<div class="cd-ch"><div class="cd-chtop"><span class="cd-big zh" lang="zh-Hant">${esc(ch.c)}</span><span class="cd-chm">${inl(ch.m)}</span></div>
       <ul class="cd-parts">${ch.parts.map(p=>{
         const pk=knownChar(p.c), asked=p.ask&&!pk, ans=knows[p.c];

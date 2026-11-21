@@ -741,8 +741,10 @@ async function api(request, env, path) {
         }
         // the card window (src/cbp/cards.ts)
         if (path === 'plus/sample') return await cards.sample(env, body);
-        if (path === 'plus/pictures') return await cards.pictures(env, body);
-        if (path === 'plus/keep') return { url: await cards.keepFromWeb(env, String(body.url ?? '')) };
+        if (path === 'plus/photos') return await cards.photos(env, body);
+        if (path === 'plus/drawings') return await cards.drawings(env, body);
+        if (path === 'plus/grab') return await cards.grab(env, body);
+        if (path === 'plus/pinyin') return await cards.pinyin(env, body);
         if (path === 'plus/voice') return await cards.voice(env, body);
         throw new Fail(404, 'not_found', 'Not found.');
       }
@@ -1029,7 +1031,7 @@ const STORES = {
   chrome: 'https://chromewebstore.google.com/detail/chinese-brain/pdhgpdlkjdkehlpoomonehbnhiplgaao',
 };
 
-const PLUS_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; media-src 'self' blob: data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+const PLUS_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://upload.wikimedia.org https://thumb.wikimedia.org; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; media-src 'self' blob: data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
 
 /** Addresses from before the extension's pages moved under /brain. */
 const MOVED = { '/welcome': '/brain/guide#welcome', '/brain/welcome': '/brain/guide#welcome', '/privacy': '/brain/privacy', '/dashboard': '/brain/dashboard', '/guide': '/brain/guide', '/whats-new': '/brain/whats-new' };
@@ -1046,9 +1048,8 @@ export default {
     }
     // The Mac's push to Chinese Brain Plus (scripts/cbp-push.py) and Claude's connector: each with its own secret.
     if (url.pathname.startsWith('/api/plus/push') || url.pathname.startsWith('/mcp/')) return plusMachine(request, env, url);
-    // Chinese Brain Plus's pictures and sounds: by unguessable name, or a search result with this server's signature
+    // Chinese Brain Plus's pictures and sounds, by unguessable name
     if (request.method === 'GET' && url.pathname.startsWith('/api/plus/media/')) return cards.media(env, url.pathname.slice(16));
-    if (request.method === 'GET' && url.pathname === '/api/plus/img') return cards.img(env, url.searchParams.get('u') ?? '', url.searchParams.get('s') ?? '');
     if (request.method === 'POST' && url.pathname === '/api/plus/upload') return plusUpload(request, env);
     if (url.pathname.startsWith('/api/')) {
       if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
