@@ -1,6 +1,6 @@
 // Chinese Brain Plus, Stage 3: what the card window on /plus asks the server for.
 //   sample    Claude writes the study card (and answers questions about it, and grades tests): Sonnet 5.5, his pick
-//   pictures  for the review card: a Taiwan image search for a concrete word, two drawings in his flashcard style for
+//   pictures  for the review card: photos from Wikimedia Commons for a concrete word, two drawings in his flashcard style for
 //             the rest, each one tap from the other; the plan for a word is kept in docs `pics`
 //   voice     the sentence read by an Azure Taiwan voice (YunJhe or HsiaoChen, picked at random)
 //   media     pictures and audio kept in R2 under an unguessable name, so <img> and <audio> can load them
@@ -21,7 +21,8 @@ type Env = {
 export const CARD_MODEL = 'anthropic:claude-sonnet-5-5';
 /** The two that draw a picture (his picks in the taste test): FLUX.2 Flex writes Chinese correctly. */
 export const DRAWERS = ['pollinations:microsoft/mai-image-2.7', 'pollinations:black-forest-labs/flux.2-flex'];
-const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36';
+/** Who's asking, as Wikimedia asks programs to say. */
+const BOT = 'ChineseBrainPlus/1.0 (https://chinese.cristianbagrin.com; flashcard pictures)';
 
 export class Bad extends Error {}
 
@@ -67,7 +68,7 @@ export async function media(env: Env, name: string) {
 const sig = async (env: Env, u: string) => (await hex(`img|${env.CBP_PUSH_KEY ?? ''}|${u}`)).slice(0, 32);
 const proxied = async (env: Env, u: string) => `/api/plus/img?u=${encodeURIComponent(u)}&s=${await sig(env, u)}`;
 async function fetchImage(u: string) {
-  const r = await fetch(u, { headers: { 'User-Agent': UA, Accept: 'image/*' }, redirect: 'follow', cf: { cacheTtl: 86400 } } as RequestInit);
+  const r = await fetch(u, { headers: { 'User-Agent': BOT, Accept: 'image/*' }, redirect: 'follow', cf: { cacheTtl: 86400 } } as RequestInit);
   const type = (r.headers.get('Content-Type') ?? '').split(';')[0];
   if (!r.ok || !type.startsWith('image/')) throw new Bad(`No picture at ${u.slice(0, 120)}`);
   const bytes = await r.arrayBuffer();
@@ -93,21 +94,19 @@ export async function keepFromWeb(env: Env, proxiedUrl: string) {
   return keepMedia(env, bytes, type);
 }
 
-/** Bing's image results, Taiwan market (DuckDuckGo answers a server with a bot check). */
+/** Wikimedia Commons photos (its API is open to programs; Bing and DuckDuckGo turn a server away). Pictures come back
+ *  800 px wide, the choices 300. */
 async function search(q: string) {
-  const r = await fetch(`https://www.bing.com/images/async?q=${encodeURIComponent(q)}&first=0&count=30&mmasync=1&setmkt=zh-TW&setlang=zh-hant&adlt=strict`, {
-    headers: { 'User-Agent': UA, 'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.5' },
-  });
+  const u = `https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=${encodeURIComponent('filetype:bitmap ' + q)}&gsrnamespace=6&gsrlimit=12&prop=imageinfo&iiprop=url|mime&iiurlwidth=800`;
+  const r = await fetch(u, { headers: { 'User-Agent': BOT } });
   if (!r.ok) throw new Error(`search: ${r.status}`);
-  const html = await r.text(), out: { full: string; thumb: string }[] = [];
-  for (const m of html.matchAll(/\bm="([^"]+)"/g)) {
-    try {
-      const j = JSON.parse(m[1].replaceAll('&quot;', '"').replaceAll('&amp;', '&'));
-      if (j.murl && j.turl && !out.some((x) => x.full === j.murl)) out.push({ full: j.murl, thumb: j.turl });
-    } catch {}
-    if (out.length >= 10) break;
-  }
-  return out;
+  const d = (await r.json()) as { query?: { pages?: Record<string, { index: number; imageinfo?: { thumburl?: string; mime?: string }[] }> } };
+  return Object.values(d.query?.pages ?? {})
+    .sort((x, y) => x.index - y.index)
+    .map((p) => p.imageinfo?.[0])
+    .filter((i): i is { thumburl: string; mime: string } => !!i?.thumburl && /^image\/(jpeg|png|webp)/.test(i.mime ?? ''))
+    .slice(0, 10)
+    .map((i) => ({ full: i.thumburl, thumb: i.thumburl.replace(/\/800px-/, '/300px-') }));
 }
 
 // ---------- the picture plan ----------
@@ -125,10 +124,10 @@ type Plan = { concrete: boolean; query: string; prompts: string[] };
 type Pics = Plan & { word: string; search?: { full: string; thumb: string }[]; drawn?: (string | null)[]; errs?: string[] };
 
 function planPrompt(word: string, meaning: string, sentence: string) {
-  return `Chris is making a flashcard for the Taiwan Mandarin word ${word}${meaning ? ` (${meaning})` : ''}${sentence ? `, in the sentence ${sentence}` : ''}. Its picture comes either from a Taiwan image search or from two drawings.
+  return `Chris is making a flashcard for the Taiwan Mandarin word ${word}${meaning ? ` (${meaning})` : ''}${sentence ? `, in the sentence ${sentence}` : ''}. Its picture comes either from a photo search on Wikimedia Commons or from two drawings.
 
 concrete: true when a plain photo of a thing, animal, food, place or physical action shows the meaning at a glance (蘋果, 火車, 跑步, 夜市). false for anything abstract, a feeling, a judgment, a relation, grammar, or a word whose photos would mostly show something else.
-query: the search words for a Taiwan image search that would show it at a glance, in Traditional Chinese, with a word that rules out the wrong sense (蘋果 水果, not 蘋果, which finds phones).
+query: English search words for Wikimedia Commons photos that show it at a glance, with a word that rules out the wrong sense ("apple fruit", not "apple"); add Taiwan when Taiwan's version looks different (a Taiwan night market, a Taiwan scooter).
 prompts: two picture prompts, two different takes on the word, each written for an image model, following his rules:
 
 ${PICTURE_RULES}
@@ -161,7 +160,7 @@ export async function pictures(env: Env, b: { word?: unknown; meaning?: unknown;
     await savePics(env, p);
   }
   const want = b.want === 'search' || b.want === 'draw' ? b.want : p.concrete ? 'search' : 'draw';
-  if (want === 'search' && (!p.search || b.again)) {
+  if (want === 'search' && (!p.search?.length || b.again)) {
     p.search = await search(p.query);
     if (!p.search.length && p.query !== word) p.search = await search(word);
     await savePics(env, p);

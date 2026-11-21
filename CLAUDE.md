@@ -36,10 +36,15 @@
   `site/public/acct/keyring.js`. Keyrings are written with `if` (compare-and-set, see `_sync`); an item once written
   that way can't be replaced by a write without it, which keeps older app versions from writing over a newer keyring.
 - **Chinese Brain Plus** (`/plus`, plan: life/chinese/online-plan): the engine is `site/src/cbp/engine.ts` (words.py ported; check with
-  `scripts/cbp-parity.ts`), its data the CBP D1 (`files`, `docs`, `checks`; `site/src/cbp/plus.ts`). Until the website is the
-  source, the Mac's nightly task pushes life/chinese with `scripts/cbp-push.py` (key in `~/.cbp-push.env`) and the website
-  is read-only. The board's code is copied in with `scripts/cbp-board.py` (never edit `site/public/plus/board` by hand);
-  `plus/runtime.js` stands in for claude.ai's database. Claude sessions read it through the connector at `/mcp/<CBP_MCP_KEY>`.
+  `scripts/cbp-parity.ts`), its data the CBP D1 (`files`, `docs`, `checks`, `meta`, `history`; `site/src/cbp/plus.ts`). Who holds the
+  truth is `meta.source`: absent, the Mac's nightly mirrors life/chinese up with `scripts/cbp-push.py` (key in `~/.cbp-push.env`) and
+  /plus is read-only; set (it flips itself after three matching nights), /plus writes the board's documents (accounts with
+  `plus.write`; each replaced version kept in `history`) and the nightly runs `--pull`, words.py, `--push` (compare-and-set: nothing
+  the website changed is overwritten), `--anki`. The board's code is copied in with `scripts/cbp-board.py` (never edit
+  `site/public/plus/board` by hand); `plus/runtime.js` stands in for claude.ai's database and `sample` (Sonnet 5.5 on the server);
+  `plus/review.js` adds his review card under the study card (`site/src/cbp/cards.ts`: pictures from Wikimedia Commons or drawn on
+  Pollinations, Azure voices, media in R2). Staging has no AI keys: it borrows production's through the `Brains` entrypoint. Claude
+  sessions read it through the connector at `/mcp/<CBP_MCP_KEY>`.
 - **Durable Objects free tier: 5 million rows read a day across all Account objects**, and past it every page that
   touches accounts fails until 00:00 UTC. Anything called per request (auth checks, polling, each image) reads one row
   (`_who`), never a count or a scan; `_me` is for pages that show the counts.

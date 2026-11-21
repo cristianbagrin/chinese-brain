@@ -29,7 +29,7 @@ from pathlib import Path
 SITE = 'https://chinese.cristianbagrin.com'
 SKIP_DIRS = {'graded-readers', 'reference', '__pycache__', 'board', 'online-plan', '.db'}
 TEXT = ('.md', '.txt', '.tsv')
-ANKI_MEDIA = Path.home() / 'Library' / 'Application Support' / 'Anki2' / 'Chris' / 'collection.media'
+ANKI_MEDIA = Path(os.environ.get('CBP_ANKI_MEDIA') or Path.home() / 'Library' / 'Application Support' / 'Anki2' / 'Chris' / 'collection.media')
 
 
 def key():
